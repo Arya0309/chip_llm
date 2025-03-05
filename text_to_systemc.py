@@ -7,7 +7,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
-def text_to_systemc(text):
+def text_to_systemc(text, tokenizer, model):
     prompt = """Using the input data provided below, generate a clean, well-formatted SystemC module that meets the following requirements:
 
 ### Requirements:
