@@ -7,7 +7,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
-def text_to_systemc(text, tokenizer, model):
+def construct_prompt(text: str) -> str:
     prompt = """Using the input data provided below, generate a clean, well-formatted SystemC module that meets the following requirements:
 
 ### Requirements:
@@ -65,24 +65,32 @@ Begin.
         {"role": "user", "content": prompt},
     ]
 
-    inputs = tokenizer.apply_chat_template(messages, return_tensors="pt")
-    inputs = {"input_ids": inputs}
-    inputs["attention_mask"] = (inputs["input_ids"] != tokenizer.pad_token_id).long()
-    inputs = {
-        key: value.to(next(model.parameters()).device) for key, value in inputs.items()
-    }
+    return messages
 
-    inputs = tokenizer(prompt, return_tensors="pt").to(next(model.parameters()).device)
+
+def text_to_systemc(text: str, max_new_tokens=1024, tokenizer=None, model=None):
+    text = construct_prompt(text)
+
+    print("Start SystemC code generation...")
+
+    inputs = tokenizer.apply_chat_template(
+        text, tokenize=False, add_generation_prompt=True
+    )
+    inputs = tokenizer(inputs, return_tensors="pt", padding=True, truncation=True).to(
+        next(model.parameters()).device
+    )
+
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_length=4096,
-            eos_token_id=tokenizer.eos_token_id,
-            pad_token_id=tokenizer.pad_token_id,
+            max_new_tokens=max_new_tokens,
         )
-    raw_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    if "Begin." in raw_text:
-        raw_text = raw_text.split("Begin.", 1)[1]
+    raw_text = tokenizer.decode(outputs[0], skip_special_tokens=False)
+    if "<|im_start|>assistant" in response:
+        response = response.split("<|im_start|>assistant")[1]
+        response = response.split("<|im_end|>")[0]
+    else:
+        raise Exception("Missing assistant token.")
     systemc_code = raw_text.strip()
 
     print(systemc_code)

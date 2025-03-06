@@ -1,9 +1,9 @@
-from cpp_to_text import accelerated_cpp_to_text
+from cpp_to_text import cpp_to_text
 from text_to_systemc import text_to_systemc
 import os
 import json
 import pandas
-import re
+import time
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
@@ -26,9 +26,12 @@ with open(code_path, "r") as f:
     df = pandas.read_csv(f)
     df_code = df["Answer"]
 
-text = accelerated_cpp_to_text(df_code[0], tokenizer=tokenizer, model=model)
+start = time.time()
+text = cpp_to_text(df_code[17], tokenizer=tokenizer, model=model)
 systemc_code, title, raw_text = text_to_systemc(text, tokenizer=tokenizer, model=model)
 print(systemc_code)
+end = time.time()
+print("Time:", end - start)
 
 with open(os.path.join(dataset, "output_batch.json"), "w") as f:
     json.dump(output_batch, f, indent=4)

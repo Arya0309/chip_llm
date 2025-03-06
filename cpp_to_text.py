@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import torch
 import pandas
 import random
@@ -25,48 +26,55 @@ FEW_SHOT_EXAMPLES_2 = (
     "\"description\": \"Performs binary search to determine if 'target' exists in 'arr'.\"}"
 )
 
+required_keys = ["title", "parameters", "description"]
 
-def auto_fix_json(text):
+
+import json
+
+
+def extract_json(text) -> dict:
     text = text.strip()
+    start = text.find("{")
+    if start == -1:
+        return {}
+    count = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            count += 1
+        elif text[i] == "}":
+            count -= 1
+            if count == 0:
+                json_str = text[start : i + 1]
+                break
+    else:
+        json_str = text[start:]
 
-    if text.startswith('"') and text.endswith('"'):
-        try:
-            text = json.loads(text)
-        except json.JSONDecodeError:
-            text = text[1:-1].strip()
+    try:
+        data = json.loads(json_str)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"JSONDecodeError: {e}")
 
-    if text.startswith("```json"):
-        text = text[len("```json") :].strip()
-    if text.startswith("```"):
-        text = text[len("```") :].strip()
-    if text.endswith("```"):
-        text = text[:-3].strip()
+    if not isinstance(data, dict):
+        raise ValueError("JSON must be a dictionary.")
+    return data
 
-    if "End." in text:
-        text = text.split("End.")[0].strip()
 
-    def extract_first_json(s):
-        start = s.find("{")
-        if start == -1:
-            return s
-        count = 0
-        for i in range(start, len(s)):
-            if s[i] == "{":
-                count += 1
-            elif s[i] == "}":
-                count -= 1
-                if count == 0:
-                    return s[start : i + 1]
-        return s[start:]
+def check_json(text):
+    try:
+        json.loads(text)
 
-    text = extract_first_json(text)
-    return text
+        if all(key in text for key in required_keys):
+            return True
+        else:
+            print("Missing some required keys.")
+            return False
+    except json.JSONDecodeError as e:
+        print("JSONDecodeError:", e)
+        return False
 
 
 def construct_prompt(code: str):
-    prompt = f"""<|im_start|>system
-You are Qwen, created by Alibaba Cloud. You are a helpful code interpreter.<|im_end|>
-<|im_start|>user
+    prompt = f"""
 I will provide you with a snippet of C++ code, and I want you to analyze what the code does. Then, return a concise JSON-formatted description with three fields:
 
 1. "title": A short, descriptive title of the function or class (e.g., "Two Sum" or "Binary Search").
@@ -85,75 +93,94 @@ Below are examples of the desired JSON output:
 Now, please analyze the following C++ code and return only valid JSON in the same format as the examples above, with no additional commentary or text.
 
 **C++ Code:**
-{code}
+{code}"""
 
-Begin.
-<|im_end|>
-"""
-    return prompt
+    message = [
+        {
+            "role": "system",
+            "content": "You are Qwen, created by Alibaba Cloud. You are a helpful code interpreter.",
+        },
+        {
+            "role": "user",
+            "content": prompt,
+        },
+    ]
+    return message
 
 
-def cpp_to_text(code: str, max_attempts=3) -> dict:
-    attempt = 0
-    model.eval()
-    while attempt < max_attempts:
-        attempt += 1
-        prompt = construct_prompt(code)
+def cpp_to_text(
+    code: str,
+    attempt_size=1,
+    max_new_tokens=1024,
+    candidate=1,
+    tokenizer=None,
+    model=None,
+) -> dict:
+    accumulator = []
 
-        inputs = tokenizer(prompt, return_tensors="pt")
-        print(tokenizer.decode(inputs["input_ids"][0]))
-        inputs = {
-            key: value.to(next(model.parameters()).device)
-            for key, value in inputs.items()
-        }
+    trial = 0
+    print("Start description generation...")
+    while len(accumulator) < candidate:
+        episodes = []
+        for i in range(attempt_size):
+            episodes.append(
+                {"attempt": i + 1, "code": code, "complete": False, "result": None}
+            )
+        trial += 1
+
+        batch_attempt = [episode for episode in episodes]
+        batch_text = [construct_prompt(episode["code"]) for episode in batch_attempt]
+        batch_text = [
+            tokenizer.apply_chat_template(
+                text, tokenize=False, add_generation_prompt=True
+            )
+            for text in batch_text
+        ]
+        inputs = tokenizer(
+            batch_text, return_tensors="pt", padding=True, truncation=True
+        ).to(next(model.parameters()).device)
 
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=512,
+                max_new_tokens=max_new_tokens,
             )
-        response = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
 
-        if "Begin." in response:
-            response = response.split("Begin.", 1)[1]
-        generated_text = response.strip()
-
-        fixed_response = auto_fix_json(generated_text)
-
-        try:
-            parsed_json = json.loads(fixed_response)
-            parsed_json["code"] = code
-
-            if attempt == max_attempts:
-                print("Missing one or more required keys")
-                return parsed_json
-
-            required_keys = ["title", "parameters", "description"]
-
-            if not all(key in parsed_json for key in required_keys):
+        responses = tokenizer.batch_decode(outputs, skip_special_tokens=False)
+        for episode, response in zip(batch_attempt, responses):
+            print(f"Attempt: {episode['attempt']}/{attempt_size}")
+            if "<|im_start|>assistant" in response:
+                response = response.split("<|im_start|>assistant")[1]
+                response = response.split("<|im_end|>")[0]
+            else:
+                print(f"Missing assistant token.")
                 continue
+            response = extract_json(response)
 
-            return parsed_json
-        except json.JSONDecodeError as e:
-            if attempt == max_attempts:
-                print(f"Failed to parse JSON after {max_attempts} attempts.")
-                print(f"Error: {e}")
-                print(f"Original code:\n{code}")
-                return fixed_response.append({"code": code})
+            response["code"] = episode["code"]
+            episode["complete"] = True
+            episode["result"] = response
+            print("```")
+            print(json.dumps(response, indent=4))
+            print("```")
+            accumulator.append(response)
 
+    print("Description generation completed.")
+    print("===================================================")
 
-def multi_cpp_to_text(df_code: pandas.DataFrame):
-    output_batch = []
+    def get_best_result(results: list) -> dict:
+        return random.choice(results)
 
-    for code in tqdm(df_code):
-        output = cpp_to_text(code)
-        output_batch.append(output)
-
-    return output_batch
+    return get_best_result(accumulator)
 
 
 def batch_cpp_to_text(
-    df_code: pandas.DataFrame, batch_size=16, max_attempts=20, max_tokens=4096
+    df_code: pandas.DataFrame,
+    batch_size=32,
+    max_attempts=20,
+    max_new_tokens=1024,
+    tokenizer=None,
+    model=None,
 ):
     tasks = []
     for idx, code in enumerate(df_code):
@@ -169,37 +196,46 @@ def batch_cpp_to_text(
 
     while not all(task["complete"] for task in tasks):
         incomplete_tasks = [task for task in tasks if not task["complete"]]
-        batch_tasks = incomplete_tasks[:batch_size]
+        if len(incomplete_tasks) < batch_size:
+            batch_tasks = incomplete_tasks
+        else:
+            batch_tasks = incomplete_tasks[:batch_size]
         print(f"Number of incomplete tasks: {len(incomplete_tasks)}")
 
         batch_codes = [task["code"] for task in batch_tasks]
         batch_text = [construct_prompt(code) for code in batch_codes]
+        batch_text = [
+            tokenizer.apply_chat_template(
+                text, tokenize=False, add_generation_prompt=True
+            )
+            for text in batch_text
+        ]
 
         inputs = tokenizer(
             batch_text, return_tensors="pt", padding=True, truncation=True
-        )
-        inputs = {
-            key: value.to(next(model.parameters()).device)
-            for key, value in inputs.items()
-        }
+        ).to(next(model.parameters()).device)
 
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=max_tokens,
+                max_new_tokens=max_new_tokens,
             )
 
-        responses = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+        responses = tokenizer.batch_decode(outputs, skip_special_tokens=False)
 
         for task, response in zip(batch_tasks, responses):
             task["attempt"] += 1
-            if "Begin." in response:
-                response = response.split("Begin.", 1)[1]
-            generated_text = response.strip()
-            fixed_response = auto_fix_json(generated_text)
+            if "<|im_start|>assistant" in response:
+                response = response.split("<|im_start|>assistant")[1]
+                response = response.split("<|im_end|>")[0]
+            else:
+                print(f"Task {task['id']} failed. #attempt: {task['attempt']}, error 1")
+                continue
+
+            response = extract_json(response)
 
             try:
-                parsed_json = json.loads(fixed_response)
+                parsed_json = json.loads(response)
                 parsed_json["code"] = task["code"]
 
                 required_keys = ["title", "parameters", "description"]
@@ -207,8 +243,10 @@ def batch_cpp_to_text(
                 if not all(key in parsed_json for key in required_keys):
                     if task["attempt"] == max_attempts:
                         task["complete"] = True
-                        task["result"] = fixed_response
-                    print(f"Task {task['id']} failed. #attempt: {task['attempt']}")
+                        task["result"] = response
+                    print(
+                        f"Task {task['id']} failed. #attempt: {task['attempt']}, error 2"
+                    )
                     continue
 
                 task["complete"] = True
@@ -217,84 +255,10 @@ def batch_cpp_to_text(
             except json.JSONDecodeError as e:
                 if task["attempt"] == max_attempts:
                     task["complete"] = True
-                    task["result"] = fixed_response
-                print(f"Task {task['id']} failed. #attempt: {task['attempt']}")
+                    task["result"] = response
+                print(f"Task {task['id']} failed. #attempt: {task['attempt']}, error 3")
                 continue
     return [task["result"] for task in tasks]
-
-
-def get_best_result(results: list) -> dict:
-    return random.choice(results)
-
-
-def accelerated_cpp_to_text(
-    code: str,
-    attempt_size=5,
-    max_new_tokens=4096,
-    candidate=1,
-    tokenizer=None,
-    model=None,
-) -> dict:
-    accumulator = []
-
-    trial = 0
-    while len(accumulator) < candidate:
-        episodes = []
-        for i in range(attempt_size):
-            episodes.append(
-                {"attempt": i + 1, "code": code, "complete": False, "result": None}
-            )
-        trial += 1
-        print(f"Starting trial {trial}. #attempt: {attempt_size}")
-
-        batch_attempt = [episode for episode in episodes]
-        batch_text = [construct_prompt(episode["code"]) for episode in batch_attempt]
-
-        inputs = tokenizer(
-            batch_text, return_tensors="pt", padding=True, truncation=True
-        )
-        inputs = {
-            key: value.to(next(model.parameters()).device)
-            for key, value in inputs.items()
-        }
-
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-            )
-
-        responses = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-
-        for episode, response in zip(batch_attempt, responses):
-            if "Begin." in response:
-                response = response.split("Begin.", 1)[1]
-            generated_text = response.strip()
-
-            fixed_response = auto_fix_json(generated_text)
-
-            try:
-                parsed_json = json.loads(fixed_response)
-                parsed_json["code"] = episode["code"]
-
-                required_keys = ["title", "parameters", "description"]
-
-                if not all(key in parsed_json for key in required_keys):
-                    continue
-
-                episode["complete"] = True
-                episode["result"] = parsed_json
-                print(f"Episode {episode['attempt']} completed.")
-                accumulator.append(parsed_json)
-            except json.JSONDecodeError as e:
-                continue
-        if len(accumulator) < candidate:
-            print(
-                f"Insufficient amount of candidates. #accumulated: {len(accumulator)}"
-            )
-
-    print("Candidates amount satisfied.")
-    return get_best_result(accumulator)
 
 
 if __name__ == "__main__":
@@ -316,18 +280,14 @@ if __name__ == "__main__":
 
     import time
 
-    time_record = []
-    for t in range(3):
-        for i in [1, 5, 10, 20]:
-            start_time = time.time()
-
-            output_batch = accelerated_cpp_to_text(df_code[0], attempt_size=i)
-
-            end_time = time.time()
-            print(f"Time elapsed: {end_time - start_time} seconds")
-            time_record.append({"attempt_size": i, "time": end_time - start_time})
-
-    print(pandas.DataFrame(time_record))
+    start = time.time()
+    output_batch = cpp_to_text(
+        df_code[17],
+        tokenizer=tokenizer,
+        model=model,
+    )
+    end = time.time()
+    print(f"Time elapsed: {end - start} seconds")
 
     with open(os.path.join(dataset, "output_batch.json"), "w") as f:
         json.dump(output_batch, f, indent=4)
