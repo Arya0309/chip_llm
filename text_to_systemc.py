@@ -69,12 +69,12 @@ Begin.
 
 
 def text_to_systemc(text: str, max_new_tokens=1024, tokenizer=None, model=None):
-    text = construct_prompt(text)
+    messages = construct_prompt(text)
 
     print("Start SystemC code generation...")
 
     inputs = tokenizer.apply_chat_template(
-        text, tokenize=False, add_generation_prompt=True
+        messages, tokenize=False, add_generation_prompt=True
     )
     inputs = tokenizer(inputs, return_tensors="pt", padding=True, truncation=True).to(
         next(model.parameters()).device
@@ -86,14 +86,13 @@ def text_to_systemc(text: str, max_new_tokens=1024, tokenizer=None, model=None):
             max_new_tokens=max_new_tokens,
         )
     raw_text = tokenizer.decode(outputs[0], skip_special_tokens=False)
-    if "<|im_start|>assistant" in response:
-        response = response.split("<|im_start|>assistant")[1]
+
+    if "<|im_start|>assistant" in raw_text:
+        response = raw_text.split("<|im_start|>assistant")[1]
         response = response.split("<|im_end|>")[0]
     else:
         raise Exception("Missing assistant token.")
     systemc_code = raw_text.strip()
-
-    print(systemc_code)
 
     systemc_code = get_code(systemc_code)
     systemc_code = check_sc_main(systemc_code)
@@ -115,10 +114,12 @@ def check_sc_main(systemc_code: str) -> str:
     return systemc_code
 
 
-def multiple_text_to_systemc(codes):
+def multiple_text_to_systemc(codes, tokenizer=None, model=None):
 
     for code in tqdm(codes):
-        systemc_code, title, raw_text = text_to_systemc(code)
+        systemc_code, title, raw_text = text_to_systemc(
+            code, tokenizer=tokenizer, model=model
+        )
 
         os.makedirs(os.path.join(dataset, f"systemc_code/{title}"), exist_ok=True)
 
@@ -140,14 +141,7 @@ if __name__ == "__main__":
     current_dir = os.path.dirname(os.path.realpath(__file__))
     dataset = os.path.join(current_dir, "dataset")
 
-    with open(os.path.join(dataset, "output_batch.json"), "r") as file:
+    with open(os.path.join(dataset, "output_500.json"), "r") as file:
         cpp_code = json.load(file)
 
-    multiple_text_to_systemc(cpp_code)
-
-    # systemc_code, title = text_to_systemc(cpp_code[0])
-
-    # print(systemc_code)
-
-    # with open(os.path.join(dataset, f"systemc_code/{title}.cpp"), "w") as file:
-    #     file.write(systemc_code)
+    multiple_text_to_systemc(cpp_code[:100], tokenizer=tokenizer, model=model)

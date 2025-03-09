@@ -52,25 +52,13 @@ def extract_json(text) -> dict:
     try:
         data = json.loads(json_str)
     except json.JSONDecodeError as e:
-        raise ValueError(f"JSONDecodeError: {e}")
+        print(f"Error parsing JSON: {e}")
+        return {}
 
     if not isinstance(data, dict):
-        raise ValueError("JSON must be a dictionary.")
+        print("JSON is not a dictionary.")
+        return {}
     return data
-
-
-def check_json(text):
-    try:
-        json.loads(text)
-
-        if all(key in text for key in required_keys):
-            return True
-        else:
-            print("Missing some required keys.")
-            return False
-    except json.JSONDecodeError as e:
-        print("JSONDecodeError:", e)
-        return False
 
 
 def construct_prompt(code: str):
@@ -157,13 +145,17 @@ def cpp_to_text(
                 continue
             response = extract_json(response)
 
-            response["code"] = episode["code"]
-            episode["complete"] = True
-            episode["result"] = response
-            print("```")
-            print(json.dumps(response, indent=4))
-            print("```")
-            accumulator.append(response)
+            if not response:
+                print(f"Attempt {episode['attempt']} failed. Error 1")
+                continue
+            else:
+                episode["complete"] = True
+                response["code"] = episode["code"]
+                episode["result"] = response
+                print("```")
+                print(json.dumps(response, indent=4))
+                print("```")
+                accumulator.append(response)
 
     print("Description generation completed.")
     print("===================================================")
@@ -181,7 +173,7 @@ def batch_cpp_to_text(
     max_new_tokens=1024,
     tokenizer=None,
     model=None,
-):
+) -> list:
     tasks = []
     for idx, code in enumerate(df_code):
         tasks.append(
@@ -234,30 +226,17 @@ def batch_cpp_to_text(
 
             response = extract_json(response)
 
-            try:
-                parsed_json = json.loads(response)
-                parsed_json["code"] = task["code"]
-
-                required_keys = ["title", "parameters", "description"]
-
-                if not all(key in parsed_json for key in required_keys):
-                    if task["attempt"] == max_attempts:
-                        task["complete"] = True
-                        task["result"] = response
-                    print(
-                        f"Task {task['id']} failed. #attempt: {task['attempt']}, error 2"
-                    )
-                    continue
-
-                task["complete"] = True
-                task["result"] = parsed_json
-                print(f"Task {task['id']} completed.")
-            except json.JSONDecodeError as e:
+            if not response:
                 if task["attempt"] == max_attempts:
                     task["complete"] = True
                     task["result"] = response
-                print(f"Task {task['id']} failed. #attempt: {task['attempt']}, error 3")
-                continue
+                    print(f"Task {task['id']} exceeded max attempts.")
+            else:
+                task["complete"] = True
+                response["code"] = task["code"]
+                task["result"] = response
+                print(f"Task {task['id']} completed.")
+
     return [task["result"] for task in tasks]
 
 
@@ -281,8 +260,11 @@ if __name__ == "__main__":
     import time
 
     start = time.time()
-    output_batch = cpp_to_text(
-        df_code[17],
+    output_batch = batch_cpp_to_text(
+        df_code[:1000],
+        batch_size=20,
+        max_attempts=20,
+        max_new_tokens=1024,
         tokenizer=tokenizer,
         model=model,
     )
