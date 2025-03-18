@@ -79,6 +79,19 @@ def response_extractor(response: str) -> str:
     return matches[0]
 
 
+def code_extractor(response: str) -> str:
+    pattern = r"```cpp(.*?)```"
+    if re.search(pattern, response, re.DOTALL):
+        matches = re.findall(pattern, response, re.DOTALL)
+        matches = [m for m in matches if "#include <systemc.h>" in m]
+        if not matches:
+            raise Exception("Format Error: Missing SystemC code snippet in response.")
+    else:
+        print(response)
+        raise Exception("Format Error: Missing code snippet.")
+    return matches[0]
+
+
 if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-Coder-32B-Instruct")
     tokenizer.padding_side = "left"
@@ -90,7 +103,7 @@ if __name__ == "__main__":
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
     dataset = os.path.join(current_dir, "dataset")
-    code_path = os.path.join(dataset, "add_two_numbers.cpp")
+    code_path = os.path.join(dataset, "bubble_sort", "bubble_sort.cpp")
 
     with open(code_path, "r") as f:
         code = f.read()

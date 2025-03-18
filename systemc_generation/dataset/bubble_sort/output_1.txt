@@ -1,0 +1,203 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: The code primarily takes `std::vector<int>` as input to the `bubbleSort` function. This vector contains integers that need to be sorted.
+- **Outputs**: The `bubbleSort` function sorts the input vector in ascending order in-place. The main function verifies the sorting through assertions.
+
+#### Detailed Line-by-Line Explanation
+
+1. **Include Directives**:
+   ```cpp
+   #include <iostream>
+   #include <vector>
+   #include <cassert>
+   ```
+   - These lines include necessary libraries for input/output operations, using vectors, and performing assertions respectively.
+
+2. **Function Definition: bubbleSort**:
+   ```cpp
+   void bubbleSort(std::vector<int>& arr) {
+       int n = arr.size();
+       bool swapped;
+       for (int i = 0; i < n - 1; ++i) {
+           swapped = false;
+           for (int j = 0; j < n - i - 1; ++j) {
+               if (arr[j] > arr[j + 1]) {
+                   std::swap(arr[j], arr[j + 1]);
+                   swapped = true;
+               }
+           }
+           if (!swapped)
+               break;
+       }
+   }
+   ```
+   - **Functionality**: Sorts the input vector `arr` in ascending order using the Bubble Sort algorithm.
+   - **Variables**:
+     - `n`: Size of the vector.
+     - `swapped`: A boolean flag indicating whether any elements were swapped during the inner loop iteration.
+   - **Outer Loop (`for (int i = 0; i < n - 1; ++i)`)**: Iterates over each element of the vector except the last one.
+   - **Inner Loop (`for (int j = 0; j < n - i - 1; ++j)`)**: Compares adjacent elements and swaps them if they are in the wrong order.
+   - **Condition (`if (arr[j] > arr[j + 1])`)**: Checks if the current element is greater than the next element.
+   - **Swap Operation (`std::swap(arr[j], arr[j + 1])`)**: Swaps the elements if they are out of order.
+   - **Break Condition (`if (!swapped) break;`)**: If no elements were swapped during an entire pass, the array is already sorted, and the loop breaks early.
+
+3. **Utility Function: isSorted**:
+   ```cpp
+   bool isSorted(const std::vector<int>& arr) {
+       for (size_t i = 1; i < arr.size(); ++i)
+           if (arr[i - 1] > arr[i])
+               return false;
+       return true;
+   }
+   ```
+   - **Functionality**: Checks if the input vector `arr` is sorted in ascending order.
+   - **Loop (`for (size_t i = 1; i < arr.size(); ++i)`)**: Iterates over the vector starting from the second element.
+   - **Condition (`if (arr[i - 1] > arr[i])`)**: Returns `false` if any element is greater than the next element, indicating the array is not sorted.
+   - **Return Statement (`return true;`)**: If no unsorted elements are found, returns `true`.
+
+4. **Main Function**:
+   ```cpp
+   int main() {
+       std::vector<int> testArray1 = {64, 34, 25, 12, 22, 11, 90};
+       bubbleSort(testArray1);
+       assert(isSorted(testArray1));
+
+       std::vector<int> testArray2 = {1, 2, 3, 4, 5};
+       bubbleSort(testArray2);
+       assert(isSorted(testArray2));
+
+       std::vector<int> testArray3 = {9, 8, 7, 6, 5};
+       bubbleSort(testArray3);
+       assert(isSorted(testArray3));
+
+       std::vector<int> testArray4 = {3, 3, 2, 1, 4, 4, 5};
+       bubbleSort(testArray4);
+       assert(isSorted(testArray4));
+
+       std::cout << "All test cases passed successfully!" << std::endl;
+       return 0;
+   }
+   ```
+   - **Functionality**: Acts as a testbench for the `bubbleSort` function.
+   - **Test Cases**: Four different arrays are tested:
+     - An unsorted array.
+     - An already sorted array.
+     - A reverse-sorted array.
+     - An array with duplicate values.
+   - **Assertions (`assert(isSorted(testArrayX))`)**: Verify that each array is correctly sorted after calling `bubbleSort`.
+   - **Output (`std::cout << ...`)**: Prints a success message if all assertions pass.
+
+### Equivalent SystemC Code
+
+Below is a SystemC version of the provided C++ code. The code is designed to be synthesizable and suitable for use in a high-level synthesis flow.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSort) {
+    sc_in<sc_uint<5>> n; // Assuming max size of 20 (2^5 - 1)
+    sc_vector<sc_inout<sc_int<16>>> arr; // Input array of integers
+    sc_out<bool> done; // Signal to indicate sorting is complete
+
+    SC_CTOR(BubbleSort) : arr("arr", n.read()) {
+        SC_METHOD(sort);
+        sensitive << n;
+        dont_initialize();
+    }
+
+    void sort() {
+        int N = n.read();
+        bool swapped;
+
+        for (int i = 0; i < N - 1; ++i) {
+            swapped = false;
+            for (int j = 0; j < N - i - 1; ++j) {
+                if (arr[j].read() > arr[j + 1].read()) {
+                    int temp = arr[j].read();
+                    arr[j].write(arr[j + 1].read());
+                    arr[j + 1].write(temp);
+                    swapped = true;
+                }
+            }
+            if (!swapped)
+                break;
+        }
+        done.write(true);
+    }
+};
+
+SC_MODULE(Testbench) {
+    sc_signal<sc_uint<5>> n;
+    sc_vector<sc_signal<sc_int<16>>> arr;
+    sc_signal<bool> done;
+
+    SC_CTOR(Testbench) : arr("arr", n.read()) {
+        BubbleSort sorter("sorter");
+        sorter.n(n);
+        sorter.arr(arr);
+        sorter.done(done);
+
+        SC_THREAD(run_test);
+    }
+
+    void run_test() {
+        std::vector<std::vector<int>> testCases = {
+            {64, 34, 25, 12, 22, 11, 90},
+            {1, 2, 3, 4, 5},
+            {9, 8, 7, 6, 5},
+            {3, 3, 2, 1, 4, 4, 5}
+        };
+
+        for (auto& testCase : testCases) {
+            n.write(testCase.size());
+            for (size_t i = 0; i < testCase.size(); ++i) {
+                arr[i].write(testCase[i]);
+            }
+
+            wait(done.posedge_event());
+
+            for (size_t i = 1; i < testCase.size(); ++i) {
+                assert(arr[i - 1].read() <= arr[i].read());
+            }
+        }
+
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+
+    sc_start();
+
+    std::cout << "All test cases passed successfully!" << std::endl;
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **BubbleSort Module**:
+   - **Inputs**:
+     - `n`: The size of the array (up to 20 elements).
+     - `arr`: A vector of `sc_int<16>` representing the array to be sorted.
+   - **Output**:
+     - `done`: A signal indicating when the sorting process is complete.
+   - **Constructor**: Initializes the module and sets up sensitivity to changes in `n`.
+   - **sort Method**: Implements the Bubble Sort algorithm, similar to the C++ version but adapted for SystemC's `sc_vector` and signals.
+
+2. **Testbench Module**:
+   - **Signals**:
+     - `n`: The size of the array.
+     - `arr`: The array of integers.
+     - `done`: Indicates completion of sorting.
+   - **Constructor**: Instantiates the `BubbleSort` module, connects signals, and starts the test process.
+   - **run_test Method**: Contains test cases, writes them to the `arr` signal, waits for the `done` signal, and asserts that the array is sorted.
+
+3. **sc_main Function**:
+   - Instantiates the `Testbench` module and starts the simulation.
+   - Prints a success message if all tests pass.
+
+This SystemC code mirrors the logic of the original C++ code while being compatible with SystemC's simulation and synthesis environment.
