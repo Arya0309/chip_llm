@@ -11,8 +11,14 @@ init(autoreset=True)
 class GenCodeChecker:
     def __init__(self):
         self.table = pd.DataFrame(
-            data=[[0, 0, 0]],
-            columns=["complete", "uncompilable", "unit_test_fail"],
+            data=[[0, 0, 0, 0, 0]],
+            columns=[
+                "complete",
+                "uncompilable",
+                "execution_fail",
+                "unit_test_fail",
+                "timeout",
+            ],
             dtype=int,
         )
         self.recorder = []
@@ -23,40 +29,40 @@ class GenCodeChecker:
             print(Fore.RED + "Error: directory not exist")
             return False
 
-        self._check_compilable(dir, type)
-
-        if not self.compile_result.returncode == 0:
-            self.table["uncompilable"] += 1
+        if not self._check_compilable(dir, type):
+            self.table[self.status] += 1
             self.recorder.append(
                 {
                     "dir": dir,
                     "compilable": False,
                     "unit_test_pass": False,
-                    "error_msg": self.compile_result.stderr,
+                    "status": self.status,
+                    "error_msg": self.compile_result.stdout,
                 }
             )
             return
 
-        self._check_unit_test(dir)
-        if not self.unit_test_result.returncode == 0:
-            self.table["unit_test_fail"] += 1
+        if not self._check_unit_test(dir):
+            self.table[self.status] += 1
             self.recorder.append(
                 {
                     "dir": dir,
                     "compilable": True,
                     "unit_test_pass": False,
-                    "error_msg": self.unit_test_result.stderr,
+                    "status": self.status,
+                    "error_msg": self.unit_test_result.stdout,
                 }
             )
             return
 
-        self.table["complete"] += 1
+        self.table[self.status] += 1
         self.recorder.append(
             {
                 "dir": dir,
                 "compilable": True,
                 "unit_test_pass": True,
-                "error_msg": "",
+                "status": self.status,
+                "error_msg": self.unit_test_result.stdout,
             }
         )
         return
@@ -90,48 +96,71 @@ class GenCodeChecker:
 
         self.compile_result = result
 
-        if result.returncode == 0:
-            print(Fore.GREEN + "Compilation successful!")
-        else:
+        if result.returncode != 0:
             print(Fore.RED + "Compilation failed.")
-        pass
+            print(result.stdout.decode("utf-8", "ignore"))
+            self.status = "uncompilable"
+            return False
+        else:
+            print(Fore.GREEN + "Compilation successful!")
+            return True
 
     def _check_unit_test(self, dir):
-        result = subprocess.run(
-            ["./main"],
-            cwd=dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        self.unit_test_result = result
+        try:
+            result = subprocess.run(
+                ["./main"],
+                cwd=dir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=5,
+            )
+            self.unit_test_result = result
+        except subprocess.TimeoutExpired as e:
+            result = e
 
         # 移除main檔案
         os.remove(os.path.join(dir, "main"))
 
-        if result.returncode == 0:
-            print(Fore.GREEN + "Unit test successful!")
-        else:
+        if isinstance(result, subprocess.TimeoutExpired):
+            print(Fore.RED + "Timeout.")
+            print(result.stdout.decode("utf-8", "ignore"))
+            self.status = "timeout"
+            return False
+        elif "Error" in result.stdout.decode("utf-8", "ignore"):
+            print(Fore.RED + "Excution failed.")
+            print(result.stdout.decode("utf-8", "ignore"))
+            self.status = "execution_fail"
+            return False
+        elif "fail" in result.stdout.decode("utf-8", "ignore"):
             print(Fore.RED + "Unit test failed.")
-        pass
-
-    def _write_record(self, file_dir):
-        file = os.path.join(file_dir, "compile_check_result.csv")
-        if not os.path.isdir(file):
-            self.table.to_csv(
-                os.path.join(file_dir, "compile_check_result.csv"), index=False
-            )
+            print(result.stdout.decode("utf-8", "ignore"))
+            self.status = "unit_test_fail"
+            return False
         else:
-            df = pd.read_csv(file)
-            df = pd.concat([df, self.table], ignore_index=True)
-            df.to_csv(os.path.join(file_dir, "compile_check_result.csv"), index=False)
+            print(Fore.GREEN + "Unit test successful!")
+            self.status = "complete"
+            return True
 
+    def _write_record(self):
+        os.makedirs(".log", exist_ok=True)
+        log_path = os.path.join(self.log_dir, ".log")
+
+        file_path = os.path.join(log_path, "compile_check_result.csv")
+        if os.path.exists(file_path):
+            df = pd.read_csv(file_path, index_col=0)
+            self.table = pd.concat([df, self.table], axis=0)
+            self.table.reset_index(drop=True, inplace=True)
+        self.table.to_csv(file_path)
         print(self.table)
 
+        index = len(self.table) - 1
         for dict in self.recorder:
             if isinstance(dict["error_msg"], bytes):
                 dict["error_msg"] = dict["error_msg"].decode("utf-8", "ignore")
         with open(
-            os.path.join(file_dir, "compile_check_result.json"), "w", encoding="utf-8"
+            os.path.join(log_path, f"compile_check_result_{index}.json"),
+            "w",
+            encoding="utf-8",
         ) as f:
             json.dump(self.recorder, f, indent=4, ensure_ascii=False, default=str)
 
@@ -140,7 +169,9 @@ class GenCodeChecker:
             print(Fore.RED + "Error: directory not exist")
             return False
 
-        for root, _, files in os.walk(file_dir):
+        self.file_dir = file_dir
+        self.log_dir = log_dir
+        for root, _, files in os.walk(self.file_dir):
             if type == "make" and any(
                 f in ["Makefile", "makefile", "GNUmakefile"] for f in files
             ):
@@ -152,7 +183,7 @@ class GenCodeChecker:
                 print(f"path: {root}")
                 self._check(root, type)
 
-        self._write_record(log_dir)
+        self._write_record()
 
 
 if __name__ == "__main__":
