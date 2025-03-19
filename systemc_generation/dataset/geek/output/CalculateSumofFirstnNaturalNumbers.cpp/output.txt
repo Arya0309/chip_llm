@@ -1,116 +1,148 @@
 
-### Analysis of Provided C++/C Code
+### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs:
-- **Inputs**: The integer `n`, which represents the number up to which the sum of natural numbers is calculated. In this case, `n` is hardcoded to 5.
-- **Outputs**: The sum of the first `n` natural numbers, which is printed to the console.
+#### Inputs and Outputs
+- **Input**: An integer `n` which represents the number up to which the sum of natural numbers is calculated.
+- **Output**: The sum of the first `n` natural numbers.
 
-#### Line-by-Line/Block-by-Block Explanation:
-
-1. **Include Directive and Namespace**:
-   ```cpp
-   #include <iostream> 
-   using namespace std;
-   ```
-   - These lines include the standard input-output stream library and specify that we are using the standard namespace, allowing us to use `cout` without prefixing it with `std::`.
+#### Line-by-Line Explanation
+1. **Include Directives and Namespace**: 
+   - `#include <iostream>`: Includes the standard input-output stream library.
+   - `using namespace std;`: Allows the use of standard namespace functions without prefixing them with `std::`.
 
 2. **Function Definition**:
-   ```cpp
-   int findSum(int n)
-   ```
-   - This line defines a function named `findSum` that takes an integer parameter `n` and returns an integer.
-
-3. **Variable Initialization**:
-   ```cpp
-   int sum = 0;
-   ```
-   - An integer variable `sum` is initialized to 0. This variable will hold the cumulative sum of the natural numbers.
+   - `int findSum(int n)`: Defines a function named `findSum` that takes an integer `n` and returns an integer.
+   
+3. **Variable Declaration**:
+   - `int sum = 0;`: Initializes a variable `sum` to zero, which will store the cumulative sum of natural numbers.
 
 4. **For Loop**:
-   ```cpp
-   for (int i = 1; i <= n; i++)
-       sum = sum + i;
-   ```
-   - A `for` loop iterates from 1 to `n` (inclusive). In each iteration, the current value of `i` is added to `sum`.
+   - `for (int i = 1; i <= n; i++)`: Iterates from 1 to `n` inclusive.
+   - `sum = sum + i;`: In each iteration, adds the current value of `i` to `sum`.
 
 5. **Return Statement**:
-   ```cpp
-   return sum;
-   ```
-   - The function returns the final value of `sum`, which is the sum of the first `n` natural numbers.
+   - `return sum;`: After the loop completes, returns the computed sum.
 
 6. **Main Function**:
-   ```cpp
-   int main()
-   ```
-   - The `main` function serves as the entry point of the program.
-
-7. **Variable Declaration and Initialization**:
-   ```cpp
-   int n = 5;
-   ```
-   - An integer variable `n` is declared and initialized to 5. This is the number of natural numbers whose sum is to be calculated.
-
-8. **Function Call and Output**:
-   ```cpp
-   cout << findSum(n);
-   ```
-   - The `findSum` function is called with `n` as the argument, and its result is printed to the console using `cout`.
-
-9. **Return Statement in Main**:
-   ```cpp
-   return 0;
-   ```
-   - The `main` function returns 0, indicating successful execution of the program.
+   - `int main()`: Entry point of the program.
+   - `int n = 5;`: Initializes `n` to 5, indicating the sum of the first 5 natural numbers will be calculated.
+   - `cout << findSum(n);`: Calls `findSum` with `n` and prints the result.
+   - `return 0;`: Ends the program.
 
 ### Equivalent SystemC Code
 
-Below is the SystemC equivalent of the provided C++/C code. This code performs the same operation but is structured within a SystemC module, suitable for high-level synthesis.
+Below is a SystemC code snippet that replicates the logic of the provided C++/C code. This SystemC module calculates the sum of the first `n` natural numbers and outputs the result.
 
 ```cpp
 #include <systemc.h>
 
+// SystemC module to calculate the sum of first n natural numbers
 SC_MODULE(SumCalculator) {
-    sc_in<int> n;        // Input port for n
-    sc_out<int> sum;     // Output port for the sum
+    // Input port for the number n
+    sc_in<int> n;
+    
+    // Output port for the sum
+    sc_out<int> sum;
 
-    void calculate_sum() {
-        int local_sum = 0;
-        for (int i = 1; i <= n.read(); i++) {
-            local_sum += i;
+    // Internal signal to store the sum during computation
+    sc_signal<int> internal_sum;
+
+    // Process to compute the sum of first n natural numbers
+    void computeSum() {
+        // Initialize sum to 0
+        internal_sum.write(0);
+        
+        // Wait for one delta cycle to ensure n is available
+        wait(1, SC_NS);
+        
+        // Read the value of n
+        int num = n.read();
+        
+        // Calculate the sum of first n natural numbers
+        int total_sum = 0;
+        for (int i = 1; i <= num; ++i) {
+            total_sum += i;
         }
-        sum.write(local_sum);
+        
+        // Write the result to the output port
+        sum.write(total_sum);
     }
 
+    // Constructor to register the process
     SC_CTOR(SumCalculator) {
-        SC_METHOD(calculate_sum);
-        sensitive << n;   // Method triggered when 'n' changes
+        SC_THREAD(computeSum);
+        sensitive << n;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with SumCalculator
+    sc_signal<int> n;
+    sc_signal<int> sum;
+
+    // Instance of SumCalculator
+    SumCalculator calculator;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Set the value of n
+        n.write(5);
+        
+        // Wait for one delta cycle to let the calculator process
+        wait(1, SC_NS);
+        
+        // Print the result
+        cout << "Sum of first " << n.read() << " natural numbers: " << sum.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : calculator("calculator") {
+        // Connecting signals to the calculator ports
+        calculator.n(n);
+        calculator.sum(sum);
+        
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    SumCalculator calc("calc");
-    sc_signal<int> n_sig;
-    sc_signal<int> sum_sig;
-
-    calc.n(n_sig);
-    calc.sum(sum_sig);
-
-    n_sig = 5;  // Set the input value
-
-    sc_start();
-
-    cout << "Sum of first " << n_sig.read() << " natural numbers: " << sum_sig.read() << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of SystemC Code:
-- **Module Definition**: `SumCalculator` is a SystemC module that calculates the sum of the first `n` natural numbers.
-- **Ports**: It has an input port `n` and an output port `sum`.
-- **Method**: `calculate_sum` is a method that performs the summation when the input `n` changes.
-- **Constructor**: The constructor sets up sensitivity of the `calculate_sum` method to changes in `n`.
-- **sc_main Function**: This function initializes the `SumCalculator` module, sets the input `n`, starts the simulation, and prints the result.
+### Explanation of the SystemC Code
 
-This SystemC code mirrors the logic of the original C++ code while adhering to SystemC's modular and event-driven design principles.
+1. **Module Definition**:
+   - `SC_MODULE(SumCalculator)`: Defines a SystemC module named `SumCalculator`.
+   - `sc_in<int> n`: Declares an input port `n` to receive the number up to which the sum is calculated.
+   - `sc_out<int> sum`: Declares an output port `sum` to send the computed sum.
+   - `sc_signal<int> internal_sum`: An internal signal used to temporarily store the sum during computation.
+
+2. **Process Definition**:
+   - `void computeSum()`: Defines a method that computes the sum of the first `n` natural numbers.
+   - `internal_sum.write(0)`: Initializes the internal sum to zero.
+   - `wait(1, SC_NS)`: Waits for one delta cycle to ensure the input `n` is available.
+   - `int num = n.read()`: Reads the value of `n`.
+   - `for (int i = 1; i <= num; ++i)`: Loops from 1 to `num`, accumulating the sum.
+   - `sum.write(total_sum)`: Writes the final sum to the output port.
+
+3. **Constructor**:
+   - `SC_CTOR(SumCalculator)`: Registers the `computeSum` method as a thread sensitive to changes in `n`.
+
+4. **Testbench Module**:
+   - `SC_MODULE(Testbench)`: Defines a testbench module to drive inputs and capture outputs.
+   - `sc_signal<int> n, sum`: Declares signals to connect with the `SumCalculator`.
+   - `SumCalculator calculator`: Instantiates the `SumCalculator` module.
+   - `void driveAndPrint()`: Defines a method to set the input, wait for the calculation, and print the result.
+   - `SC_CTOR(Testbench)`: Connects the signals to the `SumCalculator` and registers the `driveAndPrint` method.
+
+5. **Main Function**:
+   - `int sc_main(int argc, char* argv[])`: Entry point of the SystemC simulation.
+   - `Testbench tb("tb")`: Instantiates the testbench.
+   - `sc_start()`: Starts the simulation.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be used in a high-level synthesis flow.

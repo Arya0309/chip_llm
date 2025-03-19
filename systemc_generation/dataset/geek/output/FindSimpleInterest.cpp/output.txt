@@ -1,67 +1,107 @@
 
-### Analysis of Provided C++/C Code
+### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs:
-- **Inputs**: The code has three inputs which are hardcoded in the `main` function:
-  - `P`: Principal amount (float), initialized to 1.
-  - `R`: Rate of interest (float), initialized to 1.
-  - `T`: Time period (float), initialized to 1.
-- **Output**: The code calculates and prints the simple interest (`SI`) using the formula `(P * T * R) / 100`.
+- **Inputs**: The code uses hardcoded values for principal (`P`), rate (`R`), and time (`T`). These are set to `1` each.
+- **Outputs**: The program calculates and prints the simple interest (`SI`).
 
-#### Line-by-Line/Block-by-Block Explanation:
-1. **Include Directive**: `#include<iostream>`: This includes the iostream library, which is necessary for input and output operations in C++.
-2. **Namespace Declaration**: `using namespace std;`: This allows us to use standard library functions without prefixing them with `std::`.
-3. **Main Function Declaration**: `int main()`: This is the entry point of the C++ program.
-4. **Variable Declarations and Initialization**:
-   - `float P = 1, R = 1, T = 1;`: Three float variables representing the principal, rate, and time are declared and initialized to 1.
-5. **Simple Interest Calculation**: `float SI = (P * T * R) / 100;`: The simple interest is calculated using the formula `(P * T * R) / 100` and stored in the variable `SI`.
-6. **Output Statement**: `cout << "Simple Interest = " << SI;`: The result of the simple interest calculation is printed to the console.
-7. **Return Statement**: `return 0;`: The `main` function returns 0, indicating successful execution of the program.
+#### Detailed Line-by-Line Explanation:
+1. **Include Directives**: `#include<iostream>` includes the standard input-output stream library which is necessary for using `cout`.
+2. **Namespace Declaration**: `using namespace std;` allows us to use standard library functions like `cout` without prefixing them with `std::`.
+3. **Main Function**: `int main()` is the entry point of the program.
+4. **Variable Declarations**: `float P = 1, R = 1, T = 1;` declares three float variables representing principal, rate, and time, all initialized to `1`.
+5. **Simple Interest Calculation**: `float SI = (P * T * R) / 100;` computes the simple interest using the formula \( SI = \frac{P \times T \times R}{100} \).
+6. **Output Statement**: `cout << "Simple Interest = " << SI;` prints the calculated simple interest.
+7. **Return Statement**: `return 0;` indicates successful execution of the program.
 
 ### Equivalent SystemC Code Snippet
 
-Below is the equivalent SystemC code that performs the same task as the provided C++/C code. In SystemC, we typically encapsulate functionality within modules (SC_MODULE). For this simple calculation, we'll create a module that computes and displays the simple interest.
+Below is a SystemC code snippet that mirrors the behavior of the provided C++ code. It calculates the simple interest using SystemC's constructs and prints the result.
 
 ```cpp
 #include <systemc.h>
 
-// Define a SystemC module for calculating simple interest
+// Module to calculate Simple Interest
 SC_MODULE(SimpleInterestCalculator) {
-    // Constructor with sensitivity list (empty for this example)
-    SC_CTOR(SimpleInterestCalculator) {
-        SC_METHOD(calculate_interest);
-    }
+    // Input ports for principal, rate, and time
+    sc_in<float> principal;
+    sc_in<float> rate;
+    sc_in<float> time;
 
-    // Method to calculate simple interest
-    void calculate_interest() {
-        // Hardcoded values for demonstration purposes
-        float P = 1.0f; // Principal amount
-        float R = 1.0f; // Rate of interest
-        float T = 1.0f; // Time period
+    // Output port for simple interest
+    sc_out<float> simple_interest;
 
-        // Calculate simple interest
+    // Process to calculate simple interest
+    void calculateSimpleInterest() {
+        // Reading inputs
+        float P = principal.read();
+        float R = rate.read();
+        float T = time.read();
+
+        // Calculating simple interest
         float SI = (P * T * R) / 100.0f;
 
-        // Output the result
-        sc_report_handler::report(sc_core::SC_INFO, "SIMPLE_INTEREST", ("Simple Interest = " + std::to_string(SI)).c_str());
+        // Writing output
+        simple_interest.write(SI);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(SimpleInterestCalculator) {
+        SC_METHOD(calculateSimpleInterest);
+        sensitive << principal << rate << time;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with SimpleInterestCalculator
+    sc_signal<float> principal;
+    sc_signal<float> rate;
+    sc_signal<float> time;
+    sc_signal<float> simple_interest;
+
+    // Instance of SimpleInterestCalculator
+    SimpleInterestCalculator sic;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing inputs
+        principal = 1.0f;
+        rate = 1.0f;
+        time = 1.0f;
+
+        // Wait for one delta cycle to let the calculator process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Simple Interest = " << simple_interest.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : sic("sic") {
+        // Connecting signals to the calculator ports
+        sic.principal(principal);
+        sic.rate(rate);
+        sic.time(time);
+        sic.simple_interest(simple_interest);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    // Instantiate the SimpleInterestCalculator module
-    SimpleInterestCalculator sic("SimpleInterestCalculator");
-
-    // Start the simulation
-    sc_start();
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-### Explanation of SystemC Code:
-- **Module Definition**: `SC_MODULE(SimpleInterestCalculator)`: Defines a SystemC module named `SimpleInterestCalculator`.
-- **Constructor**: `SC_CTOR(SimpleInterestCalculator)`: The constructor initializes the module and registers the `calculate_interest` method to be called when the simulation starts.
-- **Method Definition**: `void calculate_interest()`: This method performs the calculation of simple interest and outputs the result.
-- **Simulation Initialization**: In `sc_main`, an instance of `SimpleInterestCalculator` is created, and the simulation is started with `sc_start()`.
+### Explanation of the SystemC Code:
+1. **Module Definition**: `SimpleInterestCalculator` is a SystemC module that calculates simple interest. It has three input ports (`principal`, `rate`, `time`) and one output port (`simple_interest`).
+2. **Process Method**: `calculateSimpleInterest` reads the input values, computes the simple interest, and writes the result to the output port.
+3. **Sensitivity List**: The method is sensitive to changes in any of the input ports.
+4. **Testbench Module**: `Testbench` initializes the inputs, connects them to the `SimpleInterestCalculator`, and prints the calculated simple interest.
+5. **Simulation Start**: `sc_start()` starts the simulation, allowing the processes to execute and the simple interest calculation to occur.
 
-This SystemC code snippet encapsulates the logic of the original C++/C code within a module, making it suitable for use in a high-level synthesis flow.
+This SystemC code effectively replicates the functionality of the original C++ code, making it suitable for use in a high-level synthesis flow.

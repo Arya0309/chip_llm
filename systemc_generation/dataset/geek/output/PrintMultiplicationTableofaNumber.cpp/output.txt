@@ -2,67 +2,91 @@
 ### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs
-- **Inputs**: The code does not take any explicit input from the user. However, there is a hardcoded value `n` which can be considered as an implicit input. In this case, `n` is set to 5.
-- **Outputs**: The program prints the multiplication table of the number `n` from 1 to 10. For `n = 5`, the output will be:
-  ```
-  5 * 1 = 5
-  5 * 2 = 10
-  5 * 3 = 15
-  5 * 4 = 20
-  5 * 5 = 25
-  5 * 6 = 30
-  5 * 7 = 35
-  5 * 8 = 40
-  5 * 9 = 45
-  5 * 10 = 50
-  ```
+- **Inputs**: The input to this program is a single integer `n`, which is hardcoded as `5` in the provided code.
+- **Outputs**: The program prints the multiplication table of `n` from `n * 1` to `n * 10`.
 
-#### Line-by-Line/Block-by-Block Explanation
+#### Line-by-Line Explanation
 
-1. `#include <iostream>`: This line includes the standard input-output stream library which is necessary for using `cout` to print output to the console.
-2. `using namespace std;`: This line allows us to use standard library functions without prefixing them with `std::`.
-3. `int main()`: This is the main function where the execution of the program begins.
-4. `int n = 5;`: This line declares an integer variable `n` and initializes it with the value 5. This value represents the number whose multiplication table we want to print.
-5. `for (int i = 1; i <= 10; ++i)`: This is a for loop that initializes `i` to 1 and continues to execute as long as `i` is less than or equal to 10, incrementing `i` by 1 after each iteration.
-6. `cout << n << " * " << i << " = " << n * i << endl;`: Inside the loop, this line prints the current multiplication step in the format "n * i = result". `endl` is used to move to the next line after printing each step.
-7. `return 0;`: This line indicates that the program has executed successfully and returns 0 to the operating system.
+1. `#include <iostream>`: This line includes the standard input-output stream library, necessary for using `cout`.
+2. `using namespace std;`: This line allows us to use standard library objects like `cout` without prefixing them with `std::`.
+3. `int main() { ... }`: This is the main function where the execution of the program begins.
+4. `int n = 5;`: An integer variable `n` is declared and initialized with the value `5`. This value determines the number for which the multiplication table is printed.
+5. `for (int i = 1; i <= 10; ++i) { ... }`: A `for` loop iterates from `1` to `10`. In each iteration, it calculates and prints the product of `n` and the loop counter `i`.
+6. `cout << n << " * " << i << " = " << n * i << endl;`: Inside the loop, this line prints the current multiplication step in the format `n * i = result`.
+7. `return 0;`: This line indicates successful termination of the program.
 
-### Equivalent SystemC Code Snippet
+### Equivalent SystemC Code
 
-Below is the SystemC equivalent of the provided C++/C code. Note that SystemC is typically used for modeling hardware systems, so this code is more illustrative than practical for hardware synthesis, but it demonstrates how to translate procedural logic into a SystemC module.
+Below is the equivalent SystemC code that replicates the behavior of the given C++/C code. This SystemC code will print the multiplication table of a given number using SystemC processes and modules.
 
 ```cpp
 #include <systemc.h>
 
+// Module to print multiplication table
 SC_MODULE(MultiplicationTable) {
-    SC_CTOR(MultiplicationTable) {
-        SC_THREAD(print_table);
-    }
-
-    void print_table() {
-        int n = 5; // Number for which the multiplication table is printed
+    // Input port for the number whose table is to be printed
+    sc_in<int> number;
+    
+    // Process to print the multiplication table
+    void printTable() {
+        int n = number.read(); // Read the input number
         for (int i = 1; i <= 10; ++i) {
+            // Print each line of the multiplication table
             cout << n << " * " << i << " = " << n * i << endl;
         }
-        sc_stop(); // Stop the simulation after printing the table
+    }
+
+    // Constructor to register the process
+    SC_CTOR(MultiplicationTable) {
+        SC_METHOD(printTable);
+        sensitive << number;
+    }
+};
+
+// Testbench module to drive inputs
+SC_MODULE(Testbench) {
+    // Signal to connect with MultiplicationTable
+    sc_signal<int> numSignal;
+
+    // Instance of MultiplicationTable
+    MultiplicationTable table;
+
+    // Process to drive inputs
+    void driveInput() {
+        // Set the number for which the multiplication table is to be printed
+        numSignal = 5;
+        wait(1, SC_NS); // Wait for one delta cycle to let the table process
+    }
+
+    // Constructor to register the process and connect signals
+    SC_CTOR(Testbench) : table("table") {
+        // Connect the signal to the table's input port
+        table.number(numSignal);
+
+        // Registering the driveInput process
+        SC_THREAD(driveInput);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    MultiplicationTable mt("MultiplicationTable");
-    sc_start();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
 #### Explanation of the SystemC Code
 
-1. **Include SystemC Header**: `#include <systemc.h>` includes the necessary SystemC library.
-2. **Module Declaration**: `SC_MODULE(MultiplicationTable)` defines a new SystemC module named `MultiplicationTable`.
-3. **Constructor**: `SC_CTOR(MultiplicationTable)` is the constructor for the module. It uses the `SC_THREAD` macro to declare `print_table` as a thread process.
-4. **Process Declaration**: `void print_table()` is a member function of the module that contains the logic for printing the multiplication table.
-5. **Loop and Print**: The loop and print statement inside `print_table` are identical to those in the C++ code, iterating from 1 to 10 and printing the multiplication results.
-6. **Stop Simulation**: `sc_stop();` stops the simulation after the multiplication table has been printed.
-7. **Main Function**: `int sc_main(int argc, char* argv[])` is the entry point for SystemC simulations. It creates an instance of `MultiplicationTable` and starts the simulation with `sc_start()`.
+1. **MultiplicationTable Module**:
+   - **Input Port**: `sc_in<int> number;` - This is the input port through which the number for which the multiplication table is to be printed is received.
+   - **Process**: `void printTable()` - This method reads the input number and prints its multiplication table from `1` to `10`.
+   - **Constructor**: Registers the `printTable` method as a sensitive method to the `number` input port.
 
-This SystemC code mirrors the logic of the original C++ code while fitting within the SystemC framework, making it suitable for simulation environments.
+2. **Testbench Module**:
+   - **Signal**: `sc_signal<int> numSignal;` - This signal is used to connect the testbench to the `MultiplicationTable` module.
+   - **Instance**: `MultiplicationTable table;` - An instance of the `MultiplicationTable` module.
+   - **Process**: `void driveInput()` - This method sets the value of `numSignal` to `5` and waits for one delta cycle to allow the `MultiplicationTable` module to process the input.
+   - **Constructor**: Connects the `numSignal` to the `number` input port of the `MultiplicationTable` instance and registers the `driveInput` method as a thread.
+
+3. **Main Function**:
+   - `int sc_main(int argc, char* argv[])`: The entry point of the SystemC simulation. It creates an instance of the `Testbench` module and starts the simulation with `sc_start()`.

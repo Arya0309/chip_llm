@@ -1,15 +1,33 @@
 
 #include <systemc.h>
 
+// Module to calculate and print Pascal's Triangle
 SC_MODULE(PascalsTriangle) {
-    sc_in<int> n; // Input: Number of rows to print
-    sc_out<sc_bv<64>> out; // Output: One row of Pascal's Triangle at a time
+    sc_in<int> num_rows; // Input: number of rows to print
+    sc_out<sc_bv<100>> triangle_output; // Output: string representation of the triangle
 
-    SC_CTOR(PascalsTriangle) {
-        SC_THREAD(printPascal);
-        sensitive << n;
+    // Internal method to calculate Pascal's Triangle
+    void calculate_and_print_triangle() {
+        int n = num_rows.read();
+        std::ostringstream oss;
+
+        // Iterate through every line and print entries in it
+        for (int line = 0; line < n; line++) {
+            // Every line has number of integers equal to line number
+            for (int i = 0; i <= line; i++) {
+                int coeff = binomialCoeff(line, i);
+                oss << coeff << " ";
+            }
+            oss << "\n";
+        }
+
+        // Convert the string stream to a bit vector for output
+        std::string result = oss.str();
+        sc_bv<100> output(result.c_str());
+        triangle_output.write(output);
     }
 
+    // Function to calculate binomial coefficient
     int binomialCoeff(int n, int k) {
         int res = 1;
         if (k > n - k)
@@ -21,34 +39,46 @@ SC_MODULE(PascalsTriangle) {
         return res;
     }
 
-    void printPascal() {
-        wait(); // Wait for n to be set
-        int numRows = n.read();
-        for (int line = 0; line < numRows; line++) {
-            sc_bv<64> rowOutput = 0; // Assuming each row fits within 64 bits for simplicity
-            int bitPos = 0;
-            for (int i = 0; i <= line; i++) {
-                int coeff = binomialCoeff(line, i);
-                rowOutput.range(bitPos + 31, bitPos) = coeff; // Assuming each coefficient fits in 32 bits
-                bitPos += 32;
-            }
-            out.write(rowOutput);
-            wait(); // Simulate one cycle per row
-        }
+    // Constructor to register the process
+    SC_CTOR(PascalsTriangle) {
+        SC_METHOD(calculate_and_print_triangle);
+        sensitive << num_rows;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    sc_signal<int> num_rows_signal; // Signal to connect with PascalsTriangle
+    sc_signal<sc_bv<100>> triangle_output_signal; // Signal to capture the output
+
+    // Instance of PascalsTriangle
+    PascalsTriangle pascal_triangle;
+
+    // Process to drive inputs and print outputs
+    void drive_and_print() {
+        num_rows_signal = 7; // Set the number of rows to 7
+
+        // Wait for one delta cycle to let the calculator process
+        wait(1, SC_NS);
+
+        // Print the results
+        sc_bv<100> result = triangle_output_signal.read();
+        std::cout << result.to_string() << std::endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : pascal_triangle("pascal_triangle") {
+        // Connecting signals to the calculator ports
+        pascal_triangle.num_rows(num_rows_signal);
+        pascal_triangle.triangle_output(triangle_output_signal);
+
+        // Registering the drive_and_print process
+        SC_THREAD(drive_and_print);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    PascalsTriangle pt("pt");
-    sc_signal<int> num_rows;
-    sc_signal<sc_bv<64>> triangle_row;
-
-    pt.n(num_rows);
-    pt.out(triangle_row);
-
-    num_rows = 7; // Set the number of rows to print
-
-    sc_start(10, SC_NS); // Start simulation for 10 nanoseconds
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

@@ -1,70 +1,76 @@
 
 #include <systemc.h>
 
-SC_MODULE(DecimalToOctalConverter) {
-    sc_in<int> decimal_in;
-    sc_out<sc_bv<32>> octal_out;
+// Module to convert decimal to octal
+SC_MODULE(DecToOctalConverter) {
+    // Input port for decimal number
+    sc_in<int> decimalIn;
 
-    SC_CTOR(DecimalToOctalConverter) {
-        SC_METHOD(convert);
-        sensitive << decimal_in;
-    }
+    // Output port for octal number (as a string for simplicity)
+    sc_out<sc_bv<32>> octalOut;
 
+    // Process to perform the conversion
     void convert() {
-        int n = decimal_in.read();
-        int octalNum[100];
+        int n = decimalIn.read();
+        sc_bv<32> octalNum; // Assuming a maximum of 32 bits for the octal representation
         int i = 0;
 
-        // Conversion process
+        // Conversion logic
         while (n != 0) {
-            octalNum[i] = n % 8;
+            octalNum.range((i+1)*3-1, i*3) = n % 8; // Store each octal digit in 3-bit chunks
             n = n / 8;
             i++;
         }
 
-        // Constructing the octal output bit vector
-        sc_bv<32> octal_output = 0;
-        int shift = 0;
-        for (int j = i - 1; j >= 0; j--) {
-            octal_output.range(shift + 3, shift) = octalNum[j];
-            shift += 4; // Assuming each octal digit is represented by 4 bits
-        }
+        // Shift the octal digits to the left to align them properly
+        octalNum <<= (32 - i*3);
 
-        octal_out.write(octal_output);
+        // Write the result to the output port
+        octalOut.write(octalNum);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(DecToOctalConverter) {
+        SC_METHOD(convert);
+        sensitive << decimalIn;
     }
 };
 
-SC_MODULE(TopModule) {
-    sc_signal<int> decimal_signal;
-    sc_signal<sc_bv<32>> octal_signal;
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with DecToOctalConverter
+    sc_signal<int> decimalSignal;
+    sc_signal<sc_bv<32>> octalSignal;
 
-    DecimalToOctalConverter converter;
+    // Instance of DecToOctalConverter
+    DecToOctalConverter converter;
 
-    SC_CTOR(TopModule) : converter("converter") {
-        converter.decimal_in(decimal_signal);
-        converter.octal_out(octal_signal);
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the decimal number
+        decimalSignal = 33;
 
-        SC_THREAD(drive_input);
-        sensitive << sc_start_of_simulation_event();
-
-        SC_METHOD(print_output);
-        sensitive << octal_signal;
-    }
-
-    void drive_input() {
-        decimal_signal = 33;
+        // Wait for one delta cycle to let the converter process
         wait(1, SC_NS);
-        sc_stop();
+
+        // Print the results
+        cout << "Decimal number: " << decimalSignal.read() << endl;
+        cout << "Octal number: " << octalSignal.read().to_uint() << endl;
     }
 
-    void print_output() {
-        sc_bv<32> octal_value = octal_signal.read();
-        std::cout << "Octal representation: " << octal_value.to_string(SC_BIN).c_str() << std::endl;
+    // Constructor to register the process
+    SC_CTOR(Testbench) : converter("converter") {
+        // Connecting signals to the converter ports
+        converter.decimalIn(decimalSignal);
+        converter.octalOut(octalSignal);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    TopModule top("top");
-    sc_start();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

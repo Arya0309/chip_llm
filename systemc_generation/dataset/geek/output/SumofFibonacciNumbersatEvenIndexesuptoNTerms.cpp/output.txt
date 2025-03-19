@@ -1,45 +1,45 @@
 
 ### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs
-- **Input**: An integer `n` which represents the number of terms in the Fibonacci sequence up to which the even-indexed Fibonacci numbers' sum is calculated.
-- **Output**: The sum of the even-indexed Fibonacci numbers up to the `2*n`th term.
+#### Inputs and Outputs:
+- **Input**: An integer `n` which represents the number of terms in the Fibonacci sequence up to which the sum of even-indexed Fibonacci numbers is calculated.
+- **Output**: The sum of even-indexed Fibonacci numbers up to the `2*n`-th term.
 
-#### Line-by-Line/Block-by-Block Explanation
-1. **Include Directives and Namespace**:
+#### Line-by-Line/Block-by-Block Explanation:
+1. **Include Directives and Namespace Declaration**:
    ```cpp
    #include <bits/stdc++.h>
    using namespace std;
    ```
-   - These lines include all standard libraries and bring the standard namespace into scope.
+   - This includes all standard C++ libraries and sets the default namespace to `std`.
 
 2. **Function Definition**:
    ```cpp
    int calculateEvenSum(int n)
    ```
-   - This function takes an integer `n` as input and returns the sum of even-indexed Fibonacci numbers up to the `2*n`th term.
+   - This function calculates the sum of even-indexed Fibonacci numbers up to the `2*n`-th term.
 
-3. **Base Case Check**:
+3. **Base Case Handling**:
    ```cpp
    if (n <= 0)
        return 0;
    ```
-   - If `n` is less than or equal to zero, the function immediately returns 0, as there are no terms to consider.
+   - If `n` is less than or equal to zero, the function immediately returns 0 as there are no terms to sum.
 
-4. **Fibonacci Array Initialization**:
+4. **Array Declaration and Initialization**:
    ```cpp
    int fibo[2 * n + 1];
    fibo[0] = 0, fibo[1] = 1;
    ```
-   - An array `fibo` is declared to store Fibonacci numbers up to the `2*n`th term. The first two Fibonacci numbers are initialized: `fibo[0] = 0` and `fibo[1] = 1`.
+   - An array `fibo` is declared to store Fibonacci numbers up to the `2*n`-th term. The first two Fibonacci numbers are initialized to 0 and 1.
 
 5. **Result Initialization**:
    ```cpp
    int sum = 0;
    ```
-   - A variable `sum` is initialized to 0 to accumulate the sum of even-indexed Fibonacci numbers.
+   - A variable `sum` is initialized to accumulate the sum of even-indexed Fibonacci numbers.
 
-6. **Loop to Compute Fibonacci Numbers**:
+6. **Fibonacci Calculation Loop**:
    ```cpp
    for (int i = 2; i <= 2 * n; i++) 
    {
@@ -48,7 +48,8 @@
            sum += fibo[i];
    }
    ```
-   - A loop runs from 2 to `2*n`. In each iteration, the current Fibonacci number is computed as the sum of the two preceding numbers (`fibo[i] = fibo[i - 1] + fibo[i - 2]`). If the index `i` is even, the corresponding Fibonacci number is added to `sum`.
+   - A loop runs from 2 to `2*n`, calculating each Fibonacci number using the formula `fibo[i] = fibo[i - 1] + fibo[i - 2]`.
+   - If the index `i` is even (`i % 2 == 0`), the corresponding Fibonacci number is added to `sum`.
 
 7. **Return Statement**:
    ```cpp
@@ -65,66 +66,107 @@
        return 0;
    }
    ```
-   - The main function initializes `n` to 8 and calls `calculateEvenSum(n)` to compute and print the sum of even-indexed Fibonacci numbers up to the `2*n`th term.
+   - The `main` function initializes `n` to 8, calls `calculateEvenSum(n)`, and prints the result.
 
-### Equivalent SystemC Code Snippet
+### Equivalent SystemC Code
 
-Below is a SystemC code snippet that replicates the behavior of the provided C++ code. This code can be used in a high-level synthesis flow.
+Below is the equivalent SystemC code that performs the same task:
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(FibonacciEvenSum) {
-    sc_in<int> n_in;
-    sc_out<int> sum_out;
-    
-    void calculate_even_sum() {
-        int n = n_in.read();
+// Module to calculate the sum of even-indexed Fibonacci numbers
+SC_MODULE(FibonacciEvenSumCalculator) {
+    sc_in<int> n_in;          // Input port for the number of terms
+    sc_out<int> sum_out;      // Output port for the sum of even-indexed Fibonacci numbers
+
+    // Process to calculate the sum
+    void calculateEvenSum() {
+        int n = n_in.read();    // Read the input value of n
         if (n <= 0) {
-            sum_out.write(0);
+            sum_out.write(0);   // If n is non-positive, the sum is 0
             return;
         }
 
-        int fibo[2 * n + 1];
-        fibo[0] = 0, fibo[1] = 1;
+        int fibo[2 * n + 1];    // Array to store Fibonacci numbers
+        fibo[0] = 0;            // First Fibonacci number
+        fibo[1] = 1;            // Second Fibonacci number
 
-        int sum = 0;
+        int sum = 0;            // Variable to accumulate the sum of even-indexed Fibonacci numbers
 
+        // Calculate Fibonacci numbers and sum even-indexed ones
         for (int i = 2; i <= 2 * n; i++) {
             fibo[i] = fibo[i - 1] + fibo[i - 2];
             if (i % 2 == 0)
                 sum += fibo[i];
         }
 
-        sum_out.write(sum);
+        sum_out.write(sum);     // Write the result to the output port
     }
 
-    SC_CTOR(FibonacciEvenSum) {
-        SC_METHOD(calculate_even_sum);
+    // Constructor to register the process
+    SC_CTOR(FibonacciEvenSumCalculator) {
+        SC_METHOD(calculateEvenSum);
         sensitive << n_in;
     }
 };
 
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    sc_signal<int> n;         // Signal to connect with the FibonacciEvenSumCalculator
+    sc_signal<int> sum;        // Signal to capture the output
+
+    // Instance of FibonacciEvenSumCalculator
+    FibonacciEvenSumCalculator calculator;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        n = 8;                  // Set the input value of n
+        wait(1, SC_NS);         // Wait for one delta cycle to let the calculator process
+
+        // Print the result
+        cout << "Even indexed Fibonacci Sum upto " << n.read() << " terms: " << sum.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : calculator("calculator") {
+        // Connecting signals to the calculator ports
+        calculator.n_in(n);
+        calculator.sum_out(sum);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
+};
+
 int sc_main(int argc, char* argv[]) {
-    sc_signal<int> n;
-    sc_signal<int> sum;
-
-    FibonacciEvenSum fib("fib");
-    fib.n_in(n);
-    fib.sum_out(sum);
-
-    n.write(8); // Set the input value for n
-    sc_start();
-
-    cout << "Even indexed Fibonacci Sum upto " << n.read() << " terms: " << sum.read() << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-### Explanation of the SystemC Code
-- **Module Definition**: `FibonacciEvenSum` is a SystemC module that performs the calculation of the sum of even-indexed Fibonacci numbers.
-- **Ports**: It has an input port `n_in` for the number of terms and an output port `sum_out` for the resulting sum.
-- **Method**: `calculate_even_sum` is a method that performs the computation. It is triggered whenever `n_in` changes.
-- **Constructor**: The constructor binds the method to the input signal and specifies that it should be sensitive to changes in `n_in`.
-- **Simulation**: In `sc_main`, the module is instantiated, connected to signals, and executed with an input value of 8. The result is printed to the console.
+### Explanation of the SystemC Code:
+- **Module `FibonacciEvenSumCalculator`**:
+  - **Ports**: 
+    - `n_in`: Input port to receive the number of terms.
+    - `sum_out`: Output port to send the sum of even-indexed Fibonacci numbers.
+  - **Process `calculateEvenSum`**: 
+    - Reads the input `n`.
+    - Initializes the first two Fibonacci numbers.
+    - Calculates Fibonacci numbers up to `2*n` and sums those at even indices.
+    - Writes the sum to `sum_out`.
+  - **Constructor**: Registers the `calculateEvenSum` method and makes it sensitive to changes on `n_in`.
+
+- **Module `Testbench`**:
+  - **Signals**: 
+    - `n`: Signal connected to `n_in` of `FibonacciEvenSumCalculator`.
+    - `sum`: Signal connected to `sum_out` of `FibonacciEvenSumCalculator`.
+  - **Instance**: Creates an instance of `FibonacciEvenSumCalculator`.
+  - **Process `driveAndPrint`**: 
+    - Sets the input `n` to 8.
+    - Waits for one delta cycle for the calculation to complete.
+    - Prints the result.
+  - **Constructor**: Connects the signals to the calculator's ports and registers the `driveAndPrint` process.
+
+This SystemC code accurately mirrors the logic of the original C++ code and can be used in a high-level synthesis flow.

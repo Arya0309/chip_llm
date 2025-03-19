@@ -1,46 +1,75 @@
 
 #include <systemc.h>
 
+// User Defined GCD module
 SC_MODULE(GCDModule) {
-    sc_in<int> a;  // Input port for the first number
-    sc_in<int> b;  // Input port for the second number
-    sc_out<int> gcd_result;  // Output port for the GCD result
+    // Input ports for two numbers
+    sc_in<int> num1, num2;
+    
+    // Output port for the GCD
+    sc_out<int> gcd_result;
 
-    SC_CTOR(GCDModule) {
-        SC_METHOD(calculate_gcd);  // Register the method to calculate GCD
-        sensitive << a << b;  // Sensitivity list: react to changes in 'a' or 'b'
-    }
+    // Process to calculate GCD
+    void calculateGCD() {
+        // Reading inputs
+        int a = num1.read();
+        int b = num2.read();
 
-    void calculate_gcd() {
-        int res = sc_min(a.read(), b.read());  // Find the minimum of a and b
+        // Initialize result with the smaller of a and b
+        int res = (a < b) ? a : b;
+
+        // Finding GCD using a loop
         while (res > 1) {
-            if (a.read() % res == 0 && b.read() % res == 0)
+            if (a % res == 0 && b % res == 0)
                 break;
             res--;
         }
-        gcd_result.write(res);  // Write the GCD result to the output port
+
+        // Writing the GCD result
+        gcd_result.write(res);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(GCDModule) {
+        SC_METHOD(calculateGCD);
+        sensitive << num1 << num2;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with GCDModule
+    sc_signal<int> a, b;
+    sc_signal<int> gcd_result;
+
+    // Instance of GCDModule
+    GCDModule gcd_module;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing numbers
+        a = 12; b = 16;
+
+        // Wait for one delta cycle to let the GCD module process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "GCD of " << a.read() << " and " << b.read() << " is " << gcd_result.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : gcd_module("gcd_module") {
+        // Connecting signals to the GCD module ports
+        gcd_module.num1(a); gcd_module.num2(b);
+        gcd_module.gcd_result(gcd_result);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    GCDModule gcd_module("gcd_module");  // Instantiate the GCD module
-
-    sc_signal<int> a_signal, b_signal, gcd_result_signal;  // Declare signals
-
-    // Connect ports to signals
-    gcd_module.a(a_signal);
-    gcd_module.b(b_signal);
-    gcd_module.gcd_result(gcd_result_signal);
-
-    // Initialize input signals
-    a_signal = 12;
-    b_signal = 16;
-
-    // Start simulation
-    sc_start();
-
-    // Print the GCD result
-    cout << "GCD of " << a_signal.read() << " and " << b_signal.read() << " is " << gcd_result_signal.read() << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

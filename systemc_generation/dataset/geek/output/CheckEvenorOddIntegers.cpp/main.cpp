@@ -1,40 +1,74 @@
 
 #include <systemc.h>
 
+// User-defined module to check if a number is even or odd
 SC_MODULE(EvenOddChecker) {
-    sc_in<int> n;          // Input port for the integer n
-    sc_out<bool> result;   // Output port: true for even, false for odd
+    // Input port for the number to check
+    sc_in<int> number;
 
-    SC_CTOR(EvenOddChecker) {
-        SC_METHOD(check_even_odd);
-        sensitive << n;     // Sensitivity list: react to changes in n
+    // Output port for the result
+    sc_out<bool> isEven; // True if even, False if odd
+
+    // Process to determine if the number is even or odd
+    void checkEvenOdd() {
+        // Read the input number
+        int n = number.read();
+
+        // Determine if the number is even
+        bool even = (n % 2 == 0);
+
+        // Write the result to the output port
+        isEven.write(even);
     }
 
-    void check_even_odd() {
-        if (n.read() % 2 == 0) {
-            result.write(true);  // Write true to indicate even
+    // Constructor to register the process
+    SC_CTOR(EvenOddChecker) {
+        // Sensitivity list: react to changes on the 'number' input
+        SC_METHOD(checkEvenOdd);
+        sensitive << number;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with EvenOddChecker
+    sc_signal<int> numSignal;
+    sc_signal<bool> resultSignal;
+
+    // Instance of EvenOddChecker
+    EvenOddChecker checker;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the number to check
+        numSignal = 11;
+
+        // Wait for one delta cycle to let the checker process
+        wait(1, SC_NS);
+
+        // Print the results
+        std::cout << "Number: " << numSignal.read() << " is ";
+        if (resultSignal.read()) {
+            std::cout << "Even";
         } else {
-            result.write(false); // Write false to indicate odd
+            std::cout << "Odd";
         }
+        std::cout << std::endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : checker("checker") {
+        // Connecting signals to the checker ports
+        checker.number(numSignal);
+        checker.isEven(resultSignal);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    EvenOddChecker checker("checker");
-    sc_signal<int> n;          // Signal to hold the input value
-    sc_signal<bool> result;    // Signal to hold the result
-
-    checker.n(n);
-    checker.result(result);
-
-    n.write(11);               // Set the input value to 11
-    sc_start();                // Start the simulation
-
-    if (result.read()) {
-        cout << "Even" << endl;
-    } else {
-        cout << "Odd" << endl;
-    }
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

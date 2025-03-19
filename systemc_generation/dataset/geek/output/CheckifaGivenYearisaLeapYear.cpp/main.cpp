@@ -1,53 +1,77 @@
 
 #include <systemc.h>
 
+// Module to check if a given year is a leap year
 SC_MODULE(LeapYearChecker) {
-    sc_in<int> year; // Input port for the year
-    sc_out<bool> is_leap_year; // Output port indicating if the year is a leap year
+    // Input port for the year
+    sc_in<int> year_in;
 
-    SC_CTOR(LeapYearChecker) {
-        SC_METHOD(check_leap_year);
-        sensitive << year;
-    }
+    // Output port for the result
+    sc_out<bool> is_leap_year_out;
 
-    void check_leap_year() {
-        int y = year.read();
-        bool result;
+    // Internal method to check leap year
+    void checkLeapYear() {
+        int year = year_in.read();
+        bool is_leap_year = false;
 
-        if (y % 400 == 0) {
-            result = true;
-        } else if (y % 100 == 0) {
-            result = false;
-        } else if (y % 4 == 0) {
-            result = true;
+        if (year % 400 == 0) {
+            is_leap_year = true;
+        } else if (year % 100 == 0) {
+            is_leap_year = false;
+        } else if (year % 4 == 0) {
+            is_leap_year = true;
         } else {
-            result = false;
+            is_leap_year = false;
         }
 
-        is_leap_year.write(result);
+        is_leap_year_out.write(is_leap_year);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(LeapYearChecker) {
+        SC_METHOD(checkLeapYear);
+        sensitive << year_in;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with LeapYearChecker
+    sc_signal<int> year;
+    sc_signal<bool> is_leap_year;
+
+    // Instance of LeapYearChecker
+    LeapYearChecker checker;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the year
+        year = 2000;
+
+        // Wait for one delta cycle to let the checker process
+        wait(1, SC_NS);
+
+        // Print the result
+        if (is_leap_year.read()) {
+            cout << "Leap Year" << endl;
+        } else {
+            cout << "Not a Leap Year" << endl;
+        }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : checker("checker") {
+        // Connecting signals to the checker ports
+        checker.year_in(year);
+        checker.is_leap_year_out(is_leap_year);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_signal<int> year;
-    sc_signal<bool> is_leap_year;
-
-    LeapYearChecker checker("checker");
-    checker.year(year);
-    checker.is_leap_year(is_leap_year);
-
-    // Initialize the year
-    year.write(2000);
-
-    // Start simulation
-    sc_start();
-
-    // Output the result
-    if (is_leap_year.read()) {
-        cout << "Leap Year" << endl;
-    } else {
-        cout << "Not a Leap Year" << endl;
-    }
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

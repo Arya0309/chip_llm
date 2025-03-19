@@ -1,136 +1,142 @@
 
 #include <systemc.h>
 
+// Define constants for matrix dimensions
+const int R = 4;
+const int C = 4;
+
+// SystemC module to rotate a matrix
 SC_MODULE(MatrixRotator) {
-    sc_in<bool> clk;
-    sc_in<bool> reset;
-    sc_out<sc_uint<32>> out;
+    // Port to trigger the rotation
+    sc_in<bool> start;
 
-    // Internal storage for the matrix
-    sc_uint<32> mat[4][4];
+    // Signal to indicate completion of rotation
+    sc_out<bool> done;
 
-    // Control signals
-    sc_signal<int> row, col, m, n;
-    sc_signal<sc_uint<32>> prev, curr;
-    sc_signal<bool> done;
+    // Internal matrix storage
+    int mat[R][C];
 
+    // Constructor to initialize the matrix and register the process
     SC_CTOR(MatrixRotator) {
-        SC_METHOD(rotate_matrix);
-        sensitive << clk.pos();
+        SC_METHOD(rotatematrix);
+        sensitive << start;
         dont_initialize();
-
-        SC_METHOD(print_matrix);
-        sensitive << done;
+        done.write(false);
     }
 
-    void rotate_matrix() {
-        if (reset.read()) {
-            // Initialize matrix with test values
-            for (int i = 0; i < 4; ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    mat[i][j] = (i * 4) + j + 1;
+    // Method to perform matrix rotation
+    void rotatematrix() {
+        int row = 0, col = 0;
+        int prev, curr;
+
+        while (row < R && col < C) {
+            if (row + 1 == R || col + 1 == C)
+                break;
+
+            prev = mat[row + 1][col];
+
+            // Rotate first row
+            for (int i = col; i < C; i++) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            // Rotate last column
+            for (int i = row; i < R; i++) {
+                curr = mat[i][C-1];
+                mat[i][C-1] = prev;
+                prev = curr;
+            }
+            C--;
+
+            // Rotate last row
+            if (row < R) {
+                for (int i = C-1; i >= col; i--) {
+                    curr = mat[R-1][i];
+                    mat[R-1][i] = prev;
+                    prev = curr;
                 }
             }
-            row.write(0);
-            col.write(0);
-            m.write(4);
-            n.write(4);
-            done.write(false);
-        } else {
-            if (!done.read()) {
-                if (row.read() < m.read() && col.read() < n.read()) {
-                    if (row.read() + 1 == m.read() || col.read() + 1 == n.read()) {
-                        done.write(true);
-                    } else {
-                        prev.write(mat[row.read() + 1][col.read()]);
-                        for (int i = col.read(); i < n.read(); i++) {
-                            curr.write(mat[row.read()][i]);
-                            mat[row.read()][i] = prev.read();
-                            prev.write(curr.read());
-                        }
-                        row.write(row.read() + 1);
+            R--;
 
-                        for (int i = row.read(); i < m.read(); i++) {
-                            curr.write(mat[i][n.read() - 1]);
-                            mat[i][n.read() - 1] = prev.read();
-                            prev.write(curr.read());
-                        }
-                        n.write(n.read() - 1);
-
-                        if (row.read() < m.read()) {
-                            for (int i = n.read() - 1; i >= col.read(); i--) {
-                                curr.write(mat[m.read() - 1][i]);
-                                mat[m.read() - 1][i] = prev.read();
-                                prev.write(curr.read());
-                            }
-                        }
-                        m.write(m.read() - 1);
-
-                        if (col.read() < n.read()) {
-                            for (int i = m.read() - 1; i >= row.read(); i--) {
-                                curr.write(mat[i][col.read()]);
-                                mat[i][col.read()] = prev.read();
-                                prev.write(curr.read());
-                            }
-                        }
-                        col.write(col.read() + 1);
-                    }
+            // Rotate first column
+            if (col < C) {
+                for (int i = R-1; i >= row; i--) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
                 }
             }
+            col++;
         }
+
+        // Print rotated matrix
+        for (int i=0; i<R; i++) {
+            for (int j=0; j<C; j++)
+                cout << mat[i][j] << " ";
+            cout << endl;
+        }
+
+        done.write(true);
     }
 
-    void print_matrix() {
-        if (done.read()) {
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    std::cout << mat[i][j] << " ";
-                }
-                std::cout << std::endl;
+    // Function to set the initial matrix
+    void setMatrix(int matrix[R][C]) {
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                mat[i][j] = matrix[i][j];
             }
         }
     }
 };
 
+// Testbench module to drive inputs and capture outputs
 SC_MODULE(Testbench) {
-    sc_out<bool> clk;
-    sc_out<bool> reset;
+    // Signal to trigger the rotation
+    sc_signal<bool> start;
 
-    SC_CTOR(Testbench) {
-        SC_THREAD(generate_clk);
-        SC_THREAD(generate_reset);
+    // Signal to indicate completion of rotation
+    sc_signal<bool> done;
+
+    // Instance of MatrixRotator
+    MatrixRotator rotator;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize matrix
+        int a[R][C] = {{1, 2, 3, 4},
+                       {5, 6, 7, 8},
+                       {9, 10, 11, 12},
+                       {13, 14, 15, 16}};
+        rotator.setMatrix(a);
+
+        // Trigger rotation
+        start.write(true);
+        wait(1, SC_NS);
+        start.write(false);
+
+        // Wait for rotation to complete
+        wait(done.posedge_event());
+
+        // Print completion message
+        cout << "Matrix rotation completed." << endl;
     }
 
-    void generate_clk() {
-        clk.write(false);
-        wait(10, SC_NS);
-        while (true) {
-            clk.write(!clk.read());
-            wait(10, SC_NS);
-        }
-    }
+    // Constructor to register the process
+    SC_CTOR(Testbench) : rotator("rotator") {
+        // Connect signals to the rotator ports
+        rotator.start(start);
+        rotator.done(done);
 
-    void generate_reset() {
-        reset.write(true);
-        wait(20, SC_NS);
-        reset.write(false);
-        wait(100, SC_NS);
-        sc_stop();
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    MatrixRotator matrix_rotator("matrix_rotator");
     Testbench tb("tb");
-
-    sc_clock clk("clk", 10, SC_NS, 0.5, 0, SC_NS, false);
-    sc_signal<bool> reset;
-
-    matrix_rotator.clk(clk);
-    matrix_rotator.reset(reset);
-    tb.clk(clk);
-    tb.reset(reset);
-
-    sc_start();
+    sc_start(); // Start simulation
     return 0;
 }

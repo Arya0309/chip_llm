@@ -1,36 +1,25 @@
 
 #include <systemc.h>
-#include <vector>
-#include <iostream>
 
-SC_MODULE(BinarySearchModule) {
-    sc_in<bool> clk;
-    sc_in<bool> rst;
-    sc_in<sc_uint<32>> target;
+// BinarySearch module
+SC_MODULE(BinarySearch) {
+    // Input port for the target value
+    sc_in<int> target;
+    // Output port indicating whether the target is found
     sc_out<bool> found;
+    // Input vector (as an array for simplicity)
+    int v[8];
+    int size;
 
-    SC_CTOR(BinarySearchModule) {
-        SC_METHOD(search);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
-
-    void search() {
-        if (rst.read()) {
-            found.write(false);
-            return;
-        }
-
-        std::vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11}; // Sorted vector
-        int low = 0;
-        int high = v.size() - 1;
+    // Process to perform binary search
+    void doBinarySearch() {
+        int low = 0, high = size - 1;
         bool result = false;
 
-        while (low <= high) {
+        while (low <= high && !result) {
             int mid = ((high - low) / 2) + low;
             if (v[mid] == target.read()) {
                 result = true;
-                break;
             } else if (v[mid] > target.read()) {
                 high = mid - 1;
             } else {
@@ -40,27 +29,58 @@ SC_MODULE(BinarySearchModule) {
 
         found.write(result);
     }
+
+    // Constructor to register the process
+    SC_CTOR(BinarySearch) : size(8) {
+        SC_METHOD(doBinarySearch);
+        sensitive << target;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with BinarySearch
+    sc_signal<int> target;
+    sc_signal<bool> found;
+
+    // Instance of BinarySearch
+    BinarySearch searcher;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the vector in the searcher
+        int values[] = {1, 2, 3, 4, 5, 8, 9, 11};
+        for (int i = 0; i < 8; ++i) {
+            searcher.v[i] = values[i];
+        }
+
+        // Set the target to search
+        target = 8;
+
+        // Wait for one delta cycle to let the searcher process
+        wait(1, SC_NS);
+
+        // Print the result
+        if (found.read()) {
+            cout << target.read() << " found." << endl;
+        } else {
+            cout << target.read() << " NOT found." << endl;
+        }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : searcher("searcher") {
+        // Connecting signals to the searcher ports
+        searcher.target(target);
+        searcher.found(found);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_clock clk("clk", 10, SC_NS); // Create a clock signal
-    sc_signal<bool> rst("rst");
-    sc_signal<sc_uint<32>> target("target");
-    sc_signal<bool> found("found");
-
-    BinarySearchModule bsm("bsm");
-    bsm.clk(clk);
-    bsm.rst(rst);
-    bsm.target(target);
-    bsm.found(found);
-
-    sc_start(0, SC_NS);
-    rst.write(true);
-    sc_start(10, SC_NS);
-    rst.write(false);
-    target.write(8);
-    sc_start(10, SC_NS);
-    std::cout << "Target " << target.read() << (found.read() ? " found." : " NOT found.") << std::endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

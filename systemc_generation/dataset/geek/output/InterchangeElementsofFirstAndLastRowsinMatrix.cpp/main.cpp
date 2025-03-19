@@ -1,60 +1,87 @@
 
 #include <systemc.h>
 
-SC_MODULE(MatrixManipulator) {
-    sc_in<bool> clk; // Clock signal
-    sc_in<bool> reset; // Reset signal
+// Module to swap the first and last columns of a matrix
+SC_MODULE(MatrixSwapper) {
+    // Signal for matrix input and output
+    sc_in<sc_matrix<int>> in_matrix;
+    sc_out<sc_matrix<int>> out_matrix;
 
-    SC_CTOR(MatrixManipulator) {
-        SC_METHOD(interchangeFirstLast);
-        sensitive << clk.pos();
-        dont_initialize();
+    // Internal storage for matrix
+    sc_matrix<int> matrix;
 
-        SC_METHOD(printMatrix);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
-
-    void interchangeFirstLast() {
-        if (!reset.read()) {
-            for (int i = 0; i < 4; i++) {
-                int temp = matrix[i][0];
-                matrix[i][0] = matrix[i][3];
-                matrix[i][3] = temp;
-            }
+    // Process to swap the first and last columns
+    void swapColumns() {
+        matrix = in_matrix.read();
+        for (int i = 0; i < 4; i++) {
+            int temp = matrix[i][0];
+            matrix[i][0] = matrix[i][3];
+            matrix[i][3] = temp;
         }
+        out_matrix.write(matrix);
     }
 
-    void printMatrix() {
-        if (!reset.read()) {
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    sc_report_handler::report(sc_core::SC_INFO, "PRINT", sc_string_concat("Element[", i, "][", j, "] = ", matrix[i][j]));
-                }
-                sc_report_handler::report(sc_core::SC_INFO, "PRINT", "");
-            }
-        }
+    // Constructor to register the process
+    SC_CTOR(MatrixSwapper) {
+        SC_METHOD(swapColumns);
+        sensitive << in_matrix;
     }
-
-private:
-    int matrix[4][4] = {{8, 9, 7, 6},
-                        {4, 7, 6, 5},
-                        {3, 2, 1, 8},
-                        {9, 9, 7, 7}};
 };
 
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with MatrixSwapper
+    sc_signal<sc_matrix<int>> in_matrix;
+    sc_signal<sc_matrix<int>> out_matrix;
+
+    // Instance of MatrixSwapper
+    MatrixSwapper swapper;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the matrix
+        sc_matrix<int> input_matrix(4, 4);
+        input_matrix[0] = {8, 9, 7, 6};
+        input_matrix[1] = {4, 7, 6, 5};
+        input_matrix[2] = {3, 2, 1, 8};
+        input_matrix[3] = {9, 9, 7, 7};
+
+        // Drive the input matrix
+        in_matrix.write(input_matrix);
+
+        // Wait for one delta cycle to let the swapper process
+        wait(1, SC_NS);
+
+        // Read the output matrix
+        sc_matrix<int> output_matrix = out_matrix.read();
+
+        // Print the results
+        cout << "Matrix after swapping first and last columns:" << endl;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                cout << output_matrix[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : swapper("swapper") {
+        // Connecting signals to the swapper ports
+        swapper.in_matrix(in_matrix);
+        swapper.out_matrix(out_matrix);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
+};
+
+// Custom data type for matrix
+typedef sc_fixed<32, 16, SC_RND, SC_SAT> sc_matrix_elem_t;
+typedef sc_matrix<sc_matrix_elem_t> sc_matrix_t;
+
 int sc_main(int argc, char* argv[]) {
-    sc_clock clk("clk", 10, SC_NS, 0.5, 0, SC_NS, true);
-    sc_signal<bool> reset;
-
-    MatrixManipulator manipulator("manipulator");
-    manipulator.clk(clk);
-    manipulator.reset(reset);
-
-    reset.write(true);
-    sc_start(10, SC_NS); // Apply reset for 10 ns
-    reset.write(false);
-    sc_start(20, SC_NS); // Run for another 20 ns
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

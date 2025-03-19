@@ -1,66 +1,68 @@
 
 #include <systemc.h>
 
-// Define a SystemC module for temperature conversion
-SC_MODULE(TemperatureConverter) {
+// Module to convert Fahrenheit to Celsius
+SC_MODULE(FahrenheitToCelsius) {
     // Input port for Fahrenheit temperature
-    sc_in<float> fahrenheit;
-    // Output port for Celsius temperature
-    sc_out<float> celsius;
+    sc_in<float> fahrenheit_in;
     
-    // Constructor
-    SC_CTOR(TemperatureConverter) {
-        // Sensitivity list: react on any change in 'fahrenheit'
-        SC_METHOD(convert);
-        sensitive << fahrenheit;
+    // Output port for Celsius temperature
+    sc_out<float> celsius_out;
+
+    // Process to perform the conversion
+    void convertTemperature() {
+        // Read the input temperature in Fahrenheit
+        float fahrenheit = fahrenheit_in.read();
+        
+        // Convert to Celsius using the formula
+        float celsius = (fahrenheit - 32.0) * 5.0 / 9.0;
+        
+        // Write the output temperature in Celsius
+        celsius_out.write(celsius);
     }
 
-    // Method to perform conversion
-    void convert() {
-        // Convert Fahrenheit to Celsius and write to output port
-        celsius.write((fahrenheit.read() - 32.0) * 5.0 / 9.0);
+    // Constructor to register the process
+    SC_CTOR(FahrenheitToCelsius) {
+        SC_METHOD(convertTemperature);
+        sensitive << fahrenheit_in;
     }
 };
 
-// Testbench module
+// Testbench module to drive inputs and capture outputs
 SC_MODULE(Testbench) {
-    // Signal declarations for communication between modules
-    sc_signal<float> fahrenheit_sig;
-    sc_signal<float> celsius_sig;
+    // Signal to connect with FahrenheitToCelsius module
+    sc_signal<float> fahrenheit_in;
+    sc_signal<float> celsius_out;
 
-    // Instance of TemperatureConverter
-    TemperatureConverter converter;
+    // Instance of FahrenheitToCelsius module
+    FahrenheitToCelsius converter;
 
-    // Constructor
-    SC_CTOR(Testbench) : converter("converter") {
-        // Connect signals to the converter's ports
-        converter.fahrenheit(fahrenheit_sig);
-        converter.celsius(celsius_sig);
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the Fahrenheit temperature
+        fahrenheit_in = 40.0;
 
-        // Process to initialize and monitor the test
-        SC_THREAD(run);
+        // Wait for one delta cycle to let the converter process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Temperature in Fahrenheit: " << fahrenheit_in.read() << " F" << endl;
+        cout << "Converted Temperature in Celsius: " << celsius_out.read() << " C" << endl;
     }
 
-    // Thread process to run the test
-    void run() {
-        // Initialize Fahrenheit signal with 40 degrees
-        fahrenheit_sig = 40.0;
-        wait(1, SC_NS); // Wait for one nanosecond for conversion to occur
+    // Constructor to register the process
+    SC_CTOR(Testbench) : converter("converter") {
+        // Connecting signals to the converter ports
+        converter.fahrenheit_in(fahrenheit_in);
+        converter.celsius_out(celsius_out);
 
-        // Print the converted Celsius temperature
-        cout << "Fahrenheit: " << fahrenheit_sig.read() << " -> Celsius: " << celsius_sig.read() << endl;
-
-        // End simulation
-        sc_stop();
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    // Create an instance of Testbench
     Testbench tb("tb");
-
-    // Run the simulation
-    sc_start();
-
+    sc_start(); // Start simulation
     return 0;
 }

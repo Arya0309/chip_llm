@@ -1,98 +1,104 @@
 
 #include <systemc.h>
 
-SC_MODULE(SelectionSorter) {
-    sc_vector<sc_signal<int>> input_arr;
-    sc_signal<int> sorted_arr[5];
-    sc_in<bool> clk;
-    sc_out<bool> done;
+// Module to perform Selection Sort
+SC_MODULE(SelectionSortModule) {
+    // Input port for the array size
+    sc_in<int> n;
+    
+    // Input and output ports for the array
+    sc_in<int> arr_in[10]; // Assuming maximum array size of 10
+    sc_out<int> arr_out[10];
 
-    SC_CTOR(SelectionSorter) : input_arr("input_arr", 5) {
-        SC_METHOD(sort_process);
-        sensitive << clk.pos();
-    }
-
-    void sort_process() {
-        static bool initialized = false;
-        static int arr[5];
-        static int i = 0, j = 0, min_idx = 0;
-        static bool sorting = false;
-
-        if (!initialized) {
-            // Initialize array from input signals
-            for (int k = 0; k < 5; ++k) {
-                arr[k] = input_arr[k].read();
-            }
-            initialized = true;
-            sorting = true;
+    // Internal array to hold the data during sorting
+    int arr[10];
+    
+    // Process to perform selection sort
+    void selectionSortProcess() {
+        // Copy input array to internal array
+        for (int i = 0; i < n.read(); ++i) {
+            arr[i] = arr_in[i].read();
         }
 
-        if (sorting) {
-            if (i < 4) {
-                if (j < 5) {
-                    if (arr[j] < arr[min_idx]) {
-                        min_idx = j;
-                    }
-                    j++;
-                } else {
-                    // Swap the found minimum element with the first element
-                    int temp = arr[min_idx];
-                    arr[min_idx] = arr[i];
-                    arr[i] = temp;
+        int i, j, min_idx;
 
-                    // Move to the next element
-                    i++;
-                    j = i + 1;
-                    min_idx = i;
-                }
-            } else {
-                // Sorting is complete
-                sorting = false;
-                done.write(true);
-                // Write sorted array to output signals
-                for (int k = 0; k < 5; ++k) {
-                    sorted_arr[k].write(arr[k]);
+        // Perform selection sort
+        for (i = 0; i < n.read() - 1; i++) {
+            min_idx = i;
+            for (j = i + 1; j < n.read(); j++) {
+                if (arr[j] < arr[min_idx]) {
+                    min_idx = j;
                 }
             }
+            // Swap elements
+            int temp = arr[min_idx];
+            arr[min_idx] = arr[i];
+            arr[i] = temp;
+        }
+
+        // Write sorted array to output ports
+        for (int i = 0; i < n.read(); ++i) {
+            arr_out[i].write(arr[i]);
+        }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(SelectionSortModule) {
+        SC_METHOD(selectionSortProcess);
+        sensitive << n;
+        for (int i = 0; i < 10; ++i) {
+            sensitive << arr_in[i];
         }
     }
 };
 
-SC_MODULE(TopLevel) {
-    SelectionSorter sorter;
-    sc_signal<bool> clk;
-    sc_signal<bool> done;
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with SelectionSortModule
+    sc_signal<int> n;
+    sc_signal<int> arr_in[10];
+    sc_signal<int> arr_out[10];
 
-    SC_CTOR(TopLevel) : sorter("sorter") {
-        sorter.clk(clk);
-        sorter.done(done);
+    // Instance of SelectionSortModule
+    SelectionSortModule sorter;
 
-        SC_THREAD(clock_gen);
-        SC_THREAD(check_done);
-    }
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize array size and array elements
+        n = 5;
+        arr_in[0] = 64;
+        arr_in[1] = 25;
+        arr_in[2] = 12;
+        arr_in[3] = 22;
+        arr_in[4] = 11;
 
-    void clock_gen() {
-        while (true) {
-            clk = 0;
-            wait(10, SC_NS);
-            clk = 1;
-            wait(10, SC_NS);
-        }
-    }
+        // Wait for one delta cycle to let the sorter process
+        wait(1, SC_NS);
 
-    void check_done() {
-        wait(done.posedge_event());
+        // Print the sorted array
         cout << "Sorted array: ";
-        for (int i = 0; i < 5; ++i) {
-            cout << sorter.sorted_arr[i].read() << " ";
+        for (int i = 0; i < n.read(); ++i) {
+            cout << arr_out[i].read() << " ";
         }
         cout << endl;
-        sc_stop();
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : sorter("sorter") {
+        // Connecting signals to the sorter ports
+        sorter.n(n);
+        for (int i = 0; i < 10; ++i) {
+            sorter.arr_in[i](arr_in[i]);
+            sorter.arr_out[i](arr_out[i]);
+        }
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    TopLevel top("top");
-    sc_start();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

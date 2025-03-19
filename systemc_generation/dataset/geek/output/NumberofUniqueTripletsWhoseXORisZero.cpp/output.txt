@@ -1,67 +1,71 @@
 
 ### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs:
-- **Inputs**:
-  - An array `a` of integers.
-  - An integer `n` representing the number of elements in the array `a`.
-- **Outputs**:
-  - An integer representing the count of unique triplets `(i, j, k)` in the array such that `a[i] ^ a[j] ^ a[k] == 0`.
+#### Inputs and Outputs
+- **Inputs**: An array `a` of integers and its size `n`.
+- **Outputs**: The number of unique triplets `(i, j, k)` such that `a[i] XOR a[j] XOR a[k] == 0`.
 
-#### Line-by-Line Explanation:
+#### Line-by-Line/Block-by-Block Explanation
 1. **Include Directives and Namespace**:
    ```cpp
    #include <bits/stdc++.h>
    using namespace std;
    ```
-   - This includes a header file that contains definitions for most standard library components, and it uses the standard namespace.
+   - Includes all standard C++ libraries.
+   - Uses the `std` namespace to avoid prefixing standard library names with `std::`.
 
 2. **Function Definition**:
    ```cpp
    int countTriplets(int a[], int n)
    ```
-   - Defines a function named `countTriplets` which takes an array `a` and its size `n` as parameters and returns an integer.
+   - Defines a function `countTriplets` that takes an integer array `a` and its size `n` as parameters and returns an integer.
 
-3. **Storing Unique Values**:
+3. **Unordered Set Declaration**:
    ```cpp
    unordered_set<int> s;
+   ```
+   - Declares an unordered set `s` to store unique elements from the array `a`.
+
+4. **Populating the Set**:
+   ```cpp
    for (int i = 0; i < n; i++)
        s.insert(a[i]);
    ```
-   - An `unordered_set` named `s` is declared to store unique elements from the array `a`. A loop iterates through each element of the array and inserts it into the set.
+   - Iterates through the array `a` and inserts each element into the set `s`.
 
-4. **Initialize Count Variable**:
+5. **Count Variable Initialization**:
    ```cpp
    int count = 0;
    ```
-   - A variable `count` is initialized to zero. This variable will keep track of the number of unique triplets whose XOR is zero.
+   - Initializes a variable `count` to zero, which will store the number of valid triplets.
 
-5. **Nested Loops for Pairwise XOR**:
+6. **Nested Loops for Pairwise XOR**:
    ```cpp
    for (int i = 0; i < n-1; i++) {
        for (int j = i + 1; j < n; j++) {
            int xr = a[i] ^ a[j];
    ```
-   - Two nested loops iterate over all possible pairs `(i, j)` where `j > i`. For each pair, the XOR (`xr`) of `a[i]` and `a[j]` is calculated.
+   - The outer loop runs from the first element to the second last element.
+   - The inner loop runs from the element next to `i` to the last element.
+   - Computes the XOR of `a[i]` and `a[j]` and stores it in `xr`.
 
-6. **Check for Third Element**:
+7. **Checking for Valid Triplets**:
    ```cpp
            if (s.find(xr) != s.end() && xr != a[i] && xr != a[j])
                count++;
-       }
-   }
    ```
-   - The code checks if the XOR result `xr` exists in the set `s` and ensures that `xr` is not equal to either `a[i]` or `a[j]`. If these conditions are met, it means there exists a third element `a[k]` such that `a[i] ^ a[j] ^ a[k] == 0`, so `count` is incremented.
+   - Checks if `xr` exists in the set `s` and ensures `xr` is not equal to `a[i]` or `a[j]`.
+   - If true, increments the `count` by one.
 
-7. **Return Statement**:
+8. **Returning the Count**:
    ```cpp
    return count / 3;
    ```
-   - Since each triplet is counted three times (once for each permutation of `(i, j, k)`), the final count is divided by 3 before returning.
+   - Since each triplet is counted three times (once for each permutation), the count is divided by 3 before returning.
 
-8. **Driver Code**:
+9. **Main Function**:
    ```cpp
-   int main()
+   int main() 
    {
        int a[] = {1, 3, 5, 10, 14, 15};
        int n = sizeof(a) / sizeof(a[0]); 
@@ -69,89 +73,130 @@
        return 0;
    }
    ```
-   - The `main` function initializes an array `a` with some values, calculates the number of unique triplets whose XOR is zero using `countTriplets`, and prints the result.
+   - Initializes an array `a` with some integers.
+   - Computes the size of the array `n`.
+   - Calls the `countTriplets` function and prints the result.
 
-### Equivalent SystemC Code
+### Equivalent SystemC Code Snippet
 
-Below is the equivalent SystemC code that captures the logic of the original C++/C source. Note that SystemC is typically used for hardware modeling and simulation, so the code structure is adapted to fit within a SystemC module.
+Below is the SystemC code snippet that replicates the logic of the provided C++/C code. This code defines a module to count the number of unique triplets whose XOR is zero.
 
 ```cpp
 #include <systemc.h>
-#include <unordered_set>
 
+// Module to count the number of unique triplets whose XOR is 0
 SC_MODULE(TripletCounter) {
-    sc_in<sc_int<32>> arr[6]; // Input array of integers
-    sc_out<sc_int<32>> result; // Output count of triplets
-
-    SC_CTOR(TripletCounter) {
-        SC_METHOD(count_triplets);
-        sensitive << arr[0] << arr[1] << arr[2] << arr[3] << arr[4] << arr[5];
-    }
-
+    // Input port for the array size
+    sc_in<int> n_in;
+    
+    // Input vector for the array elements
+    sc_vector<sc_in<int>> a_in;
+    
+    // Output port for the count of triplets
+    sc_out<int> count_out;
+    
+    // Internal storage for the array and count
+    std::vector<int> a;
+    int count;
+    
+    // Process to count the triplets
     void count_triplets() {
-        int a[6];
-        for (int i = 0; i < 6; ++i) {
-            a[i] = arr[i].read();
+        // Read the array size
+        int n = n_in.read();
+        a.resize(n);
+        
+        // Read the array elements
+        for (int i = 0; i < n; ++i) {
+            a[i] = a_in[i].read();
         }
-
-        // To store values that are present
-        std::unordered_set<int> s;
-        for (int i = 0; i < 6; i++) {
-            s.insert(a[i]);
-        }
-
-        // Stores the count of unique triplets
-        int count = 0;
-
-        // Traverse for all i, j pairs such that j>i
-        for (int i = 0; i < 5; i++) {
-            for (int j = i + 1; j < 6; j++) {
+        
+        // Create an unordered set to store unique elements
+        std::unordered_set<int> s(a.begin(), a.end());
+        
+        // Initialize count to 0
+        count = 0;
+        
+        // Traverse for all i, j pairs such that j > i
+        for (int i = 0; i < n - 1; ++i) {
+            for (int j = i + 1; j < n; ++j) {
                 // XOR of a[i] and a[j]
                 int xr = a[i] ^ a[j];
-
-                // If XR of two numbers is present,
-                // then increase the count
+                
+                // Check if xr is in the set and not equal to a[i] or a[j]
                 if (s.find(xr) != s.end() && xr != a[i] && xr != a[j]) {
                     count++;
                 }
             }
         }
+        
+        // Write the final count divided by 3
+        count_out.write(count / 3);
+    }
+    
+    // Constructor to register the process
+    SC_CTOR(TripletCounter) : a_in("a_in", 0) {
+        SC_METHOD(count_triplets);
+        sensitive << n_in;
+    }
+};
 
-        // Returns answer
-        result.write(count / 3);
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with TripletCounter
+    sc_signal<int> n;
+    sc_vector<sc_signal<int>> a;
+    sc_signal<int> count;
+    
+    // Instance of TripletCounter
+    TripletCounter counter;
+    
+    // Process to drive inputs and print outputs
+    void drive_and_print() {
+        // Initialize array size
+        n = 6;
+        a.init(n);
+        
+        // Initialize array elements
+        a[0] = 1; a[1] = 3; a[2] = 5; a[3] = 10; a[4] = 14; a[5] = 15;
+        
+        // Wait for one delta cycle to let the counter process
+        wait(1, SC_NS);
+        
+        // Print the result
+        cout << "Number of unique triplets whose XOR is 0: " << count.read() << endl;
+    }
+    
+    // Constructor to register the process
+    SC_CTOR(Testbench) : counter("counter"), a("a", n.read()) {
+        // Connecting signals to the counter ports
+        counter.n_in(n);
+        for (int i = 0; i < n.read(); ++i) {
+            counter.a_in[i](a[i]);
+        }
+        counter.count_out(count);
+        
+        // Registering the drive_and_print process
+        SC_THREAD(drive_and_print);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    TripletCounter triplet_counter("triplet_counter");
-
-    sc_signal<sc_int<32>> a0, a1, a2, a3, a4, a5, res;
-
-    triplet_counter.arr[0](a0);
-    triplet_counter.arr[1](a1);
-    triplet_counter.arr[2](a2);
-    triplet_counter.arr[3](a3);
-    triplet_counter.arr[4](a4);
-    triplet_counter.arr[5](a5);
-    triplet_counter.result(res);
-
-    a0 = 1;
-    a1 = 3;
-    a2 = 5;
-    a3 = 10;
-    a4 = 14;
-    a5 = 15;
-
-    sc_start();
-
-    std::cout << "Number of unique triplets: " << res.read() << std::endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of SystemC Code:
-- **Module Declaration**: A SystemC module `TripletCounter` is declared with input ports `arr` for the array elements and an output port `result` for the count of triplets.
-- **Constructor**: The constructor sets up sensitivity to changes in the input array elements, triggering the `count_triplets` method whenever any input changes.
-- **Method Definition**: The `count_triplets` method reads the input array, computes the count of unique triplets whose XOR is zero using a similar logic to the C++ code, and writes the result to the output port.
-- **Main Function**: The `sc_main` function instantiates the `TripletCounter` module, connects it to signals representing the array elements and the result, assigns initial values to the array elements, starts the simulation, and prints the result.
+### Explanation of the SystemC Code
+
+- **TripletCounter Module**:
+  - **Inputs**: Takes an array size `n_in` and an array of integers `a_in`.
+  - **Output**: Provides the count of unique triplets `count_out`.
+  - **Process**: The `count_triplets` method reads the array size and elements, computes the count of triplets whose XOR is zero, and writes the result to `count_out`.
+
+- **Testbench Module**:
+  - Initializes the array size and elements.
+  - Connects these to the `TripletCounter` module.
+  - Drives the inputs and prints the output after the simulation completes.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be used in a high-level synthesis flow.

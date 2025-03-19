@@ -1,81 +1,132 @@
 
 #include <systemc.h>
 
-SC_MODULE(Sorter) {
-    sc_in<bool> clk;
-    sc_in<bool> reset;
-    sc_out<sc_uint<32>> sorted_array[5];
+// Module to perform Bubble Sort
+SC_MODULE(BubbleSort) {
+    // Input ports
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> reset;        // Reset signal
+    sc_in<sc_uint<32>> len;   // Length of the array
+    sc_in<sc_uint<32>> dataIn[10]; // Input data array (assuming max length 10)
 
-    SC_CTOR(Sorter) {
-        SC_METHOD(sort_array);
-        sensitive << clk.pos();
-        dont_initialize();
+    // Output ports
+    sc_out<sc_uint<32>> dataOut[10]; // Output data array
+    sc_out<bool> done;              // Sorting complete signal
 
-        SC_METHOD(print_sorted_array);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
-
-private:
-    int nums[5] = {1, 12, 6, 8, 10};
-    int size_nums = 5;
+    // Internal variables
+    sc_uint<32> nums[10];
+    sc_uint<32> i, j;
     bool isSwapped;
 
-    void sort_array() {
+    // Process to perform sorting
+    void bubbleSort() {
         if (reset.read()) {
-            for (int i = 0; i < size_nums; i++) {
-                nums[i] = {1, 12, 6, 8, 10}[i];
-            }
-        } else {
+            i = 0;
+            j = 1;
             isSwapped = false;
-            for (int j = 1; j < size_nums; j++) {
-                if (nums[j] < nums[j - 1]) {
-                    swapNums(nums, j, j - 1);
-                    isSwapped = true;
+            for (int k = 0; k < len.read(); k++) {
+                nums[k] = dataIn[k].read();
+                dataOut[k].write(0);
+            }
+            done.write(false);
+        } else if (clk.event() && !done.read()) {
+            if (i < len.read()) {
+                if (j < len.read() - i) {
+                    if (nums[j] < nums[j - 1]) {
+                        sc_uint<32> temp = nums[j];
+                        nums[j] = nums[j - 1];
+                        nums[j - 1] = temp;
+                        isSwapped = true;
+                    }
+                    j++;
+                } else {
+                    if (!isSwapped) {
+                        done.write(true);
+                    } else {
+                        isSwapped = false;
+                        i++;
+                        j = 1;
+                    }
                 }
-            }
-            if (!isSwapped) {
-                sc_stop();
+            } else {
+                for (int k = 0; k < len.read(); k++) {
+                    dataOut[k].write(nums[k]);
+                }
+                done.write(true);
             }
         }
     }
 
-    void print_sorted_array() {
-        if (reset.read()) {
-            cout << "Before sorting the array is: \n";
-            for (int i = 0; i < size_nums; i++) {
-                cout << nums[i] << " ";
-            }
-            cout << "\n\n";
-        } else {
-            cout << "After sorting the array is: \n";
-            for (int i = 0; i < size_nums; i++) {
-                cout << nums[i] << " ";
-                sorted_array[i].write(nums[i]);
-            }
-            cout << "\n";
+    // Constructor to register the process
+    SC_CTOR(BubbleSort) {
+        SC_METHOD(bubbleSort);
+        sensitive << clk.pos() << reset.pos();
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with BubbleSort
+    sc_signal<bool> clk, reset;
+    sc_signal<sc_uint<32>> len;
+    sc_signal<sc_uint<32>> dataIn[10];
+    sc_signal<sc_uint<32>> dataOut[10];
+    sc_signal<bool> done;
+
+    // Instance of BubbleSort
+    BubbleSort sorter;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize clock and reset
+        reset = 1;
+        wait(1, SC_NS);
+        reset = 0;
+        wait(1, SC_NS);
+
+        // Initialize array and length
+        len = 5;
+        dataIn[0] = 1;
+        dataIn[1] = 12;
+        dataIn[2] = 6;
+        dataIn[3] = 8;
+        dataIn[4] = 10;
+
+        // Run sorting process
+        while (!done.read()) {
+            clk = 0;
+            wait(1, SC_NS);
+            clk = 1;
+            wait(1, SC_NS);
         }
+
+        // Print the sorted array
+        cout << "Sorted array: ";
+        for (int i = 0; i < len.read(); i++) {
+            cout << dataOut[i].read() << " ";
+        }
+        cout << endl;
     }
 
-    void swapNums(int nums[], int first, int second) {
-        int curr = nums[first];
-        nums[first] = nums[second];
-        nums[second] = curr;
+    // Constructor to register the process
+    SC_CTOR(Testbench) : sorter("sorter") {
+        // Connecting signals to the sorter ports
+        sorter.clk(clk);
+        sorter.reset(reset);
+        sorter.len(len);
+        for (int i = 0; i < 10; i++) {
+            sorter.dataIn[i](dataIn[i]);
+            sorter.dataOut[i](dataOut[i]);
+        }
+        sorter.done(done);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_clock clk("clk", 10, SC_NS); // 10 ns period
-    sc_signal<bool> reset;
-
-    Sorter sorter("sorter");
-    sorter.clk(clk);
-    sorter.reset(reset);
-
-    reset.write(true);
-    sc_start(20, SC_NS); // Apply reset for 20 ns
-    reset.write(false);
-    sc_start(100, SC_NS); // Run for 100 ns
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

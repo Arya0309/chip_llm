@@ -1,97 +1,171 @@
 
-### Analysis of the Provided C++/C Code
+### Analysis of Provided C++/C Code
 
 #### Inputs and Outputs:
-- **Inputs**: A vector of integers `vec` containing unsorted numbers.
-- **Outputs**: The sorted vector of integers `vec` printed to the console.
+- **Inputs**: An unsorted vector of integers (`vec`).
+- **Outputs**: A sorted vector of integers (`vec`).
 
-#### Detailed Explanation:
-
-1. **Include Statements**:
-   - `#include <iostream>`: For standard input and output operations.
-   - `#include <vector>`: To use the `std::vector` container.
+#### Detailed Line-by-Line/Block-by-Block Explanation:
+1. **Include Directives**:
+   ```cpp
+   #include <iostream>
+   #include <vector>
+   ```
+   - These lines include necessary libraries for input/output operations and to use the `std::vector` container.
 
 2. **Namespace Declaration**:
-   - `using namespace std;`: To avoid prefixing standard library names with `std::`.
+   ```cpp
+   using namespace std;
+   ```
+   - This line allows the use of standard library components without prefixing them with `std::`.
 
 3. **Merge Function**:
-   - **Purpose**: Merges two sorted subarrays of `vec` into a single sorted array.
-   - **Parameters**:
-     - `vector<int>& vec`: Reference to the vector being sorted.
-     - `int left`: Starting index of the first subarray.
-     - `int mid`: Ending index of the first subarray.
-     - `int right`: Ending index of the second subarray.
-   - **Implementation**:
-     - **Temporary Vectors**: Two temporary vectors `leftVec` and `rightVec` are created to hold the subarrays.
-     - **Copy Data**: Elements from `vec` are copied into `leftVec` and `rightVec`.
-     - **Merge Process**: Elements from `leftVec` and `rightVec` are compared and merged back into `vec` in sorted order.
-     - **Remaining Elements**: Any remaining elements in `leftVec` or `rightVec` are copied into `vec`.
+   ```cpp
+   void merge(vector<int>& vec, int left, int mid, int right) {
+       int i, j, k;
+       int n1 = mid - left + 1;
+       int n2 = right - mid;
+   ```
+   - The `merge` function takes a reference to a vector and three indices (`left`, `mid`, `right`) representing the subarray to be merged.
+   - `n1` and `n2` are the sizes of the two subarrays to be merged.
 
-4. **MergeSort Function**:
-   - **Purpose**: Recursively sorts a vector using the merge sort algorithm.
-   - **Parameters**:
-     - `vector<int>& vec`: Reference to the vector being sorted.
-     - `int left`: Starting index of the subarray to be sorted.
-     - `int right`: Ending index of the subarray to be sorted.
-   - **Implementation**:
-     - **Base Case**: If `left >= right`, the subarray has one element or is empty, so it's already sorted.
-     - **Recursive Case**:
-       - **Calculate Midpoint**: Find the midpoint of the current subarray.
-       - **Recursive Calls**: Recursively sort the left and right halves.
-       - **Merge**: Merge the sorted halves using the `merge` function.
+4. **Temporary Vectors Creation**:
+   ```cpp
+       vector<int> leftVec(n1), rightVec(n2);
+   ```
+   - Two temporary vectors, `leftVec` and `rightVec`, are created to hold the elements of the two subarrays.
 
-5. **Main Function**:
-   - **Initialize Vector**: A vector `vec` is initialized with unsorted integers.
-   - **Sort Vector**: The `mergeSort` function is called to sort `vec`.
-   - **Output**: The sorted vector is printed to the console.
+5. **Copy Data to Temporary Vectors**:
+   ```cpp
+       for (i = 0; i < n1; i++)
+           leftVec[i] = vec[left + i];
+       for (j = 0; j < n2; j++)
+           rightVec[j] = vec[mid + 1 + j];
+   ```
+   - The elements of the left and right subarrays are copied into `leftVec` and `rightVec`, respectively.
+
+6. **Merge Process**:
+   ```cpp
+       i = 0;
+       j = 0;
+       k = left;
+       while (i < n1 && j < n2) {
+           if (leftVec[i] <= rightVec[j]) {
+               vec[k] = leftVec[i];
+               i++;
+           } else {
+               vec[k] = rightVec[j];
+               j++;
+           }
+           k++;
+       }
+   ```
+   - The elements from `leftVec` and `rightVec` are merged back into the original vector `vec` in sorted order.
+
+7. **Copy Remaining Elements**:
+   ```cpp
+       while (i < n1) {
+           vec[k] = leftVec[i];
+           i++;
+           k++;
+       }
+       while (j < n2) {
+           vec[k] = rightVec[j];
+           j++;
+           k++;
+       }
+   ```
+   - Any remaining elements in `leftVec` or `rightVec` are copied into `vec`.
+
+8. **MergeSort Function**:
+   ```cpp
+   void mergeSort(vector<int>& vec, int left, int right) {
+       if (left < right) {
+           int mid = left + (right - left) / 2;
+           mergeSort(vec, left, mid);
+           mergeSort(vec, mid + 1, right);
+           merge(vec, left, mid, right);
+       }
+   }
+   ```
+   - The `mergeSort` function recursively divides the vector into two halves until each subarray contains a single element, then merges them back together in sorted order.
+
+9. **Main Function**:
+   ```cpp
+   int main() {
+       vector<int> vec = {12, 11, 13, 5, 6, 7};
+       int n = vec.size();
+       mergeSort(vec, 0, n - 1);
+       for (auto i: vec)
+           cout << i << " ";
+       return 0;
+   }
+   ```
+   - The `main` function initializes a vector, sorts it using `mergeSort`, and prints the sorted vector.
 
 ### Equivalent SystemC Code Snippet
 
-Below is a SystemC code snippet that implements the merge sort algorithm. This code is designed to be compatible with high-level synthesis flows, which often require specific constructs and constraints.
+Below is the SystemC code snippet that implements the merge sort algorithm. Note that SystemC is primarily used for modeling hardware, so we'll simulate the merge sort algorithm in a manner suitable for SystemC, focusing on processes and events.
 
 ```cpp
 #include <systemc.h>
 #include <vector>
 
-SC_MODULE(MergeSortModule) {
-    sc_in<bool> clk;
-    sc_in<bool> reset;
-    sc_in<bool> start;
-    sc_out<bool> done;
-    sc_fifo_in<int> data_in;
-    sc_fifo_out<int> data_out;
+// Module to perform merge sort
+SC_MODULE(MergeSort) {
+    // Input port for the vector to be sorted
+    sc_in<bool> start; // Signal to start sorting
+    sc_in<sc_uint<32>> vec_size; // Size of the vector
+    sc_inout<sc_uint<32>> vec[6]; // Assuming maximum size of 6 for simplicity
 
-    SC_CTOR(MergeSortModule) {
-        SC_METHOD(sort_process);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
+    // Output port for the sorted vector
+    sc_out<bool> done; // Signal indicating sorting is complete
 
+    // Internal variables
+    std::vector<int> internal_vec;
+    bool sort_complete;
+
+    // Process to perform merge sort
     void sort_process() {
-        if (reset.read()) {
-            done.write(false);
-        } else if (start.read()) {
-            std::vector<int> vec;
-            int val;
-            while (data_in.num_available() > 0) {
-                data_in.read(val);
-                vec.push_back(val);
+        while (true) {
+            wait(start.posedge_event()); // Wait for start signal
+
+            // Copy input vector to internal vector
+            internal_vec.resize(vec_size.read());
+            for (int i = 0; i < vec_size.read(); ++i) {
+                internal_vec[i] = vec[i]->read();
             }
-            mergeSort(vec, 0, vec.size() - 1);
-            for (auto i : vec) {
-                data_out.write(i);
+
+            // Perform merge sort
+            mergeSort(internal_vec, 0, vec_size.read() - 1);
+
+            // Copy sorted vector back to output ports
+            for (int i = 0; i < vec_size.read(); ++i) {
+                vec[i]->write(internal_vec[i]);
             }
+
+            // Signal completion
             done.write(true);
+            wait(1, SC_NS); // Small delay before resetting done signal
+            done.write(false);
         }
     }
 
+    // Merge function
     void merge(std::vector<int>& vec, int left, int mid, int right) {
+        int i, j, k;
         int n1 = mid - left + 1;
         int n2 = right - mid;
         std::vector<int> leftVec(n1), rightVec(n2);
-        for (int i = 0; i < n1; i++) leftVec[i] = vec[left + i];
-        for (int j = 0; j < n2; j++) rightVec[j] = vec[mid + 1 + j];
-        int i = 0, j = 0, k = left;
+
+        for (i = 0; i < n1; i++)
+            leftVec[i] = vec[left + i];
+        for (j = 0; j < n2; j++)
+            rightVec[j] = vec[mid + 1 + j];
+
+        i = 0;
+        j = 0;
+        k = left;
         while (i < n1 && j < n2) {
             if (leftVec[i] <= rightVec[j]) {
                 vec[k] = leftVec[i];
@@ -102,11 +176,13 @@ SC_MODULE(MergeSortModule) {
             }
             k++;
         }
+
         while (i < n1) {
             vec[k] = leftVec[i];
             i++;
             k++;
         }
+
         while (j < n2) {
             vec[k] = rightVec[j];
             j++;
@@ -114,6 +190,7 @@ SC_MODULE(MergeSortModule) {
         }
     }
 
+    // MergeSort function
     void mergeSort(std::vector<int>& vec, int left, int right) {
         if (left < right) {
             int mid = left + (right - left) / 2;
@@ -122,67 +199,81 @@ SC_MODULE(MergeSortModule) {
             merge(vec, left, mid, right);
         }
     }
+
+    // Constructor to register the process
+    SC_CTOR(MergeSort) {
+        SC_THREAD(sort_process);
+        sensitive << start;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with MergeSort
+    sc_signal<bool> start;
+    sc_signal<sc_uint<32>> vec_size;
+    sc_signal<sc_uint<32>> vec[6]; // Assuming maximum size of 6 for simplicity
+    sc_signal<bool> done;
+
+    // Instance of MergeSort
+    MergeSort sorter;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing vector
+        vec_size = 6;
+        vec[0] = 12;
+        vec[1] = 11;
+        vec[2] = 13;
+        vec[3] = 5;
+        vec[4] = 6;
+        vec[5] = 7;
+
+        // Start sorting
+        start.write(true);
+        wait(1, SC_NS);
+        start.write(false);
+
+        // Wait for sorting to complete
+        wait(done.posedge_event());
+
+        // Print the results
+        cout << "Sorted vector: ";
+        for (int i = 0; i < vec_size.read(); ++i) {
+            cout << vec[i].read() << " ";
+        }
+        cout << endl;
+
+        // End simulation
+        sc_stop();
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : sorter("sorter") {
+        // Connecting signals to the sorter ports
+        sorter.start(start);
+        sorter.vec_size(vec_size);
+        for (int i = 0; i < 6; ++i) {
+            sorter.vec[i](vec[i]);
+        }
+        sorter.done(done);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
 };
 
 int sc_main(int argc, char* argv[]) {
-    MergeSortModule merge_sort("merge_sort");
-    sc_clock clk("clk", 10, SC_NS);
-    sc_signal<bool> reset("reset");
-    sc_signal<bool> start("start");
-    sc_signal<bool> done("done");
-    sc_fifo<int> data_in("data_in", 10);
-    sc_fifo<int> data_out("data_out", 10);
-
-    merge_sort.clk(clk);
-    merge_sort.reset(reset);
-    merge_sort.start(start);
-    merge_sort.done(done);
-    merge_sort.data_in(data_in);
-    merge_sort.data_out(data_out);
-
-    reset.write(true);
-    sc_start(10, SC_NS);
-    reset.write(false);
-    start.write(true);
-
-    std::vector<int> input = {12, 11, 13, 5, 6, 7};
-    for (int i : input) {
-        data_in.write(i);
-    }
-
-    while (!done.read()) {
-        sc_start(10, SC_NS);
-    }
-
-    std::cout << "Sorted output: ";
-    while (data_out.num_available() > 0) {
-        std::cout << data_out.read() << " ";
-    }
-    std::cout << std::endl;
-
-    sc_stop();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-### Explanation of SystemC Code
+### Explanation of SystemC Code:
+- **Module Definition**: The `MergeSort` module performs the merge sort algorithm. It has an input signal `start` to initiate sorting, an input signal `vec_size` for the size of the vector, input/output signals `vec[]` for the vector elements, and an output signal `done` to indicate completion.
+- **Sorting Process**: The `sort_process` method waits for the `start` signal, reads the input vector, performs merge sort, writes the sorted vector back to the output ports, and sets the `done` signal.
+- **Merge and MergeSort Functions**: These functions are identical to those in the original C++ code, performing the merging and recursive sorting of the vector.
+- **Testbench**: The `Testbench` module initializes the vector, starts the sorting process, waits for completion, prints the sorted vector, and ends the simulation.
 
-- **SC_MODULE Definition**: Defines a SystemC module named `MergeSortModule` that encapsulates the merge sort logic.
-- **Ports**:
-  - `sc_in<bool> clk`: Clock signal.
-  - `sc_in<bool> reset`: Reset signal to initialize the module.
-  - `sc_in<bool> start`: Start signal to begin sorting.
-  - `sc_out<bool> done`: Signal indicating sorting completion.
-  - `sc_fifo_in<int> data_in`: FIFO port for input data.
-  - `sc_fifo_out<int> data_out`: FIFO port for output data.
-- **Constructor**: Sets up the sensitivity list for the `sort_process` method.
-- **sort_process Method**:
-  - **Reset Handling**: Resets the `done` signal.
-  - **Start Handling**: Reads input data into a vector, sorts it using `mergeSort`, and writes the sorted data to the output FIFO. Sets the `done` signal to true upon completion.
-- **merge and mergeSort Functions**: Implement the same logic as in the original C++ code.
-- **sc_main Function**:
-  - Instantiates the `MergeSortModule` and connects its ports.
-  - Initializes the simulation environment.
-  - Writes input data to the input FIFO.
-  - Waits for the `done` signal.
-  - Reads and prints the sorted output from the output FIFO.
+This SystemC code provides a high-level abstraction of the merge sort algorithm suitable for simulation and potential synthesis.

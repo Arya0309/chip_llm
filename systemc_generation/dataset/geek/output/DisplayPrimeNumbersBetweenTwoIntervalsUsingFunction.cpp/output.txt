@@ -1,91 +1,70 @@
 
-### Analysis of the Provided C++ Code
+### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs
-- **Inputs**: 
-  - Two integers `l` and `r` representing the range within which to find prime numbers.
-- **Outputs**: 
-  - Prints all prime numbers within the range `[l, r]`.
-  - If no prime numbers are found, it prints "No prime numbers found in the given range."
+- **Inputs**: The program takes two integers `l` and `r` which define the range `[l, r]` within which to search for prime numbers.
+- **Outputs**: The program prints all prime numbers within the specified range. If no prime numbers are found, it prints a message indicating so.
 
-#### Line-by-Line/Block-by-Block Explanation
+#### Detailed Line-by-Line/Block-by-Block Explanation
 
-1. **Header Inclusions**:
-   ```cpp
-   #include <stdbool.h>
-   #include <stdio.h>
-   ```
-   - Includes necessary header files for boolean types and standard input/output functions.
+1. **Function `isPrime(int n)`**:
+   - This function checks if a given integer `n` is a prime number.
+   - If `n` is less than or equal to 1, it returns `false` because 1 and negative numbers are not prime.
+   - It then iterates from 2 to `n-1`. If `n` is divisible by any number in this range, it returns `false`.
+   - If no divisors are found, it returns `true`, indicating that `n` is a prime number.
 
-2. **Function `isPrime`**:
-   ```cpp
-   bool isPrime(int n) {
-       if (n <= 1)
-           return false;
-       for (int i = 2; i < n; i++) {
-           if (n % i == 0)
-               return false;
-       }
-       return true;
-   }
-   ```
-   - This function checks if a number `n` is prime.
-   - If `n` is less than or equal to 1, it returns `false` because 0 and 1 are not prime numbers.
-   - It iterates from 2 to `n-1`. If `n` is divisible by any number in this range, it returns `false`.
-   - If no divisors are found, it returns `true`, indicating `n` is prime.
-
-3. **Function `findPrimes`**:
-   ```cpp
-   void findPrimes(int l, int r) {
-       bool found = false;
-       for (int i = l; i <= r; i++) {
-           if (isPrime(i)) {
-               printf("%d ", i);
-               found = true;
-           }
-       }
-       if (!found) {
-           printf("No prime numbers found in the given range.");
-       }
-   }
-   ```
+2. **Function `findPrimes(int l, int r)`**:
    - This function finds and prints all prime numbers in the range `[l, r]`.
-   - It initializes a boolean variable `found` to `false` to track whether any prime numbers are found.
-   - It iterates through each number from `l` to `r`. For each number, it calls `isPrime` to check if it is prime.
-   - If a number is prime, it prints the number and sets `found` to `true`.
-   - After the loop, if no prime numbers were found (`found` is still `false`), it prints a message indicating no primes were found.
+   - A boolean flag `found` is initialized to `false` to track whether any prime numbers have been found.
+   - It iterates through each number `i` from `l` to `r`.
+   - For each number, it calls `isPrime(i)`. If `isPrime(i)` returns `true`, it prints the number and sets `found` to `true`.
+   - After the loop, if no prime numbers were found (`found` is still `false`), it prints a message indicating that no prime numbers were found in the range.
 
-4. **Main Function**:
-   ```cpp
-   int main() {
-       int l = 10, r = 30;
-       findPrimes(l, r);
-       return 0;
-   }
-   ```
-   - The `main` function initializes the range with `l = 10` and `r = 30`.
-   - It calls `findPrimes` with these values to find and print prime numbers in the specified range.
-   - The program returns 0, indicating successful execution.
+3. **`main()` Function**:
+   - Initializes the range with `l = 10` and `r = 30`.
+   - Calls `findPrimes(l, r)` to find and print all prime numbers in the range `[10, 30]`.
 
-### Equivalent SystemC Code Snippet
+### Equivalent SystemC Code
 
-Below is the equivalent SystemC code snippet that preserves the logic of the original C++/C code. This code can be used in a high-level synthesis flow.
+Below is the SystemC code that replicates the functionality of the provided C++/C code. This SystemC code includes a module to find prime numbers and a testbench to drive the inputs and capture the outputs.
 
 ```cpp
 #include <systemc.h>
 
+// Module to find prime numbers in a given range
 SC_MODULE(PrimeFinder) {
-    sc_in<int> l;
-    sc_in<int> r;
-    sc_out<sc_bv<32>> prime_numbers;
-    sc_out<bool> no_primes_found;
+    // Input ports for the range
+    sc_in<int> left_bound;
+    sc_in<int> right_bound;
 
-    SC_CTOR(PrimeFinder) {
-        SC_METHOD(findPrimes);
-        sensitive << l << r;
+    // Output port for the result (prime numbers)
+    sc_out<sc_bv<10>> prime_output; // Assuming maximum 10 primes can be found in the range
+
+    // Internal signal to indicate completion of the operation
+    sc_out<bool> done;
+
+    // Process to find prime numbers
+    void find_primes() {
+        int l = left_bound.read();
+        int r = right_bound.read();
+        sc_bv<10> primes;
+        int index = 0;
+        bool found = false;
+
+        for (int i = l; i <= r; i++) {
+            if (is_prime(i)) {
+                primes.range(index * 4 + 3, index * 4) = i; // Store each prime number in 4 bits
+                index++;
+                found = true;
+            }
+        }
+
+        prime_output.write(primes);
+        done.write(found);
     }
 
-    bool isPrime(int n) {
+    // Helper function to check if a number is prime
+    bool is_prime(int n) {
         if (n <= 1)
             return false;
         for (int i = 2; i < n; i++) {
@@ -95,81 +74,92 @@ SC_MODULE(PrimeFinder) {
         return true;
     }
 
-    void findPrimes() {
-        int lower = l.read();
-        int upper = r.read();
-        sc_bv<32> primes = 0;
-        bool found = false;
-        int index = 0;
+    // Constructor to register the process
+    SC_CTOR(PrimeFinder) {
+        SC_METHOD(find_primes);
+        sensitive << left_bound << right_bound;
+    }
+};
 
-        for (int i = lower; i <= upper; i++) {
-            if (isPrime(i)) {
-                primes.range((index + 1) * 8 - 1, index * 8) = i;
-                index++;
-                found = true;
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with PrimeFinder
+    sc_signal<int> left_bound, right_bound;
+    sc_signal<sc_bv<10>> prime_output;
+    sc_signal<bool> done;
+
+    // Instance of PrimeFinder
+    PrimeFinder prime_finder;
+
+    // Process to drive inputs and print outputs
+    void drive_and_print() {
+        // Initialize the range
+        left_bound = 10;
+        right_bound = 30;
+
+        // Wait for the done signal
+        wait(done.posedge_event());
+
+        // Print the results
+        sc_bv<10> primes = prime_output.read();
+        bool found = done.read();
+
+        if (found) {
+            cout << "Prime numbers in the range [" << left_bound.read() << ", " << right_bound.read() << "] are: ";
+            for (int i = 0; i < 10; i++) {
+                int prime = primes.range(i * 4 + 3, i * 4).to_int();
+                if (prime != 0) { // Check if the slot is not empty
+                    cout << prime << " ";
+                }
             }
+            cout << endl;
+        } else {
+            cout << "No prime numbers found in the given range." << endl;
         }
+    }
 
-        prime_numbers.write(primes);
-        no_primes_found.write(!found);
+    // Constructor to register the process
+    SC_CTOR(Testbench) : prime_finder("prime_finder") {
+        // Connecting signals to the prime_finder ports
+        prime_finder.left_bound(left_bound);
+        prime_finder.right_bound(right_bound);
+        prime_finder.prime_output(prime_output);
+        prime_finder.done(done);
+
+        // Registering the drive_and_print process
+        SC_THREAD(drive_and_print);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_signal<int> l;
-    sc_signal<int> r;
-    sc_signal<sc_bv<32>> prime_numbers;
-    sc_signal<bool> no_primes_found;
-
-    PrimeFinder prime_finder("prime_finder");
-    prime_finder.l(l);
-    prime_finder.r(r);
-    prime_finder.prime_numbers(prime_numbers);
-    prime_finder.no_primes_found(no_primes_found);
-
-    l.write(10);
-    r.write(30);
-
-    sc_start();
-
-    if (no_primes_found.read()) {
-        cout << "No prime numbers found in the given range." << endl;
-    } else {
-        sc_bv<32> primes = prime_numbers.read();
-        cout << "Prime numbers in the given range: ";
-        for (int i = 0; i < 32; i += 8) {
-            int prime = primes.range(i + 7, i).to_int();
-            if (prime != 0) {
-                cout << prime << " ";
-            }
-        }
-        cout << endl;
-    }
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
 ### Explanation of the SystemC Code
 
-- **Module Definition**:
-  - `PrimeFinder` is a SystemC module that takes two integer inputs `l` and `r` and outputs a bit vector `prime_numbers` and a boolean `no_primes_found`.
+1. **Module `PrimeFinder`**:
+   - **Ports**:
+     - `left_bound` and `right_bound`: These are input ports to specify the range `[l, r]`.
+     - `prime_output`: This is an output port to store the prime numbers found in the range. It uses a `sc_bv<10>` to store up to 10 prime numbers, each represented in 4 bits.
+     - `done`: This is an output port to indicate whether any prime numbers were found.
+   - **Process `find_primes`**:
+     - Reads the range from the input ports.
+     - Iterates through the range to find prime numbers using the `is_prime` helper function.
+     - Stores each found prime number in the `prime_output` signal.
+     - Sets the `done` signal to `true` if any prime numbers are found.
+   - **Helper Function `is_prime`**:
+     - Checks if a given number is prime using trial division similar to the C++/C code.
 
-- **Constructor**:
-  - The constructor registers the `findPrimes` method to be sensitive to changes in the inputs `l` and `r`.
+2. **Module `Testbench`**:
+   - **Signals**:
+     - Connects to the `PrimeFinder` module's ports.
+   - **Process `drive_and_print`**:
+     - Initializes the range `[10, 30]`.
+     - Waits for the `done` signal to be set.
+     - Reads the `prime_output` and prints the prime numbers found.
+     - Prints a message if no prime numbers are found.
 
-- **Method `isPrime`**:
-  - This method checks if a number `n` is prime, similar to the C++ version.
-
-- **Method `findPrimes`**:
-  - Reads the input range `l` and `r`.
-  - Iterates through the range and uses `isPrime` to check each number.
-  - Stores prime numbers in a 32-bit bit vector `primes`, with each prime number occupying 8 bits.
-  - Sets `no_primes_found` to `true` if no primes are found.
-
-- **Main Function**:
-  - Instantiates the `PrimeFinder` module.
-  - Connects signals to the module's ports.
-  - Writes the range values to the inputs.
-  - Starts the simulation.
-  - Checks the `no_primes_found` signal and prints the prime numbers or a message if none are found.
+This SystemC code is designed to be synthesized and executed in a high-level synthesis flow, capturing the logic of the original C++/C code.

@@ -1,6 +1,7 @@
 import os
 import torch
 import re
+import examples
 from tqdm import tqdm
 import time
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -32,17 +33,14 @@ def construct_prompt(code: str) -> str:
 - Provide the SystemC code in a compilable snippet, for example:
 
 ```
-#include <systemc.h>
-// ...
-// <systemC code here>
-// ...
+{FEW_SHOT_EXAMPLE_1}
 ```
 
 Ensure that the SystemC code you provide faithfully captures the logic of the original C++/C source.
 Make the explanation thorough and accessible.
 """
 
-    prompt = prompt.format(CODE=code)
+    prompt = prompt.format(CODE=code, FEW_SHOT_EXAMPLE_1=examples.structure_examples_1)
 
     messages = [
         {

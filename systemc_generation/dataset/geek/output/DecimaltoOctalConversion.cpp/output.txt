@@ -1,38 +1,38 @@
 
-### Analysis of the Provided C++ Code
+### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs
-- **Input**: An integer `n` which is the decimal number to be converted to octal. In this case, `n` is hardcoded to `33`.
-- **Output**: The program prints the octal representation of the given decimal number.
+- **Input**: An integer `n` which is the decimal number to be converted to an octal number.
+- **Output**: The octal representation of the input decimal number, printed to the console.
 
-#### Line-by-Line/Block-by-Block Explanation
+#### Detailed Line-by-Line/Block-by-Block Explanation
 
-1. **Include Directives and Namespace Declaration**
+1. **Include Directives**
    ```cpp
-   #include <iostream> 
+   #include <iostream>
    using namespace std;
    ```
-   - These lines include the standard input-output stream library and use the standard namespace, allowing the use of `cout` without prefixing it with `std::`.
+   - Includes the standard input-output stream library and uses the standard namespace to avoid prefixing `std::` before standard library entities.
 
-2. **Function Definition: `decToOctal`**
+2. **Function Definition**
    ```cpp
    void decToOctal(int n)
    ```
-   - This function takes an integer `n` as input and converts it to its octal representation.
+   - Defines a function `decToOctal` that takes an integer `n` as an argument and converts it to its octal representation.
 
 3. **Array Declaration**
    ```cpp
    int octalNum[100];
    ```
-   - An array `octalNum` of size 100 is declared to store the octal digits. The size 100 is arbitrary and sufficient for most practical purposes.
+   - Declares an integer array `octalNum` of size 100 to store the digits of the octal number.
 
 4. **Counter Initialization**
    ```cpp
    int i = 0;
    ```
-   - A counter `i` is initialized to 0. This will keep track of the index in the `octalNum` array where the next digit will be stored.
+   - Initializes a counter `i` to zero, which will be used as an index for storing the octal digits in the `octalNum` array.
 
-5. **Conversion Loop**
+5. **While Loop for Conversion**
    ```cpp
    while (n != 0) {
        octalNum[i] = n % 8;
@@ -40,17 +40,18 @@
        i++;
    }
    ```
-   - This loop continues until `n` becomes 0.
-     - `n % 8` computes the remainder when `n` is divided by 8, which is the next least significant octal digit.
-     - `n = n / 8` updates `n` to the quotient of `n` divided by 8, effectively removing the least significant octal digit.
-     - `i++` increments the index for the next position in the `octalNum` array.
+   - A loop that continues until `n` becomes zero. In each iteration:
+     - It calculates the remainder of `n` divided by 8 (`n % 8`), which gives the next least significant digit of the octal number.
+     - This digit is stored in the `octalNum` array at the position indexed by `i`.
+     - `n` is then updated to be the quotient of `n` divided by 8 (`n / 8`), effectively removing the least significant digit.
+     - The counter `i` is incremented to point to the next position in the array.
 
-6. **Printing Octal Number**
+6. **Printing the Octal Number**
    ```cpp
    for (int j = i - 1; j >= 0; j--)
        cout << octalNum[j];
    ```
-   - This loop iterates over the `octalNum` array in reverse order (from the last digit to the first) and prints each digit, forming the complete octal number.
+   - A for loop that iterates from the last stored index `i-1` down to `0`, printing each element of the `octalNum` array. This loop ensures that the octal digits are printed in the correct order.
 
 7. **Main Function**
    ```cpp
@@ -61,95 +62,99 @@
        return 0;
    }
    ```
-   - The `main` function initializes the decimal number `n` to `33`, calls the `decToOctal` function to perform the conversion, and then returns 0 to indicate successful execution.
+   - The main function initializes an integer `n` with the value `33` and calls the `decToOctal` function to convert this number to its octal form. The result is printed to the console.
 
 ### Equivalent SystemC Code
 
-Below is a SystemC version of the provided C++ code. It includes a module that performs the conversion from decimal to octal and prints the result.
+Below is a SystemC code snippet that performs the same decimal-to-octal conversion. This code is designed to be used in a high-level synthesis flow, where the conversion logic is encapsulated within a SystemC module.
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(DecimalToOctalConverter) {
-    sc_in<int> decimal_in;
-    sc_out<sc_bv<32>> octal_out;
+// Module to convert decimal to octal
+SC_MODULE(DecToOctalConverter) {
+    // Input port for decimal number
+    sc_in<int> decimalIn;
 
-    SC_CTOR(DecimalToOctalConverter) {
-        SC_METHOD(convert);
-        sensitive << decimal_in;
-    }
+    // Output port for octal number (as a string for simplicity)
+    sc_out<sc_bv<32>> octalOut;
 
+    // Process to perform the conversion
     void convert() {
-        int n = decimal_in.read();
-        int octalNum[100];
+        int n = decimalIn.read();
+        sc_bv<32> octalNum; // Assuming a maximum of 32 bits for the octal representation
         int i = 0;
 
-        // Conversion process
+        // Conversion logic
         while (n != 0) {
-            octalNum[i] = n % 8;
+            octalNum.range((i+1)*3-1, i*3) = n % 8; // Store each octal digit in 3-bit chunks
             n = n / 8;
             i++;
         }
 
-        // Constructing the octal output bit vector
-        sc_bv<32> octal_output = 0;
-        int shift = 0;
-        for (int j = i - 1; j >= 0; j--) {
-            octal_output.range(shift + 3, shift) = octalNum[j];
-            shift += 4; // Assuming each octal digit is represented by 4 bits
-        }
+        // Shift the octal digits to the left to align them properly
+        octalNum <<= (32 - i*3);
 
-        octal_out.write(octal_output);
+        // Write the result to the output port
+        octalOut.write(octalNum);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(DecToOctalConverter) {
+        SC_METHOD(convert);
+        sensitive << decimalIn;
     }
 };
 
-SC_MODULE(TopModule) {
-    sc_signal<int> decimal_signal;
-    sc_signal<sc_bv<32>> octal_signal;
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with DecToOctalConverter
+    sc_signal<int> decimalSignal;
+    sc_signal<sc_bv<32>> octalSignal;
 
-    DecimalToOctalConverter converter;
+    // Instance of DecToOctalConverter
+    DecToOctalConverter converter;
 
-    SC_CTOR(TopModule) : converter("converter") {
-        converter.decimal_in(decimal_signal);
-        converter.octal_out(octal_signal);
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the decimal number
+        decimalSignal = 33;
 
-        SC_THREAD(drive_input);
-        sensitive << sc_start_of_simulation_event();
-
-        SC_METHOD(print_output);
-        sensitive << octal_signal;
-    }
-
-    void drive_input() {
-        decimal_signal = 33;
+        // Wait for one delta cycle to let the converter process
         wait(1, SC_NS);
-        sc_stop();
+
+        // Print the results
+        cout << "Decimal number: " << decimalSignal.read() << endl;
+        cout << "Octal number: " << octalSignal.read().to_uint() << endl;
     }
 
-    void print_output() {
-        sc_bv<32> octal_value = octal_signal.read();
-        std::cout << "Octal representation: " << octal_value.to_string(SC_BIN).c_str() << std::endl;
+    // Constructor to register the process
+    SC_CTOR(Testbench) : converter("converter") {
+        // Connecting signals to the converter ports
+        converter.decimalIn(decimalSignal);
+        converter.octalOut(octalSignal);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    TopModule top("top");
-    sc_start();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
 ### Explanation of the SystemC Code
 
-- **DecimalToOctalConverter Module**:
-  - This module has an input (`decimal_in`) and an output (`octal_out`).
-  - The `convert` method reads the decimal input, performs the conversion to octal, and writes the result to the output signal.
+- **Module Definition**:
+  - `DecToOctalConverter`: This module takes an integer input and converts it to an octal number, which is output as a 32-bit binary vector (`sc_bv<32>`). Each octal digit is stored in a 3-bit chunk within this vector.
 
-- **TopModule**:
-  - This module instantiates the `DecimalToOctalConverter` module and connects its signals.
-  - It drives the input signal with the value `33` and prints the octal output once it is available.
+- **Process**:
+  - `convert()`: This method reads the decimal number, performs the conversion to octal, and writes the result to the output port. The octal digits are stored in a 32-bit vector, with each digit occupying 3 bits.
 
-- **sc_main Function**:
-  - This is the entry point of the SystemC simulation. It creates an instance of `TopModule` and starts the simulation.
+- **Testbench**:
+  - `Testbench`: This module initializes the input signal, waits for the conversion to complete, and prints both the input decimal number and the resulting octal number.
 
-This SystemC code is designed to be synthesizable and can be used in a high-level synthesis flow, preserving the logic of the original C++ code.
+This SystemC code faithfully captures the logic of the original C++/C code, making it suitable for use in a high-level synthesis flow.

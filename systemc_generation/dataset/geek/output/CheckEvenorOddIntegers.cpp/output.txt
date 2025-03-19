@@ -1,81 +1,122 @@
 
-### Analysis of the Provided C++ Code
+### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs:
-- **Input**: The integer `n` is hardcoded as `11` in the code.
-- **Output**: The program outputs either "Even" or "Odd" depending on whether the number `n` is divisible by 2.
+- **Input**: An integer `n` which is hardcoded to `11` in this case.
+- **Output**: The program prints "Even" if `n` is even, otherwise it prints "Odd".
 
 #### Line-by-Line Explanation:
-1. `#include <bits/stdc++.h>`: This line includes a header file that contains definitions for most of the standard C++ library.
-2. `using namespace std;`: This line allows the use of standard library objects without prefixing them with `std::`.
-3. `int main() {`: This marks the beginning of the main function, which is the entry point of the program.
-4. `int n = 11;`: An integer variable `n` is declared and initialized with the value `11`.
-5. `if (n % 2 == 0)`: This line checks if `n` is divisible by 2 using the modulo operator `%`. If the remainder is `0`, the condition is true.
-6. `cout << "Even";`: If the condition in the previous line is true, this line prints "Even" to the console.
-7. `else`: This keyword is used to specify the alternative block of code that should run if the condition in the `if` statement is false.
-8. `cout << "Odd";`: If the `if` condition is false, this line prints "Odd" to the console.
-9. `return 0;`: This line ends the main function and returns `0` to the operating system, indicating successful execution.
-10. `}`: This closing brace marks the end of the main function.
+1. **#include <bits/stdc++.h>**
+   - This is a header file that includes almost all standard C++ libraries. It's not recommended for production code due to potential inefficiencies and conflicts.
+   
+2. **using namespace std;**
+   - This directive allows us to use standard library objects and functions without prefixing them with `std::`.
+   
+3. **int main() {**
+   - This is the entry point of the program.
+   
+4. **int n = 11;**
+   - An integer variable `n` is declared and initialized with the value `11`.
+   
+5. **if (n % 2 == 0)**
+   - This condition checks if `n` is divisible by `2` with no remainder. The `%` operator is the modulus operator which returns the remainder of the division of `n` by `2`.
+   
+6. **cout << "Even";**
+   - If the condition in the previous line is true, this line will execute and print "Even" to the console.
+   
+7. **else**
+   - This block executes if the condition in the `if` statement is false.
+   
+8. **cout << "Odd";**
+   - If `n` is not divisible by `2`, this line will execute and print "Odd" to the console.
+   
+9. **return 0;**
+   - This line indicates that the program has executed successfully and returns `0` to the operating system.
+
+10. **}**
+    - This closes the `main` function.
 
 ### Equivalent SystemC Code Snippet
 
-Below is the SystemC code snippet that replicates the logic of the provided C++ code. In SystemC, we typically encapsulate functionality within modules (SC_MODULE), so we'll create a simple module to perform the even-odd check.
+Below is a SystemC code snippet that performs the same logic as the provided C++/C code. The SystemC module takes an integer input and outputs whether it is "Even" or "Odd". This code can be used in a high-level synthesis flow.
 
 ```cpp
 #include <systemc.h>
 
+// User-defined module to check if a number is even or odd
 SC_MODULE(EvenOddChecker) {
-    sc_in<int> n;          // Input port for the integer n
-    sc_out<bool> result;   // Output port: true for even, false for odd
+    // Input port for the number to check
+    sc_in<int> number;
 
-    SC_CTOR(EvenOddChecker) {
-        SC_METHOD(check_even_odd);
-        sensitive << n;     // Sensitivity list: react to changes in n
+    // Output port for the result
+    sc_out<bool> isEven; // True if even, False if odd
+
+    // Process to determine if the number is even or odd
+    void checkEvenOdd() {
+        // Read the input number
+        int n = number.read();
+
+        // Determine if the number is even
+        bool even = (n % 2 == 0);
+
+        // Write the result to the output port
+        isEven.write(even);
     }
 
-    void check_even_odd() {
-        if (n.read() % 2 == 0) {
-            result.write(true);  // Write true to indicate even
+    // Constructor to register the process
+    SC_CTOR(EvenOddChecker) {
+        // Sensitivity list: react to changes on the 'number' input
+        SC_METHOD(checkEvenOdd);
+        sensitive << number;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with EvenOddChecker
+    sc_signal<int> numSignal;
+    sc_signal<bool> resultSignal;
+
+    // Instance of EvenOddChecker
+    EvenOddChecker checker;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the number to check
+        numSignal = 11;
+
+        // Wait for one delta cycle to let the checker process
+        wait(1, SC_NS);
+
+        // Print the results
+        std::cout << "Number: " << numSignal.read() << " is ";
+        if (resultSignal.read()) {
+            std::cout << "Even";
         } else {
-            result.write(false); // Write false to indicate odd
+            std::cout << "Odd";
         }
+        std::cout << std::endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : checker("checker") {
+        // Connecting signals to the checker ports
+        checker.number(numSignal);
+        checker.isEven(resultSignal);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    EvenOddChecker checker("checker");
-    sc_signal<int> n;          // Signal to hold the input value
-    sc_signal<bool> result;    // Signal to hold the result
-
-    checker.n(n);
-    checker.result(result);
-
-    n.write(11);               // Set the input value to 11
-    sc_start();                // Start the simulation
-
-    if (result.read()) {
-        cout << "Even" << endl;
-    } else {
-        cout << "Odd" << endl;
-    }
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
 #### Explanation of the SystemC Code:
-- **SC_MODULE(EvenOddChecker)**: Defines a new SystemC module named `EvenOddChecker`.
-- **sc_in<int> n;**: Declares an input port `n` to receive the integer value.
-- **sc_out<bool> result;**: Declares an output port `result` to send the boolean result (true for even, false for odd).
-- **SC_CTOR(EvenOddChecker)**: Constructor for the module, where we register the method `check_even_odd` to be triggered whenever the input `n` changes.
-- **void check_even_odd()**: Method that checks if the input `n` is even or odd and writes the result to the output port.
-- **int sc_main(int argc, char* argv[])**: Entry point for the SystemC simulation.
-- **EvenOddChecker checker("checker");**: Instantiates the `EvenOddChecker` module.
-- **sc_signal<int> n;**: Declares a signal `n` to connect to the input port of the module.
-- **sc_signal<bool> result;**: Declares a signal `result` to connect to the output port of the module.
-- **checker.n(n);** and **checker.result(result);**: Connects the signals to the respective ports of the module.
-- **n.write(11);**: Sets the input value to `11`.
-- **sc_start();**: Starts the simulation.
-- **if (result.read())**: Reads the result from the output port and prints "Even" or "Odd" accordingly.
-
-This SystemC code snippet captures the logic of the original C++ code and can be used in a high-level synthesis flow.
+- **EvenOddChecker Module**: This module checks if the input number is even or odd. It has an input port `number` and an output port `isEven`. The method `checkEvenOdd` reads the input, checks if it's even, and writes the result to the output port.
+- **Testbench Module**: This module drives the input to the `EvenOddChecker` module and prints the result. It initializes the number to `11`, waits for the checker to process, and then prints whether the number is "Even" or "Odd".
+- **sc_main Function**: This is the entry point of the SystemC simulation. It creates an instance of the `Testbench` module and starts the simulation.

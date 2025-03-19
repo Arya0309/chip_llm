@@ -1,29 +1,28 @@
 
 ### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs
-- **Inputs**: 
-  - A square matrix `mat` of size `n x n`. In this specific case, the matrix is hardcoded with values and has a size of `5x5`.
-  - The size of the matrix `n`, which is set to `5`.
+#### Inputs and Outputs:
+- **Inputs**: A square matrix `mat` of size `n x n` and the integer `n` which specifies the dimension of the matrix.
+- **Outputs**: The trace and the normal of the matrix.
 
-- **Outputs**:
-  - The trace of the matrix.
-  - The normal (Frobenius norm) of the matrix.
+#### Line-by-Line/Block-by-Block Explanation:
 
-#### Detailed Explanation
-1. **Matrix Declaration and Initialization**:
+1. **Header Inclusions and Namespace**:
    ```cpp
-   int mat[][MAX] = {{1, 1, 1, 1, 1}, 
-       {2, 2, 2, 2, 2}, 
-       {3, 3, 3, 3, 3}, 
-       {4, 4, 4, 4, 4}, 
-       {5, 5, 5, 5, 5}};
+   #include<bits/stdc++.h>
+   using namespace std;
    ```
-   - A `5x5` matrix `mat` is declared and initialized with the given values.
+   - Includes all standard libraries and uses the `std` namespace for convenience.
 
-2. **Function `findNormal`**:
+2. **Matrix Size Declaration**:
    ```cpp
-   int findNormal(int mat[][MAX], int n) 
+   const int MAX = 100;
+   ```
+   - Declares a constant `MAX` set to 100, defining the maximum size of the matrix that can be handled.
+
+3. **Function to Find Normal of the Matrix**:
+   ```cpp
+   int findNormal(int mat[][MAX], int n)
    {
        int sum = 0;
        for (int i = 0; i < n; i++)
@@ -32,13 +31,14 @@
        return sqrt(sum);
    }
    ```
-   - This function calculates the Frobenius norm (normal) of the matrix.
-   - It iterates over each element of the matrix, squares it, and accumulates the result in `sum`.
-   - Finally, it returns the square root of `sum`.
+   - This function calculates the normal (or Frobenius norm) of a matrix.
+   - It initializes a variable `sum` to zero.
+   - It iterates over each element of the matrix, squares it, and adds it to `sum`.
+   - Finally, it returns the square root of `sum`, which is the normal of the matrix.
 
-3. **Function `findTrace`**:
+4. **Function to Find Trace of the Matrix**:
    ```cpp
-   int findTrace(int mat[][MAX], int n) 
+   int findTrace(int mat[][MAX], int n)
    {
        int sum = 0;
        for (int i = 0; i < n; i++)
@@ -46,98 +46,171 @@
        return sum;
    }
    ```
-   - This function calculates the trace of the matrix.
-   - It sums up all the diagonal elements of the matrix (elements where row index equals column index).
+   - This function calculates the trace of a matrix.
+   - It initializes a variable `sum` to zero.
+   - It iterates over the diagonal elements of the matrix (where row index equals column index) and adds them to `sum`.
+   - Finally, it returns `sum`, which is the trace of the matrix.
 
-4. **Main Function**:
+5. **Main Function**:
    ```cpp
-   int main() 
+   int main()
    {
-       // Matrix declaration and initialization
+       int mat[][MAX] = {{1, 1, 1, 1, 1},
+                         {2, 2, 2, 2, 2},
+                         {3, 3, 3, 3, 3},
+                         {4, 4, 4, 4, 4},
+                         {5, 5, 5, 5, 5}};
        cout << "Trace of Matrix = " << findTrace(mat, 5) << endl;
        cout << "Normal of Matrix = " << findNormal(mat, 5) << endl;
        return 0;
    }
    ```
-   - The `main` function initializes the matrix and calls the `findTrace` and `findNormal` functions to compute and print the trace and normal of the matrix.
+   - Initializes a 5x5 matrix `mat` with specific values.
+   - Calls `findTrace` to compute and print the trace of the matrix.
+   - Calls `findNormal` to compute and print the normal of the matrix.
+   - Returns 0 to indicate successful execution.
 
 ### Equivalent SystemC Code
 
-Below is the equivalent SystemC code snippet that performs the same operations as the provided C++/C code:
+Below is the equivalent SystemC code that captures the same logic as the original C++/C code. This code defines a module to calculate the trace and normal of a matrix, and a testbench to drive the inputs and capture the outputs.
 
 ```cpp
 #include <systemc.h>
 
+// Define a module to compute trace and normal of a matrix
 SC_MODULE(MatrixOperations) {
-    sc_in_clk clk;
-    sc_out<int> trace_out;
-    sc_out<double> normal_out;
+    // Input port for the matrix size
+    sc_in<int> n;
 
-    SC_CTOR(MatrixOperations) {
-        SC_METHOD(calculate_trace_normal);
-        sensitive << clk.pos();
+    // Input port for the matrix elements
+    sc_in<int> mat[MAX][MAX];
+
+    // Output ports for trace and normal
+    sc_out<int> trace;
+    sc_out<double> normal;
+
+    // Process to compute trace and normal
+    void compute() {
+        int trace_val = 0;
+        double normal_val = 0.0;
+
+        // Read the matrix size
+        int size = n.read();
+
+        // Compute trace
+        for (int i = 0; i < size; ++i) {
+            trace_val += mat[i][i].read();
+        }
+
+        // Compute normal (Frobenius norm)
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                normal_val += mat[i][j].read() * mat[i][j].read();
+            }
+        }
+        normal_val = sqrt(normal_val);
+
+        // Write the results to the output ports
+        trace.write(trace_val);
+        normal.write(normal_val);
     }
 
-    void calculate_trace_normal() {
-        const int MAX = 5;
-        int mat[MAX][MAX] = {{1, 1, 1, 1, 1},
-                             {2, 2, 2, 2, 2},
-                             {3, 3, 3, 3, 3},
-                             {4, 4, 4, 4, 4},
-                             {5, 5, 5, 5, 5}};
-        int trace = 0;
-        double normal = 0;
+    // Constructor to register the process
+    SC_CTOR(MatrixOperations) {
+        SC_METHOD(compute);
+        sensitive << n;
+        for (int i = 0; i < MAX; ++i) {
+            for (int j = 0; j < MAX; ++j) {
+                sensitive << mat[i][j];
+            }
+        }
+    }
+};
 
-        // Calculate trace
-        for (int i = 0; i < MAX; i++)
-            trace += mat[i][i];
+// Define a testbench to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with MatrixOperations
+    sc_signal<int> n;
+    sc_signal<int> mat[MAX][MAX];
+    sc_signal<int> trace;
+    sc_signal<double> normal;
 
-        // Calculate normal (Frobenius norm)
-        double sum = 0;
-        for (int i = 0; i < MAX; i++)
-            for (int j = 0; j < MAX; j++)
-                sum += mat[i][j] * mat[i][j];
-        normal = sqrt(sum);
+    // Instance of MatrixOperations
+    MatrixOperations matrixOps;
 
-        // Output results
-        trace_out.write(trace);
-        normal_out.write(normal);
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize matrix size
+        n = 5;
+
+        // Initialize matrix elements
+        int init_mat[5][5] = {{1, 1, 1, 1, 1},
+                              {2, 2, 2, 2, 2},
+                              {3, 3, 3, 3, 3},
+                              {4, 4, 4, 4, 4},
+                              {5, 5, 5, 5, 5}};
+
+        // Assign initial matrix values to signals
+        for (int i = 0; i < 5; ++i) {
+            for (int j = 0; j < 5; ++j) {
+                mat[i][j] = init_mat[i][j];
+            }
+        }
+
+        // Wait for one delta cycle to let the computation process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Trace of Matrix = " << trace.read() << endl;
+        cout << "Normal of Matrix = " << normal.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : matrixOps("matrixOps") {
+        // Connecting signals to the matrix operations ports
+        matrixOps.n(n);
+        for (int i = 0; i < MAX; ++i) {
+            for (int j = 0; j < MAX; ++j) {
+                matrixOps.mat[i][j](mat[i][j]);
+            }
+        }
+        matrixOps.trace(trace);
+        matrixOps.normal(normal);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_clock clock("clk", 10, SC_NS);
-    sc_signal<int> trace_result;
-    sc_signal<double> normal_result;
-
-    MatrixOperations matrix_ops("matrix_ops");
-    matrix_ops.clk(clock);
-    matrix_ops.trace_out(trace_result);
-    matrix_ops.normal_out(normal_result);
-
-    sc_start(10, SC_NS);
-
-    std::cout << "Trace of Matrix = " << trace_result.read() << std::endl;
-    std::cout << "Normal of Matrix = " << normal_result.read() << std::endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of SystemC Code
-- **Module Definition**: `MatrixOperations` is defined as a SystemC module.
-- **Ports**:
-  - `sc_in_clk clk`: Input port for the clock signal.
-  - `sc_out<int> trace_out`: Output port for the trace of the matrix.
-  - `sc_out<double> normal_out`: Output port for the normal (Frobenius norm) of the matrix.
-- **Constructor**:
-  - The constructor registers the `calculate_trace_normal` method to be triggered on the positive edge of the clock.
-- **Method `calculate_trace_normal`**:
-  - Initializes the `5x5` matrix.
-  - Computes the trace by summing the diagonal elements.
-  - Computes the normal by summing the squares of all elements and taking the square root.
-  - Writes the computed trace and normal to their respective output ports.
-- **Simulation Setup**:
-  - A clock signal is created and connected to the module.
-  - Signals for trace and normal are created and connected to the module's output ports.
-  - The simulation runs for 10 nanoseconds, after which the results are read from the signals and printed.
+### Explanation of the SystemC Code
+
+1. **MatrixOperations Module**:
+   - **Ports**: 
+     - `sc_in<int> n`: Input for the size of the matrix.
+     - `sc_in<int> mat[MAX][MAX]`: Input for the matrix elements.
+     - `sc_out<int> trace`: Output for the trace of the matrix.
+     - `sc_out<double> normal`: Output for the normal (Frobenius norm) of the matrix.
+   - **Process**: 
+     - `compute`: Computes the trace and normal of the matrix. It reads the matrix size and elements, computes the trace and normal, and writes the results to the output ports.
+     - **Sensitivity List**: Sensitive to changes in `n` and any element of the matrix `mat`.
+
+2. **Testbench Module**:
+   - **Signals**: 
+     - `sc_signal<int> n`: Signal for the matrix size.
+     - `sc_signal<int> mat[MAX][MAX]`: Signals for the matrix elements.
+     - `sc_signal<int> trace`: Signal for the trace of the matrix.
+     - `sc_signal<double> normal`: Signal for the normal of the matrix.
+   - **Instance**: 
+     - `MatrixOperations matrixOps`: An instance of the `MatrixOperations` module.
+   - **Process**: 
+     - `driveAndPrint`: Initializes the matrix size and elements, waits for the computation process, and prints the results.
+   - **Constructor**: Connects the signals to the corresponding ports of the `MatrixOperations` module and registers the `driveAndPrint` process.
+
+This SystemC code faithfully replicates the logic of the original C++/C code and can be used in a high-level synthesis flow.

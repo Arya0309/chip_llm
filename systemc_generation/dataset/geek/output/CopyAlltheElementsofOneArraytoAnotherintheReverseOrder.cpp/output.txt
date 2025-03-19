@@ -1,177 +1,186 @@
 
 ### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs
-- **Inputs**: The input is a predefined integer array `original_arr` with values `{1, 2, 3, 4, 5}`.
-- **Outputs**: The program prints two arrays:
-  - The original array `original_arr`.
-  - The reversed array `copied_arr`.
+#### Inputs and Outputs:
+- **Inputs**: 
+  - An integer array `original_arr` with values `{1, 2, 3, 4, 5}`.
+- **Outputs**:
+  - The program prints the `original_arr` and the `copied_arr` which is the reverse of `original_arr`.
 
-#### Line-by-Line/Block-by-Block Explanation
-
-1. **Header Inclusion**
+#### Line-by-Line Explanation:
+1. **Header Inclusion**:
    ```c
    #include <stdio.h>
    ```
-   - This includes the standard input-output library, which is necessary for using `printf` to display output on the console.
+   - This includes the standard input-output library for using `printf`.
 
-2. **Function Definition: `printArray`**
+2. **Function Declaration**:
    ```c
-   void printArray(int arr[], int len) {
+   void printArray(int arr[], int len)
+   ```
+   - This function is declared to print the elements of an array.
+   
+3. **Function Definition**:
+   ```c
+   {
        int i;
        for (i = 0; i < len; i++) {
            printf("%d ", arr[i]);
        }
    }
    ```
-   - This function takes an integer array `arr` and its length `len` as parameters.
-   - It iterates through the array and prints each element followed by a space.
+   - It iterates through the array from index `0` to `len-1` and prints each element followed by a space.
 
-3. **Main Function**
+4. **Main Function**:
    ```c
-   int main() {
-       int original_arr[] = {1, 2, 3, 4, 5};
-       int len = sizeof(original_arr)/sizeof(original_arr[0]);
+   int main()
    ```
-   - The main function initializes an integer array `original_arr` with five elements.
-   - It calculates the length of the array by dividing the total size of the array by the size of one element.
+   - The entry point of the program.
 
-4. **Copying Elements in Reverse Order**
+5. **Array Initialization**:
    ```c
-       int copied_arr[len], i, j;
-       for (i = 0; i < len; i++) {
-           copied_arr[i] = original_arr[len - i - 1];
-       }
+   int original_arr[] = {1, 2, 3, 4, 5};
+   int len = sizeof(original_arr)/sizeof(original_arr[0]);
    ```
-   - An array `copied_arr` of the same length as `original_arr` is declared.
-   - A loop runs from `0` to `len-1`, copying elements from `original_arr` to `copied_arr` in reverse order.
+   - Initializes an array `original_arr` with values `{1, 2, 3, 4, 5}`.
+   - Calculates the length of the array by dividing the total size of the array by the size of one element.
 
-5. **Printing the Arrays**
+6. **Array Declaration**:
    ```c
-       printf(" Original array: ");
-       printArray(original_arr, len);
-       printf(" Resultant array: ");
-       printArray(copied_arr, len);
-       return 0;
+   int copied_arr[len], i, j;
+   ```
+   - Declares an array `copied_arr` of the same length as `original_arr` to store the reversed array.
+
+7. **Copying in Reverse Order**:
+   ```c
+   for (i = 0; i < len; i++) {
+       copied_arr[i] = original_arr[len - i - 1];
    }
    ```
-   - The original array is printed using the `printArray` function.
-   - The reversed array is also printed using the same function.
-   - The program returns `0` to indicate successful execution.
+   - Iterates over `original_arr` and copies each element to `copied_arr` in reverse order.
+
+8. **Printing Original Array**:
+   ```c
+   printf(" Original array: ");
+   printArray(original_arr, len);
+   ```
+   - Prints the label "Original array:" and then calls `printArray` to print the contents of `original_arr`.
+
+9. **Printing Copied Array**:
+   ```c
+   printf(" Resultant array: ");
+   printArray(copied_arr, len);
+   ```
+   - Prints the label "Resultant array:" and then calls `printArray` to print the contents of `copied_arr`.
+
+10. **Return Statement**:
+    ```c
+    return 0;
+    ```
+    - Indicates successful execution of the program.
 
 ### Equivalent SystemC Code
 
-Below is the equivalent SystemC code that mirrors the behavior of the provided C++/C code. This code can be used in a high-level synthesis flow.
+Below is the SystemC equivalent of the given C++/C code. This code will perform the same operation within a SystemC simulation framework.
 
 ```cpp
 #include <systemc.h>
 
-// Module to copy and reverse the array
-SC_MODULE(ArrayCopier) {
-    SC_CTOR(ArrayCopier) {
-        SC_THREAD(copy_and_reverse);
+// Module to reverse an array
+SC_MODULE(ArrayReverser) {
+    // Input and output ports for arrays
+    sc_vector<sc_in<int>> original_arr;
+    sc_vector<sc_out<int>> copied_arr;
+    
+    // Length of the array
+    int len;
+
+    // Process to reverse the array
+    void reverseArray() {
+        // Copy the elements of the array in the copied_arr in Reverse Order
+        for (int i = 0; i < len; i++) {
+            copied_arr[i].write(original_arr[len - i - 1].read());
+        }
     }
 
-    void copy_and_reverse() {
-        // Define the original array
-        int original_arr[5] = {1, 2, 3, 4, 5};
-        int len = sizeof(original_arr) / sizeof(original_arr[0]);
+    // Constructor to register the process
+    SC_CTOR(ArrayReverser, const char* name, int array_length) : sc_module(name), len(array_length) {
+        original_arr.init(len);
+        copied_arr.init(len);
+        
+        SC_METHOD(reverseArray);
+        sensitive << original_arr;
+    }
+};
 
-        // Declare the copied array
-        int copied_arr[5];
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Length of the array
+    int len = 5;
 
-        // Copy elements in reverse order
+    // Signals to connect with ArrayReverser
+    sc_vector<sc_signal<int>> original_arr;
+    sc_vector<sc_signal<int>> copied_arr;
+
+    // Instance of ArrayReverser
+    ArrayReverser reverser;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the original array
         for (int i = 0; i < len; i++) {
-            copied_arr[i] = original_arr[len - i - 1];
+            original_arr[i].write(i + 1); // Writing values {1, 2, 3, 4, 5}
         }
+
+        // Wait for one delta cycle to let the reverser process
+        wait(1, SC_NS);
 
         // Print the original array
         cout << "Original array: ";
         for (int i = 0; i < len; i++) {
-            cout << original_arr[i] << " ";
+            cout << original_arr[i].read() << " ";
         }
         cout << endl;
 
-        // Print the copied array
+        // Print the resultant array
         cout << "Resultant array: ";
         for (int i = 0; i < len; i++) {
-            cout << copied_arr[i] << " ";
+            cout << copied_arr[i].read() << " ";
         }
         cout << endl;
+    }
 
-        // End the simulation
-        sc_stop();
+    // Constructor to register the process
+    SC_CTOR(Testbench) : reverser("reverser", len) {
+        // Connecting signals to the reverser ports
+        for (int i = 0; i < len; i++) {
+            reverser.original_arr[i](original_arr[i]);
+            reverser.copied_arr[i](copied_arr[i]);
+        }
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    ArrayCopier copier("copier");
-    sc_start();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of the SystemC Code
+### Explanation of SystemC Code
 
-1. **Module Declaration**
-   ```cpp
-   SC_MODULE(ArrayCopier) {
-   ```
-   - Declares a SystemC module named `ArrayCopier`.
+- **ArrayReverser Module**:
+  - Contains input and output ports (`sc_vector<sc_in<int>>` and `sc_vector<sc_out<int>>`) for the original and copied arrays.
+  - The `reverseArray` method reads from `original_arr` and writes the reversed values to `copied_arr`.
+  - The constructor initializes the vectors and registers the `reverseArray` method as sensitive to changes in `original_arr`.
 
-2. **Constructor and Thread Declaration**
-   ```cpp
-       SC_CTOR(ArrayCopier) {
-           SC_THREAD(copy_and_reverse);
-       }
-   ```
-   - The constructor of the module registers the `copy_and_reverse` method as a SystemC thread.
+- **Testbench Module**:
+  - Defines the length of the array and initializes signal vectors for `original_arr` and `copied_arr`.
+  - Instantiates the `ArrayReverser` module.
+  - The `driveAndPrint` method initializes the `original_arr` with values `{1, 2, 3, 4, 5}`, waits for the simulation to process, and then prints both the original and resultant arrays.
+  - Connects the signals to the `ArrayReverser` module and registers the `driveAndPrint` method.
 
-3. **Method to Copy and Reverse the Array**
-   ```cpp
-       void copy_and_reverse() {
-           int original_arr[5] = {1, 2, 3, 4, 5};
-           int len = sizeof(original_arr) / sizeof(original_arr[0]);
-           int copied_arr[5];
-           for (int i = 0; i < len; i++) {
-               copied_arr[i] = original_arr[len - i - 1];
-           }
-   ```
-   - Initializes the `original_arr` and calculates its length.
-   - Declares and populates `copied_arr` with elements of `original_arr` in reverse order.
-
-4. **Printing the Arrays**
-   ```cpp
-           cout << "Original array: ";
-           for (int i = 0; i < len; i++) {
-               cout << original_arr[i] << " ";
-           }
-           cout << endl;
-
-           cout << "Resultant array: ";
-           for (int i = 0; i < len; i++) {
-               cout << copied_arr[i] << " ";
-           }
-           cout << endl;
-   ```
-   - Uses `cout` to print the original and reversed arrays.
-
-5. **Ending the Simulation**
-   ```cpp
-           sc_stop();
-       }
-   };
-   ```
-   - Ends the simulation after printing the arrays.
-
-6. **Main Function**
-   ```cpp
-   int sc_main(int argc, char* argv[]) {
-       ArrayCopier copier("copier");
-       sc_start();
-       return 0;
-   }
-   ```
-   - Instantiates the `ArrayCopier` module and starts the simulation.
-
-This SystemC code faithfully replicates the logic of the original C++/C code, making it suitable for use in a high-level synthesis flow.
+This SystemC code snippet faithfully captures the logic of the original C++/C source and can be used in a high-level synthesis flow.

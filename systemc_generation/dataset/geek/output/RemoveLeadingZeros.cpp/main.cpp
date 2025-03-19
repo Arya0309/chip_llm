@@ -1,56 +1,77 @@
 
 #include <systemc.h>
+#include <string>
 
+// Module to remove leading zeros from a string
 SC_MODULE(RemoveLeadingZeros) {
-    sc_in<bool> clk;
-    sc_in<bool> reset;
-    sc_in<sc_bv<12>> input_str; // Assuming a fixed length for demonstration
-    sc_out<sc_bv<12>> output_str;
+    // Input port for the string
+    sc_in<std::string> input_str;
+    
+    // Output port for the processed string
+    sc_out<std::string> output_str;
 
-    SC_CTOR(RemoveLeadingZeros) {
-        SC_METHOD(process);
-        sensitive << clk.pos();
-        dont_initialize();
+    // Internal storage for the string
+    std::string internal_str;
+
+    // Process to remove leading zeros
+    void removeZeros() {
+        // Read the input string
+        internal_str = input_str.read();
+
+        // Count leading zeros
+        size_t i = 0;
+        while (internal_str[i] == '0')
+            i++;
+
+        // Erase leading zeros
+        internal_str.erase(0, i);
+
+        // Write the processed string to the output port
+        output_str.write(internal_str);
     }
 
-    void process() {
-        if (reset.read()) {
-            output_str.write(sc_bv<12>("000000000000"));
-        } else {
-            sc_bv<12> str = input_str.read();
-            int i = 0;
-            while (i < 12 && str[i] == '0') {
-                i++;
-            }
-            sc_bv<12> result = str.range(11, i);
-            result.range(11-i, 0) = str.range(11, i);
-            result.range(11, 12-i) = "000000000000".range(11, 12-i);
-            output_str.write(result);
-        }
+    // Constructor to register the process
+    SC_CTOR(RemoveLeadingZeros) {
+        SC_METHOD(removeZeros);
+        sensitive << input_str;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with RemoveLeadingZeros module
+    sc_signal<std::string> input_str;
+    sc_signal<std::string> output_str;
+
+    // Instance of RemoveLeadingZeros module
+    RemoveLeadingZeros remove_zeros;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the input string
+        input_str = "00000123569";
+
+        // Wait for one delta cycle to let the remove_zeros process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Original string: " << input_str.read() << endl;
+        cout << "Processed string: " << output_str.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : remove_zeros("remove_zeros") {
+        // Connecting signals to the remove_zeros ports
+        remove_zeros.input_str(input_str);
+        remove_zeros.output_str(output_str);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    RemoveLeadingZeros rlz("rlz");
-    sc_signal<bool> clk;
-    sc_signal<bool> reset;
-    sc_signal<sc_bv<12>> input_str;
-    sc_signal<sc_bv<12>> output_str;
-
-    rlz.clk(clk);
-    rlz.reset(reset);
-    rlz.input_str(input_str);
-    rlz.output_str(output_str);
-
-    // Simulation setup
-    sc_start(0, SC_NS);
-    reset.write(true);
-    sc_start(1, SC_NS);
-    reset.write(false);
-    input_str.write("000001235690"); // Example input with fixed length
-    sc_start(10, SC_NS);
-
-    cout << "Processed String: " << output_str.read().to_string() << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

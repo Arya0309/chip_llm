@@ -1,53 +1,88 @@
 
 #include <systemc.h>
 
+// Module to compute power using repeated addition
 SC_MODULE(PowerModule) {
-    sc_in<int> a; // Input port for base
-    sc_in<int> b; // Input port for exponent
-    sc_out<int> result; // Output port for result
+    // Input ports for base and exponent
+    sc_in<int> base;
+    sc_in<int> exponent;
+    
+    // Output port for result
+    sc_out<int> result;
 
-    void compute_pow() {
-        int local_a = a.read();
-        int local_b = b.read();
+    // Process to compute power
+    void computePower() {
+        // Reading inputs
+        int a = base.read();
+        int b = exponent.read();
         
-        if (local_b == 0) {
+        // Base case: a^0 = 1
+        if (b == 0) {
             result.write(1);
             return;
         }
         
-        int answer = local_a;
-        int increment = local_a;
+        // Initialize variables
+        int answer = a;
+        int increment = a;
         
-        for (int i = 1; i < local_b; i++) {
-            for (int j = 1; j < local_a; j++) {
-                answer += increment;
+        // Outer loop
+        for(int i = 1; i < b; i++) {
+            int temp_answer = answer;
+            // Inner loop: repeated addition
+            for(int j = 1; j < a; j++) {
+                temp_answer += increment;
             }
-            increment = answer;
+            // Update increment
+            increment = temp_answer;
+            answer = temp_answer;
         }
         
+        // Write result
         result.write(answer);
     }
 
+    // Constructor to register the process
     SC_CTOR(PowerModule) {
-        SC_METHOD(compute_pow);
-        sensitive << a << b;
+        SC_METHOD(computePower);
+        sensitive << base << exponent;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with PowerModule
+    sc_signal<int> base, exponent, result;
+
+    // Instance of PowerModule
+    PowerModule powerModule;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing base and exponent
+        base = 5; exponent = 3;
+
+        // Wait for one delta cycle to let the powerModule process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Result of " << base.read() << "^" << exponent.read() << " is " << result.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : powerModule("powerModule") {
+        // Connecting signals to the powerModule ports
+        powerModule.base(base);
+        powerModule.exponent(exponent);
+        powerModule.result(result);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    PowerModule power("power");
-    sc_signal<int> a_sig, b_sig, result_sig;
-
-    power.a(a_sig);
-    power.b(b_sig);
-    power.result(result_sig);
-
-    a_sig.write(5);
-    b_sig.write(3);
-
-    sc_start();
-
-    cout << "Result: " << result_sig.read() << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

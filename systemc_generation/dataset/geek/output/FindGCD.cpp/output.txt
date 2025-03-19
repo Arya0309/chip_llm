@@ -1,131 +1,153 @@
 
-### Analysis of the Provided C++ Code
+### Analysis of Provided C++/C Code
 
 #### Inputs and Outputs
-- **Inputs**: Two integers `a` and `b`. In this specific example, `a = 12` and `b = 16`.
-- **Outputs**: The greatest common divisor (GCD) of the two input integers.
+- **Inputs**: Two integers `a` and `b`.
+- **Outputs**: An integer representing the greatest common divisor (GCD) of `a` and `b`.
 
-#### Detailed Line-by-Line Explanation
+#### Detailed Line-by-Line/Block-by-Block Explanation
 
-1. **Header and Namespace**:
+1. **Include Directive and Namespace**:
    ```cpp
    #include <bits/stdc++.h>
    using namespace std;
    ```
-   - Includes a header file that provides access to almost all standard library features.
-   - Uses the standard namespace to avoid prefixing standard library functions and objects with `std::`.
+   - Includes a large set of standard C++ libraries.
+   - Uses the standard namespace to avoid prefixing standard library functions with `std::`.
 
-2. **Function Definition**:
+2. **Function Definition: `gcd`**:
    ```cpp
    int gcd(int a, int b) {
-   ```
-   - Defines a function named `gcd` that takes two integer parameters `a` and `b` and returns an integer.
-
-3. **Finding Minimum of a and b**:
-   ```cpp
        int res = min(a, b);
    ```
-   - Initializes an integer variable `res` with the minimum value between `a` and `b`. This is done to start checking divisibility from the largest possible common divisor.
+   - Defines a function `gcd` that takes two integers `a` and `b`.
+   - Initializes `res` with the smaller of `a` and `b` using the `min` function.
 
-4. **While Loop for Divisibility Check**:
+3. **Finding GCD Using Loop**:
    ```cpp
        while (res > 1) {
-   ```
-   - Begins a loop that continues as long as `res` is greater than 1. The loop decrements `res` until it finds the largest number that divides both `a` and `b`.
-
-5. **Checking Divisibility**:
-   ```cpp
            if (a % res == 0 && b % res == 0)
                break;
            res--;
        }
-   ```
-   - Inside the loop, checks if both `a` and `b` are divisible by `res`.
-   - If true, breaks out of the loop, indicating that `res` is the GCD.
-   - If false, decrements `res` by 1 and continues the loop.
-
-6. **Return Statement**:
-   ```cpp
        return res;
    }
    ```
-   - Returns the value of `res`, which is the GCD of `a` and `b`.
+   - Starts a loop that decrements `res` from the minimum of `a` and `b` down to 1.
+   - Checks if `res` divides both `a` and `b` without a remainder (`a % res == 0` and `b % res == 0`).
+   - If both conditions are true, it breaks out of the loop, indicating that `res` is the GCD.
+   - Returns `res`, which is the GCD of `a` and `b`.
 
-7. **Main Function**:
+4. **Main Function**:
    ```cpp
    int main() {
        int a = 12, b = 16;
-   ```
-   - Declares and initializes two integers `a` and `b` with values 12 and 16, respectively.
-
-8. **Function Call and Output**:
-   ```cpp
        cout << gcd(a, b);
        return 0;
    }
    ```
+   - Declares and initializes two integers `a` and `b` with values 12 and 16 respectively.
    - Calls the `gcd` function with `a` and `b` as arguments and prints the result.
    - Ends the program by returning 0.
 
-### Equivalent SystemC Code
+### Equivalent SystemC Code Snippet
 
-Below is the SystemC equivalent of the provided C++ code. This SystemC code defines a module that calculates the GCD of two numbers and outputs the result.
+Below is the SystemC code that replicates the logic of the given C++/C code. This SystemC module calculates the GCD of two integers and outputs the result.
 
 ```cpp
 #include <systemc.h>
 
+// User Defined GCD module
 SC_MODULE(GCDModule) {
-    sc_in<int> a;  // Input port for the first number
-    sc_in<int> b;  // Input port for the second number
-    sc_out<int> gcd_result;  // Output port for the GCD result
+    // Input ports for two numbers
+    sc_in<int> num1, num2;
+    
+    // Output port for the GCD
+    sc_out<int> gcd_result;
 
-    SC_CTOR(GCDModule) {
-        SC_METHOD(calculate_gcd);  // Register the method to calculate GCD
-        sensitive << a << b;  // Sensitivity list: react to changes in 'a' or 'b'
-    }
+    // Process to calculate GCD
+    void calculateGCD() {
+        // Reading inputs
+        int a = num1.read();
+        int b = num2.read();
 
-    void calculate_gcd() {
-        int res = sc_min(a.read(), b.read());  // Find the minimum of a and b
+        // Initialize result with the smaller of a and b
+        int res = (a < b) ? a : b;
+
+        // Finding GCD using a loop
         while (res > 1) {
-            if (a.read() % res == 0 && b.read() % res == 0)
+            if (a % res == 0 && b % res == 0)
                 break;
             res--;
         }
-        gcd_result.write(res);  // Write the GCD result to the output port
+
+        // Writing the GCD result
+        gcd_result.write(res);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(GCDModule) {
+        SC_METHOD(calculateGCD);
+        sensitive << num1 << num2;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with GCDModule
+    sc_signal<int> a, b;
+    sc_signal<int> gcd_result;
+
+    // Instance of GCDModule
+    GCDModule gcd_module;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing numbers
+        a = 12; b = 16;
+
+        // Wait for one delta cycle to let the GCD module process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "GCD of " << a.read() << " and " << b.read() << " is " << gcd_result.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : gcd_module("gcd_module") {
+        // Connecting signals to the GCD module ports
+        gcd_module.num1(a); gcd_module.num2(b);
+        gcd_module.gcd_result(gcd_result);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    GCDModule gcd_module("gcd_module");  // Instantiate the GCD module
-
-    sc_signal<int> a_signal, b_signal, gcd_result_signal;  // Declare signals
-
-    // Connect ports to signals
-    gcd_module.a(a_signal);
-    gcd_module.b(b_signal);
-    gcd_module.gcd_result(gcd_result_signal);
-
-    // Initialize input signals
-    a_signal = 12;
-    b_signal = 16;
-
-    // Start simulation
-    sc_start();
-
-    // Print the GCD result
-    cout << "GCD of " << a_signal.read() << " and " << b_signal.read() << " is " << gcd_result_signal.read() << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of SystemC Code
+### Explanation of SystemC Code
 
-- **Module Declaration**: `SC_MODULE(GCDModule)` declares a SystemC module named `GCDModule`.
-- **Ports**: The module has two input ports (`a` and `b`) and one output port (`gcd_result`) for communication.
-- **Constructor**: The constructor registers the `calculate_gcd` method and specifies sensitivity to changes in `a` and `b`.
-- **Method**: The `calculate_gcd` method computes the GCD using the same logic as the C++ function.
-- **Signals**: In `sc_main`, signals are declared and connected to the module's ports.
-- **Simulation**: The simulation starts with `sc_start()`, and the GCD result is printed after the simulation completes.
+- **GCDModule Class**:
+  - Contains two input ports `num1` and `num2` for the numbers whose GCD needs to be calculated.
+  - Contains one output port `gcd_result` to send the result of the GCD calculation.
+  - The `calculateGCD` method reads the inputs, calculates the GCD using a loop similar to the C++ code, and writes the result to `gcd_result`.
+  - The constructor registers `calculateGCD` as a method sensitive to changes in `num1` and `num2`.
 
-This SystemC code snippet can be used in a high-level synthesis flow to synthesize hardware that computes the GCD of two numbers.
+- **Testbench Class**:
+  - Contains signals `a` and `b` to drive inputs to the `GCDModule`.
+  - Contains a signal `gcd_result` to capture the output from the `GCDModule`.
+  - An instance of `GCDModule` is created and connected to the signals.
+  - The `driveAndPrint` method initializes the input signals, waits for the `GCDModule` to compute the result, and prints the GCD.
+  - The constructor connects the signals to the `GCDModule` and registers the `driveAndPrint` process.
+
+- **sc_main Function**:
+  - Creates an instance of `Testbench`.
+  - Starts the simulation using `sc_start()`.
+
+This SystemC code accurately mirrors the functionality of the provided C++/C code, making it suitable for use in a high-level synthesis flow.

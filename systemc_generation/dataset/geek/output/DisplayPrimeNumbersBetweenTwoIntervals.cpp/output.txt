@@ -1,67 +1,62 @@
 
 ### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs
-- **Inputs**: The code originally takes two integer inputs from the user, representing the lower and upper bounds of the interval within which to find prime numbers. In this modified version, these values are hardcoded as `a = 100` and `b = 300`.
-- **Outputs**: The program outputs all prime numbers within the specified interval `[a, b]`.
+#### Inputs:
+- The code is designed to find prime numbers within a specified interval. However, in the provided code, the interval bounds `a` and `b` are hardcoded to 100 and 300, respectively, instead of being taken as user input.
 
-#### Detailed Line-by-Line/Block-by-Block Explanation
+#### Outputs:
+- The code prints all prime numbers within the interval [100, 300].
+
+#### Detailed Line-by-Line Explanation:
 
 1. **Include Directives and Namespace**:
    ```cpp
    #include <bits/stdc++.h>
    using namespace std;
    ```
-   - This includes the standard C++ library which provides functionalities like input/output streams and other utility functions.
-   - The `using namespace std;` directive allows us to use standard library names without prefixing them with `std::`.
+   - These lines include the standard library header file and use the standard namespace, making it easier to use standard library functions without prefixing them with `std::`.
 
-2. **Main Function Declaration**:
+2. **Main Function**:
    ```cpp
    int main()
+   {
+       int a, b, i, j, flag;
    ```
-   - This marks the start of the program execution.
+   - The `main` function is the entry point of the program. It declares five integer variables: `a` and `b` for the interval bounds, `i` and `j` as loop counters, and `flag` to determine if a number is prime.
 
-3. **Variable Declarations**:
-   ```cpp
-   int a, b, i, j, flag;
-   ```
-   - `a` and `b` represent the lower and upper bounds of the interval.
-   - `i` and `j` are loop control variables.
-   - `flag` is used to indicate whether a number is prime (`1`) or not (`0`).
-
-4. **Hardcoded Input Values**:
+3. **Hardcoded Interval Bounds**:
    ```cpp
    a = 100;
    b = 300;
    ```
-   - These lines set the lower and upper bounds of the interval to `100` and `300`, respectively.
+   - Instead of taking user input, the interval bounds are set to 100 and 300.
 
-5. **Display Message**:
+4. **Display Message**:
    ```cpp
    cout << "Prime numbers between " << a << " and " << b << " are: ";
    ```
    - This line prints a message indicating the range in which prime numbers will be found.
 
-6. **Outer Loop to Traverse Numbers**:
+5. **Outer Loop to Traverse Numbers in the Interval**:
    ```cpp
    for (i = a; i <= b; i++) {
    ```
-   - This loop iterates over each number `i` from `a` to `b`.
+   - This loop iterates through each number from `a` to `b`.
 
-7. **Skip Non-Prime Candidates**:
+6. **Skip Non-Prime Candidates**:
    ```cpp
    if (i == 1 || i == 0)
        continue;
    ```
-   - This condition skips the numbers `0` and `1` since they are neither prime nor composite.
+   - Numbers 0 and 1 are skipped as they are neither prime nor composite.
 
-8. **Initialize Flag**:
+7. **Initialize Flag Variable**:
    ```cpp
    flag = 1;
    ```
-   - Assume `i` is prime until proven otherwise.
+   - The `flag` variable is set to 1, assuming the current number `i` is prime.
 
-9. **Inner Loop to Check Primality**:
+8. **Inner Loop to Check Divisibility**:
    ```cpp
    for (j = 2; j <= i / 2; ++j) {
        if (i % j == 0) {
@@ -70,112 +65,121 @@
        }
    }
    ```
-   - This nested loop checks divisibility of `i` by numbers from `2` to `i/2`. If `i` is divisible by any of these numbers, it is not prime, and the flag is set to `0`.
+   - This inner loop checks if `i` is divisible by any number from 2 to `i/2`. If `i` is divisible, `flag` is set to 0, and the loop breaks.
 
-10. **Output Prime Numbers**:
-    ```cpp
-    if (flag == 1)
-        cout << i << " ";
-    ```
-    - If `flag` remains `1`, it indicates that `i` is a prime number, and it is printed.
+9. **Check and Print Prime Number**:
+   ```cpp
+   if (flag == 1)
+       cout << i << " ";
+   ```
+   - If `flag` remains 1 after the inner loop, it indicates that `i` is a prime number, and it gets printed.
 
-11. **End of Main Function**:
+10. **Return Statement**:
     ```cpp
     return 0;
     ```
-    - Ends the `main` function and returns `0` to indicate successful completion.
+    - The `main` function returns 0, indicating successful execution.
 
-### Equivalent SystemC Code
+### Equivalent SystemC Code Snippet
 
-Below is the SystemC equivalent of the provided C++ code. This SystemC code snippet can be used in a high-level synthesis flow.
+Below is the equivalent SystemC code that replicates the logic of finding prime numbers within a specified interval. The SystemC code includes a module `PrimeFinder` and a testbench `Testbench` to simulate the process.
 
 ```cpp
 #include <systemc.h>
 
+// Module to find prime numbers within a specified interval
 SC_MODULE(PrimeFinder) {
-    sc_in<bool> clk;
-    sc_in<bool> rst;
-    sc_out<sc_uint<32>> prime_number;
-    sc_out<bool> valid;
+    // Input ports for the interval bounds
+    sc_in<int> lower_bound;
+    sc_in<int> upper_bound;
 
-    SC_CTOR(PrimeFinder) {
-        SC_METHOD(find_primes);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
+    // Output port to print prime numbers
+    sc_out<sc_string> primes;
 
-    void find_primes() {
-        static int a = 100, b = 300, i = 100, j, flag;
-        static bool output_ready = false;
+    // Process to find and print prime numbers
+    void findPrimes() {
+        int a = lower_bound.read();
+        int b = upper_bound.read();
+        sc_string result = "Prime numbers between " + std::to_string(a) + " and " + std::to_string(b) + " are: ";
 
-        if (rst.read()) {
-            i = a;
-            output_ready = false;
-        } else {
-            if (!output_ready) {
-                if (i > b) {
-                    valid.write(false);
-                    return;
+        // Traverse each number in the interval
+        for (int i = a; i <= b; i++) {
+            // Skip 0 and 1 as they are neither prime nor composite
+            if (i == 1 || i == 0)
+                continue;
+
+            // flag variable to tell if i is prime or not
+            bool flag = true;
+
+            for (int j = 2; j <= i / 2; ++j) {
+                if (i % j == 0) {
+                    flag = false;
+                    break;
                 }
-                if (i == 1 || i == 0) {
-                    i++;
-                    return;
-                }
-                flag = 1;
-                for (j = 2; j <= i / 2; ++j) {
-                    if (i % j == 0) {
-                        flag = 0;
-                        break;
-                    }
-                }
-                if (flag == 1) {
-                    prime_number.write(i);
-                    valid.write(true);
-                    output_ready = true;
-                } else {
-                    i++;
-                }
-            } else {
-                output_ready = false;
-                i++;
+            }
+
+            // flag = true means i is prime
+            if (flag) {
+                result += std::to_string(i) + " ";
             }
         }
+
+        // Write the result to the output port
+        primes.write(result);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(PrimeFinder) {
+        SC_METHOD(findPrimes);
+        sensitive << lower_bound << upper_bound;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with PrimeFinder
+    sc_signal<int> lower_bound, upper_bound;
+    sc_signal<sc_string> primes;
+
+    // Instance of PrimeFinder
+    PrimeFinder prime_finder;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize interval bounds
+        lower_bound = 100;
+        upper_bound = 300;
+
+        // Wait for one delta cycle to let the prime_finder process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << primes.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : prime_finder("prime_finder") {
+        // Connecting signals to the prime_finder ports
+        prime_finder.lower_bound(lower_bound);
+        prime_finder.upper_bound(upper_bound);
+        prime_finder.primes(primes);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_clock clk("clk", 10, SC_NS);
-    sc_signal<bool> rst;
-    sc_signal<sc_uint<32>> prime_number;
-    sc_signal<bool> valid;
-
-    PrimeFinder prime_finder("prime_finder");
-    prime_finder.clk(clk);
-    prime_finder.rst(rst);
-    prime_finder.prime_number(prime_number);
-    prime_finder.valid(valid);
-
-    rst.write(true);
-    sc_start(20, SC_NS);
-    rst.write(false);
-
-    while (true) {
-        sc_start(10, SC_NS);
-        if (valid.read()) {
-            cout << "Prime number: " << prime_number.read() << endl;
-        }
-        if (prime_number.read() >= 300) break;
-    }
-
-    sc_start(10, SC_NS);
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of the SystemC Code
-- **Module Definition**: `PrimeFinder` is a SystemC module that finds prime numbers in the range `[100, 300]`.
-- **Ports**: The module has clock (`clk`), reset (`rst`), and output ports (`prime_number` and `valid`).
-- **Process Sensitivity**: The `find_primes` method is sensitive to the positive edge of the clock.
-- **Reset Handling**: On reset, the process resets the iteration index `i` to `100` and sets `output_ready` to `false`.
-- **Prime Checking Logic**: Similar to the C++ code, the module checks each number in the range for primality and outputs it through the `prime_number` port when a prime is found.
-- **Simulation Setup**: The `sc_main` function sets up the simulation environment, including the clock, reset signal, and the `PrimeFinder` module. It then runs the simulation and prints the prime numbers found.
+### Explanation of the SystemC Code:
+- **PrimeFinder Module**: This module takes two integer inputs (`lower_bound` and `upper_bound`) and outputs a string containing the prime numbers within the specified interval.
+- **findPrimes Method**: This method implements the logic to find prime numbers within the interval. It uses nested loops similar to the C++ code and writes the result to the `primes` output port.
+- **Testbench Module**: This module initializes the interval bounds, drives the inputs to the `PrimeFinder` module, and prints the resulting string of prime numbers.
+- **sc_main Function**: This function creates an instance of the `Testbench` module and starts the simulation.
+
+This SystemC code snippet accurately reflects the logic of the original C++/C code and can be used in a high-level synthesis flow.

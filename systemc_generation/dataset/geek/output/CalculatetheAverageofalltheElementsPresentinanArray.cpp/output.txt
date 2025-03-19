@@ -1,107 +1,284 @@
 
-### Analysis of the Provided C++/C Code
+### Analysis of Provided C++/C Code
 
-#### Inputs and Outputs
-- **Inputs**: 
-  - An array of integers `arr` with values `{10, 2, 3, 4, 5, 6, 7, 8, 9}`.
-  - The size of the array `n`, which is calculated as the number of elements in the array.
-- **Outputs**:
-  - A single double value representing the average of the array elements, printed to the console.
+#### Inputs and Outputs:
+- **Inputs**: An array of integers (`arr`) and its size (`n`).
+- **Outputs**: The average of the array elements, printed to the console.
 
-#### Line-by-Line/Block-by-Block Explanation
-1. **Include Directives**:
+#### Detailed Explanation:
+1. **Include Directives and Namespace**:
    ```cpp
    #include <iostream>
    using namespace std;
    ```
-   - These lines include the standard input-output stream library and use the standard namespace to avoid prefixing standard library functions with `std::`.
+   - Includes the standard input-output stream library for console operations.
+   - Uses the `std` namespace to avoid prefixing standard library functions with `std::`.
 
 2. **Function Definition**:
    ```cpp
    double average(int a[], int n)
-   {
-       int sum = 0;
-       for (int i = 0; i < n; i++)
-           sum += a[i];
-   
-       return (double)sum / n;
-   }
    ```
-   - This function takes an integer array `a` and its size `n` as parameters.
-   - It initializes a variable `sum` to zero.
-   - It iterates over each element of the array, adding each element's value to `sum`.
-   - It returns the average of the array by dividing the total `sum` by the number of elements `n`, casting the result to a double to ensure floating-point division.
+   - Defines a function named `average` that takes an integer array `a` and its size `n` as parameters and returns a `double`.
+   
+3. **Sum Calculation**:
+   ```cpp
+   int sum = 0;
+   for (int i = 0; i < n; i++)
+       sum += a[i];
+   ```
+   - Initializes a variable `sum` to zero.
+   - Iterates over each element of the array `a` from index `0` to `n-1`, adding each element's value to `sum`.
 
-3. **Main Function**:
+4. **Return Statement**:
+   ```cpp
+   return (double)sum / n;
+   ```
+   - Converts `sum` to `double` and divides it by `n` to compute the average.
+   - Returns the computed average as a `double`.
+
+5. **Main Function**:
    ```cpp
    int main()
-   {
-       int arr[] = { 10, 2, 3, 4, 5, 6, 7, 8, 9 };
-       int n = sizeof(arr) / sizeof(arr[0]);
-   
-       cout << average(arr, n) << endl;
-       return 0;
-   }
    ```
-   - The main function initializes an integer array `arr` with the given values.
-   - It calculates the size of the array `n` by dividing the total size of the array by the size of one element.
-   - It calls the `average` function with the array and its size as arguments, and prints the returned average to the console.
-   - The program returns 0 to indicate successful execution.
+   - Entry point of the program.
 
-### Equivalent SystemC Code Snippet
+6. **Array Initialization**:
+   ```cpp
+   int arr[] = { 10, 2, 3, 4, 5, 6, 7, 8, 9 };
+   ```
+   - Initializes an array `arr` with nine integer values.
 
-Below is the SystemC code that replicates the behavior of the original C++/C code. This SystemC module calculates the average of an array of integers and prints it.
+7. **Size Calculation**:
+   ```cpp
+   int n = sizeof(arr) / sizeof(arr[0]);
+   ```
+   - Computes the number of elements in the array `arr` by dividing the total size of the array by the size of one element.
+
+8. **Output**:
+   ```cpp
+   cout << average(arr, n) << endl;
+   ```
+   - Calls the `average` function with `arr` and `n` as arguments.
+   - Prints the result to the console.
+
+9. **End of Main**:
+   ```cpp
+   return 0;
+   ```
+   - Indicates successful execution of the program.
+
+### Equivalent SystemC Code
+
+Below is the SystemC equivalent of the provided C++ code. This code calculates the average of an array of integers using SystemC processes and modules.
 
 ```cpp
 #include <systemc.h>
 
+// Module to calculate the average of an array
 SC_MODULE(AverageCalculator) {
+    // Input port for the array size
+    sc_in<int> n_in;
+    
+    // Output port for the calculated average
+    sc_out<double> avg_out;
+
+    // Internal signal to hold the sum of array elements
+    sc_signal<int> sum;
+
+    // Array to store input values
+    int *arr;
+
+    // Constructor to initialize the module
     SC_CTOR(AverageCalculator) {
-        SC_THREAD(calculate_average);
+        // Process to calculate the sum of array elements
+        SC_METHOD(calculate_sum);
+        sensitive << n_in;
+
+        // Process to calculate the average
+        SC_METHOD(calculate_average);
+        sensitive << sum;
     }
 
+    // Method to calculate the sum of array elements
+    void calculate_sum() {
+        int n = n_in.read();
+        sum = 0;
+        for (int i = 0; i < n; i++) {
+            sum = sum.read() + arr[i];
+        }
+    }
+
+    // Method to calculate the average
     void calculate_average() {
+        int n = n_in.read();
+        double avg = static_cast<double>(sum.read()) / n;
+        avg_out.write(avg);
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with AverageCalculator
+    sc_signal<int> n_in;
+    sc_signal<double> avg_out;
+
+    // Instance of AverageCalculator
+    AverageCalculator calc;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the array
         int arr[] = { 10, 2, 3, 4, 5, 6, 7, 8, 9 };
         int n = sizeof(arr) / sizeof(arr[0]);
-        double avg = average(arr, n);
-        cout << "Average: " << avg << endl;
-        sc_stop();
+        calc.arr = arr;
+
+        // Drive the input size
+        n_in = n;
+
+        // Wait for one delta cycle to let the calculator process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Average: " << avg_out.read() << endl;
     }
 
-    double average(int a[], int n) {
-        int sum = 0;
-        for (int i = 0; i < n; i++)
-            sum += a[i];
-        return (double)sum / n;
+    // Constructor to register the process
+    SC_CTOR(Testbench) : calc("calc") {
+        // Connecting signals to the calculator ports
+        calc.n_in(n_in);
+        calc.avg_out(avg_out);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    AverageCalculator calc("calc");
-    sc_start();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of the SystemC Code
-- **Module Declaration**:
-  - `SC_MODULE(AverageCalculator)` declares a SystemC module named `AverageCalculator`.
-  
-- **Constructor**:
-  - `SC_CTOR(AverageCalculator)` is the constructor of the module, which registers the `calculate_average` method as a SystemC thread.
-  
-- **Thread Method**:
-  - `void calculate_average()` is the thread method that performs the calculation and output.
-  - It initializes the array `arr` and calculates its size `n`.
-  - It computes the average using the `average` method.
-  - It prints the average to the console and stops the simulation with `sc_stop()`.
+### Explanation of SystemC Code
 
-- **Average Calculation Method**:
-  - `double average(int a[], int n)` is identical to the original function, performing the summation and division to compute the average.
+1. **Module Definition**:
+   ```cpp
+   SC_MODULE(AverageCalculator) {
+   ```
+   - Defines a SystemC module named `AverageCalculator`.
 
-- **Main Function**:
-  - `int sc_main(int argc, char* argv[])` is the entry point of the SystemC simulation.
-  - It creates an instance of `AverageCalculator` named `calc`.
-  - It starts the simulation with `sc_start()`, which executes the registered thread method until `sc_stop()` is called.
+2. **Input and Output Ports**:
+   ```cpp
+   sc_in<int> n_in;
+   sc_out<double> avg_out;
+   ```
+   - `n_in`: Input port for the size of the array.
+   - `avg_out`: Output port for the calculated average.
 
-This SystemC code snippet can be compiled and simulated in a SystemC environment, preserving the logic of the original C++/C code.
+3. **Internal Signal**:
+   ```cpp
+   sc_signal<int> sum;
+   ```
+   - `sum`: Internal signal to hold the sum of array elements.
+
+4. **Array Storage**:
+   ```cpp
+   int *arr;
+   ```
+   - Pointer to an integer array that will be provided externally.
+
+5. **Constructor**:
+   ```cpp
+   SC_CTOR(AverageCalculator) {
+       SC_METHOD(calculate_sum);
+       sensitive << n_in;
+
+       SC_METHOD(calculate_average);
+       sensitive << sum;
+   }
+   ```
+   - Registers methods `calculate_sum` and `calculate_average` as sensitive to changes in `n_in` and `sum` respectively.
+
+6. **Sum Calculation Method**:
+   ```cpp
+   void calculate_sum() {
+       int n = n_in.read();
+       sum = 0;
+       for (int i = 0; i < n; i++) {
+           sum = sum.read() + arr[i];
+       }
+   }
+   ```
+   - Reads the size of the array `n`.
+   - Initializes `sum` to zero.
+   - Iterates over the array elements and accumulates their sum into the `sum` signal.
+
+7. **Average Calculation Method**:
+   ```cpp
+   void calculate_average() {
+       int n = n_in.read();
+       double avg = static_cast<double>(sum.read()) / n;
+       avg_out.write(avg);
+   }
+   ```
+   - Reads the size of the array `n`.
+   - Calculates the average by dividing the sum by `n`.
+   - Writes the average to the `avg_out` port.
+
+8. **Testbench Module**:
+   ```cpp
+   SC_MODULE(Testbench) {
+   ```
+   - Defines a SystemC module named `Testbench`.
+
+9. **Signals and Module Instance**:
+   ```cpp
+   sc_signal<int> n_in;
+   sc_signal<double> avg_out;
+   AverageCalculator calc;
+   ```
+   - Declares signals to connect with the `AverageCalculator` module.
+   - Instantiates the `AverageCalculator` module.
+
+10. **Drive and Print Method**:
+    ```cpp
+    void driveAndPrint() {
+        int arr[] = { 10, 2, 3, 4, 5, 6, 7, 8, 9 };
+        int n = sizeof(arr) / sizeof(arr[0]);
+        calc.arr = arr;
+
+        n_in = n;
+        wait(1, SC_NS);
+
+        cout << "Average: " << avg_out.read() << endl;
+    }
+    ```
+    - Initializes the array `arr` and calculates its size `n`.
+    - Assigns the array to the `calc.arr` pointer.
+    - Drives the input size `n` to the `AverageCalculator` module.
+    - Waits for one delta cycle to allow the calculation processes to execute.
+    - Prints the calculated average to the console.
+
+11. **Constructor**:
+    ```cpp
+    SC_CTOR(Testbench) : calc("calc") {
+        calc.n_in(n_in);
+        calc.avg_out(avg_out);
+        SC_THREAD(driveAndPrint);
+    }
+    ```
+    - Connects the testbench signals to the `AverageCalculator` module.
+    - Registers the `driveAndPrint` method as a thread.
+
+12. **Main Function**:
+    ```cpp
+    int sc_main(int argc, char* argv[]) {
+        Testbench tb("tb");
+        sc_start(); // Start simulation
+        return 0;
+    }
+    ```
+    - Creates an instance of the `Testbench` module.
+    - Starts the SystemC simulation.
+    - Returns zero indicating successful execution.

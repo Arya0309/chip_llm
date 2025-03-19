@@ -1,93 +1,116 @@
 
 #include <systemc.h>
 
-const int MAXN = 105;
-
+// Module to calculate the determinant of a matrix
 SC_MODULE(DeterminantCalculator) {
-    sc_in<bool> clk;
-    sc_in<bool> rst;
-    sc_out<double> det_out;
-
-    SC_CTOR(DeterminantCalculator) {
-        SC_METHOD(process);
-        sensitive << clk.pos();
-        dont_initialize();
+    // Input port for matrix size
+    sc_in<int> n;
+    
+    // Input ports for matrix elements
+    sc_in<double> matrix[105][105];
+    
+    // Output port for determinant
+    sc_out<double> determinant;
+    
+    // Internal storage for matrix
+    double a[105][105];
+    
+    // Process to calculate determinant
+    void calculateDeterminant() {
+        int size = n.read();
+        
+        // Copy matrix to internal storage
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                a[i][j] = matrix[i][j].read();
+            }
+        }
+        
+        double det = 1.0;
+        for (int i = 0; i < size; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < size; j++) {
+                if (fabs(a[j][i]) > fabs(a[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                std::swap(a[i], a[pivot]);
+                det *= -1;
+            }
+            if (a[i][i] == 0) {
+                det = 0;
+                break;
+            }
+            det *= a[i][i];
+            for (int j = i + 1; j < size; j++) {
+                double factor = a[j][i] / a[i][i];
+                for (int k = i + 1; k < size; k++) {
+                    a[j][k] -= factor * a[i][k];
+                }
+            }
+        }
+        determinant.write(det);
     }
-
-    void process() {
-        if (rst.read()) {
-            // Reset state
-            det = 1.0;
-            for (int i = 0; i < MAXN; ++i) {
-                for (int j = 0; j < MAXN; ++j) {
-                    a[i][j] = 0.0;
-                }
+    
+    // Constructor to register the process
+    SC_CTOR(DeterminantCalculator) {
+        SC_METHOD(calculateDeterminant);
+        sensitive << n;
+        for (int i = 0; i < 105; i++) {
+            for (int j = 0; j < 105; j++) {
+                sensitive << matrix[i][j];
             }
-            det_out.write(0.0);
-        } else {
-            // Initialize matrix 'a' with some values
-            double matrix[4][4] = {{1, 0, 2, -1},
-                                 {3, 0, 0, 5},
-                                 {2, 1, 4, -3},
-                                 {1, 0, 5, 0}};
-            int n = 4;
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
-                    a[i][j] = matrix[i][j];
-                }
-            }
-
-            // Compute determinant
-            det = 1.0;
-            for (int i = 0; i < n; i++) {
-                int pivot = i;
-                for (int j = i + 1; j < n; j++) {
-                    if (fabs(a[j][i]) > fabs(a[pivot][i])) {
-                        pivot = j;
-                    }
-                }
-                if (pivot != i) {
-                    swap(a[i], a[pivot]);
-                    det *= -1;
-                }
-                if (a[i][i] == 0) {
-                    det = 0;
-                    break;
-                }
-                det *= a[i][i];
-                for (int j = i + 1; j < n; j++) {
-                    double factor = a[j][i] / a[i][i];
-                    for (int k = i + 1; k < n; k++) {
-                        a[j][k] -= factor * a[i][k];
-                    }
-                }
-            }
-            det_out.write(det);
         }
     }
+};
 
-private:
-    double det;
-    double a[MAXN][MAXN];
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with DeterminantCalculator
+    sc_signal<int> n;
+    sc_signal<double> matrix[105][105];
+    sc_signal<double> det;
+    
+    // Instance of DeterminantCalculator
+    DeterminantCalculator calc;
+    
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize matrix size
+        n = 4;
+        
+        // Initialize matrix
+        matrix[0][0] = 1; matrix[0][1] = 0; matrix[0][2] = 2; matrix[0][3] = -1;
+        matrix[1][0] = 3; matrix[1][1] = 0; matrix[1][2] = 0; matrix[1][3] = 5;
+        matrix[2][0] = 2; matrix[2][1] = 1; matrix[2][2] = 4; matrix[2][3] = -3;
+        matrix[3][0] = 1; matrix[3][1] = 0; matrix[3][2] = 5; matrix[3][3] = 0;
+        
+        // Wait for one delta cycle to let the calculator process
+        wait(1, SC_NS);
+        
+        // Print the determinant
+        cout << "Determinant = " << det.read() << endl;
+    }
+    
+    // Constructor to register the process
+    SC_CTOR(Testbench) : calc("calc") {
+        // Connecting signals to the calculator ports
+        calc.n(n);
+        for (int i = 0; i < 105; i++) {
+            for (int j = 0; j < 105; j++) {
+                calc.matrix[i][j](matrix[i][j]);
+            }
+        }
+        calc.determinant(det);
+        
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_signal<bool> clk;
-    sc_signal<bool> rst;
-    sc_signal<double> det_out;
-
-    DeterminantCalculator calc("calc");
-    calc.clk(clk);
-    calc.rst(rst);
-    calc.det_out(det_out);
-
-    sc_start(1, SC_NS); // Reset
-    rst.write(true);
-    sc_start(1, SC_NS); // Deassert reset
-    rst.write(false);
-    sc_start(1, SC_NS); // Process one cycle
-
-    std::cout << "Determinant = " << det_out.read() << std::endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

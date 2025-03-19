@@ -1,11 +1,16 @@
 
 #include <systemc.h>
 
+// Module to convert binary to decimal
 SC_MODULE(BinaryToDecimalConverter) {
-    sc_in<sc_uint<8>> binary_in;  // Input: Binary number (up to 8 bits)
-    sc_out<int> decimal_out;      // Output: Decimal number
+    // Input port for binary number
+    sc_in<int> binary_in;
+    
+    // Output port for decimal number
+    sc_out<int> decimal_out;
 
-    void convert() {
+    // Process to perform conversion
+    void convertBinaryToDecimal() {
         int num = binary_in.read();
         int dec_value = 0;
         int base = 1;
@@ -21,25 +26,47 @@ SC_MODULE(BinaryToDecimalConverter) {
         decimal_out.write(dec_value);
     }
 
+    // Constructor to register the process
     SC_CTOR(BinaryToDecimalConverter) {
-        SC_METHOD(convert);
+        SC_METHOD(convertBinaryToDecimal);
         sensitive << binary_in;
     }
 };
 
-int sc_main(int argc, char* argv[]) {
-    BinaryToDecimalConverter converter("converter");
-    sc_signal<sc_uint<8>> binary_input;
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with BinaryToDecimalConverter
+    sc_signal<int> binary_input;
     sc_signal<int> decimal_output;
 
-    converter.binary_in(binary_input);
-    converter.decimal_out(decimal_output);
+    // Instance of BinaryToDecimalConverter
+    BinaryToDecimalConverter converter;
 
-    binary_input.write(10101001);  // Example input
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize binary number
+        binary_input = 10101001;
 
-    sc_start();  // Start the simulation
+        // Wait for one delta cycle to let the converter process
+        wait(1, SC_NS);
 
-    cout << "Binary: 10101001 -> Decimal: " << decimal_output.read() << endl;
+        // Print the result
+        cout << "Binary: " << binary_input.read() << " -> Decimal: " << decimal_output.read() << endl;
+    }
 
+    // Constructor to register the process
+    SC_CTOR(Testbench) : converter("converter") {
+        // Connecting signals to the converter ports
+        converter.binary_in(binary_input);
+        converter.decimal_out(decimal_output);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

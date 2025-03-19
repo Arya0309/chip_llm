@@ -115,9 +115,16 @@ class GenCodeChecker:
         pass
 
     def _write_record(self, file_dir):
-        self.table.to_csv(
-            os.path.join(file_dir, "compile_check_result.csv"), index=False
-        )
+        file = os.path.join(file_dir, "compile_check_result.csv")
+        if not os.path.isdir(file):
+            self.table.to_csv(
+                os.path.join(file_dir, "compile_check_result.csv"), index=False
+            )
+        else:
+            df = pd.read_csv(file)
+            df = pd.concat([df, self.table], ignore_index=True)
+            df.to_csv(os.path.join(file_dir, "compile_check_result.csv"), index=False)
+
         print(self.table)
 
         for dict in self.recorder:
