@@ -1,0 +1,171 @@
+
+### Analysis of the Provided C++ Code
+
+#### Inputs and Outputs:
+- **Inputs**:
+  - `arr`: An integer array containing elements from which occurrences of a target value need to be removed.
+  - `target`: The integer value whose occurrences in the array should be removed.
+  - `n`: The number of elements in the input array `arr`.
+  
+- **Outputs**:
+  - The function prints a new array where all occurrences of the `target` value have been removed.
+
+#### Line-by-Line Explanation:
+
+1. **Function Definition**:
+   ```cpp
+   void remove_all_occurrence(int arr[], int target, int n)
+   ```
+   - This defines a function named `remove_all_occurrence` that takes three parameters: an integer array `arr`, an integer `target`, and the size of the array `n`.
+
+2. **Counting Target Occurrences**:
+   ```cpp
+   int cnt = 0;
+   for(int i = 0; i < n; i++) {
+       if(arr[i] == target) 
+           cnt++;
+   }
+   ```
+   - Initialize a counter `cnt` to zero.
+   - Loop through each element of the array `arr`.
+   - If the current element is equal to `target`, increment the counter `cnt`.
+
+3. **Creating a New Array**:
+   ```cpp
+   int new_arr[n - cnt];
+   int ind = 0;
+   for(int i = 0; i < n; i++) {
+       if(arr[i] != target) {
+           new_arr[ind] = arr[i];
+           ind++;
+       }
+   }
+   ```
+   - Create a new array `new_arr` with a size of `n - cnt`, where `cnt` is the number of occurrences of `target`.
+   - Initialize an index variable `ind` to zero.
+   - Loop through each element of the original array `arr`.
+   - If the current element is not equal to `target`, copy it to the new array `new_arr` at position `ind` and increment `ind`.
+
+4. **Printing the New Array**:
+   ```cpp
+   int m = (sizeof(new_arr) / sizeof(new_arr[0]));
+   for(int i = 0; i < m; i++) {
+       cout << new_arr[i] << " "; 
+   }
+   ```
+   - Calculate the size `m` of the new array `new_arr`.
+   - Loop through each element of the new array `new_arr` and print it.
+
+5. **Driver Code**:
+   ```cpp
+   int main() {
+       int arr[] = {1, 4, 3, 6, 8, 3, 9, 10, 3, 3, 7};
+       int target = 3;
+       int n = (sizeof(arr) / sizeof(arr[0]));
+       remove_all_occurrence(arr, target, n);
+       return 0;
+   }
+   ```
+   - Define an array `arr` with initial values.
+   - Set the `target` value to 3.
+   - Calculate the size `n` of the array `arr`.
+   - Call the function `remove_all_occurrence` with the array `arr`, the target value `target`, and the size `n`.
+   - Return 0 to indicate successful execution.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same logic. Note that SystemC is typically used for hardware modeling, so we use SystemC's constructs like modules and processes. However, for this simple algorithm, we'll just encapsulate the logic within a SystemC module.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(RemoveOccurrences) {
+    sc_in<sc_int<32>> target;
+    sc_vector<sc_in<sc_int<32>>> arr;
+    sc_out<bool> done;
+    sc_fifo<sc_int<32>> result;
+
+    SC_CTOR(RemoveOccurrences) : arr("arr", 11), done("done"), result("result") {
+        SC_METHOD(remove_occurrences);
+        sensitive << target;
+    }
+
+    void remove_occurrences() {
+        int cnt = 0;
+        int n = arr.size();
+
+        // Counting all occurrences of target element
+        for (int i = 0; i < n; i++) {
+            if (arr[i].read() == target.read()) {
+                cnt++;
+            }
+        }
+
+        // Creating new array of size = original size - no. of target element
+        int new_arr[n - cnt];
+        int ind = 0;
+        for (int i = 0; i < n; i++) {
+            if (arr[i].read() != target.read()) {
+                new_arr[ind] = arr[i].read();
+                ind++;
+            }
+        }
+
+        // Writing the new array to the result fifo
+        for (int i = 0; i < ind; i++) {
+            result.write(new_arr[i]);
+        }
+
+        done.write(true);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    RemoveOccurrences remove_occurrences_inst("remove_occurrences_inst");
+
+    // Initialize target
+    sc_signal<sc_int<32>> target;
+    target.write(3);
+
+    // Initialize array
+    sc_vector<sc_signal<sc_int<32>>> arr("arr", 11);
+    arr[0].write(1);
+    arr[1].write(4);
+    arr[2].write(3);
+    arr[3].write(6);
+    arr[4].write(8);
+    arr[5].write(3);
+    arr[6].write(9);
+    arr[7].write(10);
+    arr[8].write(3);
+    arr[9].write(3);
+    arr[10].write(7);
+
+    // Connect signals
+    remove_occurrences_inst.target(target);
+    for (int i = 0; i < 11; i++) {
+        remove_occurrences_inst.arr[i](arr[i]);
+    }
+
+    // Output FIFO
+    sc_fifo<sc_int<32>> result("result");
+    remove_occurrences_inst.result(result);
+
+    // Done signal
+    sc_signal<bool> done;
+    remove_occurrences_inst.done(done);
+
+    // Simulation loop
+    sc_start();
+
+    // Print results
+    while (!result.empty()) {
+        std::cout << result.read() << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
+```
+
+This SystemC code encapsulates the logic within a module `RemoveOccurrences`. It uses `sc_in` and `sc_vector<sc_in>` for inputs, `sc_out` for the completion signal, and `sc_fifo` for outputting the resulting array. The `sc_main` function initializes the module, sets up the inputs, and runs the simulation to print the result.

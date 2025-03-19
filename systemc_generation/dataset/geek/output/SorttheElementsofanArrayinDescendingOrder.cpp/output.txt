@@ -1,0 +1,216 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: An array of integers `nums` with initial values `{1, 12, 6, 8, 10}`.
+- **Outputs**: The array printed before and after sorting. Initially, it prints the unsorted array, and then it prints the sorted array in ascending order.
+
+#### Line-by-Line/Block-by-Block Explanation:
+
+1. **Header and Namespace Declaration**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes all standard libraries and uses the standard namespace.
+
+2. **Function Prototypes**:
+   ```cpp
+   void sort(int num[], int len);
+   void swapNums(int nums[], int first, int second);
+   ```
+   - Declares two functions: `sort` to sort the array and `swapNums` to swap two elements in the array.
+
+3. **Driver Code**:
+   ```cpp
+   int main()
+   {
+       int nums[] = {1, 12, 6, 8, 10};
+       int size_nums = (sizeof(nums) / sizeof(nums[0]));
+   ```
+   - Initializes an array `nums` with five integers.
+   - Calculates the size of the array `nums`.
+
+4. **Printing Unsorted Array**:
+   ```cpp
+       cout << "Before sorting the array is: \n";
+       for (int i = 0; i < size_nums; i++)
+           cout << nums[i] << " ";
+       cout << "\n\n";
+   ```
+   - Prints the elements of the array before sorting.
+
+5. **Sorting Function Call**:
+   ```cpp
+       sort(nums, size_nums);
+   ```
+   - Calls the `sort` function to sort the array.
+
+6. **Printing Sorted Array**:
+   ```cpp
+       cout << "After sorting the array is: \n";
+       for (int i = 0; i < size_nums; i++)
+           cout << nums[i] << " ";
+       cout << "\n";
+       return 0;
+   }
+   ```
+   - Prints the elements of the array after sorting.
+   - Returns 0 indicating successful execution.
+
+7. **Sort Function Implementation**:
+   ```cpp
+   void sort(int num[], int len)
+   {
+       bool isSwapped;
+       for (int i = 0; i < len; i++) 
+       {
+           isSwapped = false;
+           for (int j = 1; j < len - i; j++) 
+           {
+               if (num[j] < num[j - 1]) 
+               {
+                   swapNums(num, j, (j - 1));
+                   isSwapped = true;
+               }
+           }
+           if (!isSwapped) 
+           {
+               break;
+           }
+       }
+   }
+   ```
+   - Implements the bubble sort algorithm.
+   - Uses a nested loop where the outer loop runs `len` times.
+   - The inner loop compares adjacent elements and swaps them if they are in the wrong order.
+   - If no swaps are made in an iteration, the array is already sorted, and the loop breaks early.
+
+8. **Swap Function Implementation**:
+   ```cpp
+   void swapNums(int nums[], int first, int second)
+   {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - Swaps the elements at indices `first` and `second` in the array `nums`.
+
+### Equivalent SystemC Code Snippet
+
+Below is the equivalent SystemC code that performs the same bubble sort operation. This code can be used in a high-level synthesis flow.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSort) {
+    sc_in_clk clk;          // Clock signal
+    sc_in<bool> reset;      // Reset signal
+    sc_vector<sc_in<int>> in; // Input vector
+    sc_vector<sc_out<int>> out; // Output vector
+
+    SC_CTOR(BubbleSort) : in("in", 5), out("out", 5) {
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+        SC_METHOD(reset_process);
+        sensitive << reset.pos();
+    }
+
+    void sort_process() {
+        static int nums[5];
+        static bool isSwapped;
+        static int i = 0, j = 1;
+        static bool initialized = false;
+
+        if (!initialized) {
+            for (int k = 0; k < 5; k++) {
+                nums[k] = in[k].read();
+            }
+            initialized = true;
+        }
+
+        if (reset.read()) {
+            i = 0;
+            j = 1;
+            initialized = false;
+            for (int k = 0; k < 5; k++) {
+                out[k].write(in[k].read());
+            }
+        } else {
+            isSwapped = false;
+            while (i < 5) {
+                while (j < 5 - i) {
+                    if (nums[j] < nums[j - 1]) {
+                        int temp = nums[j];
+                        nums[j] = nums[j - 1];
+                        nums[j - 1] = temp;
+                        isSwapped = true;
+                    }
+                    j++;
+                }
+                if (!isSwapped) break;
+                i++;
+                j = 1;
+            }
+            for (int k = 0; k < 5; k++) {
+                out[k].write(nums[k]);
+            }
+        }
+    }
+
+    void reset_process() {
+        if (reset.read()) {
+            i = 0;
+            j = 1;
+            initialized = false;
+            for (int k = 0; k < 5; k++) {
+                out[k].write(in[k].read());
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clock("clock", 10, SC_NS); // Create a clock
+    sc_signal<bool> reset;              // Create a reset signal
+    sc_vector<sc_signal<int>> in("in", 5); // Create input signals
+    sc_vector<sc_signal<int>> out("out", 5); // Create output signals
+
+    // Initialize input values
+    in[0].write(1);
+    in[1].write(12);
+    in[2].write(6);
+    in[3].write(8);
+    in[4].write(10);
+
+    // Instantiate the BubbleSort module
+    BubbleSort sorter("sorter");
+    sorter.clk(clock);
+    sorter.reset(reset);
+    for (int i = 0; i < 5; i++) {
+        sorter.in[i](in[i]);
+        sorter.out[i](out[i]);
+    }
+
+    // Apply reset
+    reset.write(true);
+    sc_start(10, SC_NS);
+    reset.write(false);
+
+    // Run simulation
+    sc_start(100, SC_NS);
+
+    // Print sorted array
+    cout << "After sorting the array is: \n";
+    for (int i = 0; i < 5; i++) {
+        cout << out[i].read() << " ";
+    }
+    cout << "\n";
+
+    return 0;
+}
+```
+
+This SystemC code defines a module `BubbleSort` that sorts an array of integers using the bubble sort algorithm. It includes a clock and reset signal, and it processes the sorting logic on each positive edge of the clock. The `sc_main` function initializes the inputs, instantiates the module, applies a reset, and runs the simulation to print the sorted array.

@@ -1,0 +1,153 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Input**: A string representing a hexadecimal number (`hexNum`).
+- **Output**: An integer representing the decimal equivalent of the hexadecimal number.
+
+#### Line-by-Line/Block-by-Block Explanation
+
+1. **Include Directives and Namespace Declaration**
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std;
+   ```
+   - `#include <bits/stdc++.h>`: Includes all standard C++ libraries.
+   - `using namespace std;`: Allows the use of standard library components without prefixing them with `std::`.
+
+2. **Function Definition**
+   ```cpp
+   int hexadecimalToDecimal(string hexVal)
+   ```
+   - Defines a function named `hexadecimalToDecimal` that takes a string `hexVal` as input and returns an integer.
+
+3. **Variable Initialization**
+   ```cpp
+   int len = hexVal.size();
+   int base = 1;
+   int dec_val = 0;
+   ```
+   - `len`: Stores the length of the hexadecimal string.
+   - `base`: Represents the power of 16, initialized to \(16^0\).
+   - `dec_val`: Accumulates the decimal value of the hexadecimal number.
+
+4. **Loop Through Hexadecimal String**
+   ```cpp
+   for (int i = len - 1; i >= 0; i--) {
+   ```
+   - Iterates over the hexadecimal string from the last character to the first.
+
+5. **Character Processing**
+   ```cpp
+   if (hexVal[i] >= '0' && hexVal[i] <= '9') {
+       dec_val += (int(hexVal[i]) - 48) * base;
+       base = base * 16;
+   }
+   ```
+   - Checks if the current character is between '0' and '9'.
+   - Converts the character to its integer equivalent by subtracting 48 (ASCII value of '0').
+   - Multiplies this integer by the current base and adds it to `dec_val`.
+   - Increments the base by multiplying it by 16.
+
+6. **Character Processing for Letters**
+   ```cpp
+   else if (hexVal[i] >= 'A' && hexVal[i] <= 'F') {
+       dec_val += (int(hexVal[i]) - 55) * base;
+       base = base * 16;
+   }
+   ```
+   - Checks if the current character is between 'A' and 'F'.
+   - Converts the character to its integer equivalent by subtracting 55 (ASCII value of 'A' minus 10).
+   - Multiplies this integer by the current base and adds it to `dec_val`.
+   - Increments the base by multiplying it by 16.
+
+7. **Return Statement**
+   ```cpp
+   return dec_val;
+   ```
+   - Returns the computed decimal value.
+
+8. **Driver Code**
+   ```cpp
+   int main() {
+       string hexNum = "1A";
+       cout << (hexadecimalToDecimal(hexNum));
+       return 0;
+   }
+   ```
+   - Initializes a hexadecimal string `hexNum` with the value "1A".
+   - Calls the `hexadecimalToDecimal` function with `hexNum` and prints the result.
+   - Exits the program.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code snippet that performs the same hexadecimal to decimal conversion:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(HexToDecConverter) {
+    sc_in<sc_bv<8>> hex_in;  // Input port for hexadecimal value (up to 2 characters)
+    sc_out<int> dec_out;     // Output port for decimal value
+
+    void convert() {
+        std::string hexStr = hex_in.read().to_string();
+        int len = hexStr.size();
+        int base = 1;
+        int dec_val = 0;
+
+        // Process each character from the end to the start
+        for (int i = len - 1; i >= 0; i--) {
+            if (hexStr[i] >= '0' && hexStr[i] <= '9') {
+                dec_val += (int(hexStr[i]) - 48) * base;
+                base *= 16;
+            } else if (hexStr[i] >= 'A' && hexStr[i] <= 'F') {
+                dec_val += (int(hexStr[i]) - 55) * base;
+                base *= 16;
+            }
+        }
+
+        dec_out.write(dec_val);
+    }
+
+    SC_CTOR(HexToDecConverter) {
+        SC_METHOD(convert);
+        sensitive << hex_in;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    HexToDecConverter converter("converter");
+
+    sc_signal<sc_bv<8>> hex_input;
+    sc_signal<int> dec_output;
+
+    converter.hex_in(hex_input);
+    converter.dec_out(dec_output);
+
+    // Example input
+    hex_input.write(sc_bv<8>("001A"));  // Binary representation of "1A"
+
+    sc_start();
+
+    std::cout << "Hexadecimal 1A is decimal " << dec_output.read() << std::endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+- **Module Definition**: `HexToDecConverter` is a SystemC module that converts a hexadecimal input to a decimal output.
+- **Ports**: 
+  - `hex_in`: An 8-bit binary vector input port representing the hexadecimal number.
+  - `dec_out`: An integer output port representing the decimal equivalent.
+- **Conversion Logic**: The `convert` method processes the hexadecimal string similarly to the C++ function, iterating from the last character to the first and updating the decimal value accordingly.
+- **Sensitivity**: The `convert` method is sensitive to changes on the `hex_in` port, ensuring it runs whenever the input changes.
+- **Main Function**: 
+  - Instantiates the `HexToDecConverter` module.
+  - Connects input and output signals.
+  - Sets an example input (`"1A"` represented in binary).
+  - Starts the simulation and prints the result.
+
+This SystemC code can be synthesized and used in high-level synthesis flows while preserving the logic of the original C++ code.

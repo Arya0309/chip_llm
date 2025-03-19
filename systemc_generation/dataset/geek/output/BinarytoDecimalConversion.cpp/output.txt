@@ -1,0 +1,133 @@
+
+### Analysis of the Provided C++ Code
+
+#### Inputs and Outputs
+- **Input**: An integer `num` representing a binary number (e.g., `10101001`).
+- **Output**: The decimal equivalent of the binary number (e.g., `177`).
+
+#### Line-by-Line Explanation
+```cpp
+// C++ program to convert binary to decimal 
+#include <iostream> 
+using namespace std; 
+```
+- The program includes the `<iostream>` library for input/output operations and uses the standard namespace.
+
+```cpp
+// Function to convert binary 
+// to decimal 
+int binaryToDecimal(int n) 
+{ 
+```
+- A function named `binaryToDecimal` is defined to take an integer `n` as input and return an integer representing the decimal equivalent.
+
+```cpp
+	int num = n; 
+	int dec_value = 0; 
+```
+- The input `n` is copied to `num`.
+- `dec_value` is initialized to 0. This variable will store the final decimal value.
+
+```cpp
+	// Initializing base value to 
+	// 1, i.e 2^0 
+	int base = 1; 
+```
+- `base` is initialized to 1. It represents the current power of 2 being considered (starting from \(2^0\)).
+
+```cpp
+	int temp = num; 
+	while (temp) { 
+```
+- `temp` is set to the value of `num`.
+- A while loop runs as long as `temp` is not zero.
+
+```cpp
+		int last_digit = temp % 10; 
+		temp = temp / 10; 
+```
+- The last digit of `temp` (which is the least significant bit of the binary number) is extracted using modulo operation (`temp % 10`).
+- `temp` is then divided by 10 to remove the last digit.
+
+```cpp
+		dec_value += last_digit * base; 
+		base = base * 2; 
+	} 
+```
+- The decimal value is updated by adding the product of `last_digit` and `base`.
+- `base` is doubled for the next iteration to represent the next higher power of 2.
+
+```cpp
+	return dec_value; 
+} 
+```
+- The function returns the computed decimal value.
+
+```cpp
+// Driver code 
+int main() 
+{ 
+	int num = 10101001; 
+	cout << binaryToDecimal(num) << endl; 
+}
+```
+- In the `main` function, `num` is initialized to `10101001`.
+- The `binaryToDecimal` function is called with `num` as the argument, and the result is printed.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same binary-to-decimal conversion:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinaryToDecimalConverter) {
+    sc_in<sc_uint<8>> binary_in;  // Input: Binary number (up to 8 bits)
+    sc_out<int> decimal_out;      // Output: Decimal number
+
+    void convert() {
+        int num = binary_in.read();
+        int dec_value = 0;
+        int base = 1;
+        int temp = num;
+
+        while (temp) {
+            int last_digit = temp % 10;
+            temp = temp / 10;
+            dec_value += last_digit * base;
+            base = base * 2;
+        }
+
+        decimal_out.write(dec_value);
+    }
+
+    SC_CTOR(BinaryToDecimalConverter) {
+        SC_METHOD(convert);
+        sensitive << binary_in;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    BinaryToDecimalConverter converter("converter");
+    sc_signal<sc_uint<8>> binary_input;
+    sc_signal<int> decimal_output;
+
+    converter.binary_in(binary_input);
+    converter.decimal_out(decimal_output);
+
+    binary_input.write(10101001);  // Example input
+
+    sc_start();  // Start the simulation
+
+    cout << "Binary: 10101001 -> Decimal: " << decimal_output.read() << endl;
+
+    return 0;
+}
+```
+
+#### Explanation of the SystemC Code
+- **Module Definition**: `BinaryToDecimalConverter` is a SystemC module that takes an 8-bit binary input and produces a decimal output.
+- **Ports**: `binary_in` is an input port for the binary number, and `decimal_out` is an output port for the decimal result.
+- **Conversion Logic**: The `convert` method contains the logic to convert the binary number to a decimal number, similar to the C++ function.
+- **Sensitivity**: The `convert` method is triggered whenever `binary_in` changes.
+- **Simulation Setup**: In `sc_main`, the module is instantiated, signals are connected, and the simulation is started. The input is set to `10101001`, and the output is printed after the simulation starts.

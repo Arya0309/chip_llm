@@ -1,0 +1,144 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: A 4x4 integer matrix `m` with predefined values.
+- **Outputs**: The modified matrix after swapping the elements of the first and last columns is printed to the console.
+
+#### Detailed Explanation:
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include <iostream> 
+   using namespace std;
+   ```
+   - These lines include the input-output stream library and bring the standard namespace into scope, allowing the use of `cout`.
+
+2. **Macro Definition**:
+   ```cpp
+   #define n 4
+   ```
+   - This defines a macro `n` with the value `4`, which represents the size of the matrix.
+
+3. **Function Definition**:
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   - This function takes a 2D array `m` of size `n x n` and swaps the elements in the first and last columns.
+   
+4. **Swapping Logic**:
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[i][0]; 
+       m[i][0] = m[i][n - 1]; 
+       m[i][n - 1] = t; 
+   }
+   ```
+   - This loop iterates over each row of the matrix.
+   - For each row, it swaps the element at the first column (`m[i][0]`) with the element at the last column (`m[i][n-1]`).
+
+5. **Main Function**:
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                      {4, 7, 6, 5}, 
+                      {3, 2, 1, 8}, 
+                      {9, 9, 7, 7}};
+   ```
+   - Initializes a 4x4 matrix `m` with specific values.
+   
+6. **Function Call**:
+   ```cpp
+   interchangeFirstLast(m);
+   ```
+   - Calls the `interchangeFirstLast` function to swap the first and last columns of the matrix `m`.
+   
+7. **Printing the Matrix**:
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       for (int j = 0; j < n; j++) 
+           cout << m[i][j] << " "; 
+       cout << endl; 
+   }
+   ```
+   - Nested loops iterate over the rows and columns of the matrix `m`.
+   - Prints each element of the matrix followed by a space.
+   - After each row, a newline character is printed to format the output as a matrix.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code snippet that replicates the behavior of the provided C++/C code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixManipulator) {
+    sc_in<bool> clk; // Clock signal
+    sc_in<bool> reset; // Reset signal
+
+    SC_CTOR(MatrixManipulator) {
+        SC_METHOD(interchangeFirstLast);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        SC_METHOD(printMatrix);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void interchangeFirstLast() {
+        if (!reset.read()) {
+            for (int i = 0; i < 4; i++) {
+                int temp = matrix[i][0];
+                matrix[i][0] = matrix[i][3];
+                matrix[i][3] = temp;
+            }
+        }
+    }
+
+    void printMatrix() {
+        if (!reset.read()) {
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    sc_report_handler::report(sc_core::SC_INFO, "PRINT", sc_string_concat("Element[", i, "][", j, "] = ", matrix[i][j]));
+                }
+                sc_report_handler::report(sc_core::SC_INFO, "PRINT", "");
+            }
+        }
+    }
+
+private:
+    int matrix[4][4] = {{8, 9, 7, 6},
+                        {4, 7, 6, 5},
+                        {3, 2, 1, 8},
+                        {9, 9, 7, 7}};
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS, 0.5, 0, SC_NS, true);
+    sc_signal<bool> reset;
+
+    MatrixManipulator manipulator("manipulator");
+    manipulator.clk(clk);
+    manipulator.reset(reset);
+
+    reset.write(true);
+    sc_start(10, SC_NS); // Apply reset for 10 ns
+    reset.write(false);
+    sc_start(20, SC_NS); // Run for another 20 ns
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Declaration**: `MatrixManipulator` is a SystemC module that performs the matrix manipulation tasks.
+- **Signals**: It uses `sc_in<bool>` for clock (`clk`) and reset (`reset`) signals.
+- **Constructor**: Registers methods `interchangeFirstLast` and `printMatrix` to be triggered on the positive edge of the clock, but not during initialization.
+- **Methods**:
+  - `interchangeFirstLast`: Swaps the first and last columns of the matrix, similar to the C++ function.
+  - `printMatrix`: Uses `sc_report_handler::report` to print matrix elements, mimicking the `cout` statements in C++.
+- **Matrix Initialization**: The matrix is initialized within the private section of the module.
+- **Simulation Setup**: In `sc_main`, a clock is created, and the reset signal is applied for 10 ns before the actual simulation starts for another 20 ns. This ensures the reset state is respected before the operations begin.

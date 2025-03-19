@@ -1,0 +1,130 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Input**: An integer `n` which represents the number of terms in the Fibonacci sequence up to which the even-indexed Fibonacci numbers' sum is calculated.
+- **Output**: The sum of the even-indexed Fibonacci numbers up to the `2*n`th term.
+
+#### Line-by-Line/Block-by-Block Explanation
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - These lines include all standard libraries and bring the standard namespace into scope.
+
+2. **Function Definition**:
+   ```cpp
+   int calculateEvenSum(int n)
+   ```
+   - This function takes an integer `n` as input and returns the sum of even-indexed Fibonacci numbers up to the `2*n`th term.
+
+3. **Base Case Check**:
+   ```cpp
+   if (n <= 0)
+       return 0;
+   ```
+   - If `n` is less than or equal to zero, the function immediately returns 0, as there are no terms to consider.
+
+4. **Fibonacci Array Initialization**:
+   ```cpp
+   int fibo[2 * n + 1];
+   fibo[0] = 0, fibo[1] = 1;
+   ```
+   - An array `fibo` is declared to store Fibonacci numbers up to the `2*n`th term. The first two Fibonacci numbers are initialized: `fibo[0] = 0` and `fibo[1] = 1`.
+
+5. **Result Initialization**:
+   ```cpp
+   int sum = 0;
+   ```
+   - A variable `sum` is initialized to 0 to accumulate the sum of even-indexed Fibonacci numbers.
+
+6. **Loop to Compute Fibonacci Numbers**:
+   ```cpp
+   for (int i = 2; i <= 2 * n; i++) 
+   {
+       fibo[i] = fibo[i - 1] + fibo[i - 2];
+       if (i % 2 == 0)
+           sum += fibo[i];
+   }
+   ```
+   - A loop runs from 2 to `2*n`. In each iteration, the current Fibonacci number is computed as the sum of the two preceding numbers (`fibo[i] = fibo[i - 1] + fibo[i - 2]`). If the index `i` is even, the corresponding Fibonacci number is added to `sum`.
+
+7. **Return Statement**:
+   ```cpp
+   return sum;
+   ```
+   - The function returns the accumulated sum of even-indexed Fibonacci numbers.
+
+8. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int n = 8;
+       cout << "Even indexed Fibonacci Sum upto " << n << " terms: " << calculateEvenSum(n) << endl;
+       return 0;
+   }
+   ```
+   - The main function initializes `n` to 8 and calls `calculateEvenSum(n)` to compute and print the sum of even-indexed Fibonacci numbers up to the `2*n`th term.
+
+### Equivalent SystemC Code Snippet
+
+Below is a SystemC code snippet that replicates the behavior of the provided C++ code. This code can be used in a high-level synthesis flow.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(FibonacciEvenSum) {
+    sc_in<int> n_in;
+    sc_out<int> sum_out;
+    
+    void calculate_even_sum() {
+        int n = n_in.read();
+        if (n <= 0) {
+            sum_out.write(0);
+            return;
+        }
+
+        int fibo[2 * n + 1];
+        fibo[0] = 0, fibo[1] = 1;
+
+        int sum = 0;
+
+        for (int i = 2; i <= 2 * n; i++) {
+            fibo[i] = fibo[i - 1] + fibo[i - 2];
+            if (i % 2 == 0)
+                sum += fibo[i];
+        }
+
+        sum_out.write(sum);
+    }
+
+    SC_CTOR(FibonacciEvenSum) {
+        SC_METHOD(calculate_even_sum);
+        sensitive << n_in;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_signal<int> n;
+    sc_signal<int> sum;
+
+    FibonacciEvenSum fib("fib");
+    fib.n_in(n);
+    fib.sum_out(sum);
+
+    n.write(8); // Set the input value for n
+    sc_start();
+
+    cout << "Even indexed Fibonacci Sum upto " << n.read() << " terms: " << sum.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+- **Module Definition**: `FibonacciEvenSum` is a SystemC module that performs the calculation of the sum of even-indexed Fibonacci numbers.
+- **Ports**: It has an input port `n_in` for the number of terms and an output port `sum_out` for the resulting sum.
+- **Method**: `calculate_even_sum` is a method that performs the computation. It is triggered whenever `n_in` changes.
+- **Constructor**: The constructor binds the method to the input signal and specifies that it should be sensitive to changes in `n_in`.
+- **Simulation**: In `sc_main`, the module is instantiated, connected to signals, and executed with an input value of 8. The result is printed to the console.

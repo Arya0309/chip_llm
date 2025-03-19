@@ -1,0 +1,221 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - An integer array `arr` containing elements that may have duplicates.
+  - The size of the array `n`.
+- **Outputs**:
+  - The function `removeDuplicates` modifies the input array `arr` to contain only unique elements in their original order and returns the new size of the array.
+  - The `main` function prints the modified array to the console.
+
+#### Detailed Explanation
+
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include <iostream> 
+   using namespace std;
+   ```
+   - Includes the input-output stream library which is necessary for printing to the console.
+   - Uses the standard namespace to avoid prefixing standard library functions with `std::`.
+
+2. **Function Definition**:
+   ```cpp
+   int removeDuplicates(int arr[], int n)
+   ```
+   - Defines a function named `removeDuplicates` that takes an integer array `arr` and its size `n` as parameters.
+   - Returns an integer representing the new size of the array after removing duplicates.
+
+3. **Edge Case Handling**:
+   ```cpp
+   if (n == 0 || n == 1) 
+       return n;
+   ```
+   - Checks if the array is empty (`n == 0`) or contains only one element (`n == 1`). In such cases, no duplicates can exist, so it returns the original size.
+
+4. **Temporary Array Declaration**:
+   ```cpp
+   int temp[n];
+   ```
+   - Declares a temporary array `temp` of the same size as the input array `arr`. This array will store the unique elements.
+
+5. **Variable Initialization**:
+   ```cpp
+   int j = 0;
+   ```
+   - Initializes an index variable `j` to zero. This variable will be used to keep track of the position in the `temp` array.
+
+6. **Loop to Remove Duplicates**:
+   ```cpp
+   for (int i = 0; i < n - 1; i++) 
+       if (arr[i] != arr[i + 1]) 
+           temp[j++] = arr[i];
+   ```
+   - Iterates through the array from the first element to the second-to-last element.
+   - Compares each element with the next one.
+   - If they are different, it means the current element is unique (so far), and it is copied to the `temp` array at position `j`, and `j` is incremented.
+
+7. **Storing the Last Element**:
+   ```cpp
+   temp[j++] = arr[n - 1];
+   ```
+   - After the loop, the last element of the array is always added to the `temp` array because it hasn't been compared yet.
+
+8. **Modifying Original Array**:
+   ```cpp
+   for (int i = 0; i < j; i++) 
+       arr[i] = temp[i];
+   ```
+   - Copies the unique elements from the `temp` array back to the original array `arr`.
+
+9. **Returning New Size**:
+   ```cpp
+   return j;
+   ```
+   - Returns the number of unique elements found, which is also the new size of the array.
+
+10. **Driver Code**:
+    ```cpp
+    int main() 
+    {
+        int arr[] = {1, 2, 2, 3, 4, 4, 4, 5, 5}; 
+        int n = sizeof(arr) / sizeof(arr[0]); 
+
+        n = removeDuplicates(arr, n); 
+
+        for (int i = 0; i < n; i++) 
+            cout << arr[i] << " "; 
+
+        return 0; 
+    }
+    ```
+    - Initializes an array `arr` with some duplicate elements.
+    - Calls `removeDuplicates` to remove duplicates and updates `n` with the new size.
+    - Prints the updated array to the console.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code snippet that mirrors the behavior of the provided C++/C code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(RemoveDuplicatesModule) {
+    sc_in<sc_uint<32>> clk;
+    sc_in<bool> reset;
+    sc_in<sc_uint<32>> arr_size;
+    sc_inout<sc_uint<32>>* arr;
+    sc_out<sc_uint<32>> new_size;
+
+    SC_CTOR(RemoveDuplicatesModule) : arr(new sc_inout<sc_uint<32>>[arr_size.read()]) {
+        SC_METHOD(remove_duplicates);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    ~RemoveDuplicatesModule() {
+        delete[] arr;
+    }
+
+    void remove_duplicates() {
+        if (reset.read()) {
+            new_size.write(0);
+        } else {
+            int n = arr_size.read();
+            if (n == 0 || n == 1) {
+                new_size.write(n);
+                return;
+            }
+
+            sc_uint<32> temp[n];
+            int j = 0;
+
+            for (int i = 0; i < n - 1; i++) {
+                if (arr[i].read() != arr[i + 1].read()) {
+                    temp[j++] = arr[i].read();
+                }
+            }
+
+            temp[j++] = arr[n - 1].read();
+
+            for (int i = 0; i < j; i++) {
+                arr[i].write(temp[i]);
+            }
+
+            new_size.write(j);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_signal<sc_uint<32>> clk;
+    sc_signal<bool> reset;
+    sc_signal<sc_uint<32>> arr_size;
+    sc_signal<sc_uint<32>> new_size;
+
+    const int array_size = 9;
+    sc_signal<sc_uint<32>> arr[array_size];
+
+    RemoveDuplicatesModule remove_duplicates_inst("remove_duplicates_inst");
+    remove_duplicates_inst.clk(clk);
+    remove_duplicates_inst.reset(reset);
+    remove_duplicates_inst.arr_size(arr_size);
+    remove_duplicates_inst.new_size(new_size);
+
+    for (int i = 0; i < array_size; i++) {
+        remove_duplicates_inst.arr[i](arr[i]);
+    }
+
+    // Initialize array values
+    arr[0].write(1);
+    arr[1].write(2);
+    arr[2].write(2);
+    arr[3].write(3);
+    arr[4].write(4);
+    arr[5].write(4);
+    arr[6].write(4);
+    arr[7].write(5);
+    arr[8].write(5);
+
+    arr_size.write(array_size);
+    reset.write(true);
+    clk.write(false);
+    sc_start(1, SC_NS);
+    reset.write(false);
+    clk.write(true);
+    sc_start(1, SC_NS);
+
+    cout << "Updated array: ";
+    for (int i = 0; i < new_size.read(); i++) {
+        cout << arr[i].read() << " ";
+    }
+    cout << endl;
+
+    sc_stop();
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **Module Definition**:
+  - `RemoveDuplicatesModule` is defined as a SystemC module with input/output ports for clock, reset, array size, array elements, and the new size of the array.
+  
+- **Constructor**:
+  - Dynamically allocates an array of `sc_inout<sc_uint<32>>` signals based on the input array size.
+  - Registers the `remove_duplicates` method to be triggered on the positive edge of the clock signal.
+
+- **Destructor**:
+  - Cleans up dynamically allocated memory.
+
+- **Method `remove_duplicates`**:
+  - Implements the logic to remove duplicates similar to the C++ function.
+  - Uses SystemC signals to read/write array elements and the new size.
+
+- **Main Function**:
+  - Instantiates the `RemoveDuplicatesModule` and connects its ports to appropriate signals.
+  - Initializes the array with values and sets the array size.
+  - Applies a reset pulse and then a clock pulse to trigger the removal of duplicates.
+  - Prints the updated array to the console after processing.
+
+This SystemC code is designed to work within a simulation environment, and it uses SystemC's event-driven nature to process the array elements and remove duplicates.

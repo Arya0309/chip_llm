@@ -1,0 +1,161 @@
+
+### Analysis of the Provided C++ Code
+
+#### Inputs and Outputs:
+- **Inputs**: The input to the program is an integer `n`, which represents the number of rows of Pascal's Triangle to be printed. In the provided code, `n` is hardcoded as 7.
+- **Outputs**: The output is the first `n` lines of Pascal's Triangle, printed to the console. Each row contains the binomial coefficients for that particular row.
+
+#### Line-by-Line/Block-by-Block Explanation:
+
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - These lines include the input-output stream library and bring all standard library elements into the global namespace.
+
+2. **Function Declaration**:
+   ```cpp
+   int binomialCoeff(int n, int k);
+   ```
+   - This line declares a function `binomialCoeff` that calculates the binomial coefficient "n choose k".
+
+3. **Function Definition: `printPascal`**:
+   ```cpp
+   void printPascal(int n)
+   ```
+   - This function prints the first `n` lines of Pascal's Triangle.
+
+4. **Loop Through Lines**:
+   ```cpp
+   for (int line = 0; line < n; line++)
+   ```
+   - This loop iterates over each line from 0 to `n-1`.
+
+5. **Inner Loop for Printing Coefficients**:
+   ```cpp
+   for (int i = 0; i <= line; i++)
+       cout <<" "<< binomialCoeff(line, i);
+   ```
+   - For each line, this inner loop calculates and prints the binomial coefficients from 0 to the current line number.
+
+6. **Newline After Each Row**:
+   ```cpp
+   cout <<"\n";
+   ```
+   - This line moves the cursor to the next line after printing all coefficients of the current row.
+
+7. **Function Definition: `binomialCoeff`**:
+   ```cpp
+   int binomialCoeff(int n, int k)
+   ```
+   - This function computes the binomial coefficient "n choose k" using an efficient method to avoid overflow.
+
+8. **Initialize Result**:
+   ```cpp
+   int res = 1;
+   ```
+   - Initializes the result variable to 1.
+
+9. **Optimize Calculation**:
+   ```cpp
+   if (k > n - k)
+       k = n - k;
+   ```
+   - To reduce the number of multiplications and divisions, the function uses the symmetry property of binomial coefficients: C(n, k) == C(n, n-k).
+
+10. **Calculate Binomial Coefficient**:
+    ```cpp
+    for (int i = 0; i < k; ++i)
+    {
+        res *= (n - i);
+        res /= (i + 1);
+    }
+    ```
+    - This loop calculates the binomial coefficient by multiplying and dividing iteratively to prevent overflow.
+
+11. **Return Result**:
+    ```cpp
+    return res;
+    ```
+    - Returns the computed binomial coefficient.
+
+12. **Main Function**:
+    ```cpp
+    int main()
+    {
+        int n = 7;
+        printPascal(n);
+        return 0;
+    }
+    ```
+    - The main function initializes `n` to 7 and calls `printPascal` to print the first 7 rows of Pascal's Triangle.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same task:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(PascalsTriangle) {
+    sc_in<int> n; // Input: Number of rows to print
+    sc_out<sc_bv<64>> out; // Output: One row of Pascal's Triangle at a time
+
+    SC_CTOR(PascalsTriangle) {
+        SC_THREAD(printPascal);
+        sensitive << n;
+    }
+
+    int binomialCoeff(int n, int k) {
+        int res = 1;
+        if (k > n - k)
+            k = n - k;
+        for (int i = 0; i < k; ++i) {
+            res *= (n - i);
+            res /= (i + 1);
+        }
+        return res;
+    }
+
+    void printPascal() {
+        wait(); // Wait for n to be set
+        int numRows = n.read();
+        for (int line = 0; line < numRows; line++) {
+            sc_bv<64> rowOutput = 0; // Assuming each row fits within 64 bits for simplicity
+            int bitPos = 0;
+            for (int i = 0; i <= line; i++) {
+                int coeff = binomialCoeff(line, i);
+                rowOutput.range(bitPos + 31, bitPos) = coeff; // Assuming each coefficient fits in 32 bits
+                bitPos += 32;
+            }
+            out.write(rowOutput);
+            wait(); // Simulate one cycle per row
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    PascalsTriangle pt("pt");
+    sc_signal<int> num_rows;
+    sc_signal<sc_bv<64>> triangle_row;
+
+    pt.n(num_rows);
+    pt.out(triangle_row);
+
+    num_rows = 7; // Set the number of rows to print
+
+    sc_start(10, SC_NS); // Start simulation for 10 nanoseconds
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Definition**: `PascalsTriangle` is a SystemC module with an input port `n` for the number of rows and an output port `out` for each row of Pascal's Triangle.
+- **Constructor**: The constructor sets up a thread that runs the `printPascal` method and makes it sensitive to changes in the input `n`.
+- **Binomial Coefficient Calculation**: The `binomialCoeff` function is identical to the C++ version.
+- **Print Pascal's Triangle**: The `printPascal` method reads the number of rows, calculates each row's coefficients, and writes them to the output port `out`. It waits for a clock cycle between rows.
+- **Main Function**: Sets up the module, connects signals, and starts the simulation.
+
+This SystemC code is designed to work within a high-level synthesis flow, capturing the logic of the original C++ code while adhering to SystemC's modular and event-driven nature.

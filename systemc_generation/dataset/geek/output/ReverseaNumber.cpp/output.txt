@@ -1,0 +1,176 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: The integer `num` which is set to `4562` in the `main` function.
+- **Outputs**: The reversed integer value of `num`, which is printed to the console.
+
+#### Line-by-Line/Block-by-Block Explanation:
+
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std;
+   ```
+   - This includes all standard C++ libraries and sets the default namespace to `std`.
+
+2. **Function Declaration**:
+   ```cpp
+   int reverseDigits(int num)
+   ```
+   - Declares a function named `reverseDigits` that takes an integer `num` as input and returns an integer.
+
+3. **Variable Initialization**:
+   ```cpp
+   int rev_num = 0;
+   ```
+   - Initializes `rev_num` to `0`. This variable will store the reversed number.
+
+4. **While Loop to Reverse Digits**:
+   ```cpp
+   while (num > 0) {
+       rev_num = rev_num * 10 + num % 10;
+       num = num / 10;
+   }
+   ```
+   - This loop continues until `num` becomes `0`.
+     - `num % 10` extracts the last digit of `num`.
+     - `rev_num = rev_num * 10 + num % 10` shifts the current digits in `rev_num` one place to the left and adds the extracted digit.
+     - `num = num / 10` removes the last digit from `num`.
+
+5. **Return Statement**:
+   ```cpp
+   return rev_num;
+   ```
+   - Returns the reversed number stored in `rev_num`.
+
+6. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int num = 4562;
+       cout << "Reverse of num is " << reverseDigits(num);
+       getchar();
+       return 0;
+   }
+   ```
+   - Initializes `num` to `4562`.
+   - Calls `reverseDigits(num)` and prints the result.
+   - Waits for user input with `getchar()` before exiting.
+
+### Equivalent SystemC Code
+
+Below is the SystemC equivalent of the provided C++/C code. This SystemC module implements the same logic and can be used in a high-level synthesis flow.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Reverser) {
+    sc_in<int> num_in;  // Input port for the number to be reversed
+    sc_out<int> num_out; // Output port for the reversed number
+
+    void reverse_process() {
+        int num = num_in.read();
+        int rev_num = 0;
+
+        while (num > 0) {
+            rev_num = rev_num * 10 + num % 10;
+            num = num / 10;
+        }
+
+        num_out.write(rev_num);
+    }
+
+    SC_CTOR(Reverser) {
+        SC_METHOD(reverse_process);
+        sensitive << num_in;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Reverser reverser("reverser");
+    sc_signal<int> num_sig;
+    sc_signal<int> result_sig;
+
+    reverser.num_in(num_sig);
+    reverser.num_out(result_sig);
+
+    num_sig.write(4562);
+
+    sc_start();
+
+    std::cout << "Reverse of num is " << result_sig.read() << std::endl;
+
+    return 0;
+}
+```
+
+#### Explanation of SystemC Code:
+
+- **Module Declaration**:
+  ```cpp
+  SC_MODULE(Reverser)
+  ```
+  - Declares a SystemC module named `Reverser`.
+
+- **Ports**:
+  ```cpp
+  sc_in<int> num_in;
+  sc_out<int> num_out;
+  ```
+  - `num_in`: Input port to receive the number to be reversed.
+  - `num_out`: Output port to send the reversed number.
+
+- **Process Method**:
+  ```cpp
+  void reverse_process() {
+      int num = num_in.read();
+      int rev_num = 0;
+
+      while (num > 0) {
+          rev_num = rev_num * 10 + num % 10;
+          num = num / 10;
+      }
+
+      num_out.write(rev_num);
+  }
+  ```
+  - Reads the input number from `num_in`.
+  - Reverses the digits using the same logic as the C++ function.
+  - Writes the reversed number to `num_out`.
+
+- **Constructor**:
+  ```cpp
+  SC_CTOR(Reverser) {
+      SC_METHOD(reverse_process);
+      sensitive << num_in;
+  }
+  ```
+  - Registers `reverse_process` as a method that triggers on changes to `num_in`.
+
+- **Main Function**:
+  ```cpp
+  int sc_main(int argc, char* argv[]) {
+      Reverser reverser("reverser");
+      sc_signal<int> num_sig;
+      sc_signal<int> result_sig;
+
+      reverser.num_in(num_sig);
+      reverser.num_out(result_sig);
+
+      num_sig.write(4562);
+
+      sc_start();
+
+      std::cout << "Reverse of num is " << result_sig.read() << std::endl;
+
+      return 0;
+  }
+  ```
+  - Instantiates the `Reverser` module.
+  - Connects the input and output signals.
+  - Writes the test value `4562` to `num_sig`.
+  - Starts the simulation.
+  - Prints the reversed number from `result_sig`.
+
+This SystemC code encapsulates the logic of reversing digits in a modular fashion suitable for hardware synthesis.

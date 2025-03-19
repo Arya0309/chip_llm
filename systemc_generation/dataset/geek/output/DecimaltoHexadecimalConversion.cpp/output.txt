@@ -1,0 +1,146 @@
+
+### Analysis of the Provided C++ Code
+
+#### Inputs and Outputs
+- **Input**: An integer `n` which is the decimal number to be converted to hexadecimal.
+- **Output**: The hexadecimal representation of the input decimal number printed to the console.
+
+#### Detailed Line-by-Line Explanation
+
+1. **Header Inclusion and Namespace Declaration**
+   ```cpp
+   #include <iostream> 
+   using namespace std;
+   ```
+   - This includes the input-output stream library which is necessary for printing the hexadecimal result.
+   - The `std` namespace is used to avoid prefixing standard library functions with `std::`.
+
+2. **Function Definition**
+   ```cpp
+   void decToHexa(int n)
+   ```
+   - This function takes an integer `n` as input and converts it to a hexadecimal number.
+
+3. **Character Array Declaration**
+   ```cpp
+   char hexaDeciNum[100];
+   ```
+   - A character array `hexaDeciNum` is declared to store the hexadecimal digits. It is sized at 100, which should be sufficient for typical use cases.
+
+4. **Counter Initialization**
+   ```cpp
+   int i = 0;
+   ```
+   - An integer `i` is initialized to zero. This counter is used to index into the `hexaDeciNum` array.
+
+5. **Conversion Loop**
+   ```cpp
+   while (n != 0) {
+       int temp = 0;
+       temp = n % 16;
+       if (temp < 10) {
+           hexaDeciNum[i] = temp + 48;
+           i++;
+       } else {
+           hexaDeciNum[i] = temp + 55;
+           i++;
+       }
+       n = n / 16;
+   }
+   ```
+   - The loop continues until `n` becomes zero.
+   - Inside the loop, the remainder of `n` divided by 16 is stored in `temp`.
+   - If `temp` is less than 10, it corresponds to the hexadecimal digits '0' to '9'. We add 48 to `temp` to get the ASCII value of the corresponding character ('0' is ASCII 48).
+   - If `temp` is 10 or more, it corresponds to the hexadecimal digits 'A' to 'F'. We add 55 to `temp` to get the ASCII value of the corresponding character ('A' is ASCII 65).
+   - The index `i` is incremented after storing each digit.
+   - `n` is then divided by 16 to process the next digit.
+
+6. **Printing the Hexadecimal Number**
+   ```cpp
+   for (int j = i - 1; j >= 0; j--)
+       cout << hexaDeciNum[j];
+   ```
+   - The hexadecimal digits are stored in reverse order in `hexaDeciNum`. To print them correctly, we iterate from `i-1` down to `0`.
+
+7. **Main Function**
+   ```cpp
+   int main()
+   {
+       int n = 2545;
+       decToHexa(n);
+       return 0;
+   }
+   ```
+   - The `main` function initializes `n` to 2545 and calls `decToHexa` to convert it to hexadecimal and print it.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same conversion from decimal to hexadecimal. Note that SystemC is typically used for modeling hardware designs, so the code structure is adjusted to fit within a SystemC module.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(DecimalToHex) {
+    sc_in<int> decimal_in;  // Input port for decimal number
+    sc_out<sc_bv<32>> hex_out;  // Output port for hexadecimal string (as binary vector)
+
+    SC_CTOR(DecimalToHex) {
+        SC_METHOD(convert);
+        sensitive << decimal_in;
+    }
+
+    void convert() {
+        int n = decimal_in.read();
+        char hexaDeciNum[100];
+        int i = 0;
+
+        while (n != 0) {
+            int temp = n % 16;
+            if (temp < 10) {
+                hexaDeciNum[i] = temp + 48;
+            } else {
+                hexaDeciNum[i] = temp + 55;
+            }
+            i++;
+            n = n / 16;
+        }
+
+        // Constructing the hexadecimal string
+        std::string hexString = "";
+        for (int j = i - 1; j >= 0; j--) {
+            hexString += hexaDeciNum[j];
+        }
+
+        // Converting the hexadecimal string to a binary vector for SystemC output
+        sc_bv<32> hexOutBv(hexString.c_str());
+        hex_out.write(hexOutBv);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    DecimalToHex dec_to_hex("DecimalToHex");
+    sc_signal<int> decimal_in;
+    sc_signal<sc_bv<32>> hex_out;
+
+    dec_to_hex.decimal_in(decimal_in);
+    dec_to_hex.hex_out(hex_out);
+
+    // Test the module with a sample input
+    decimal_in.write(2545);
+    sc_start();
+
+    // Print the result
+    std::cout << "Decimal: 2545 -> Hexadecimal: " << hex_out.read().to_string() << std::endl;
+
+    return 0;
+}
+```
+
+#### Explanation of the SystemC Code
+- **Module Definition**: `DecimalToHex` is a SystemC module with an input port `decimal_in` for the decimal number and an output port `hex_out` for the hexadecimal representation.
+- **Constructor**: The constructor sets up a method `convert` that is sensitive to changes in `decimal_in`.
+- **Convert Method**: This method performs the conversion from decimal to hexadecimal using the same logic as the C++ code.
+- **Hexadecimal String Construction**: After converting the decimal number to a hexadecimal string, it is converted to a `sc_bv<32>` type suitable for SystemC output.
+- **Main Function**: Sets up the module, connects signals, and tests the module with a sample input of 2545, printing the result.
+
+This SystemC code can be compiled and simulated using a SystemC simulator to verify its correctness.

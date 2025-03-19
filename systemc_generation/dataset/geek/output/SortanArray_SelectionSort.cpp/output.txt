@@ -1,0 +1,191 @@
+
+### Analysis of the Provided C++ Code
+
+#### Inputs and Outputs
+- **Inputs**: An integer array `arr` containing elements to be sorted. In this case, the array is `{64, 25, 12, 22, 11}`.
+- **Outputs**: The sorted integer array, which is printed to the console.
+
+#### Detailed Explanation
+1. **Include Directive and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std;
+   ```
+   - This includes all standard C++ libraries and sets the `std` namespace, making it easier to use standard library functions without prefixing them with `std::`.
+
+2. **Swap Function**:
+   ```cpp
+   void swap(int *xp, int *yp)
+   {
+       int temp = *xp;
+       *xp = *yp;
+       *yp = temp;
+   }
+   ```
+   - This function swaps the values pointed to by `xp` and `yp`. It uses a temporary variable `temp` to hold one of the values during the swap.
+
+3. **Selection Sort Function**:
+   ```cpp
+   void selectionSort(int arr[], int n)
+   {
+       int i, j, min_idx;
+
+       // One by one move boundary of unsorted subarray
+       for (i = 0; i < n-1; i++)
+       {
+           // Find the minimum element in unsorted array
+           min_idx = i;
+           for (j = i+1; j < n; j++)
+               if (arr[j] < arr[min_idx])
+                   min_idx = j;
+
+           // Swap the found minimum element with the first element
+           swap(&arr[min_idx], &arr[i]);
+       }
+   }
+   ```
+   - The `selectionSort` function sorts the array `arr` of size `n` using the selection sort algorithm.
+   - It iterates over each element, assuming the current position holds the minimum value (`min_idx = i`).
+   - It then checks subsequent elements to find the actual minimum value in the unsorted portion of the array.
+   - Once the minimum is found, it swaps it with the current position (`i`).
+
+4. **Print Array Function**:
+   ```cpp
+   void printArray(int arr[], int size)
+   {
+       int i;
+       for (i=0; i < size; i++)
+           cout << arr[i] << " ";
+       cout << endl;
+   }
+   ```
+   - This function prints the elements of the array `arr` of size `size`, separated by spaces.
+
+5. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int arr[] = {64, 25, 12, 22, 11};
+       int n = sizeof(arr)/sizeof(arr[0]);
+       selectionSort(arr, n);
+       cout << "Sorted array: ";
+       printArray(arr, n);
+       return 0;
+   }
+   ```
+   - The `main` function initializes an array `arr` with some unsorted integers.
+   - It calculates the number of elements in the array using `sizeof`.
+   - It calls `selectionSort` to sort the array.
+   - It prints the sorted array using `printArray`.
+
+### Equivalent SystemC Code Snippet
+
+Below is the equivalent SystemC code that performs the same logic as the provided C++ code. Note that SystemC is typically used for hardware modeling, so the code structure is adapted accordingly.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SelectionSorter) {
+    sc_vector<sc_signal<int>> input_arr;
+    sc_signal<int> sorted_arr[5];
+    sc_in<bool> clk;
+    sc_out<bool> done;
+
+    SC_CTOR(SelectionSorter) : input_arr("input_arr", 5) {
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+    }
+
+    void sort_process() {
+        static bool initialized = false;
+        static int arr[5];
+        static int i = 0, j = 0, min_idx = 0;
+        static bool sorting = false;
+
+        if (!initialized) {
+            // Initialize array from input signals
+            for (int k = 0; k < 5; ++k) {
+                arr[k] = input_arr[k].read();
+            }
+            initialized = true;
+            sorting = true;
+        }
+
+        if (sorting) {
+            if (i < 4) {
+                if (j < 5) {
+                    if (arr[j] < arr[min_idx]) {
+                        min_idx = j;
+                    }
+                    j++;
+                } else {
+                    // Swap the found minimum element with the first element
+                    int temp = arr[min_idx];
+                    arr[min_idx] = arr[i];
+                    arr[i] = temp;
+
+                    // Move to the next element
+                    i++;
+                    j = i + 1;
+                    min_idx = i;
+                }
+            } else {
+                // Sorting is complete
+                sorting = false;
+                done.write(true);
+                // Write sorted array to output signals
+                for (int k = 0; k < 5; ++k) {
+                    sorted_arr[k].write(arr[k]);
+                }
+            }
+        }
+    }
+};
+
+SC_MODULE(TopLevel) {
+    SelectionSorter sorter;
+    sc_signal<bool> clk;
+    sc_signal<bool> done;
+
+    SC_CTOR(TopLevel) : sorter("sorter") {
+        sorter.clk(clk);
+        sorter.done(done);
+
+        SC_THREAD(clock_gen);
+        SC_THREAD(check_done);
+    }
+
+    void clock_gen() {
+        while (true) {
+            clk = 0;
+            wait(10, SC_NS);
+            clk = 1;
+            wait(10, SC_NS);
+        }
+    }
+
+    void check_done() {
+        wait(done.posedge_event());
+        cout << "Sorted array: ";
+        for (int i = 0; i < 5; ++i) {
+            cout << sorter.sorted_arr[i].read() << " ";
+        }
+        cout << endl;
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    TopLevel top("top");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+- **SelectionSorter Module**: This module contains the logic for sorting the array using selection sort. It reads from input signals, processes the sorting, and writes the result to output signals.
+- **TopLevel Module**: This module instantiates the `SelectionSorter` and provides a clock signal and a done signal. It also generates the clock and checks when the sorting is complete to print the sorted array.
+- **Clock Generation**: A simple clock generator is implemented in the `clock_gen` method, toggling the `clk` signal every 10 nanoseconds.
+- **Completion Check**: The `check_done` method waits for the `done` signal to go high, indicating that the sorting is complete, then prints the sorted array and stops the simulation.
+
+This SystemC code snippet models the behavior of the original C++ selection sort algorithm in a way suitable for high-level synthesis flows.

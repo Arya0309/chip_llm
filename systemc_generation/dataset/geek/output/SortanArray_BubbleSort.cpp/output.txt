@@ -1,0 +1,146 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - An array of integers `arr[]` with initial values `{6, 0, 3, 5}`.
+  - The size of the array `n`, which is calculated using `sizeof(arr) / sizeof(arr[0])`.
+- **Outputs**:
+  - The sorted array printed to the console.
+
+#### Line-by-Line/Block-by-Block Explanation
+1. **Function `swap`**:
+   - This function takes an integer array `arr` and two indices `i` and `j`.
+   - It swaps the elements at positions `i` and `j` in the array.
+   - **Line-by-Line**:
+     - `int temp = arr[i];`: Stores the value at index `i` in a temporary variable `temp`.
+     - `arr[i] = arr[j];`: Assigns the value at index `j` to index `i`.
+     - `arr[j] = temp;`: Assigns the stored value in `temp` to index `j`.
+
+2. **Function `bubbleSort`**:
+   - This function sorts the array `arr` using the Bubble Sort algorithm.
+   - It takes an integer array `arr` and its size `n`.
+   - **Outer Loop** (`for (int i = 0; i < n - 1; i++)`):
+     - Iterates over the array from the start to `n-1`. 
+     - After each iteration, the largest unsorted element is moved to its correct position.
+   - **Inner Loop** (`for (int j = 0; j < n - i - 1; j++)`):
+     - Compares adjacent elements in the array.
+     - If the current element is greater than the next element, it calls `swap` to swap them.
+     - Reduces the range of comparison in each subsequent outer loop iteration because the last `i` elements are already sorted.
+
+3. **`main` Function**:
+   - Initializes an integer array `arr` with values `{6, 0, 3, 5}`.
+   - Calculates the size of the array `n`.
+   - Calls `bubbleSort` to sort the array.
+   - Prints the sorted array using a `for` loop.
+
+### Equivalent SystemC Code Snippet
+
+Below is the SystemC code that replicates the behavior of the provided C++/C code. This code uses SystemC's process and data structures to perform the sorting operation within a module.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSortModule) {
+    sc_in_clk clk;
+    sc_in<bool> reset;
+    sc_out<sc_uint<8>> sorted_array[4];
+
+    SC_CTOR(BubbleSortModule) {
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        SC_METHOD(output_process);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sort_process() {
+        static int arr[4] = {6, 0, 3, 5};
+        static int n = 4;
+        static bool done = false;
+
+        if (reset.read()) {
+            done = false;
+        } else if (!done) {
+            for (int i = 0; i < n - 1; i++) {
+                for (int j = 0; j < n - i - 1; j++) {
+                    if (arr[j] > arr[j + 1]) {
+                        int temp = arr[j];
+                        arr[j] = arr[j + 1];
+                        arr[j + 1] = temp;
+                    }
+                }
+            }
+            done = true;
+        }
+    }
+
+    void output_process() {
+        static int arr[4] = {6, 0, 3, 5};
+        static int n = 4;
+        static bool output_done = false;
+
+        if (reset.read()) {
+            output_done = false;
+        } else if (!output_done) {
+            for (int i = 0; i < n; i++) {
+                sorted_array[i].write(arr[i]);
+            }
+            output_done = true;
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS);
+    sc_signal<bool> reset;
+    sc_signal<sc_uint<8>> sorted_array[4];
+
+    BubbleSortModule bubble_sort_module("bubble_sort_module");
+    bubble_sort_module.clk(clk);
+    bubble_sort_module.reset(reset);
+    for (int i = 0; i < 4; i++) {
+        bubble_sort_module.sorted_array[i](sorted_array[i]);
+    }
+
+    reset.write(true);
+    sc_start(10, SC_NS); // Reset period
+    reset.write(false);
+    sc_start(100, SC_NS); // Sorting period
+
+    // Print sorted array
+    std::cout << "Sorted array: ";
+    for (int i = 0; i < 4; i++) {
+        std::cout << sorted_array[i].read() << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+- **Module Definition**:
+  - `BubbleSortModule` is a SystemC module that encapsulates the sorting logic.
+  - It has a clock input `clk`, a reset signal `reset`, and an array of output ports `sorted_array` to provide the sorted values.
+
+- **Processes**:
+  - `sort_process`: This method is triggered on the rising edge of the clock and performs the Bubble Sort algorithm.
+  - `output_process`: This method writes the sorted values to the output ports once the sorting is complete.
+
+- **Reset Handling**:
+  - Both processes check the `reset` signal. If `reset` is high, they initialize or reset their state.
+
+- **Sorting Logic**:
+  - The sorting logic is implemented in `sort_process` using nested loops similar to the C++ version.
+  - A `done` flag ensures that sorting occurs only once per simulation run.
+
+- **Output Handling**:
+  - The `output_process` writes the sorted array values to the output ports after sorting is complete.
+  - An `output_done` flag ensures that writing to the output ports happens only once.
+
+- **Simulation**:
+  - In `sc_main`, the module is instantiated, connected to signals, and the simulation is run.
+  - The sorted array is printed to the console after the sorting process completes.

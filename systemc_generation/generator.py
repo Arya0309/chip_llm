@@ -1,6 +1,8 @@
 import os
 import torch
 import re
+from tqdm import tqdm
+import time
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
@@ -102,14 +104,39 @@ if __name__ == "__main__":
     )
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    dataset = os.path.join(current_dir, "dataset")
-    code_path = os.path.join(dataset, "bubble_sort", "bubble_sort.cpp")
+    dataset = os.path.join(current_dir, "dataset", "geek")
+    # code_path = os.path.join(dataset, "bubble_sort", "bubble_sort.cpp")
 
-    with open(code_path, "r") as f:
-        code = f.read()
+    # with open(code_path, "r") as f:
+    #     code = f.read()
 
-    output = generate_systemc(code, model=model, tokenizer=tokenizer)
-    print(output)
+    # output = generate_systemc(code, model=model, tokenizer=tokenizer)
+    # print(output)
 
-    with open(os.path.join(dataset, "output.txt"), "w") as f:
-        f.write(output)
+    # with open(os.path.join(dataset, "output.txt"), "w") as f:
+    #     f.write(output)
+
+    os.makedirs(os.path.join(dataset, "output"), exist_ok=True)
+
+    start = time.time()
+
+    for filename in tqdm(os.listdir(dataset)):
+        try:
+            code_path = os.path.join(dataset, filename)
+            with open(code_path, "r") as f:
+                code = f.read()
+
+            output = generate_systemc(code, model=model, tokenizer=tokenizer)
+            code = code_extractor(output)
+            os.makedirs(os.path.join(dataset, "output", f"{filename}"), exist_ok=True)
+            output_path = os.path.join(dataset, "output", f"{filename}")
+            with open(os.path.join(output_path, "output.txt"), "w") as f:
+                f.write(output)
+            with open(os.path.join(output_path, "main.cpp"), "w") as f:
+                f.write(code)
+            print(f"Processed: {filename}")
+        except Exception as e:
+            print(f"Error processing: {filename}")
+
+    end = time.time()
+    print(f"Time taken: {end - start}")

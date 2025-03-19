@@ -1,0 +1,89 @@
+
+### Analysis of the Provided C++ Code
+
+#### Inputs and Outputs
+- **Inputs**: Two integers, `a` and `b`, which are hardcoded in this example as 15 and 20, respectively.
+- **Output**: The Least Common Multiple (LCM) of the two input integers.
+
+#### Line-by-Line Explanation
+1. `#include <iostream>`: This includes the iostream library, which is necessary for input and output operations in C++.
+2. `using namespace std;`: This line allows us to use standard library names without prefixing them with `std::`.
+3. `int main() {`: This is the main function where the execution of the program begins.
+4. `int a = 15, b = 20, max_num, flag = 1;`: Here, two integers `a` and `b` are initialized to 15 and 20, respectively. `max_num` is declared but not yet initialized, and `flag` is initialized to 1 to control the loop.
+5. `max_num = (a > b) ? a : b;`: This uses the ternary operator to determine the larger of the two numbers, `a` or `b`, and assigns it to `max_num`. This is a starting point for finding the LCM.
+6. `while (flag) {`: This starts a loop that will continue until `flag` is set to 0.
+7. `if (max_num % a == 0 && max_num % b == 0) {`: This condition checks if `max_num` is divisible by both `a` and `b`.
+8. `cout << "LCM of " << a << " and " << b << " is " << max_num;`: If the condition is true, this line prints the LCM of `a` and `b`.
+9. `break;`: This breaks out of the loop once the LCM is found.
+10. `++max_num;`: If the condition is false, `max_num` is incremented by 1, and the loop continues.
+11. `return 0;`: This indicates that the program has executed successfully and returns 0 to the operating system.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same task as the provided C++ code. The SystemC code is designed to be used in a high-level synthesis flow.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(LCMCalculator) {
+    sc_in<int> a; // Input port for first number
+    sc_in<int> b; // Input port for second number
+    sc_out<int> lcm; // Output port for LCM
+
+    SC_CTOR(LCMCalculator) {
+        SC_THREAD(calculate_lcm);
+        sensitive << a << b;
+        dont_initialize();
+    }
+
+    void calculate_lcm() {
+        int max_num;
+        int flag = 1;
+
+        // Wait for valid inputs
+        wait();
+
+        // Determine the larger of the two numbers
+        max_num = (a.read() > b.read()) ? a.read() : b.read();
+
+        while (flag) {
+            // Check if max_num is divisible by both a and b
+            if (max_num % a.read() == 0 && max_num % b.read() == 0) {
+                lcm.write(max_num);
+                flag = 0; // Exit the loop
+            } else {
+                ++max_num; // Increment max_num and try again
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    LCMCalculator lcm_calc("lcm_calc");
+
+    sc_signal<int> a_sig, b_sig, lcm_sig;
+
+    lcm_calc.a(a_sig);
+    lcm_calc.b(b_sig);
+    lcm_calc.lcm(lcm_sig);
+
+    a_sig.write(15); // Example input
+    b_sig.write(20); // Example input
+
+    sc_start();
+
+    cout << "LCM of " << a_sig.read() << " and " << b_sig.read() << " is " << lcm_sig.read() << endl;
+
+    return 0;
+}
+```
+
+#### Explanation of SystemC Code
+- **SC_MODULE**: Defines a new SystemC module named `LCMCalculator`.
+- **sc_in<int> a, b;**: These are input ports for the two integers.
+- **sc_out<int> lcm;**: This is the output port for the LCM.
+- **SC_CTOR(LCMCalculator)**: Constructor for the module that initializes the thread `calculate_lcm` and sets sensitivity to changes in inputs `a` and `b`.
+- **calculate_lcm()**: This method contains the logic to calculate the LCM, similar to the C++ code.
+- **sc_main()**: The main function for the SystemC simulation. It instantiates the `LCMCalculator` module, connects signals to its ports, provides input values, and starts the simulation. Finally, it prints the result.
+
+This SystemC code can be compiled and simulated using a SystemC simulator and is suitable for high-level synthesis flows.
