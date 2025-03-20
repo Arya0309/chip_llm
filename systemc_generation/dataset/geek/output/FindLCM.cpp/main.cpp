@@ -1,54 +1,81 @@
 
 #include <systemc.h>
 
+// Module to calculate LCM of two numbers
 SC_MODULE(LCMCalculator) {
-    sc_in<int> a; // Input port for first number
-    sc_in<int> b; // Input port for second number
-    sc_out<int> lcm; // Output port for LCM
+    // Input ports
+    sc_in<int> num1;
+    sc_in<int> num2;
 
-    SC_CTOR(LCMCalculator) {
-        SC_THREAD(calculate_lcm);
-        sensitive << a << b;
-        dont_initialize();
-    }
+    // Output port
+    sc_out<int> lcm_result;
 
-    void calculate_lcm() {
-        int max_num;
-        int flag = 1;
+    // Internal variables
+    int a, b, max_num, flag;
 
-        // Wait for valid inputs
-        wait();
+    // Process to calculate LCM
+    void calculateLCM() {
+        // Initialize internal variables with input values
+        a = num1.read();
+        b = num2.read();
+        max_num = (a > b) ? a : b;
+        flag = 1;
 
-        // Determine the larger of the two numbers
-        max_num = (a.read() > b.read()) ? a.read() : b.read();
-
+        // Calculate LCM using a while loop
         while (flag) {
-            // Check if max_num is divisible by both a and b
-            if (max_num % a.read() == 0 && max_num % b.read() == 0) {
-                lcm.write(max_num);
+            if (max_num % a == 0 && max_num % b == 0) {
+                lcm_result.write(max_num);
                 flag = 0; // Exit the loop
             } else {
-                ++max_num; // Increment max_num and try again
+                ++max_num;
             }
+            wait(1, SC_NS); // Wait for one delta cycle
         }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(LCMCalculator) {
+        SC_THREAD(calculateLCM);
+        sensitive << num1 << num2; // Sensitivity list
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with LCMCalculator
+    sc_signal<int> num1, num2;
+    sc_signal<int> lcm_result;
+
+    // Instance of LCMCalculator
+    LCMCalculator lcm_calculator;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Drive inputs
+        num1 = 15;
+        num2 = 20;
+
+        // Wait for the LCM calculation to complete
+        wait(10, SC_NS); // Arbitrary wait time to ensure calculation completes
+
+        // Print the result
+        cout << "LCM of " << num1.read() << " and " << num2.read() << " is " << lcm_result.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : lcm_calculator("lcm_calculator") {
+        // Connecting signals to the calculator ports
+        lcm_calculator.num1(num1);
+        lcm_calculator.num2(num2);
+        lcm_calculator.lcm_result(lcm_result);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    LCMCalculator lcm_calc("lcm_calc");
-
-    sc_signal<int> a_sig, b_sig, lcm_sig;
-
-    lcm_calc.a(a_sig);
-    lcm_calc.b(b_sig);
-    lcm_calc.lcm(lcm_sig);
-
-    a_sig.write(15); // Example input
-    b_sig.write(20); // Example input
-
-    sc_start();
-
-    cout << "LCM of " << a_sig.read() << " and " << b_sig.read() << " is " << lcm_sig.read() << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

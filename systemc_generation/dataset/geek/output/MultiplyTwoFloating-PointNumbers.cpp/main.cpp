@@ -1,55 +1,70 @@
 
 #include <systemc.h>
 
-// Define a module that performs multiplication
+// User-defined module for multiplying two floating-point numbers
 SC_MODULE(Multiplier) {
-    sc_in<float> a; // Input port for first number
-    sc_in<float> b; // Input port for second number
-    sc_out<float> product; // Output port for the product
+    // Input ports for two floating-point numbers
+    sc_in<float> in_a, in_b;
+    
+    // Output port for the product of the two numbers
+    sc_out<float> out_product;
 
-    // Constructor to initialize the process
-    SC_CTOR(Multiplier) {
-        SC_METHOD(multiply);
-        sensitive << a << b; // Sensitivity list to trigger on changes to a or b
+    // Process to multiply two numbers
+    void multiply_numbers() {
+        // Reading inputs
+        float a = in_a.read();
+        float b = in_b.read();
+
+        // Calculating the product
+        float product = a * b;
+
+        // Writing output
+        out_product.write(product);
     }
 
-    // Process to perform multiplication
-    void multiply() {
-        product.write(a.read() * b.read()); // Read inputs, multiply, write to output
+    // Constructor to register the process
+    SC_CTOR(Multiplier) {
+        SC_METHOD(multiply_numbers);
+        sensitive << in_a << in_b;
     }
 };
 
-// Top-level module to drive the multiplier
-SC_MODULE(TopLevel) {
-    sc_signal<float> a; // Signal for first number
-    sc_signal<float> b; // Signal for second number
-    sc_signal<float> product; // Signal for the product
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with Multiplier
+    sc_signal<float> sig_a, sig_b;
+    sc_signal<float> sig_product;
 
-    Multiplier multiplier; // Instantiate the Multiplier module
+    // Instance of Multiplier
+    Multiplier multiplier;
 
-    // Constructor to connect signals and initialize values
-    SC_CTOR(TopLevel) : multiplier("multiplier") {
-        multiplier.a(a); // Connect signal a to input a of multiplier
-        multiplier.b(b); // Connect signal b to input b of multiplier
-        multiplier.product(product); // Connect signal product to output product of multiplier
+    // Process to drive inputs and print outputs
+    void drive_and_print() {
+        // Initializing inputs
+        sig_a = 1.2;
+        sig_b = 3.0;
 
-        // Initialize values
-        a.write(1.2);
-        b.write(3.0);
+        // Wait for one delta cycle to let the multiplier process
+        wait(1, SC_NS);
 
-        // Create a process to monitor and print the product
-        SC_METHOD(print_product);
-        sensitive << product; // Trigger when product changes
+        // Print the results
+        cout << "Product of " << sig_a.read() << " and " << sig_b.read() << " is: " << sig_product.read() << endl;
     }
 
-    // Process to print the product
-    void print_product() {
-        cout << "Product: " << product.read() << endl;
+    // Constructor to register the process
+    SC_CTOR(Testbench) : multiplier("multiplier") {
+        // Connecting signals to the multiplier ports
+        multiplier.in_a(sig_a);
+        multiplier.in_b(sig_b);
+        multiplier.out_product(sig_product);
+
+        // Registering the drive_and_print process
+        SC_THREAD(drive_and_print);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    TopLevel top("top"); // Instantiate the top-level module
-    sc_start(); // Start the simulation
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

@@ -1,75 +1,81 @@
 
 #include <systemc.h>
 
+// Module to check if a string is a palindrome
 SC_MODULE(PalindromeChecker) {
-    sc_in<bool> clk;        // Clock signal
-    sc_in<bool> rst_n;      // Active-low reset signal
-    sc_out<bool> result;    // Output result: 1 if palindrome, 0 otherwise
+    // Input port for the string
+    sc_in<std::string> input_str;
+    
+    // Output port for the result
+    sc_out<bool> is_palindrome;
 
-    sc_signal<sc_uint<10>> index; // Index for looping through the string
-    sc_signal<bool> done;         // Signal to indicate completion of checking
-    sc_signal<bool> mismatch;     // Signal to indicate a mismatch was found
-
-    SC_CTOR(PalindromeChecker) {
-        SC_METHOD(check);
-        sensitive << clk.pos() << rst_n.neg();
-
-        index = 0;
-        done = false;
-        mismatch = false;
-        result = false;
-    }
-
-    void check() {
-        if (!rst_n.read()) { // Reset condition
-            index = 0;
-            done = false;
-            mismatch = false;
-            result = false;
-        } else if (!done.read()) { // Normal operation
-            static const char str[] = "112233445566778899000000998877665544332211";
-            static const int len = sizeof(str) - 1; // Exclude null terminator
-
-            if (index.read() < len / 2) {
-                if (str[index.read()] != str[len - index.read() - 1]) {
-                    mismatch = true;
-                    done = true;
-                } else {
-                    index = index.read() + 1;
-                }
-            } else {
-                done = true;
-            }
-
-            if (done.read() && !mismatch.read()) {
-                result = true;
-            } else if (done.read() && mismatch.read()) {
+    // Process to check palindrome
+    void checkPalindromeProcess() {
+        // Reading input string
+        std::string str = input_str.read();
+        
+        // Calculating string length
+        int len = str.length();
+        
+        bool result = true;
+        
+        // Traversing through the string up to half its length
+        for (int i = 0; i < len / 2; i++) {
+            // Comparing i-th character from starting and len-i-th character from end
+            if (str[i] != str[len - i - 1]) {
                 result = false;
+                break;
             }
         }
+        
+        // Writing the result
+        is_palindrome.write(result);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(PalindromeChecker) {
+        SC_METHOD(checkPalindromeProcess);
+        sensitive << input_str;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with PalindromeChecker
+    sc_signal<std::string> input_str;
+    sc_signal<bool> is_palindrome;
+
+    // Instance of PalindromeChecker
+    PalindromeChecker checker;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing the input string
+        input_str = "112233445566778899000000998877665544332211";
+
+        // Wait for one delta cycle to let the checker process
+        wait(1, SC_NS);
+
+        // Print the result
+        if (is_palindrome.read())
+            cout << "Yes" << endl;
+        else
+            cout << "No" << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : checker("checker") {
+        // Connecting signals to the checker ports
+        checker.input_str(input_str);
+        checker.is_palindrome(is_palindrome);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_clock clk("clk", 10, SC_NS); // 10 ns clock period
-    sc_signal<bool> rst_n("rst_n"); // Active-low reset
-    sc_signal<bool> result("result"); // Result of palindrome check
-
-    PalindromeChecker checker("checker");
-    checker.clk(clk);
-    checker.rst_n(rst_n);
-    checker.result(result);
-
-    // Initial reset
-    rst_n.write(false);
-    sc_start(10, SC_NS);
-    rst_n.write(true);
-
-    // Run simulation for some time
-    sc_start(100, SC_NS);
-
-    // Print result
-    cout << "Is the string a palindrome? " << (result.read() ? "Yes" : "No") << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

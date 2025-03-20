@@ -2,59 +2,112 @@
 ### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs
-- **Inputs**: The code does not take any external inputs from the user or any other source. It uses hardcoded values `a = 11` and `b = 9`.
-- **Outputs**: The output is the sum of the two numbers `a` and `b`, which is printed to the console. In this case, the output will be `20`.
+- **Inputs**: The code does not take any external inputs from the user or other sources. It directly initializes two integer variables `a` and `b` with values `11` and `9`, respectively.
+- **Outputs**: The output is the sum of the two integers `a` and `b`. This sum is printed to the console using `cout`.
 
 #### Line-by-Line Explanation
-1. `#include <bits/stdc++.h>`: This line includes a header file that contains definitions for most of the C++ Standard Library. However, it's not recommended for competitive programming or production code due to inefficiencies.
-2. `using namespace std;`: This line allows us to use standard library objects and functions without prefixing them with `std::`.
-3. `int main() {`: This marks the beginning of the main function, which is the entry point of the C++ program.
-4. `int a = 11, b = 9;`: Two integer variables `a` and `b` are declared and initialized with the values `11` and `9`, respectively.
-5. `cout << a + b;`: The sum of `a` and `b` is calculated and then printed to the standard output (console).
+1. `#include <bits/stdc++.h>`: This line includes a header file that contains definitions for almost all standard C++ library functions and classes.
+2. `using namespace std;`: This line allows the use of standard library objects without prefixing them with `std::`.
+3. `int main() {`: This line marks the start of the main function, which is the entry point of the program.
+4. `int a = 11, b = 9;`: Two integer variables `a` and `b` are declared and initialized with values `11` and `9`, respectively.
+5. `cout << a + b;`: The sum of `a` and `b` is calculated and then printed to the console.
 6. `return 0;`: The main function returns `0`, indicating that the program has executed successfully.
-7. `}`: This marks the end of the main function.
+7. `}`: This line marks the end of the main function.
 
 ### Equivalent SystemC Code Snippet
 
-Below is a SystemC code snippet that replicates the behavior of the provided C++/C code. This code will print the sum of two integers to the console using SystemC constructs.
+The SystemC code below mimics the behavior of the original C++ code. It adds two numbers and prints their sum, but it does so within the context of a SystemC simulation environment.
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(Adder) {
-    SC_CTOR(Adder) {
-        SC_METHOD(add_and_print);
-        sensitive << start_event;
-        dont_initialize();
+// Module to add two numbers
+SC_MODULE(SimpleAdder) {
+    // Input ports
+    sc_in<int> a_in;
+    sc_in<int> b_in;
+    
+    // Output port
+    sc_out<int> sum_out;
+
+    // Process to add two numbers
+    void addNumbers() {
+        // Reading inputs
+        int a = a_in.read();
+        int b = b_in.read();
+
+        // Calculating the sum
+        int sum = a + b;
+
+        // Writing the output
+        sum_out.write(sum);
     }
 
-    void add_and_print() {
-        int a = 11, b = 9;
-        cout << "Sum: " << a + b << endl;
-        sc_stop();  // Stop the simulation after printing the result
+    // Constructor to register the process
+    SC_CTOR(SimpleAdder) {
+        SC_METHOD(addNumbers);
+        sensitive << a_in << b_in;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with SimpleAdder
+    sc_signal<int> a;
+    sc_signal<int> b;
+    sc_signal<int> sum;
+
+    // Instance of SimpleAdder
+    SimpleAdder adder;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing inputs
+        a = 11;
+        b = 9;
+
+        // Wait for one delta cycle to let the adder process
+        wait(1, SC_NS);
+
+        // Print the result
+        cout << "Sum of " << a.read() << " and " << b.read() << " is: " << sum.read() << endl;
     }
 
-    sc_event start_event;  // Event to trigger the method
+    // Constructor to register the process
+    SC_CTOR(Testbench) : adder("adder") {
+        // Connecting signals to the adder ports
+        adder.a_in(a);
+        adder.b_in(b);
+        adder.sum_out(sum);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
 };
 
 int sc_main(int argc, char* argv[]) {
-    Adder adder("adder");
-
-    // Trigger the event to start the addition and print process
-    adder.start_event.notify();
-
-    // Start the simulation
-    sc_start();
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of the SystemC Code
-- **SC_MODULE(Adder)**: Defines a SystemC module named `Adder`.
-- **SC_CTOR(Adder)**: Constructor for the `Adder` module. It registers the `add_and_print` method to be triggered by the `start_event`.
-- **void add_and_print()**: This method performs the addition of `a` and `b` and prints the result. It then stops the simulation using `sc_stop()`.
-- **sc_event start_event**: An event used to trigger the `add_and_print` method.
-- **int sc_main(int argc, char* argv[])**: The main function in SystemC. It instantiates the `Adder` module, notifies the `start_event` to begin the addition and print process, and starts the simulation with `sc_start()`.
+### Explanation of the SystemC Code
 
-This SystemC code encapsulates the logic of adding two numbers and printing the result within a SystemC module, making it suitable for high-level synthesis flows.
+1. **SimpleAdder Module**:
+   - **Inputs (`a_in`, `b_in`)**: Two input ports to receive integer values.
+   - **Output (`sum_out`)**: An output port to send the result of the addition.
+   - **addNumbers Method**: This method reads the values from the input ports, calculates their sum, and writes the result to the output port.
+   - **Constructor**: Registers the `addNumbers` method as a sensitive method that triggers whenever there is a change on the input ports `a_in` or `b_in`.
+
+2. **Testbench Module**:
+   - **Signals (`a`, `b`, `sum`)**: These are used to connect the testbench with the `SimpleAdder` module.
+   - **Instance of SimpleAdder**: An instance named `adder` of the `SimpleAdder` module is created.
+   - **driveAndPrint Method**: This method initializes the input signals, waits for the `SimpleAdder` to compute the sum, and then prints the result.
+   - **Constructor**: Connects the signals to the corresponding ports of the `SimpleAdder` instance and registers the `driveAndPrint` method as a thread.
+
+3. **sc_main Function**:
+   - Creates an instance of the `Testbench` module named `tb`.
+   - Calls `sc_start()` to begin the simulation.
+
+This SystemC code effectively replicates the simple addition operation performed in the original C++ code, encapsulated within a modular and event-driven framework suitable for high-level synthesis flows.

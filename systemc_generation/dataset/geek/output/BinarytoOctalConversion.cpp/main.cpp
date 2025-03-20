@@ -1,12 +1,17 @@
 
 #include <systemc.h>
 
+// SystemC Module for Octal to Decimal Conversion
 SC_MODULE(OctalToDecimalConverter) {
-    sc_in<int> octal_input;  // Input port for octal number
-    sc_out<int> decimal_output;  // Output port for decimal number
+    // Input port for octal number
+    sc_in<int> octal_in;
+    
+    // Output port for decimal number
+    sc_out<int> decimal_out;
 
+    // Process to perform the conversion
     void convert() {
-        int num = octal_input.read();
+        int num = octal_in.read();
         int dec_value = 0;
         int base = 1;
         int temp = num;
@@ -18,27 +23,51 @@ SC_MODULE(OctalToDecimalConverter) {
             base = base * 8;
         }
 
-        decimal_output.write(dec_value);
+        decimal_out.write(dec_value);
     }
 
+    // Constructor to register the process
     SC_CTOR(OctalToDecimalConverter) {
         SC_METHOD(convert);
-        sensitive << octal_input;
+        sensitive << octal_in;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with OctalToDecimalConverter
+    sc_signal<int> octal_num;
+    sc_signal<int> decimal_result;
+
+    // Instance of OctalToDecimalConverter
+    OctalToDecimalConverter converter;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize octal number
+        octal_num = 67;
+
+        // Wait for one delta cycle to let the converter process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Octal number: " << octal_num.read() << endl;
+        cout << "Decimal equivalent: " << decimal_result.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : converter("converter") {
+        // Connecting signals to the converter ports
+        converter.octal_in(octal_num);
+        converter.decimal_out(decimal_result);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    OctalToDecimalConverter converter("converter");
-    sc_signal<int> octal_input_signal;
-    sc_signal<int> decimal_output_signal;
-
-    converter.octal_input(octal_input_signal);
-    converter.decimal_output(decimal_output_signal);
-
-    octal_input_signal.write(67);  // Set the octal input
-    sc_start();  // Start the simulation
-
-    std::cout << "Decimal value: " << decimal_output_signal.read() << std::endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

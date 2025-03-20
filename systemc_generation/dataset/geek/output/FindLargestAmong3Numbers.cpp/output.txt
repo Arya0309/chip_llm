@@ -1,80 +1,122 @@
 
-### Analysis of the Provided C++/C Code
+### Analysis of Provided C++/C Code
 
-#### Inputs and Outputs
-- **Inputs**: The program does not take any external inputs from the user. Instead, it uses hardcoded integer values `a = 1`, `b = 2`, and `c = 11`.
-- **Outputs**: The program prints the largest of the three integers to the standard output (`cout`).
+#### Inputs and Outputs:
+- **Inputs**: The program uses hardcoded integer values `a`, `b`, and `c` initialized to 1, 2, and 11 respectively.
+- **Outputs**: The program prints the largest of the three numbers to the console.
 
-#### Line-by-Line Explanation
-1. `#include <iostream>`: This line includes the Input-Output Stream library which is necessary for using `cout` to print output to the console.
-2. `using namespace std;`: This line allows us to use standard library names directly without the `std::` prefix.
-3. `int main() {`: This marks the beginning of the `main` function, which is the entry point of the program.
-4. `int a = 1, b = 2, c = 11;`: Three integer variables `a`, `b`, and `c` are declared and initialized with the values `1`, `2`, and `11`, respectively.
-5. `if (a >= b) {`: This condition checks whether `a` is greater than or equal to `b`. If true, the code inside this block will execute.
-6. `if (a >= c)`: Nested within the previous `if` block, this condition checks whether `a` is also greater than or equal to `c`. If true, `a` is the largest number.
-7. `cout << a;`: If both conditions in steps 5 and 6 are true, this line prints the value of `a`.
-8. `else`: If the condition in step 6 is false, this block executes.
-9. `cout << c;`: If `a >= b` is true but `a >= c` is false, then `c` is the largest number, so this line prints `c`.
-10. `else {`: If the condition in step 5 is false, this block executes.
-11. `if (b >= c)`: Inside this `else` block, this condition checks whether `b` is greater than or equal to `c`. If true, `b` is the largest number.
-12. `cout << b;`: If the condition in step 11 is true, this line prints the value of `b`.
-13. `else`: If the condition in step 11 is false, this block executes.
-14. `cout << c;`: If neither `b >= c` nor `a >= b` is true, then `c` is the largest number, so this line prints `c`.
-15. `return 0;`: This line indicates that the program has executed successfully.
-16. `}`: This marks the end of the `main` function.
+#### Detailed Line-by-Line Explanation:
+1. **`#include <iostream>`**: This includes the standard input-output stream library which is necessary for using `cout`.
+2. **`using namespace std;`**: This allows us to use standard library functions without prefixing them with `std::`.
+3. **`int main() {`**: The main function where the execution of the program starts.
+4. **`int a = 1, b = 2, c = 11;`**: Three integer variables `a`, `b`, and `c` are declared and initialized with values 1, 2, and 11 respectively.
+5. **`if (a >= b) {`**: This checks if `a` is greater than or equal to `b`. If true, it proceeds to the next nested `if` statement.
+6. **`if (a >= c)`**: Nested within the first `if`, this checks if `a` is also greater than or equal to `c`. If true, it prints `a` as the largest number.
+7. **`cout << a;`**: This outputs the value of `a` to the console.
+8. **`else`**: If `a` is not greater than or equal to `c`, this block executes.
+9. **`cout << c;`**: This outputs the value of `c` to the console as it is the largest number.
+10. **`}`**: Ends the nested `if` block.
+11. **`else {`**: If `a` is not greater than or equal to `b`, this block executes.
+12. **`if (b >= c)`**: Checks if `b` is greater than or equal to `c`. If true, it prints `b` as the largest number.
+13. **`cout << b;`**: This outputs the value of `b` to the console.
+14. **`else`**: If `b` is not greater than or equal to `c`, this block executes.
+15. **`cout << c;`**: This outputs the value of `c` to the console as it is the largest number.
+16. **`}`**: Ends the `else` block.
+17. **`return 0;`**: Indicates successful termination of the program.
+18. **`}`**: Ends the `main` function.
 
-### Equivalent SystemC Code Snippet
+### Equivalent SystemC Code
 
-Below is a SystemC code snippet that replicates the logic of the original C++/C program. This code can be used in a high-level synthesis flow.
+Below is the SystemC code that mimics the behavior of the provided C++/C code. It finds the largest among three numbers using a similar logic and outputs the result.
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(LargestNumberFinder) {
-    SC_CTOR(LargestNumberFinder) {
-        SC_METHOD(find_largest);
-        sensitive << start_signal;
-    }
+// Module to find the largest among three numbers
+SC_MODULE(FindLargest) {
+    // Input ports for three integers
+    sc_in<int> a, b, c;
+    
+    // Output port for the largest number
+    sc_out<int> largest;
 
-    void find_largest() {
-        int a = 1, b = 2, c = 11;
-        int largest;
+    // Process to determine the largest number
+    void findLargestNumber() {
+        // Reading inputs
+        int numA = a.read();
+        int numB = b.read();
+        int numC = c.read();
 
-        if (a >= b) {
-            if (a >= c)
-                largest = a;
+        // Determining the largest number using if-else-if ladder
+        int maxNum;
+        if (numA >= numB) {
+            if (numA >= numC)
+                maxNum = numA;
             else
-                largest = c;
+                maxNum = numC;
         } else {
-            if (b >= c)
-                largest = b;
+            if (numB >= numC)
+                maxNum = numB;
             else
-                largest = c;
+                maxNum = numC;
         }
 
-        cout << "The largest number is: " << largest << endl;
+        // Writing the largest number to the output port
+        largest.write(maxNum);
     }
 
-    sc_in<bool> start_signal; // Signal to trigger the method
+    // Constructor to register the process
+    SC_CTOR(FindLargest) {
+        SC_METHOD(findLargestNumber);
+        sensitive << a << b << c;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with FindLargest module
+    sc_signal<int> sigA, sigB, sigC;
+    sc_signal<int> sigLargest;
+
+    // Instance of FindLargest module
+    FindLargest findLargestInst;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing values
+        sigA = 1;
+        sigB = 2;
+        sigC = 11;
+
+        // Wait for one delta cycle to let the FindLargest module process
+        wait(1, SC_NS);
+
+        // Print the largest number
+        cout << "The largest number among " << sigA.read() << ", " << sigB.read() << ", and " << sigC.read() << " is: " << sigLargest.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : findLargestInst("findLargestInst") {
+        // Connecting signals to the FindLargest module ports
+        findLargestInst.a(sigA); findLargestInst.b(sigB); findLargestInst.c(sigC);
+        findLargestInst.largest(sigLargest);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
 };
 
 int sc_main(int argc, char* argv[]) {
-    LargestNumberFinder finder("finder");
-    sc_signal<bool> start;
-
-    finder.start_signal(start);
-
-    start.write(true); // Trigger the method
-
-    sc_start(); // Start the simulation
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of the SystemC Code
-- **Module Declaration**: `LargestNumberFinder` is a SystemC module that encapsulates the logic for finding the largest number among three integers.
-- **Constructor**: The constructor `SC_CTOR` initializes the module and sets up a sensitivity list for the `find_largest` method, which is triggered by the `start_signal`.
-- **Method `find_largest`**: This method contains the same logic as the original C++/C code to determine the largest number and prints it.
-- **Signal Declaration**: `sc_in<bool> start_signal` is an input signal that triggers the execution of the `find_largest` method.
-- **Main Function**: `sc_main` instantiates the `LargestNumberFinder` module, sets up the signal, writes a true value to the signal to trigger the method, and starts the simulation with `sc_start()`.
+### Explanation of SystemC Code:
+- **Module `FindLargest`**: This module takes three integer inputs (`a`, `b`, `c`) and outputs the largest among them (`largest`).
+- **Process `findLargestNumber`**: This method reads the input values, determines the largest using the same logic as the C++ code, and writes the result to the output port.
+- **Testbench Module**: This module initializes the inputs, waits for the process to compute, and prints the result.
+- **`sc_main` Function**: This function creates an instance of the testbench and starts the simulation.
+
+This SystemC code can be compiled and run in a SystemC simulation environment, and it will behave similarly to the original C++/C code, outputting the largest of the three numbers.

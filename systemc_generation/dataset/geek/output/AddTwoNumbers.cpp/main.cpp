@@ -1,30 +1,72 @@
 
 #include <systemc.h>
 
-SC_MODULE(Adder) {
-    SC_CTOR(Adder) {
-        SC_METHOD(add_and_print);
-        sensitive << start_event;
-        dont_initialize();
+// Module to add two numbers
+SC_MODULE(SimpleAdder) {
+    // Input ports
+    sc_in<int> a_in;
+    sc_in<int> b_in;
+    
+    // Output port
+    sc_out<int> sum_out;
+
+    // Process to add two numbers
+    void addNumbers() {
+        // Reading inputs
+        int a = a_in.read();
+        int b = b_in.read();
+
+        // Calculating the sum
+        int sum = a + b;
+
+        // Writing the output
+        sum_out.write(sum);
     }
 
-    void add_and_print() {
-        int a = 11, b = 9;
-        cout << "Sum: " << a + b << endl;
-        sc_stop();  // Stop the simulation after printing the result
+    // Constructor to register the process
+    SC_CTOR(SimpleAdder) {
+        SC_METHOD(addNumbers);
+        sensitive << a_in << b_in;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with SimpleAdder
+    sc_signal<int> a;
+    sc_signal<int> b;
+    sc_signal<int> sum;
+
+    // Instance of SimpleAdder
+    SimpleAdder adder;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing inputs
+        a = 11;
+        b = 9;
+
+        // Wait for one delta cycle to let the adder process
+        wait(1, SC_NS);
+
+        // Print the result
+        cout << "Sum of " << a.read() << " and " << b.read() << " is: " << sum.read() << endl;
     }
 
-    sc_event start_event;  // Event to trigger the method
+    // Constructor to register the process
+    SC_CTOR(Testbench) : adder("adder") {
+        // Connecting signals to the adder ports
+        adder.a_in(a);
+        adder.b_in(b);
+        adder.sum_out(sum);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
 };
 
 int sc_main(int argc, char* argv[]) {
-    Adder adder("adder");
-
-    // Trigger the event to start the addition and print process
-    adder.start_event.notify();
-
-    // Start the simulation
-    sc_start();
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

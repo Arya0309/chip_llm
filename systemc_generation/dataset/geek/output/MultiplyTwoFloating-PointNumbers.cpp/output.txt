@@ -1,132 +1,145 @@
 
-### Analysis of Provided C++/C Code
+### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs
-- **Inputs**: The program takes two floating-point numbers, `A` and `B`, which are hardcoded as `1.2` and `3.0` respectively.
-- **Outputs**: The program outputs the product of `A` and `B`, which is printed to the console.
+- **Inputs**: Two floating-point numbers `A` and `B`.
+- **Outputs**: The product of the two floating-point numbers, which is printed to the console.
 
-#### Detailed Line-by-Line Explanation
+#### Line-by-Line/Block-by-Block Explanation
 
-1. **Header Inclusion**:
+1. **Include Directives and Namespace**
    ```cpp
-   #include <iostream>
+   #include <iostream> 
+   using namespace std; 
    ```
-   - This includes the standard input-output stream library, which is necessary for using `cout`.
+   - These lines include the standard input-output stream library and use the standard namespace to avoid prefixing `std::` before `cout`.
 
-2. **Namespace Declaration**:
+2. **User-Defined Function**
    ```cpp
-   using namespace std;
+   float mul_floatnumbers(float a, float b) { return a * b; } 
    ```
-   - This allows us to use standard library functions like `cout` without prefixing them with `std::`.
+   - This function `mul_floatnumbers` takes two floating-point numbers as parameters and returns their product.
 
-3. **Function Definition**:
+3. **Driver Code Block**
    ```cpp
-   float mul_floatnumbers(float a, float b) { return a * b; }
+   int main() 
+   { 
+       float A = 1.2, B = 3.0, product; 
    ```
-   - A function named `mul_floatnumbers` is defined that takes two float parameters `a` and `b`.
-   - The function returns the product of `a` and `b`.
+   - The `main` function starts here. It initializes two floating-point variables `A` and `B` with values `1.2` and `3.0`, respectively, and declares a variable `product` to store the result.
 
-4. **Main Function**:
+4. **Function Call and Result Storage**
    ```cpp
-   int main()
-   {
+       product = mul_floatnumbers(A, B); 
    ```
-   - The entry point of the program, where execution starts.
+   - The `mul_floatnumbers` function is called with `A` and `B` as arguments. The result is stored in the variable `product`.
 
-5. **Variable Declarations and Initializations**:
+5. **Output Statement**
    ```cpp
-   float A = 1.2, B = 3.0, product;
+       cout << product; 
    ```
-   - Three float variables are declared: `A`, `B`, and `product`.
-   - `A` and `B` are initialized to `1.2` and `3.0` respectively.
+   - The product of `A` and `B` is printed to the console.
 
-6. **Function Call**:
+6. **Return Statement**
    ```cpp
-   product = mul_floatnumbers(A, B);
-   ```
-   - The `mul_floatnumbers` function is called with `A` and `B` as arguments.
-   - The result is stored in the variable `product`.
-
-7. **Output**:
-   ```cpp
-   cout << product;
-   ```
-   - The value of `product` is printed to the console.
-
-8. **Return Statement**:
-   ```cpp
-   return 0;
+       return 0; 
    }
    ```
-   - The `main` function returns `0`, indicating successful completion of the program.
+   - The `main` function returns `0`, indicating successful execution.
 
 ### Equivalent SystemC Code Snippet
 
-Below is the equivalent SystemC code that replicates the behavior of the provided C++/C code:
+Below is the SystemC code that replicates the functionality of the given C++/C code. This SystemC code includes a module that performs the multiplication of two floating-point numbers and a testbench to drive the inputs and capture the output.
 
 ```cpp
 #include <systemc.h>
 
-// Define a module that performs multiplication
+// User-defined module for multiplying two floating-point numbers
 SC_MODULE(Multiplier) {
-    sc_in<float> a; // Input port for first number
-    sc_in<float> b; // Input port for second number
-    sc_out<float> product; // Output port for the product
+    // Input ports for two floating-point numbers
+    sc_in<float> in_a, in_b;
+    
+    // Output port for the product of the two numbers
+    sc_out<float> out_product;
 
-    // Constructor to initialize the process
-    SC_CTOR(Multiplier) {
-        SC_METHOD(multiply);
-        sensitive << a << b; // Sensitivity list to trigger on changes to a or b
+    // Process to multiply two numbers
+    void multiply_numbers() {
+        // Reading inputs
+        float a = in_a.read();
+        float b = in_b.read();
+
+        // Calculating the product
+        float product = a * b;
+
+        // Writing output
+        out_product.write(product);
     }
 
-    // Process to perform multiplication
-    void multiply() {
-        product.write(a.read() * b.read()); // Read inputs, multiply, write to output
+    // Constructor to register the process
+    SC_CTOR(Multiplier) {
+        SC_METHOD(multiply_numbers);
+        sensitive << in_a << in_b;
     }
 };
 
-// Top-level module to drive the multiplier
-SC_MODULE(TopLevel) {
-    sc_signal<float> a; // Signal for first number
-    sc_signal<float> b; // Signal for second number
-    sc_signal<float> product; // Signal for the product
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with Multiplier
+    sc_signal<float> sig_a, sig_b;
+    sc_signal<float> sig_product;
 
-    Multiplier multiplier; // Instantiate the Multiplier module
+    // Instance of Multiplier
+    Multiplier multiplier;
 
-    // Constructor to connect signals and initialize values
-    SC_CTOR(TopLevel) : multiplier("multiplier") {
-        multiplier.a(a); // Connect signal a to input a of multiplier
-        multiplier.b(b); // Connect signal b to input b of multiplier
-        multiplier.product(product); // Connect signal product to output product of multiplier
+    // Process to drive inputs and print outputs
+    void drive_and_print() {
+        // Initializing inputs
+        sig_a = 1.2;
+        sig_b = 3.0;
 
-        // Initialize values
-        a.write(1.2);
-        b.write(3.0);
+        // Wait for one delta cycle to let the multiplier process
+        wait(1, SC_NS);
 
-        // Create a process to monitor and print the product
-        SC_METHOD(print_product);
-        sensitive << product; // Trigger when product changes
+        // Print the results
+        cout << "Product of " << sig_a.read() << " and " << sig_b.read() << " is: " << sig_product.read() << endl;
     }
 
-    // Process to print the product
-    void print_product() {
-        cout << "Product: " << product.read() << endl;
+    // Constructor to register the process
+    SC_CTOR(Testbench) : multiplier("multiplier") {
+        // Connecting signals to the multiplier ports
+        multiplier.in_a(sig_a);
+        multiplier.in_b(sig_b);
+        multiplier.out_product(sig_product);
+
+        // Registering the drive_and_print process
+        SC_THREAD(drive_and_print);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    TopLevel top("top"); // Instantiate the top-level module
-    sc_start(); // Start the simulation
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-### Explanation of SystemC Code
+### Explanation of the SystemC Code
 
-- **Multiplier Module**: This module has two input ports (`a` and `b`) and one output port (`product`). It contains a method `multiply` that reads the inputs, computes their product, and writes the result to the output port.
-  
-- **TopLevel Module**: This module instantiates the `Multiplier` module and connects its ports to internal signals (`a`, `b`, and `product`). It initializes the input signals with the values `1.2` and `3.0`. It also contains a method `print_product` that prints the product whenever it changes.
+1. **Multiplier Module**
+   - **Inputs**: Two `sc_in<float>` ports named `in_a` and `in_b` for the two floating-point numbers to be multiplied.
+   - **Output**: An `sc_out<float>` port named `out_product` for the result of the multiplication.
+   - **Process**: The `multiply_numbers` method reads the inputs, calculates their product, and writes the result to the output port.
+   - **Sensitivity**: The method is sensitive to changes on either `in_a` or `in_b`.
 
-- **sc_main Function**: This is the entry point of the SystemC simulation. It creates an instance of the `TopLevel` module and starts the simulation using `sc_start()`.
+2. **Testbench Module**
+   - **Signals**: Three `sc_signal<float>` instances (`sig_a`, `sig_b`, and `sig_product`) to connect the inputs and output of the `Multiplier` module.
+   - **Instance**: An instance of the `Multiplier` module named `multiplier`.
+   - **Process**: The `drive_and_print` method initializes the input signals, waits for the `Multiplier` to compute the result, and prints the product.
+   - **Connections**: The signals are connected to the corresponding ports of the `Multiplier` module.
+   - **Thread**: The `drive_and_print` method is registered as a thread.
 
-This SystemC code mirrors the logic of the original C++/C code while fitting into the SystemC framework suitable for high-level synthesis.
+3. **Main Function**
+   - Creates an instance of the `Testbench` module.
+   - Calls `sc_start()` to start the simulation.
+
+This SystemC code accurately replicates the behavior of the original C++/C code, performing the multiplication of two floating-point numbers and printing the result.

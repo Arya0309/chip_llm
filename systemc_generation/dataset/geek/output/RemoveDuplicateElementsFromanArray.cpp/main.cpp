@@ -1,97 +1,127 @@
 
 #include <systemc.h>
 
+// Module to remove duplicates from an array
 SC_MODULE(RemoveDuplicatesModule) {
-    sc_in<sc_uint<32>> clk;
-    sc_in<bool> reset;
-    sc_in<sc_uint<32>> arr_size;
-    sc_inout<sc_uint<32>>* arr;
-    sc_out<sc_uint<32>> new_size;
+    // Input and output ports
+    sc_in<sc_uint<32>> clk; // Clock signal
+    sc_in<bool> reset;     // Reset signal
+    sc_in<sc_uint<32>> data_in; // Input data
+    sc_in<bool> valid_in;  // Validity of input data
+    sc_out<sc_uint<32>> data_out; // Output data
+    sc_out<bool> valid_out; // Validity of output data
 
-    SC_CTOR(RemoveDuplicatesModule) : arr(new sc_inout<sc_uint<32>>[arr_size.read()]) {
-        SC_METHOD(remove_duplicates);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
+    // Internal variables
+    sc_uint<32> buffer[10]; // Buffer to hold input data
+    int buffer_index;        // Index to track the buffer position
+    int write_index;         // Index to track the write position in the output
+    bool first_element;      // Flag to check if it's the first element
 
-    ~RemoveDuplicatesModule() {
-        delete[] arr;
-    }
-
+    // Process to handle data removal of duplicates
     void remove_duplicates() {
         if (reset.read()) {
-            new_size.write(0);
-        } else {
-            int n = arr_size.read();
-            if (n == 0 || n == 1) {
-                new_size.write(n);
-                return;
+            // Reset the module state
+            buffer_index = 0;
+            write_index = 0;
+            first_element = true;
+        } else if (valid_in.read()) {
+            // Read the incoming data
+            sc_uint<32> current_data = data_in.read();
+
+            // Check if it's the first element or different from the previous one
+            if (first_element || current_data != buffer[buffer_index - 1]) {
+                buffer[buffer_index] = current_data;
+                buffer_index++;
+                first_element = false;
             }
 
-            sc_uint<32> temp[n];
-            int j = 0;
-
-            for (int i = 0; i < n - 1; i++) {
-                if (arr[i].read() != arr[i + 1].read()) {
-                    temp[j++] = arr[i].read();
-                }
+            // Write the output data
+            if (buffer_index > 0 && !valid_out.read()) {
+                data_out.write(buffer[write_index]);
+                valid_out.write(true);
+                write_index++;
             }
-
-            temp[j++] = arr[n - 1].read();
-
-            for (int i = 0; i < j; i++) {
-                arr[i].write(temp[i]);
-            }
-
-            new_size.write(j);
+        } else if (valid_out.read()) {
+            // Deassert the output validity
+            valid_out.write(false);
         }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(RemoveDuplicatesModule) {
+        SC_METHOD(remove_duplicates);
+        sensitive << clk.pos(); // Sensitive to the positive edge of the clock
+        dont_initialize(); // Do not initialize the process immediately
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with RemoveDuplicatesModule
+    sc_clock clk;          // Clock signal
+    sc_signal<bool> reset; // Reset signal
+    sc_signal<sc_uint<32>> data_in; // Input data
+    sc_signal<bool> valid_in;      // Validity of input data
+    sc_signal<sc_uint<32>> data_out; // Output data
+    sc_signal<bool> valid_out;     // Validity of output data
+
+    // Instance of RemoveDuplicatesModule
+    RemoveDuplicatesModule dup_remover;
+
+    // Process to drive inputs and print outputs
+    void drive_and_print() {
+        // Reset the module
+        reset = true;
+        wait(1, SC_NS);
+        reset = false;
+
+        // Initialize input data
+        sc_uint<32> input_data[] = {1, 2, 2, 3, 4, 4, 4, 5, 5};
+        int num_elements = sizeof(input_data) / sizeof(input_data[0]);
+
+        // Drive input data
+        for (int i = 0; i < num_elements; i++) {
+            data_in = input_data[i];
+            valid_in = true;
+            wait(1, SC_NS);
+            valid_in = false;
+            wait(1, SC_NS);
+        }
+
+        // Wait for output data
+        while (!valid_out.read()) {
+            wait(1, SC_NS);
+        }
+
+        // Print the results
+        cout << "Unique elements: ";
+        do {
+            cout << data_out.read() << " ";
+            wait(1, SC_NS);
+        } while (valid_out.read());
+
+        sc_stop(); // Stop simulation
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : clk("clk", 1, SC_NS, 0.5, 0, SC_NS, true) {
+        // Connecting signals to the dup_remover ports
+        dup_remover.clk(clk);
+        dup_remover.reset(reset);
+        dup_remover.data_in(data_in);
+        dup_remover.valid_in(valid_in);
+        dup_remover.data_out(data_out);
+        dup_remover.valid_out(valid_out);
+
+        // Registering the drive_and_print process
+        SC_THREAD(drive_and_print);
+        sensitive << clk.pos(); // Sensitive to the positive edge of the clock
+        dont_initialize(); // Do not initialize the process immediately
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_signal<sc_uint<32>> clk;
-    sc_signal<bool> reset;
-    sc_signal<sc_uint<32>> arr_size;
-    sc_signal<sc_uint<32>> new_size;
-
-    const int array_size = 9;
-    sc_signal<sc_uint<32>> arr[array_size];
-
-    RemoveDuplicatesModule remove_duplicates_inst("remove_duplicates_inst");
-    remove_duplicates_inst.clk(clk);
-    remove_duplicates_inst.reset(reset);
-    remove_duplicates_inst.arr_size(arr_size);
-    remove_duplicates_inst.new_size(new_size);
-
-    for (int i = 0; i < array_size; i++) {
-        remove_duplicates_inst.arr[i](arr[i]);
-    }
-
-    // Initialize array values
-    arr[0].write(1);
-    arr[1].write(2);
-    arr[2].write(2);
-    arr[3].write(3);
-    arr[4].write(4);
-    arr[5].write(4);
-    arr[6].write(4);
-    arr[7].write(5);
-    arr[8].write(5);
-
-    arr_size.write(array_size);
-    reset.write(true);
-    clk.write(false);
-    sc_start(1, SC_NS);
-    reset.write(false);
-    clk.write(true);
-    sc_start(1, SC_NS);
-
-    cout << "Updated array: ";
-    for (int i = 0; i < new_size.read(); i++) {
-        cout << arr[i].read() << " ";
-    }
-    cout << endl;
-
-    sc_stop();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

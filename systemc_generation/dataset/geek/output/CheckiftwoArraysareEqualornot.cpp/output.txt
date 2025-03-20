@@ -1,58 +1,55 @@
 
 ### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs:
+#### Inputs and Outputs
 - **Inputs**: Two integer arrays `arr1` and `arr2`, along with their sizes `N` and `M`.
-- **Outputs**: A string indicating whether the two arrays are equal or not ("Equal" or "Not Equal").
+- **Outputs**: A string indicating whether the two arrays are equal ("Equal") or not ("Not Equal").
 
-#### Line-by-Line/Block-by-Block Explanation:
+#### Detailed Line-by-Line Explanation
 
-1. **Include Headers and Namespace:**
+1. **Include Directives and Namespace**:
    ```cpp
    #include <bits/stdc++.h>
    using namespace std;
    ```
-   - This includes a header file that provides access to all standard C++ library functions and classes.
-   - The `using namespace std;` directive allows us to use standard library names without the `std::` prefix.
+   - Includes all standard C++ libraries.
+   - Uses the `std` namespace to avoid prefixing standard library functions with `std::`.
 
-2. **Function Definition `checkArrays`:**
+2. **Function Definition**:
    ```cpp
    bool checkArrays(int arr1[], int arr2[], int n, int m)
    ```
-   - This function takes two integer arrays (`arr1` and `arr2`) and their respective sizes (`n` and `m`).
-   - It returns a boolean value indicating whether the two arrays are equal.
+   - Defines a function `checkArrays` that takes two integer arrays (`arr1` and `arr2`) and their respective sizes (`n` and `m`).
 
-3. **Check Lengths of Arrays:**
+3. **Array Length Check**:
    ```cpp
    if (n != m)
        return false;
    ```
-   - If the lengths of the two arrays are not equal, the function immediately returns `false`.
+   - Checks if the sizes of the two arrays are different. If they are, the arrays cannot be equal, so the function returns `false`.
 
-4. **Sort Both Arrays:**
+4. **Sorting Arrays**:
    ```cpp
    sort(arr1, arr1 + n);
    sort(arr2, arr2 + m);
    ```
-   - Both arrays are sorted using the `sort` function from the C++ Standard Library.
-   - Sorting is necessary to ensure that the elements can be compared in order.
+   - Sorts both arrays. Sorting is necessary to ensure that the arrays have the same elements in the same order before comparison.
 
-5. **Compare Elements of Sorted Arrays:**
+5. **Element-wise Comparison**:
    ```cpp
    for (int i = 0; i < n; i++)
        if (arr1[i] != arr2[i])
            return false;
    ```
-   - A loop iterates through each element of the sorted arrays.
-   - If any pair of corresponding elements are not equal, the function returns `false`.
+   - Iterates through each element of the arrays and compares them. If any pair of elements differ, the function returns `false`.
 
-6. **Return True if All Elements Match:**
+6. **Return True if All Elements Match**:
    ```cpp
    return true;
    ```
-   - If all elements match after sorting, the function returns `true`.
+   - If all elements match after sorting, the function returns `true`, indicating the arrays are equal.
 
-7. **Main Function:**
+7. **Driver Code**:
    ```cpp
    int main()
    {
@@ -61,10 +58,10 @@
        int N = sizeof(arr1) / sizeof(int);
        int M = sizeof(arr2) / sizeof(int);
    ```
-   - Two arrays `arr1` and `arr2` are defined with initial values.
-   - The sizes of these arrays are calculated using `sizeof`.
+   - Initializes two arrays `arr1` and `arr2` with specific values.
+   - Calculates the sizes of the arrays `N` and `M`.
 
-8. **Function Call and Output:**
+8. **Function Call and Output**:
    ```cpp
        if (checkArrays(arr1, arr2, N, M))
            cout << "Equal";
@@ -73,125 +70,137 @@
        return 0;
    }
    ```
-   - The `checkArrays` function is called with the arrays and their sizes.
-   - Depending on the result, the program prints "Equal" or "Not Equal".
+   - Calls the `checkArrays` function with the initialized arrays and their sizes.
+   - Prints "Equal" if the arrays are the same, otherwise prints "Not Equal".
 
 ### Equivalent SystemC Code
 
-Below is a SystemC version of the provided C++ code. Note that SystemC is typically used for modeling hardware at a high level, so some adjustments are made to fit the SystemC framework, such as using SystemC modules and processes.
+Below is the SystemC code that replicates the behavior of the provided C++/C code. This SystemC code includes a module to check if two arrays are equal and a testbench to demonstrate its functionality.
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(ArrayComparator) {
-    sc_in<bool> clk;
-    sc_in<bool> rst;
-    sc_out<bool> result;
+// Module to check if two arrays are equal
+SC_MODULE(ArrayChecker) {
+    // Input ports for the arrays and their sizes
+    sc_in<sc_int<32>> arr1[5];
+    sc_in<sc_int<32>> arr2[5];
+    sc_in<int> size1;
+    sc_in<int> size2;
+    
+    // Output port for the result
+    sc_out<bool> areEqual;
 
-    int arr1[5];
-    int arr2[5];
-    int N;
-    int M;
-    bool equal;
+    // Process to check if arrays are equal
+    void checkEquality() {
+        // Read the sizes
+        int n = size1.read();
+        int m = size2.read();
 
-    SC_CTOR(ArrayComparator) : N(5), M(5) {
-        SC_METHOD(compare_arrays);
-        sensitive << clk.posedge_event();
-        dont_initialize();
-
-        SC_METHOD(initialize_arrays);
-        sensitive << rst.posedge_event();
-        dont_initialize();
-    }
-
-    void initialize_arrays() {
-        arr1[0] = 1; arr1[1] = 2; arr1[2] = 3; arr1[3] = 4; arr1[4] = 5;
-        arr2[0] = 5; arr2[1] = 4; arr2[2] = 3; arr2[3] = 2; arr2[4] = 1;
-        equal = false;
-    }
-
-    void compare_arrays() {
-        if (rst.read()) {
-            equal = false;
+        // If lengths of array are not equal, arrays are not equal
+        if (n != m) {
+            areEqual.write(false);
             return;
         }
 
-        // Check lengths of arrays
-        if (N != M) {
-            equal = false;
-            return;
+        // Create local copies of arrays to sort
+        sc_int<32> sortedArr1[5];
+        sc_int<32> sortedArr2[5];
+        for (int i = 0; i < n; ++i) {
+            sortedArr1[i] = arr1[i].read();
+            sortedArr2[i] = arr2[i].read();
         }
 
         // Sort both arrays
-        std::sort(arr1, arr1 + N);
-        std::sort(arr2, arr2 + M);
+        std::sort(sortedArr1, sortedArr1 + n);
+        std::sort(sortedArr2, sortedArr2 + m);
 
-        // Compare elements of sorted arrays
-        equal = true;
-        for (int i = 0; i < N; i++) {
-            if (arr1[i] != arr2[i]) {
-                equal = false;
-                break;
+        // Linearly compare elements
+        for (int i = 0; i < n; i++) {
+            if (sortedArr1[i] != sortedArr2[i]) {
+                areEqual.write(false);
+                return;
             }
         }
 
-        result.write(equal);
+        // If elements are same
+        areEqual.write(true);
+    }
+
+    // Constructor to register the process
+    SC_CTOR(ArrayChecker) {
+        SC_METHOD(checkEquality);
+        sensitive << size1 << size2;
+        for (int i = 0; i < 5; ++i) {
+            sensitive << arr1[i] << arr2[i];
+        }
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with ArrayChecker
+    sc_signal<sc_int<32>> arr1[5];
+    sc_signal<sc_int<32>> arr2[5];
+    sc_signal<int> size1, size2;
+    sc_signal<bool> areEqual;
+
+    // Instance of ArrayChecker
+    ArrayChecker checker;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize arrays
+        arr1[0] = 1; arr1[1] = 2; arr1[2] = 3; arr1[3] = 4; arr1[4] = 5;
+        arr2[0] = 5; arr2[1] = 4; arr2[2] = 3; arr2[3] = 2; arr2[4] = 1;
+        size1 = 5;
+        size2 = 5;
+
+        // Wait for one delta cycle to let the checker process
+        wait(1, SC_NS);
+
+        // Print the result
+        if (areEqual.read()) {
+            cout << "Equal" << endl;
+        } else {
+            cout << "Not Equal" << endl;
+        }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : checker("checker") {
+        // Connecting signals to the checker ports
+        for (int i = 0; i < 5; ++i) {
+            checker.arr1[i](arr1[i]);
+            checker.arr2[i](arr2[i]);
+        }
+        checker.size1(size1);
+        checker.size2(size2);
+        checker.areEqual(areEqual);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    sc_signal<bool> clk;
-    sc_signal<bool> rst;
-    sc_signal<bool> result;
-
-    ArrayComparator comparator("comparator");
-    comparator.clk(clk);
-    comparator.rst(rst);
-    comparator.result(result);
-
-    // Initialize clock and reset
-    sc_start(0, SC_NS);
-    rst.write(true);
-    sc_start(1, SC_NS);
-    rst.write(false);
-    sc_start(1, SC_NS);
-
-    // Simulate for some time
-    sc_start(10, SC_NS);
-
-    // Print result
-    std::cout << "Arrays are " << (result.read() ? "Equal" : "Not Equal") << std::endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
 ### Explanation of the SystemC Code
 
-1. **Module Declaration:**
-   - `ArrayComparator` is a SystemC module that encapsulates the logic for comparing two arrays.
-   
-2. **Signals and Ports:**
-   - `clk` and `rst` are input signals representing the clock and reset, respectively.
-   - `result` is an output signal indicating whether the arrays are equal.
+- **ArrayChecker Module**:
+  - Contains input ports for two arrays and their sizes.
+  - Contains an output port to indicate whether the arrays are equal.
+  - The `checkEquality` method reads the arrays and their sizes, sorts the arrays, and checks if they are equal.
+  - Sensitive to changes in the array elements and sizes to trigger the equality check.
 
-3. **Constructor:**
-   - The constructor initializes the arrays and sets up sensitivity to clock edges.
-   - `initialize_arrays` is triggered on reset to set initial values for the arrays.
-   - `compare_arrays` is triggered on the rising edge of the clock.
+- **Testbench Module**:
+  - Initializes the arrays and their sizes.
+  - Connects the signals to the `ArrayChecker` module.
+  - Drives the inputs and prints the result after the equality check.
 
-4. **Initialization Method:**
-   - `initialize_arrays` sets the initial values of `arr1` and `arr2` and resets the `equal` flag.
-
-5. **Comparison Logic:**
-   - `compare_arrays` contains the logic to compare the arrays.
-   - It first checks if the lengths of the arrays are equal.
-   - It then sorts the arrays and compares their elements.
-   - The result of the comparison is written to the `result` signal.
-
-6. **Simulation Setup:**
-   - In `sc_main`, the module is instantiated and connected to signals.
-   - The simulation starts with a reset pulse followed by a few clock cycles.
-   - The final result is printed to the console.
-
-This SystemC code effectively mirrors the logic of the original C++ code while fitting within the SystemC framework, making it suitable for high-level synthesis and hardware modeling.
+This SystemC code faithfully captures the logic of the original C++/C source, ensuring it can be used in a high-level synthesis flow.

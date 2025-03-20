@@ -1,43 +1,82 @@
 
 #include <systemc.h>
 
-SC_MODULE(LargestNumberFinder) {
-    SC_CTOR(LargestNumberFinder) {
-        SC_METHOD(find_largest);
-        sensitive << start_signal;
-    }
+// Module to find the largest among three numbers
+SC_MODULE(FindLargest) {
+    // Input ports for three integers
+    sc_in<int> a, b, c;
+    
+    // Output port for the largest number
+    sc_out<int> largest;
 
-    void find_largest() {
-        int a = 1, b = 2, c = 11;
-        int largest;
+    // Process to determine the largest number
+    void findLargestNumber() {
+        // Reading inputs
+        int numA = a.read();
+        int numB = b.read();
+        int numC = c.read();
 
-        if (a >= b) {
-            if (a >= c)
-                largest = a;
+        // Determining the largest number using if-else-if ladder
+        int maxNum;
+        if (numA >= numB) {
+            if (numA >= numC)
+                maxNum = numA;
             else
-                largest = c;
+                maxNum = numC;
         } else {
-            if (b >= c)
-                largest = b;
+            if (numB >= numC)
+                maxNum = numB;
             else
-                largest = c;
+                maxNum = numC;
         }
 
-        cout << "The largest number is: " << largest << endl;
+        // Writing the largest number to the output port
+        largest.write(maxNum);
     }
 
-    sc_in<bool> start_signal; // Signal to trigger the method
+    // Constructor to register the process
+    SC_CTOR(FindLargest) {
+        SC_METHOD(findLargestNumber);
+        sensitive << a << b << c;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with FindLargest module
+    sc_signal<int> sigA, sigB, sigC;
+    sc_signal<int> sigLargest;
+
+    // Instance of FindLargest module
+    FindLargest findLargestInst;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing values
+        sigA = 1;
+        sigB = 2;
+        sigC = 11;
+
+        // Wait for one delta cycle to let the FindLargest module process
+        wait(1, SC_NS);
+
+        // Print the largest number
+        cout << "The largest number among " << sigA.read() << ", " << sigB.read() << ", and " << sigC.read() << " is: " << sigLargest.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : findLargestInst("findLargestInst") {
+        // Connecting signals to the FindLargest module ports
+        findLargestInst.a(sigA); findLargestInst.b(sigB); findLargestInst.c(sigC);
+        findLargestInst.largest(sigLargest);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
+    }
 };
 
 int sc_main(int argc, char* argv[]) {
-    LargestNumberFinder finder("finder");
-    sc_signal<bool> start;
-
-    finder.start_signal(start);
-
-    start.write(true); // Trigger the method
-
-    sc_start(); // Start the simulation
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

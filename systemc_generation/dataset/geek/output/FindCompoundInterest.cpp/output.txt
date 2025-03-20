@@ -1,72 +1,119 @@
 
-### Analysis of Provided C++/C Code
+### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs:
-- **Inputs**: The code does not take any external inputs; instead, it uses predefined constants:
-  - `principal`: The initial amount of money (10000).
-  - `rate`: The annual interest rate in percentage (5).
-  - `time`: The time period for which the interest is calculated in years (2).
-- **Outputs**: The code outputs the compound interest calculated using the formula:
-  \[
-  CI = P \times \left(1 + \frac{r}{100}\right)^t - P
-  \]
-  Where \(P\) is the principal, \(r\) is the rate, and \(t\) is the time.
+- **Inputs**: 
+  - `principal`: The initial amount of money (default value is 10000).
+  - `rate`: The annual interest rate (default value is 5%).
+  - `time`: The time period in years for which the interest is calculated (default value is 2 years).
 
-#### Detailed Line-by-Line Explanation:
-1. `#include <bits/stdc++.h>`: This line includes almost all standard C++ libraries. It's generally used for competitive programming to avoid including multiple header files.
-2. `using namespace std;`: This statement allows the use of standard library objects and functions without prefixing them with `std::`.
-3. `int main()`: This is the main function where the execution of the program begins.
-4. `double principal = 10000, rate = 5, time = 2;`: Initializes three double variables with fixed values representing the principal amount, interest rate, and time period respectively.
-5. `double A = principal * ((pow((1 + rate / 100), time)));`: Calculates the total amount after applying compound interest using the formula \(A = P \times (1 + \frac{r}{100})^t\).
-6. `double CI = A - principal;`: Computes the compound interest by subtracting the principal from the total amount.
-7. `cout << "Compound interest is " << CI;`: Outputs the calculated compound interest to the console.
-8. `return 0;`: Indicates that the program has executed successfully.
+- **Outputs**:
+  - `CI`: The compound interest calculated using the formula \( A = P \times (1 + \frac{r}{100})^t \) where \( A \) is the amount after time \( t \), \( P \) is the principal, \( r \) is the rate, and \( t \) is the time. The compound interest \( CI \) is then \( A - P \).
 
-### Equivalent SystemC Code
+#### Line-by-Line Explanation:
+1. **Include Directive**: `#include <bits/stdc++.h>` - This includes all standard C++ libraries, making available a wide range of functionalities.
+2. **Namespace Declaration**: `using namespace std;` - This allows us to use standard library functions without prefixing them with `std::`.
+3. **Main Function**: `int main()` - The entry point of the program.
+4. **Variable Declarations**:
+   - `double principal = 10000;` - Initializes the principal amount.
+   - `double rate = 5;` - Initializes the annual interest rate.
+   - `double time = 2;` - Initializes the time period in years.
+5. **Compound Interest Calculation**:
+   - `double A = principal * ((pow((1 + rate / 100), time)));` - Calculates the total amount after applying compound interest.
+   - `double CI = A - principal;` - Computes the compound interest by subtracting the principal from the total amount.
+6. **Output**: `cout << "Compound interest is " << CI;` - Prints the calculated compound interest.
+7. **Return Statement**: `return 0;` - Ends the main function successfully.
 
-Below is the equivalent SystemC code that performs the same logic. In SystemC, we define a module to encapsulate the functionality. Since SystemC is primarily used for hardware modeling, we simulate the calculation process within a module and print the result.
+### Equivalent SystemC Code Snippet
+
+Below is the equivalent SystemC code that calculates the compound interest similar to the provided C++/C code. This SystemC code is structured into a module that performs the calculation and a testbench to drive the inputs and capture the outputs.
 
 ```cpp
 #include <systemc.h>
 
+// Module to calculate Compound Interest
 SC_MODULE(CompoundInterestCalculator) {
-    SC_CTOR(CompoundInterestCalculator) {
-        SC_THREAD(calculate);
+    // Input ports for principal, rate, and time
+    sc_in<double> principal;
+    sc_in<double> rate;
+    sc_in<double> time;
+    
+    // Output port for compound interest
+    sc_out<double> compound_interest;
+
+    // Process to calculate compound interest
+    void calculateCompoundInterest() {
+        // Reading inputs
+        double p = principal.read();
+        double r = rate.read();
+        double t = time.read();
+
+        // Calculating the compound interest
+        double A = p * (pow((1 + r / 100), t));
+        double CI = A - p;
+
+        // Writing the result to the output port
+        compound_interest.write(CI);
     }
 
-    void calculate() {
-        double principal = 10000.0; // Initial principal amount
-        double rate = 5.0;          // Annual interest rate in percentage
-        double time = 2.0;          // Time period in years
+    // Constructor to register the process
+    SC_CTOR(CompoundInterestCalculator) {
+        SC_METHOD(calculateCompoundInterest);
+        sensitive << principal << rate << time;
+    }
+};
 
-        // Calculate compound interest
-        double A = principal * (pow((1 + rate / 100), time));
-        double CI = A - principal;
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with CompoundInterestCalculator
+    sc_signal<double> principal;
+    sc_signal<double> rate;
+    sc_signal<double> time;
+    sc_signal<double> compound_interest;
 
-        // Output the compound interest
-        sc_report_handler::message(sc_core::SC_INFO, "COMPOUND_INTEREST",
-                                   ("Compound interest is " + std::to_string(CI)).c_str());
+    // Instance of CompoundInterestCalculator
+    CompoundInterestCalculator calculator;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing values
+        principal = 10000;
+        rate = 5;
+        time = 2;
+
+        // Wait for one delta cycle to let the calculator process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Principal: " << principal.read() << endl;
+        cout << "Rate: " << rate.read() << "%" << endl;
+        cout << "Time: " << time.read() << " years" << endl;
+        cout << "Compound interest is " << compound_interest.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : calculator("calculator") {
+        // Connecting signals to the calculator ports
+        calculator.principal(principal);
+        calculator.rate(rate);
+        calculator.time(time);
+        calculator.compound_interest(compound_interest);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    CompoundInterestCalculator cic("CompoundInterestCalculator");
-    sc_start();
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
 ### Explanation of the SystemC Code:
-1. **Include SystemC Header**: `#include <systemc.h>` includes the necessary SystemC libraries.
-2. **Module Definition**: `SC_MODULE(CompoundInterestCalculator)` defines a new SystemC module named `CompoundInterestCalculator`.
-3. **Constructor**: `SC_CTOR(CompoundInterestCalculator)` is the constructor of the module. Inside, `SC_THREAD(calculate);` registers the `calculate` method as a thread, which means it will be scheduled and executed by the SystemC kernel.
-4. **Calculate Method**: 
-   - `void calculate()` is the method where the actual computation takes place.
-   - The variables `principal`, `rate`, and `time` are initialized with the same values as in the C++ code.
-   - The compound interest calculation is performed using the same formula.
-   - The result is printed using `sc_report_handler::message`, which is a way to output messages in SystemC, similar to `cout` in C++.
-5. **Main Function**: 
-   - `int sc_main(int argc, char* argv[])` is the entry point for a SystemC simulation.
-   - An instance of `CompoundInterestCalculator` is created with the name `"CompoundInterestCalculator"`.
-   - `sc_start();` starts the SystemC simulation, which runs the registered threads.
-   - The function returns 0, indicating successful execution.
+- **Module Definition**: `CompoundInterestCalculator` is defined as a SystemC module with input ports for `principal`, `rate`, and `time`, and an output port for `compound_interest`.
+- **Process Method**: `calculateCompoundInterest` reads the input values, computes the compound interest, and writes the result to the output port.
+- **Sensitivity**: The method is sensitive to changes in any of the input ports (`principal`, `rate`, `time`), ensuring it recalculates whenever any input changes.
+- **Testbench**: `Testbench` initializes the input values, waits for the calculation to complete, and prints the results.
+- **Simulation**: `sc_main` creates an instance of `Testbench` and starts the simulation, which drives the inputs and prints the calculated compound interest.

@@ -1,60 +1,80 @@
 
 #include <systemc.h>
 
-// Define a module for matrix transpose
+// Module to perform matrix transpose
 SC_MODULE(MatrixTranspose) {
-    // Define input and output ports for matrices
-    sc_in<int> A[4][4]; // Input matrix
-    sc_out<int> B[4][4]; // Output matrix
+    // Input matrix A
+    sc_in<int> A[N*N];
 
-    SC_CTOR(MatrixTranspose) {
-        // Process to perform matrix transpose
-        SC_METHOD(transpose);
-        sensitive << A[0][0]; // Sensitivity list (can be adjusted)
+    // Output matrix B
+    sc_out<int> B[N*N];
+
+    // Process to compute the transpose of matrix A and store it in matrix B
+    void computeTranspose() {
+        int temp[N][N];
+        
+        // Copy input matrix A into a 2D array for easier manipulation
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                temp[i][j] = A[i * N + j].read();
+
+        // Compute transpose
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                B[j * N + i].write(temp[i][j]);
     }
 
-    void transpose() {
-        // Perform the transpose operation
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                B[i][j].write(A[j][i].read());
-            }
+    // Constructor to register the process
+    SC_CTOR(MatrixTranspose) {
+        SC_METHOD(computeTranspose);
+        sensitive << A;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with MatrixTranspose
+    sc_signal<int> A[N*N];
+    sc_signal<int> B[N*N];
+
+    // Instance of MatrixTranspose
+    MatrixTranspose transposeModule;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize matrix A with predefined values
+        int initA[N][N] = {{1, 1, 1, 1}, {2, 2, 2, 2}, {3, 3, 3, 3}, {4, 4, 4, 4}};
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                A[i * N + j] = initA[i][j];
+
+        // Wait for one delta cycle to let the transposeModule process
+        wait(1, SC_NS);
+
+        // Print the result matrix B
+        cout << "Result matrix is \n";
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j)
+                cout << " " << B[i * N + j].read();
+            cout << "\n";
         }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : transposeModule("transposeModule") {
+        // Connecting signals to the transposeModule ports
+        for (int i = 0; i < N * N; ++i) {
+            transposeModule.A[i](A[i]);
+            transposeModule.B[i](B[i]);
+        }
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    // Instantiate the matrix transpose module
-    MatrixTranspose mat_trans("mat_trans");
-
-    // Initialize input matrix A
-    int A_init[4][4] = {{1, 1, 1, 1},
-                        {2, 2, 2, 2},
-                        {3, 3, 3, 3},
-                        {4, 4, 4, 4}};
-
-    // Create signals for input and output matrices
-    sc_signal<int> A_sig[4][4];
-    sc_signal<int> B_sig[4][4];
-
-    // Bind input matrix A to signals
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            A_sig[i][j].write(A_init[i][j]);
-            mat_trans.A[i][j](A_sig[i][j]);
-            mat_trans.B[i][j](B_sig[i][j]);
-        }
-    }
-
-    // Simulation loop to print the transposed matrix
-    sc_start(1, SC_NS); // Start simulation for 1 nanosecond
-    cout << "Result matrix is \n";
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            cout << " " << B_sig[i][j].read();
-        }
-        cout << "\n";
-    }
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

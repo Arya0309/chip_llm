@@ -2,141 +2,135 @@
 ### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs
-- **Input**: The number for which divisors are to be found. In this specific case, it is hardcoded as `100`.
-- **Output**: The divisors of the number `100` are printed to the console.
+- **Input**: The integer `n` for which divisors are to be found. In this specific case, `n` is hardcoded to `100`.
+- **Output**: The program prints all divisors of the integer `n`. For `n = 100`, the output will be the divisors of 100, which are `1 2 4 5 10 20 25 50 100`.
 
 #### Detailed Line-by-Line Explanation
 
-1. **Include Directives**
+1. **Include Directive**:
    ```cpp
-   #include <iostream> 
+   #include <iostream>
+   ```
+   - This includes the standard input-output stream library, which is necessary for using `cout`.
+
+2. **Namespace Declaration**:
+   ```cpp
    using namespace std;
    ```
-   - These lines include the standard input-output stream library and declare that we are using the standard namespace, allowing us to use `cout` without prefixing it with `std::`.
+   - This allows us to use standard library components without prefixing them with `std::`.
 
-2. **Function Definition**
+3. **Function Definition**:
    ```cpp
    void printDivisors(int n)
    ```
-   - This defines a function named `printDivisors` that takes an integer `n` as an argument. The function does not return any value (`void`).
+   - This function takes an integer `n` as an argument and prints all its divisors.
 
-3. **Loop Through Possible Divisors**
+4. **For Loop**:
    ```cpp
    for (int i = 1; i <= n; i++)
    ```
-   - A `for` loop initializes `i` to `1` and continues to execute as long as `i` is less than or equal to `n`. After each iteration, `i` is incremented by `1`.
+   - This loop iterates from `1` to `n` inclusive. It checks each number to see if it divides `n` without leaving a remainder.
 
-4. **Check if `i` is a Divisor**
+5. **If Condition**:
    ```cpp
    if (n % i == 0)
    ```
-   - Inside the loop, an `if` statement checks whether `i` is a divisor of `n` by verifying if the remainder when `n` is divided by `i` is zero (`n % i == 0`).
+   - Inside the loop, this condition checks if `i` is a divisor of `n` by checking if the remainder when `n` is divided by `i` is zero.
 
-5. **Print Divisor**
+6. **Printing Divisors**:
    ```cpp
-   cout << " " << i;
+   cout <<" " << i;
    ```
-   - If the condition is true, the current value of `i` is printed to the console, followed by a space.
+   - If the condition is true, it prints the current value of `i`, which is a divisor of `n`.
 
-6. **Main Function**
+7. **Driver Code**:
    ```cpp
    int main()
+   {
+       cout <<"The divisors of 100 are: ";
+       printDivisors(100);
+       return 0;
+   }
    ```
-   - The `main` function serves as the entry point of the program. It returns an integer value upon completion.
+   - The `main` function initializes the process by printing a message and then calling `printDivisors` with `100` as the argument.
 
-7. **Invoke Function and Print Message**
-   ```cpp
-   cout << "The divisors of 100 are: ";
-   printDivisors(100);
-   ```
-   - The `main` function prints a message indicating that the divisors of `100` are about to be listed. Then, it calls the `printDivisors` function with `100` as the argument.
+### Equivalent SystemC Code Snippet
 
-8. **Return Statement**
-   ```cpp
-   return 0;
-   ```
-   - The `main` function returns `0`, indicating successful execution of the program.
-
-### Equivalent SystemC Code
-
-Below is a SystemC version of the provided C++ code. This SystemC module will perform the same task of printing the divisors of a given number. For simplicity, the number is still hardcoded as `100`.
+Below is a SystemC equivalent of the provided C++ code. This SystemC module will print all divisors of a given number, similar to the original code.
 
 ```cpp
 #include <systemc.h>
 
+// SystemC module to find and print divisors of a number
 SC_MODULE(DivisorPrinter) {
-    SC_CTOR(DivisorPrinter) {
-        SC_THREAD(print_divisors);
-    }
+    // Input port for the number to find divisors for
+    sc_in<int> number_in;
 
-    void print_divisors() {
-        int n = 100; // Number for which divisors are to be found
-        sc_start(1, SC_NS); // Start simulation for a short duration
+    // Process to find and print divisors
+    void printDivisors() {
+        int n = number_in.read(); // Read the input number
         cout << "The divisors of " << n << " are: ";
-        for (int i = 1; i <= n; ++i) {
-            if (n % i == 0) {
-                cout << " " << i;
+        for (int i = 1; i <= n; i++) {
+            if (n % i == 0) { // Check if i is a divisor
+                cout << " " << i; // Print the divisor
             }
         }
-        cout << endl;
-        sc_stop(); // Stop the simulation
+        cout << endl; // Newline after printing all divisors
+    }
+
+    // Constructor to register the process
+    SC_CTOR(DivisorPrinter) {
+        SC_METHOD(printDivisors);
+        sensitive << number_in; // Sensitive to changes in input number
+    }
+};
+
+// Testbench module to drive inputs to DivisorPrinter
+SC_MODULE(Testbench) {
+    // Signal to connect with DivisorPrinter
+    sc_signal<int> number_sig;
+
+    // Instance of DivisorPrinter
+    DivisorPrinter divisor_printer;
+
+    // Process to drive inputs
+    void driveInputs() {
+        number_sig = 100; // Set the number to 100
+        wait(1, SC_NS);   // Wait for one delta cycle
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : divisor_printer("divisor_printer") {
+        // Connecting signals to the DivisorPrinter port
+        divisor_printer.number_in(number_sig);
+
+        // Registering the driveInputs process
+        SC_THREAD(driveInputs);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    DivisorPrinter dp("DivisorPrinter");
-    sc_start(); // Start the simulation
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of SystemC Code
+### Explanation of SystemC Code
 
-1. **Include SystemC Header**
-   ```cpp
-   #include <systemc.h>
-   ```
-   - This includes the SystemC header file necessary for writing SystemC modules.
+1. **SystemC Module Definition**:
+   - `DivisorPrinter`: A SystemC module that takes an integer input and prints its divisors.
+   - `number_in`: An input port to receive the integer for which divisors need to be found.
+   - `printDivisors()`: A method that reads the input number, finds its divisors, and prints them.
+   - `SC_CTOR(DivisorPrinter)`: Constructor to register the `printDivisors` method and make it sensitive to changes in `number_in`.
 
-2. **Module Declaration**
-   ```cpp
-   SC_MODULE(DivisorPrinter) {
-   ```
-   - Declares a SystemC module named `DivisorPrinter`.
+2. **Testbench Module**:
+   - `Testbench`: A module to drive inputs to the `DivisorPrinter` module.
+   - `number_sig`: A signal to connect the testbench with the `DivisorPrinter`.
+   - `driveInputs()`: A thread that sets the input number to `100` and waits for a delta cycle.
+   - `SC_CTOR(Testbench)`: Constructor to instantiate the `DivisorPrinter` and connect signals. It also registers the `driveInputs` thread.
 
-3. **Constructor**
-   ```cpp
-   SC_CTOR(DivisorPrinter) {
-       SC_THREAD(print_divisors);
-   }
-   ```
-   - The constructor uses the `SC_CTOR` macro to define the constructor for the module. It registers the `print_divisors` method as a thread within the module.
+3. **Main Function**:
+   - `sc_main()`: The entry point for the SystemC simulation. It creates an instance of `Testbench` and starts the simulation with `sc_start()`.
 
-4. **Thread Method**
-   ```cpp
-   void print_divisors() {
-       int n = 100;
-       sc_start(1, SC_NS);
-       cout << "The divisors of " << n << " are: ";
-       for (int i = 1; i <= n; ++i) {
-           if (n % i == 0) {
-               cout << " " << i;
-           }
-       }
-       cout << endl;
-       sc_stop();
-   }
-   ```
-   - This method is executed as a thread. It initializes `n` to `100`, starts a short simulation time to ensure proper initialization, prints the divisors of `n` in the same manner as the C++ code, and then stops the simulation.
-
-5. **Main Function**
-   ```cpp
-   int sc_main(int argc, char* argv[]) {
-       DivisorPrinter dp("DivisorPrinter");
-       sc_start();
-       return 0;
-   }
-   ```
-   - The `sc_main` function is the entry point for SystemC simulations. It creates an instance of the `DivisorPrinter` module and starts the simulation.
-
-This SystemC code mirrors the functionality of the original C++ code while fitting into the SystemC simulation framework.
+This SystemC code mirrors the logic of the original C++ code while adhering to SystemC's modular and event-driven nature.

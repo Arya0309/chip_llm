@@ -1,113 +1,104 @@
 
-### Analysis of the Provided C++ Code
+### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs:
-- **Inputs**: None (The program does not take any user input. It operates over a fixed range from 1 to 1000.)
-- **Outputs**: Prints all Armstrong numbers between 1 and 1000 to the console.
+#### Inputs and Outputs
+- **Inputs**: None explicit; the program operates over a fixed range (1 to 1000).
+- **Outputs**: The program prints all Armstrong numbers between 1 and 1000.
 
-#### Detailed Line-by-Line Explanation:
-1. **Header Inclusion**:
-   ```cpp
-   #include <bits/stdc++.h>
-   using namespace std;
-   ```
-   - Includes a comprehensive standard library header and uses the standard namespace.
+#### Detailed Explanation
 
-2. **Order Function**:
-   ```cpp
-   int order(int num)
-   {
-       int count = 0;
-       while (num > 0)
-       {
-           num /= 10;
-           count++;
-       }
-       return count;
-   }
-   ```
-   - This function calculates the number of digits in `num` by repeatedly dividing it by 10 until it becomes 0, counting the iterations.
+1. **Order Calculation (`order` function)**:
+   - **Functionality**: Determines the number of digits in a given integer.
+   - **Code**:
+     ```cpp
+     int order(int num)
+     {
+         int count = 0;
+         while (num > 0)
+         {
+             num /= 10;
+             count++;
+         }
+         return count;
+     }
+     ```
+   - **Explanation**: The `order` function repeatedly divides the number by 10 until it becomes zero, incrementing a counter each time. This counter represents the number of digits in the number.
 
-3. **Armstrong Check Function**:
-   ```cpp
-   bool isArmstrong(int num)
-   {
-       int order_n = order(num);
-       int num_temp = num, sum = 0;
+2. **Armstrong Number Check (`isArmstrong` function)**:
+   - **Functionality**: Checks if a given number is an Armstrong number.
+   - **Code**:
+     ```cpp
+     bool isArmstrong(int num)
+     {
+         int order_n = order(num);
+         int num_temp = num, sum = 0;
 
-       while (num_temp > 0)
-       {
-           int curr = num_temp % 10;
-           sum += pow(curr, order_n);
-           num_temp /= 10;
-       }
-       if (sum == num)
-       {
-           return true;
-       }
-       else
-       {
-           return false;
-       }
-   }
-   ```
-   - This function checks if a number is an Armstrong number.
-   - It first determines the number of digits (`order_n`) using the `order` function.
-   - Then, it iterates through each digit of `num`, raising it to the power of `order_n` and accumulating the result in `sum`.
-   - If `sum` equals the original number `num`, the function returns `true`; otherwise, it returns `false`.
+         while (num_temp > 0)
+         {
+             int curr = num_temp % 10;
+             sum += pow(curr, order_n);
+             num_temp /= 10;
+         }
+         if (sum == num)
+         {
+             return true;
+         }
+         else
+         {
+             return false;
+         }
+     }
+     ```
+   - **Explanation**: The `isArmstrong` function calculates the sum of its digits raised to the power of the number of digits. If this sum equals the original number, it returns `true`; otherwise, it returns `false`.
 
-4. **Main Function**:
-   ```cpp
-   int main()
-   {
-       cout << "Armstrong numbers between 1 to 1000 : ";
-       for (int num = 1; num <= 1000; ++num)
-       {
-           if (isArmstrong(num))
-           {
-               cout << num << " ";
-           }
-       }
-       return 0;
-   }
-   ```
-   - The main function prints a message indicating the range of numbers being checked.
-   - It then iterates from 1 to 1000, checking each number to see if it is an Armstrong number using the `isArmstrong` function.
-   - If a number is an Armstrong number, it prints the number followed by a space.
+3. **Main Function**:
+   - **Functionality**: Iterates through numbers from 1 to 1000 and prints those that are Armstrong numbers.
+   - **Code**:
+     ```cpp
+     int main()
+     {
+         cout << "Armstrong numbers between 1 to 1000 : ";
+         for (int num = 1; num <= 1000; ++num)
+         {
+             if (isArmstrong(num))
+             {
+                 cout << num << " ";
+             }
+         }
+         return 0;
+     }
+     ```
+   - **Explanation**: The `main` function initializes a loop from 1 to 1000, checks each number using `isArmstrong`, and prints the number if it is an Armstrong number.
 
 ### Equivalent SystemC Code
 
-Below is a SystemC version of the provided C++ code. This SystemC module will perform the same task: finding and printing Armstrong numbers between 1 and 1000.
+Below is the SystemC code that replicates the functionality of the provided C++/C code. The SystemC model includes a module that performs the Armstrong number check and a testbench to drive the inputs and capture the outputs.
 
 ```cpp
 #include <systemc.h>
+#include <cmath>
 
-SC_MODULE(ArmstrongFinder) {
-    SC_CTOR(ArmstrongFinder) {
-        SC_THREAD(find_armstrong_numbers);
-    }
+// Module to check Armstrong numbers
+SC_MODULE(ArmstrongChecker) {
+    sc_in<int> num_in;          // Input port for the number to check
+    sc_out<bool> is_armstrong;  // Output port indicating if the number is an Armstrong number
 
-    void find_armstrong_numbers() {
-        cout << "Armstrong numbers between 1 to 1000 : ";
-        for (int num = 1; num <= 1000; ++num) {
-            if (isArmstrong(num)) {
-                cout << num << " ";
-            }
-        }
-        sc_stop();
-    }
+    // Internal signal for the order of the number
+    int order_n;
 
-    int order(int num) {
-        int count = 0;
+    // Process to determine the order of the number
+    void calculate_order() {
+        int num = num_in.read();
+        order_n = 0;
         while (num > 0) {
             num /= 10;
-            count++;
+            order_n++;
         }
-        return count;
     }
 
-    bool isArmstrong(int num) {
-        int order_n = order(num);
+    // Process to check if the number is an Armstrong number
+    void check_armstrong() {
+        int num = num_in.read();
         int num_temp = num, sum = 0;
 
         while (num_temp > 0) {
@@ -115,21 +106,76 @@ SC_MODULE(ArmstrongFinder) {
             sum += pow(curr, order_n);
             num_temp /= 10;
         }
-        return (sum == num);
+        if (sum == num) {
+            is_armstrong.write(true);
+        } else {
+            is_armstrong.write(false);
+        }
+    }
+
+    // Constructor to register the processes
+    SC_CTOR(ArmstrongChecker) {
+        SC_METHOD(calculate_order);
+        sensitive << num_in;
+
+        SC_METHOD(check_armstrong);
+        sensitive << num_in;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with ArmstrongChecker
+    sc_signal<int> num;
+    sc_signal<bool> armstrong_flag;
+
+    // Instance of ArmstrongChecker
+    ArmstrongChecker checker;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        cout << "Armstrong numbers between 1 to 1000 : ";
+        for (int i = 1; i <= 1000; ++i) {
+            num = i;
+            wait(1, SC_NS);  // Wait for the checker to process the input
+            if (armstrong_flag.read()) {
+                cout << i << " ";
+            }
+        }
+        sc_stop();  // Stop the simulation after checking all numbers
+    }
+
+    // Constructor to register the process and connect signals
+    SC_CTOR(Testbench) : checker("checker") {
+        checker.num_in(num);
+        checker.is_armstrong(armstrong_flag);
+
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    ArmstrongFinder armstrong_finder("armstrong_finder");
-    sc_start();
+    Testbench tb("tb");
+    sc_start();  // Start simulation
     return 0;
 }
 ```
 
-### Explanation of the SystemC Code:
-- **Module Definition**: `ArmstrongFinder` is a SystemC module defined using `SC_MODULE`.
-- **Constructor**: The constructor uses `SC_CTOR` to define the module's constructor, where `find_armstrong_numbers` is registered as a thread using `SC_THREAD`.
-- **Thread Process**: `find_armstrong_numbers` is the main process that runs as a thread. It performs the same logic as the `main` function in the C++ code.
-- **Helper Functions**: `order` and `isArmstrong` functions are included within the module to maintain the same logic as the original C++ code.
-- **Simulation Control**: `sc_stop()` is called after the loop to terminate the simulation once the task is complete.
-- **Main Function**: `sc_main` initializes the module and starts the simulation with `sc_start()`.
+### Explanation of SystemC Code
+
+- **ArmstrongChecker Module**:
+  - **Ports**: 
+    - `sc_in<int> num_in`: Input port to receive the number to check.
+    - `sc_out<bool> is_armstrong`: Output port to indicate if the number is an Armstrong number.
+  - **Processes**:
+    - `calculate_order`: Calculates the order (number of digits) of the input number.
+    - `check_armstrong`: Checks if the input number is an Armstrong number by comparing the calculated sum with the original number.
+  - **Sensitivity**: Both processes are sensitive to changes on the `num_in` port.
+
+- **Testbench Module**:
+  - **Signals**: Connects the `num_in` and `is_armstrong` ports of the `ArmstrongChecker`.
+  - **Process**:
+    - `driveAndPrint`: Loops through numbers 1 to 1000, sets them on the `num` signal, waits for the checker to process, and prints the number if it is an Armstrong number.
+  - **Simulation Control**: Stops the simulation after processing all numbers from 1 to 1000.
+
+This SystemC code effectively mirrors the logic of the original C++/C program while adhering to SystemC's modular and event-driven architecture.

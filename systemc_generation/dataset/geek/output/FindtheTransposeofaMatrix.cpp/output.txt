@@ -1,77 +1,49 @@
 
-### Analysis of the Provided C++ Code
+### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs:
-- **Inputs**: 
-  - A 4x4 matrix `A` with predefined values.
-- **Outputs**:
-  - The transposed matrix `B`, which is printed to the console.
+- **Inputs**: A 4x4 integer matrix `A` initialized with specific values.
+- **Outputs**: A 4x4 integer matrix `B` which is the transpose of matrix `A`.
 
-#### Line-by-Line Explanation:
-
-1. **Include Directives and Namespace**:
+#### Line-by-Line/Block-by-Block Explanation:
+1. **Include Directive and Namespace**:
    ```cpp
-   #include <bits/stdc++.h> 
-   using namespace std; 
+   #include <bits/stdc++.h>
+   using namespace std;
    ```
    - Includes all standard C++ libraries.
-   - Uses the standard namespace to avoid prefixing standard library calls with `std::`.
+   - Uses the standard namespace to avoid prefixing standard library functions with `std::`.
 
 2. **Matrix Size Definition**:
    ```cpp
    #define N 4
    ```
-   - Defines a constant `N` to represent the size of the square matrix (4x4).
+   - Defines a constant `N` with the value 4, representing the size of the square matrices.
 
-3. **Transpose Function Declaration**:
+3. **Transpose Function**:
    ```cpp
-   void transpose(int A[][N], int B[][N])
-   ```
-   - Declares a function named `transpose` that takes two 2D arrays `A` and `B` of size `NxN`.
-   - The function computes the transpose of matrix `A` and stores it in matrix `B`.
-
-4. **Transpose Function Implementation**:
-   ```cpp
-   {
+   void transpose(int A[][N], int B[][N]) {
        int i, j;
        for (i = 0; i < N; i++)
            for (j = 0; j < N; j++)
                B[i][j] = A[j][i];
    }
    ```
-   - Initializes two integer variables `i` and `j`.
-   - Uses nested loops to iterate over each element of the matrix.
-   - Assigns the value at position `(j, i)` of matrix `A` to position `(i, j)` of matrix `B`, effectively transposing the matrix.
+   - Declares a function `transpose` that takes two 4x4 matrices `A` and `B`.
+   - Initializes loop counters `i` and `j`.
+   - Uses nested loops to iterate over each element of matrix `A`.
+   - Assigns the element at position `(j, i)` in matrix `A` to position `(i, j)` in matrix `B`, effectively transposing the matrix.
 
-5. **Main Function**:
+4. **Main Function**:
    ```cpp
-   int main()
-   {
-       int A[N][N] = {{1, 1, 1, 1},
-                      {2, 2, 2, 2},
-                      {3, 3, 3, 3},
-                      {4, 4, 4, 4}};
-   ```
-   - Declares and initializes a 4x4 matrix `A` with predefined values.
-
-6. **Declare Matrix B**:
-   ```cpp
+   int main() {
+       int A[N][N] = {{1, 1, 1, 1}, {2, 2, 2, 2}, {3, 3, 3, 3}, {4, 4, 4, 4}};
        int B[N][N], i, j;
-   ```
-   - Declares another 4x4 matrix `B` to store the transposed result.
-   - Declares loop variables `i` and `j`.
 
-7. **Call Transpose Function**:
-   ```cpp
        transpose(A, B);
-   ```
-   - Calls the `transpose` function to compute the transpose of matrix `A` and store it in matrix `B`.
 
-8. **Print Result Matrix**:
-   ```cpp
        cout << "Result matrix is \n";
-       for (i = 0; i < N; i++)
-       {
+       for (i = 0; i < N; i++) {
            for (j = 0; j < N; j++)
                cout << " " << B[i][j];
            cout << "\n";
@@ -79,95 +51,107 @@
        return 0;
    }
    ```
-   - Prints the header "Result matrix is".
-   - Uses nested loops to print each element of matrix `B` row by row.
+   - Initializes matrix `A` with predefined values.
+   - Declares matrix `B` and loop counters `i` and `j`.
+   - Calls the `transpose` function to compute the transpose of `A` and store it in `B`.
+   - Prints the elements of matrix `B` row by row.
 
 ### Equivalent SystemC Code
 
-Below is a SystemC implementation of the given C++ code. This code can be used in a high-level synthesis flow and maintains the same functionality.
+Below is a SystemC module that performs the same matrix transpose operation as the provided C++/C code. This SystemC module includes a process to perform the transpose and a testbench to initialize inputs and display the results.
 
 ```cpp
 #include <systemc.h>
 
-// Define a module for matrix transpose
+// Module to perform matrix transpose
 SC_MODULE(MatrixTranspose) {
-    // Define input and output ports for matrices
-    sc_in<int> A[4][4]; // Input matrix
-    sc_out<int> B[4][4]; // Output matrix
+    // Input matrix A
+    sc_in<int> A[N*N];
 
-    SC_CTOR(MatrixTranspose) {
-        // Process to perform matrix transpose
-        SC_METHOD(transpose);
-        sensitive << A[0][0]; // Sensitivity list (can be adjusted)
+    // Output matrix B
+    sc_out<int> B[N*N];
+
+    // Process to compute the transpose of matrix A and store it in matrix B
+    void computeTranspose() {
+        int temp[N][N];
+        
+        // Copy input matrix A into a 2D array for easier manipulation
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                temp[i][j] = A[i * N + j].read();
+
+        // Compute transpose
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                B[j * N + i].write(temp[i][j]);
     }
 
-    void transpose() {
-        // Perform the transpose operation
-        for (int i = 0; i < 4; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                B[i][j].write(A[j][i].read());
-            }
+    // Constructor to register the process
+    SC_CTOR(MatrixTranspose) {
+        SC_METHOD(computeTranspose);
+        sensitive << A;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with MatrixTranspose
+    sc_signal<int> A[N*N];
+    sc_signal<int> B[N*N];
+
+    // Instance of MatrixTranspose
+    MatrixTranspose transposeModule;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize matrix A with predefined values
+        int initA[N][N] = {{1, 1, 1, 1}, {2, 2, 2, 2}, {3, 3, 3, 3}, {4, 4, 4, 4}};
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+                A[i * N + j] = initA[i][j];
+
+        // Wait for one delta cycle to let the transposeModule process
+        wait(1, SC_NS);
+
+        // Print the result matrix B
+        cout << "Result matrix is \n";
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j)
+                cout << " " << B[i * N + j].read();
+            cout << "\n";
         }
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : transposeModule("transposeModule") {
+        // Connecting signals to the transposeModule ports
+        for (int i = 0; i < N * N; ++i) {
+            transposeModule.A[i](A[i]);
+            transposeModule.B[i](B[i]);
+        }
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    // Instantiate the matrix transpose module
-    MatrixTranspose mat_trans("mat_trans");
-
-    // Initialize input matrix A
-    int A_init[4][4] = {{1, 1, 1, 1},
-                        {2, 2, 2, 2},
-                        {3, 3, 3, 3},
-                        {4, 4, 4, 4}};
-
-    // Create signals for input and output matrices
-    sc_signal<int> A_sig[4][4];
-    sc_signal<int> B_sig[4][4];
-
-    // Bind input matrix A to signals
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            A_sig[i][j].write(A_init[i][j]);
-            mat_trans.A[i][j](A_sig[i][j]);
-            mat_trans.B[i][j](B_sig[i][j]);
-        }
-    }
-
-    // Simulation loop to print the transposed matrix
-    sc_start(1, SC_NS); // Start simulation for 1 nanosecond
-    cout << "Result matrix is \n";
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            cout << " " << B_sig[i][j].read();
-        }
-        cout << "\n";
-    }
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-### Explanation of SystemC Code:
+### Explanation of the SystemC Code:
+- **MatrixTranspose Module**:
+  - Contains input and output ports `A` and `B`, respectively, each represented as a flattened array of `N*N` integers.
+  - The `computeTranspose` method reads the input matrix `A`, computes its transpose, and writes the result to output matrix `B`.
+  - The constructor registers the `computeTranspose` method to be sensitive to changes in the input matrix `A`.
 
-- **Module Declaration**:
-  - `MatrixTranspose`: A SystemC module that performs matrix transposition.
-  
-- **Ports**:
-  - `A[4][4]`: Input port array representing the original matrix.
-  - `B[4][4]`: Output port array representing the transposed matrix.
-
-- **Constructor**:
-  - Registers the `transpose` method to be triggered when any change occurs on the first element of matrix `A`.
-
-- **Transpose Method**:
-  - Implements the matrix transposition logic using nested loops.
-  - Reads from input matrix `A` and writes to output matrix `B`.
-
-- **Main Function**:
-  - Instantiates the `MatrixTranspose` module.
+- **Testbench Module**:
   - Initializes the input matrix `A` with predefined values.
-  - Creates signals to connect the input and output ports.
-  - Starts the simulation and prints the transposed matrix `B` after the simulation completes.
+  - Waits for one delta cycle to allow the `MatrixTranspose` module to process the input.
+  - Prints the resulting transposed matrix `B`.
+  - Connects the signals between the testbench and the `MatrixTranspose` module.
 
-This SystemC code snippet is designed to be compatible with high-level synthesis tools, ensuring that the matrix transposition logic is preserved while adhering to SystemC's modular and hardware-oriented design principles.
+This SystemC code accurately replicates the functionality of the original C++/C code, making it suitable for use in a high-level synthesis flow.

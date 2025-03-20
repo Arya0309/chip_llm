@@ -1,96 +1,127 @@
 
-### Analysis of the Provided C++ Code
+### Analysis of the Provided C++/C Code
 
-#### Inputs and Outputs:
-- **Input**: An integer `n` which is the decimal number to be converted to binary. In this specific example, `n` is hardcoded as 10.
-- **Output**: The binary representation of the input number printed to the console.
+#### Inputs and Outputs
+- **Input**: An integer `n` which is the decimal number to be converted to binary.
+- **Output**: The binary representation of the input decimal number printed to the console.
 
-#### Line-by-Line Explanation:
-1. **`#include <iostream>`**: This includes the standard input-output stream library, allowing the use of `cout` for printing to the console.
-2. **`using namespace std;`**: This allows the use of standard library objects without prefixing them with `std::`.
-3. **`void decToBinary(int n)`**: This defines a function named `decToBinary` that takes an integer `n` as an argument and does not return any value (`void`).
-4. **`int binaryNum[32];`**: This declares an integer array `binaryNum` of size 32 to store the binary digits. A size of 32 is chosen to accommodate the binary representation of the largest 32-bit unsigned integer.
-5. **`int i = 0;`**: Initializes an integer `i` to 0. This variable serves as an index to store the binary digits in the `binaryNum` array.
-6. **`while (n > 0)`**: Begins a loop that continues as long as `n` is greater than 0.
-7. **`binaryNum[i] = n % 2;`**: Computes the remainder of `n` divided by 2 (which gives the least significant bit) and stores it in the `binaryNum` array at index `i`.
-8. **`n = n / 2;`**: Updates `n` by performing integer division by 2, effectively shifting the bits to the right.
-9. **`i++;`**: Increments the index `i` to move to the next position in the `binaryNum` array.
-10. **`for (int j = i - 1; j >= 0; j--)`**: Begins a loop that iterates from the last stored binary digit to the first, reversing the order of the binary digits.
-11. **`cout << binaryNum[j];`**: Prints each binary digit to the console.
-12. **`int main()`**: Defines the main function where the execution of the program begins.
-13. **`int n = 10;`**: Initializes the integer `n` to 10, the decimal number to be converted.
-14. **`decToBinary(n);`**: Calls the `decToBinary` function with `n` as the argument.
-15. **`return 0;`**: Ends the main function, indicating successful completion of the program.
+#### Detailed Line-by-Line Explanation
+1. **Include Directive**: `#include <iostream>` includes the standard input-output stream library.
+2. **Namespace Declaration**: `using namespace std;` allows us to use standard library names without prefixing them with `std::`.
+3. **Function Declaration**: `void decToBinary(int n)` declares a function named `decToBinary` that takes an integer `n` as an argument and returns nothing.
+4. **Array Declaration**: `int binaryNum[32];` declares an array `binaryNum` of size 32 to store the binary digits.
+5. **Counter Initialization**: `int i = 0;` initializes a counter `i` to zero. This counter keeps track of the position in the `binaryNum` array.
+6. **While Loop**: `while (n > 0)` starts a loop that continues as long as `n` is greater than zero.
+7. **Storing Remainder**: `binaryNum[i] = n % 2;` calculates the remainder of `n` divided by 2 (which gives the least significant bit) and stores it in the `binaryNum` array.
+8. **Dividing n**: `n = n / 2;` divides `n` by 2, effectively removing the least significant bit.
+9. **Increment Counter**: `i++;` increments the counter `i` to move to the next position in the `binaryNum` array.
+10. **For Loop**: `for (int j = i - 1; j >= 0; j--)` starts a loop that iterates from the last filled position in `binaryNum` back to the first.
+11. **Printing Binary Digits**: `cout << binaryNum[j];` prints each binary digit stored in `binaryNum` starting from the most significant bit.
+12. **Main Function**: `int main()` is the entry point of the program.
+13. **Variable Initialization**: `int n = 10;` initializes the variable `n` with the value 10.
+14. **Function Call**: `decToBinary(n);` calls the `decToBinary` function with `n` as the argument.
+15. **Return Statement**: `return 0;` indicates that the program has executed successfully.
 
-### Equivalent SystemC Code
+### Equivalent SystemC Code Snippet
 
-Below is the equivalent SystemC code snippet that replicates the functionality of the given C++ code:
+Below is a SystemC implementation that mirrors the functionality of the provided C++ code. It converts a decimal number to binary and prints the result.
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(DecimalToBinaryConverter) {
-    sc_in<int> decimal_in;  // Input port for decimal number
-    sc_out<sc_bv<32>> binary_out;  // Output port for binary number
+// Module to convert decimal to binary
+SC_MODULE(DecToBinConverter) {
+    // Input port for decimal number
+    sc_in<int> decimal_in;
+    
+    // Output port for binary string
+    sc_out<sc_bv<32>> binary_out;
 
-    SC_CTOR(DecimalToBinaryConverter) {
-        SC_METHOD(convert);
-        sensitive << decimal_in;
-    }
-
-    void convert() {
+    // Process to convert decimal to binary
+    void convertDecimalToBinary() {
         int n = decimal_in.read();
-        sc_bv<32> binaryNum;  // Bit vector to store binary number
+        sc_bv<32> binaryNum = 0; // Initialize binary number as 0
+        
+        // Counter for binary array
         int i = 0;
-
         while (n > 0) {
-            binaryNum[i] = n % 2;  // Store the least significant bit
-            n = n / 2;  // Shift right
+            // Storing remainder in binary array
+            binaryNum[i] = n % 2;
+            n = n / 2;
             i++;
         }
+        
+        // Write the binary number to output port
+        binary_out.write(binaryNum);
+    }
 
-        // Fill remaining bits with 0s
-        for (int j = i; j < 32; j++) {
-            binaryNum[j] = 0;
+    // Constructor to register the process
+    SC_CTOR(DecToBinConverter) {
+        SC_METHOD(convertDecimalToBinary);
+        sensitive << decimal_in;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with DecToBinConverter
+    sc_signal<int> decimal_in;
+    sc_signal<sc_bv<32>> binary_out;
+
+    // Instance of DecToBinConverter
+    DecToBinConverter converter;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing decimal number
+        decimal_in = 10;
+
+        // Wait for one delta cycle to let the converter process
+        wait(1, SC_NS);
+
+        // Print the binary result
+        sc_bv<32> binary_result = binary_out.read();
+        cout << "Decimal: 10 -> Binary: ";
+        for (int j = 31; j >= 0; j--) {
+            if (binary_result[j] != '0') { // Only print non-zero bits
+                cout << binary_result[j];
+            }
         }
+        cout << endl;
+    }
 
-        binary_out.write(binaryNum);  // Write the binary number to the output port
+    // Constructor to register the process
+    SC_CTOR(Testbench) : converter("converter") {
+        // Connecting signals to the converter ports
+        converter.decimal_in(decimal_in);
+        converter.binary_out(binary_out);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    DecimalToBinaryConverter converter("converter");
-    sc_signal<int> decimal_in;
-    sc_signal<sc_bv<32>> binary_out;
-
-    converter.decimal_in(decimal_in);
-    converter.binary_out(binary_out);
-
-    decimal_in.write(10);  // Set the input decimal number
-
-    sc_start();  // Start the simulation
-
-    std::cout << "Binary representation: " << binary_out.read() << std::endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of the SystemC Code:
-- **`SC_MODULE(DecimalToBinaryConverter)`**: Defines a SystemC module named `DecimalToBinaryConverter`.
-- **`sc_in<int> decimal_in;`**: Declares an input port `decimal_in` for receiving the decimal number.
-- **`sc_out<sc_bv<32>> binary_out;`**: Declares an output port `binary_out` for sending the binary number.
-- **`SC_CTOR(DecimalToBinaryConverter)`**: Constructor for the module, registering the `convert` method to be sensitive to changes on `decimal_in`.
-- **`void convert()`**: Method to perform the conversion from decimal to binary.
-- **`sc_bv<32> binaryNum;`**: Bit vector to store the binary representation of the number.
-- **`while (n > 0)`**: Loop to compute the binary digits, similar to the C++ code.
-- **`binaryNum[i] = n % 2;`**: Stores the least significant bit of `n` in the bit vector.
-- **`n = n / 2;`**: Updates `n` by performing integer division by 2.
-- **`binary_out.write(binaryNum);`**: Writes the computed binary number to the output port.
-- **`int sc_main(int argc, char* argv[])`**: Main function to set up the simulation environment.
-- **`DecimalToBinaryConverter converter("converter");`**: Instantiates the module.
-- **`sc_signal<int> decimal_in;`**: Signal to connect to the module's input port.
-- **`sc_signal<sc_bv<32>> binary_out;`**: Signal to connect to the module's output port.
-- **`decimal_in.write(10);`**: Sets the input decimal number to 10.
-- **`sc_start();`**: Starts the simulation.
-- **`std::cout << "Binary representation: " << binary_out.read() << std::endl;`**: Prints the binary representation of the input number.
+### Explanation of SystemC Code
+
+1. **Module Declaration**: `SC_MODULE(DecToBinConverter)` defines a SystemC module named `DecToBinConverter`.
+2. **Ports**: 
+   - `sc_in<int> decimal_in;` is an input port to receive the decimal number.
+   - `sc_out<sc_bv<32>> binary_out;` is an output port to send the binary representation.
+3. **Process Declaration**: `void convertDecimalToBinary()` is a method that performs the conversion from decimal to binary.
+4. **Binary Conversion Logic**: Inside the `convertDecimalToBinary` method, the same logic as in the C++ code is implemented using a `while` loop to fill the `sc_bv<32>` type variable `binaryNum` with binary digits.
+5. **Constructor**: Registers the `convertDecimalToBinary` method to be triggered whenever `decimal_in` changes.
+6. **Testbench Module**: `SC_MODULE(Testbench)` defines a testbench to drive inputs and capture outputs.
+7. **Signals**: 
+   - `sc_signal<int> decimal_in;` is a signal to connect to the `decimal_in` port of the converter.
+   - `sc_signal<sc_bv<32>> binary_out;` is a signal to connect to the `binary_out` port of the converter.
+8. **Drive and Print Process**: `void driveAndPrint()` initializes the decimal input, waits for the conversion to complete, and then prints the binary result.
+9. **Main Function**: `int sc_main(int argc, char* argv[])` creates an instance of `Testbench`, starts the simulation, and returns 0 upon completion.
+
+This SystemC code faithfully replicates the logic of the original C++ code, converting a decimal number to binary and printing the result.

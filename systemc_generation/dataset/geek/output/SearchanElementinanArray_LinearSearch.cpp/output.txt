@@ -3,171 +3,175 @@
 
 #### Inputs and Outputs
 - **Inputs**:
-  - A vector `v` containing integers: `{1, 2, 3, 4, 5, 8, 9, 11}`
-  - An integer `key` which is the value to be searched in the vector `v`: `8`
+  - A vector `v` containing integers `{1, 2, 3, 4, 5, 8, 9, 11}`.
+  - An integer `key` which is the value to be searched in the vector, set to `8`.
 - **Outputs**:
-  - The position of the `key` in the vector `v` if found (position is 1-based index).
-  - A message stating that the `key` is not found if it does not exist in the vector.
+  - The position of the `key` in the vector if found (1-based index).
+  - A message indicating that the `key` was not found if it is not present in the vector.
 
-#### Detailed Explanation of the Code
+#### Line-by-Line Explanation
 
-1. **Include Directives and Namespace**:
-   ```cpp
-   #include <bits/stdc++.h>
-   using namespace std;
-   ```
-   - Includes a header file that contains almost all standard C++ library functionalities.
-   - Uses the `std` namespace to avoid prefixing standard library functions and objects with `std::`.
+```cpp
+// C++ Program to implement linear search algorithm iteratively
+#include <bits/stdc++.h>
+using namespace std;
+```
+- The program includes the standard C++ library and uses the standard namespace.
 
-2. **Function Definition `linearSearch`**:
-   ```cpp
-   int linearSearch(vector<int> v, int key) {
-   ```
-   - Defines a function named `linearSearch` that takes a vector `v` of integers and an integer `key` as parameters.
-   - Returns an integer representing the index of `key` in `v` if found, otherwise returns `-1`.
+```cpp
+int linearSearch(vector<int> v, int key) {
+```
+- Function `linearSearch` is defined which takes a vector of integers `v` and an integer `key` as parameters.
 
-3. **For Loop to Search Key**:
-   ```cpp
-       for (int i = 0; i < v.size(); i++) {
-   ```
-   - Iterates over each element in the vector `v` from index `0` to `v.size() - 1`.
+```cpp
+    // We test all the elements of the vector v against the given key
+    for (int i = 0; i < v.size(); i++) {
+```
+- A `for` loop iterates over each element of the vector `v`. The loop variable `i` ranges from `0` to `v.size() - 1`.
 
-4. **Condition to Check if Key is Found**:
-   ```cpp
-           if (v[i] == key) {
-               return i;
-           }
-       }
-   ```
-   - Checks if the current element `v[i]` is equal to the `key`.
-   - If true, returns the current index `i`.
+```cpp
+        // If the KEY IS FOUND
+        if (v[i] == key) {
+            return i;
+        }
+    }
+```
+- Inside the loop, each element of the vector is compared with the `key`. If a match is found, the function returns the current index `i`, which is the position of the `key` in the vector (0-based index).
 
-5. **Return Statement for Key Not Found**:
-   ```cpp
-       return -1;
-   }
-   ```
-   - If the loop completes without finding the `key`, returns `-1` indicating that the `key` is not present in the vector.
+```cpp
+    // Return some value denoting KEY NOT FOUND
+    return -1;
+}
+```
+- If the loop completes without finding the `key`, the function returns `-1`, indicating that the `key` is not present in the vector.
 
-6. **Main Function**:
-   ```cpp
-   int main() {
-       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
-       int key = 8;
-       int i = linearSearch(v, key);
-   ```
-   - Initializes a vector `v` with specified integers.
-   - Sets `key` to `8`.
-   - Calls the `linearSearch` function with `v` and `key` as arguments and stores the result in `i`.
+```cpp
+int main() {
+    vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+```
+- In the `main` function, a vector `v` is initialized with the integers `{1, 2, 3, 4, 5, 8, 9, 11}`.
 
-7. **Conditional Output**:
-   ```cpp
-       if (i != -1)
-           cout << key << " Found at Position: " << i + 1;
-       else
-           cout << key << " NOT found.";
-       return 0;
-   }
-   ```
-   - Checks if `i` is not `-1` (indicating the key was found).
-   - Prints the position of the `key` (converted to 1-based index) if found.
-   - Prints a message stating the `key` is not found if `i` is `-1`.
+```cpp
+    // Value to search
+    int key = 8;
+```
+- An integer `key` is set to `8`, which is the value to be searched in the vector.
 
-### Equivalent SystemC Code Snippet
+```cpp
+    // Searching the key in the vector v
+    int i = linearSearch(v, key);
+```
+- The `linearSearch` function is called with `v` and `key` as arguments, and the result is stored in the integer `i`.
 
-Below is the equivalent SystemC code snippet that implements the same linear search functionality:
+```cpp
+    // Checking if element is found or not
+    if (i != -1)
+        cout << key << " Found at Position: " << i + 1;
+    else
+        cout << key << " NOT found.";
+    return 0;
+}
+```
+- The result `i` is checked. If it is not `-1`, it means the `key` was found, and the position (converted to 1-based index by adding 1) is printed. Otherwise, a message indicating that the `key` was not found is printed.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code snippet that implements the same linear search logic. This code is designed to be used in a high-level synthesis flow, where the `linearSearch` functionality is encapsulated within a SystemC module.
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(LinearSearch) {
-    sc_in<sc_uint<8>> key;  // Input key to search
-    sc_in<bool> start_search;  // Signal to start search
-    sc_out<sc_int<8>> result;  // Output result of search (-1 if not found)
-    sc_vector<sc_in<sc_uint<8>>> vec;  // Input vector of integers
+// User Defined Linear Search Module
+SC_MODULE(LinearSearchModule) {
+    // Input port for the key to search
+    sc_in<int> key_in;
 
-    SC_CTOR(LinearSearch) : vec("vec", 8) {  // Constructor initializing vector size
-        SC_METHOD(search);
-        sensitive << start_search.pos();
+    // Output port for the result (position or -1 if not found)
+    sc_out<int> result_out;
+
+    // Internal vector to hold the data
+    std::vector<int> v;
+
+    // Process to perform linear search
+    void performSearch() {
+        int key = key_in.read();
+        int result = -1;
+
+        // Perform linear search
+        for (int i = 0; i < v.size(); i++) {
+            if (v[i] == key) {
+                result = i + 1; // Convert to 1-based index
+                break;
+            }
+        }
+
+        // Write the result to the output port
+        result_out.write(result);
     }
 
-    void search() {
-        if (start_search.read()) {
-            bool found = false;
-            int pos = -1;
-            for (int i = 0; i < vec.size(); i++) {
-                if (vec[i].read() == key.read()) {
-                    pos = i + 1;  // Convert to 1-based index
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) pos = -1;
-            result.write(pos);
-        }
+    // Constructor to initialize the vector and register the process
+    SC_CTOR(LinearSearchModule) : v({1, 2, 3, 4, 5, 8, 9, 11}) {
+        SC_METHOD(performSearch);
+        sensitive << key_in;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with LinearSearchModule
+    sc_signal<int> key_sig;
+    sc_signal<int> result_sig;
+
+    // Instance of LinearSearchModule
+    LinearSearchModule searcher;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the key to search
+        key_sig = 8;
+
+        // Wait for one delta cycle to let the search process
+        wait(1, SC_NS);
+
+        // Print the result
+        int result = result_sig.read();
+        if (result != -1)
+            cout << "Key " << key_sig.read() << " Found at Position: " << result << endl;
+        else
+            cout << "Key " << key_sig.read() << " NOT found." << endl;
+    }
+
+    // Constructor to register the process and connect signals
+    SC_CTOR(Testbench) : searcher("searcher") {
+        // Connecting signals to the searcher ports
+        searcher.key_in(key_sig);
+        searcher.result_out(result_sig);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    LinearSearch ls("ls");
-    sc_signal<sc_uint<8>> key;
-    sc_signal<bool> start_search;
-    sc_signal<sc_int<8>> result;
-    sc_vector<sc_signal<sc_uint<8>>> vec("vec", 8);
-
-    ls.key(key);
-    ls.start_search(start_search);
-    ls.result(result);
-    for (int i = 0; i < 8; i++) {
-        ls.vec[i](vec[i]);
-    }
-
-    // Initialize vector values
-    vec[0].write(1);
-    vec[1].write(2);
-    vec[2].write(3);
-    vec[3].write(4);
-    vec[4].write(5);
-    vec[5].write(8);
-    vec[6].write(9);
-    vec[7].write(11);
-
-    // Set key to search
-    key.write(8);
-    start_search.write(false);
-    sc_start(1, SC_NS);  // Wait for one cycle
-
-    // Start search
-    start_search.write(true);
-    sc_start(1, SC_NS);  // Wait for one cycle
-
-    // Print result
-    if (result.read() != -1)
-        cout << key.read() << " Found at Position: " << result.read() << endl;
-    else
-        cout << key.read() << " NOT found." << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
 #### Explanation of SystemC Code
 
-- **Module Definition**:
-  - `LinearSearch` module is defined with input ports for the key and start signal, an output port for the result, and a vector of input ports for the elements of the vector.
-  
-- **Constructor**:
-  - Initializes the vector size to 8.
-  - Registers the `search` method to be sensitive to the positive edge of the `start_search` signal.
+- **LinearSearchModule**: This module performs the linear search operation.
+  - It has an input port `key_in` to receive the key to be searched.
+  - It has an output port `result_out` to send the result (position or `-1` if not found).
+  - The internal vector `v` holds the data to be searched.
+  - The method `performSearch` reads the key, performs the linear search, and writes the result to `result_out`.
+  - The constructor initializes the vector `v` and registers the `performSearch` method to be sensitive to changes in `key_in`.
 
-- **Search Method**:
-  - When `start_search` is true, it performs a linear search on the input vector.
-  - Iterates through each element, checking if it matches the `key`.
-  - If a match is found, it sets the position and breaks out of the loop.
-  - Writes the result (either the position or `-1`) to the `result` port.
+- **Testbench**: This module drives the inputs and captures the outputs.
+  - It has signals `key_sig` and `result_sig` to connect with the `LinearSearchModule`.
+  - It creates an instance of `LinearSearchModule`.
+  - The method `driveAndPrint` initializes the key, waits for the search to complete, and prints the result.
+  - The constructor connects the signals to the module's ports and registers the `driveAndPrint` thread.
 
-- **Main Function**:
-  - Instantiates the `LinearSearch` module and connects signals.
-  - Initializes the vector values and sets the key to search.
-  - Starts the simulation by toggling the `start_search` signal.
-  - Reads and prints the result from the `result` port after the search is completed.
+This SystemC code accurately replicates the behavior of the original C++/C linear search program, suitable for use in a high-level synthesis flow.

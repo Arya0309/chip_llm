@@ -1,79 +1,76 @@
 
 #include <systemc.h>
 
-// Module to calculate area and perimeter
+// Module to calculate area and perimeter of a rectangle
 SC_MODULE(RectangleCalculator) {
-    // Constructor
-    SC_CTOR(RectangleCalculator) {
-        // Process sensitivity declaration
-        SC_METHOD(calculate);
-        sensitive << start;
-        dont_initialize();
+    // Input ports for dimensions of the rectangle
+    sc_in<int> length;
+    sc_in<int> width;
+    
+    // Output ports for area and perimeter
+    sc_out<int> area;
+    sc_out<int> perimeter;
+
+    // Process to calculate area and perimeter
+    void calculate() {
+        // Reading inputs
+        int l = length.read();
+        int w = width.read();
+
+        // Calculating area and perimeter
+        int calculated_area = l * w;
+        int calculated_perimeter = 2 * (l + w);
+
+        // Writing outputs
+        area.write(calculated_area);
+        perimeter.write(calculated_perimeter);
     }
 
-    // Input signals
-    sc_in<bool> start;          // Start signal to trigger calculation
-    sc_in<int> length;           // Length of the rectangle
-    sc_in<int> width;            // Width of the rectangle
-    
-    // Output signals
-    sc_out<int> area;            // Calculated area
-    sc_out<int> perimeter;      // Calculated perimeter
-
-    // Method to perform calculations
-    void calculate() {
-        int a = length.read();
-        int b = width.read();
-        area.write(a * b);                    // Calculate and write area
-        perimeter.write(2 * (a + b));         // Calculate and write perimeter
+    // Constructor to register the process
+    SC_CTOR(RectangleCalculator) {
+        SC_METHOD(calculate);
+        sensitive << length << width;
     }
 };
 
-// Top module
-SC_MODULE(Top) {
-    // Signals
-    sc_signal<bool> start;
-    sc_signal<int> length;
-    sc_signal<int> width;
-    sc_signal<int> area;
-    sc_signal<int> perimeter;
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with RectangleCalculator
+    sc_signal<int> length, width;
+    sc_signal<int> calculated_area, calculated_perimeter;
 
-    // Instantiate RectangleCalculator module
+    // Instance of RectangleCalculator
     RectangleCalculator rect_calc;
 
-    // Constructor
-    SC_CTOR(Top) : rect_calc("rect_calc") {
-        // Connect signals
-        rect_calc.start(start);
-        rect_calc.length(length);
-        rect_calc.width(width);
-        rect_calc.area(area);
-        rect_calc.perimeter(perimeter);
-
-        // Process to drive the signals
-        SC_THREAD(drive);
-    }
-
-    // Thread to drive the signals
-    void drive() {
-        // Initialize dimensions
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing dimensions of the rectangle
         length = 5;
         width = 6;
-        wait(1, SC_NS); // Wait for 1 nanosecond to ensure everything is set up
 
-        // Trigger calculation
-        start = true;
-        wait(1, SC_NS); // Wait for 1 nanosecond to allow calculation to complete
+        // Wait for one delta cycle to let the calculator process
+        wait(1, SC_NS);
 
-        // Print results
-        cout << "Area = " << area.read() << endl;
-        cout << "Perimeter = " << perimeter.read() << endl;
+        // Print the results
+        cout << "Area = " << calculated_area.read() << endl;
+        cout << "Perimeter = " << calculated_perimeter.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : rect_calc("rect_calc") {
+        // Connecting signals to the calculator ports
+        rect_calc.length(length);
+        rect_calc.width(width);
+        rect_calc.area(calculated_area);
+        rect_calc.perimeter(calculated_perimeter);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
-// Simulation entry point
 int sc_main(int argc, char* argv[]) {
-    Top top("top");
-    sc_start(); // Run simulation
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

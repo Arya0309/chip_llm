@@ -1,51 +1,82 @@
 
 #include <systemc.h>
+#include <string>
 
+// Module to convert hexadecimal to decimal
 SC_MODULE(HexToDecConverter) {
-    sc_in<sc_bv<8>> hex_in;  // Input port for hexadecimal value (up to 2 characters)
-    sc_out<int> dec_out;     // Output port for decimal value
+    // Input port for hexadecimal string
+    sc_in<std::string> hex_input;
+    
+    // Output port for decimal value
+    sc_out<int> dec_output;
 
-    void convert() {
-        std::string hexStr = hex_in.read().to_string();
-        int len = hexStr.size();
+    // Internal signal to store the decimal value
+    sc_signal<int> dec_value;
+
+    // Process to perform hexadecimal to decimal conversion
+    void convertHexToDec() {
+        std::string hexVal = hex_input.read();
+        int len = hexVal.size();
         int base = 1;
         int dec_val = 0;
 
-        // Process each character from the end to the start
+        // Conversion logic similar to the C++ code
         for (int i = len - 1; i >= 0; i--) {
-            if (hexStr[i] >= '0' && hexStr[i] <= '9') {
-                dec_val += (int(hexStr[i]) - 48) * base;
-                base *= 16;
-            } else if (hexStr[i] >= 'A' && hexStr[i] <= 'F') {
-                dec_val += (int(hexStr[i]) - 55) * base;
-                base *= 16;
+            if (hexVal[i] >= '0' && hexVal[i] <= '9') {
+                dec_val += (int(hexVal[i]) - 48) * base;
+                base = base * 16;
+            } else if (hexVal[i] >= 'A' && hexVal[i] <= 'F') {
+                dec_val += (int(hexVal[i]) - 55) * base;
+                base = base * 16;
             }
         }
 
-        dec_out.write(dec_val);
+        // Write the result to the output port
+        dec_output.write(dec_val);
     }
 
+    // Constructor to register the process
     SC_CTOR(HexToDecConverter) {
-        SC_METHOD(convert);
-        sensitive << hex_in;
+        SC_METHOD(convertHexToDec);
+        sensitive << hex_input;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with HexToDecConverter
+    sc_signal<std::string> hex_input;
+    sc_signal<int> dec_output;
+
+    // Instance of HexToDecConverter
+    HexToDecConverter converter;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the hexadecimal input
+        hex_input = "1A";
+
+        // Wait for one delta cycle to let the converter process
+        wait(1, SC_NS);
+
+        // Print the results
+        cout << "Hexadecimal input: " << hex_input.read() << endl;
+        cout << "Decimal output: " << dec_output.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : converter("converter") {
+        // Connecting signals to the converter ports
+        converter.hex_input(hex_input);
+        converter.dec_output(dec_output);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    HexToDecConverter converter("converter");
-
-    sc_signal<sc_bv<8>> hex_input;
-    sc_signal<int> dec_output;
-
-    converter.hex_in(hex_input);
-    converter.dec_out(dec_output);
-
-    // Example input
-    hex_input.write(sc_bv<8>("001A"));  // Binary representation of "1A"
-
-    sc_start();
-
-    std::cout << "Hexadecimal 1A is decimal " << dec_output.read() << std::endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

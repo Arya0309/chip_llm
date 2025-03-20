@@ -1,72 +1,79 @@
 
 #include <systemc.h>
 
-SC_MODULE(LinearSearch) {
-    sc_in<sc_uint<8>> key;  // Input key to search
-    sc_in<bool> start_search;  // Signal to start search
-    sc_out<sc_int<8>> result;  // Output result of search (-1 if not found)
-    sc_vector<sc_in<sc_uint<8>>> vec;  // Input vector of integers
+// User Defined Linear Search Module
+SC_MODULE(LinearSearchModule) {
+    // Input port for the key to search
+    sc_in<int> key_in;
 
-    SC_CTOR(LinearSearch) : vec("vec", 8) {  // Constructor initializing vector size
-        SC_METHOD(search);
-        sensitive << start_search.pos();
+    // Output port for the result (position or -1 if not found)
+    sc_out<int> result_out;
+
+    // Internal vector to hold the data
+    std::vector<int> v;
+
+    // Process to perform linear search
+    void performSearch() {
+        int key = key_in.read();
+        int result = -1;
+
+        // Perform linear search
+        for (int i = 0; i < v.size(); i++) {
+            if (v[i] == key) {
+                result = i + 1; // Convert to 1-based index
+                break;
+            }
+        }
+
+        // Write the result to the output port
+        result_out.write(result);
     }
 
-    void search() {
-        if (start_search.read()) {
-            bool found = false;
-            int pos = -1;
-            for (int i = 0; i < vec.size(); i++) {
-                if (vec[i].read() == key.read()) {
-                    pos = i + 1;  // Convert to 1-based index
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) pos = -1;
-            result.write(pos);
-        }
+    // Constructor to initialize the vector and register the process
+    SC_CTOR(LinearSearchModule) : v({1, 2, 3, 4, 5, 8, 9, 11}) {
+        SC_METHOD(performSearch);
+        sensitive << key_in;
+    }
+};
+
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signal to connect with LinearSearchModule
+    sc_signal<int> key_sig;
+    sc_signal<int> result_sig;
+
+    // Instance of LinearSearchModule
+    LinearSearchModule searcher;
+
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initialize the key to search
+        key_sig = 8;
+
+        // Wait for one delta cycle to let the search process
+        wait(1, SC_NS);
+
+        // Print the result
+        int result = result_sig.read();
+        if (result != -1)
+            cout << "Key " << key_sig.read() << " Found at Position: " << result << endl;
+        else
+            cout << "Key " << key_sig.read() << " NOT found." << endl;
+    }
+
+    // Constructor to register the process and connect signals
+    SC_CTOR(Testbench) : searcher("searcher") {
+        // Connecting signals to the searcher ports
+        searcher.key_in(key_sig);
+        searcher.result_out(result_sig);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    LinearSearch ls("ls");
-    sc_signal<sc_uint<8>> key;
-    sc_signal<bool> start_search;
-    sc_signal<sc_int<8>> result;
-    sc_vector<sc_signal<sc_uint<8>>> vec("vec", 8);
-
-    ls.key(key);
-    ls.start_search(start_search);
-    ls.result(result);
-    for (int i = 0; i < 8; i++) {
-        ls.vec[i](vec[i]);
-    }
-
-    // Initialize vector values
-    vec[0].write(1);
-    vec[1].write(2);
-    vec[2].write(3);
-    vec[3].write(4);
-    vec[4].write(5);
-    vec[5].write(8);
-    vec[6].write(9);
-    vec[7].write(11);
-
-    // Set key to search
-    key.write(8);
-    start_search.write(false);
-    sc_start(1, SC_NS);  // Wait for one cycle
-
-    // Start search
-    start_search.write(true);
-    sc_start(1, SC_NS);  // Wait for one cycle
-
-    // Print result
-    if (result.read() != -1)
-        cout << key.read() << " Found at Position: " << result.read() << endl;
-    else
-        cout << key.read() << " NOT found." << endl;
-
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }

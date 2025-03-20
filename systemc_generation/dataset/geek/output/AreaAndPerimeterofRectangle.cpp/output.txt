@@ -1,164 +1,111 @@
 
 ### Analysis of Provided C++/C Code
 
-#### Inputs and Outputs
-- **Inputs**: 
-  - The dimensions of the rectangle, `a` and `b`, are hardcoded in the `main` function with values 5 and 6, respectively.
-- **Outputs**: 
-  - The program calculates and prints the area and perimeter of the rectangle.
+#### Inputs and Outputs:
+- **Inputs**: Two integers `a` and `b` representing the length and width of a rectangle.
+- **Outputs**: Two integers, the area and perimeter of the rectangle.
 
-#### Line-by-Line/Block-by-Block Explanation
-1. **Include Directive**:
-   ```cpp
-   #include<iostream>
-   ```
-   - This includes the standard input-output stream library, which is necessary for using `cout` to print to the console.
-
-2. **Namespace Declaration**:
-   ```cpp
-   using namespace std;
-   ```
-   - This allows us to use standard library names without prefixing them with `std::`.
-
-3. **Utility Function for Area Calculation**:
-   ```cpp
-   int areaRectangle(int a, int b)
-   {
-       int area = a * b;
-       return area;
-   }
-   ```
-   - This function takes two integer parameters `a` and `b`, representing the length and width of the rectangle.
-   - It calculates the area by multiplying `a` and `b`.
-   - The calculated area is returned as an integer.
-
-4. **Utility Function for Perimeter Calculation**:
-   ```cpp
-   int perimeterRectangle(int a, int b)
-   {
-       int perimeter = 2*(a + b);
-       return perimeter;
-   }
-   ```
-   - Similar to the area function, this function takes two integer parameters `a` and `b`.
-   - It calculates the perimeter using the formula \(2 \times (\text{length} + \text{width})\).
-   - The calculated perimeter is returned as an integer.
-
-5. **Main Function**:
-   ```cpp
-   int main()
-   {
-       int a = 5;
-       int b = 6;
-       cout << "Area = " << areaRectangle(a, b) << endl;
-       cout << "Perimeter = " << perimeterRectangle(a, b);
-       return 0;
-   }
-   ```
-   - The `main` function initializes two integer variables `a` and `b` with the values 5 and 6, respectively.
-   - It calls the `areaRectangle` function with `a` and `b` as arguments and prints the result prefixed with "Area = ".
-   - It then calls the `perimeterRectangle` function with `a` and `b` as arguments and prints the result prefixed with "Perimeter = ".
-   - Finally, it returns 0, indicating successful execution.
+#### Line-by-Line Explanation:
+1. `#include<iostream>`: Includes the input-output stream library for using `std::cout`.
+2. `using namespace std;`: Allows us to use standard library names without prefixing them with `std::`.
+3. `int areaRectangle(int a, int b)`: Declares a function `areaRectangle` which takes two integer parameters `a` and `b` and returns their product, representing the area of a rectangle.
+   - `int area = a * b;`: Computes the area by multiplying `a` and `b`.
+   - `return area;`: Returns the computed area.
+4. `int perimeterRectangle(int a, int b)`: Declares a function `perimeterRectangle` which takes two integer parameters `a` and `b` and returns the perimeter of the rectangle.
+   - `int perimeter = 2*(a + b);`: Computes the perimeter by adding `a` and `b` and then multiplying the result by 2.
+   - `return perimeter;`: Returns the computed perimeter.
+5. `int main()`: The main function where the execution of the program begins.
+   - `int a = 5;`: Initializes variable `a` with the value 5.
+   - `int b = 6;`: Initializes variable `b` with the value 6.
+   - `cout << "Area = " << areaRectangle(a, b) << endl;`: Calls `areaRectangle` with `a` and `b` as arguments, prints the returned area followed by a newline.
+   - `cout << "Perimeter = " << perimeterRectangle(a, b);`: Calls `perimeterRectangle` with `a` and `b` as arguments, prints the returned perimeter.
+   - `return 0;`: Ends the main function indicating successful completion.
 
 ### Equivalent SystemC Code
 
-Below is the SystemC code snippet that replicates the behavior of the original C++/C code:
+Below is the SystemC code snippet that replicates the logic of the provided C++/C code:
 
 ```cpp
 #include <systemc.h>
 
-// Module to calculate area and perimeter
+// Module to calculate area and perimeter of a rectangle
 SC_MODULE(RectangleCalculator) {
-    // Constructor
-    SC_CTOR(RectangleCalculator) {
-        // Process sensitivity declaration
-        SC_METHOD(calculate);
-        sensitive << start;
-        dont_initialize();
+    // Input ports for dimensions of the rectangle
+    sc_in<int> length;
+    sc_in<int> width;
+    
+    // Output ports for area and perimeter
+    sc_out<int> area;
+    sc_out<int> perimeter;
+
+    // Process to calculate area and perimeter
+    void calculate() {
+        // Reading inputs
+        int l = length.read();
+        int w = width.read();
+
+        // Calculating area and perimeter
+        int calculated_area = l * w;
+        int calculated_perimeter = 2 * (l + w);
+
+        // Writing outputs
+        area.write(calculated_area);
+        perimeter.write(calculated_perimeter);
     }
 
-    // Input signals
-    sc_in<bool> start;          // Start signal to trigger calculation
-    sc_in<int> length;           // Length of the rectangle
-    sc_in<int> width;            // Width of the rectangle
-    
-    // Output signals
-    sc_out<int> area;            // Calculated area
-    sc_out<int> perimeter;      // Calculated perimeter
-
-    // Method to perform calculations
-    void calculate() {
-        int a = length.read();
-        int b = width.read();
-        area.write(a * b);                    // Calculate and write area
-        perimeter.write(2 * (a + b));         // Calculate and write perimeter
+    // Constructor to register the process
+    SC_CTOR(RectangleCalculator) {
+        SC_METHOD(calculate);
+        sensitive << length << width;
     }
 };
 
-// Top module
-SC_MODULE(Top) {
-    // Signals
-    sc_signal<bool> start;
-    sc_signal<int> length;
-    sc_signal<int> width;
-    sc_signal<int> area;
-    sc_signal<int> perimeter;
+// Testbench module to drive inputs and capture outputs
+SC_MODULE(Testbench) {
+    // Signals to connect with RectangleCalculator
+    sc_signal<int> length, width;
+    sc_signal<int> calculated_area, calculated_perimeter;
 
-    // Instantiate RectangleCalculator module
+    // Instance of RectangleCalculator
     RectangleCalculator rect_calc;
 
-    // Constructor
-    SC_CTOR(Top) : rect_calc("rect_calc") {
-        // Connect signals
-        rect_calc.start(start);
-        rect_calc.length(length);
-        rect_calc.width(width);
-        rect_calc.area(area);
-        rect_calc.perimeter(perimeter);
-
-        // Process to drive the signals
-        SC_THREAD(drive);
-    }
-
-    // Thread to drive the signals
-    void drive() {
-        // Initialize dimensions
+    // Process to drive inputs and print outputs
+    void driveAndPrint() {
+        // Initializing dimensions of the rectangle
         length = 5;
         width = 6;
-        wait(1, SC_NS); // Wait for 1 nanosecond to ensure everything is set up
 
-        // Trigger calculation
-        start = true;
-        wait(1, SC_NS); // Wait for 1 nanosecond to allow calculation to complete
+        // Wait for one delta cycle to let the calculator process
+        wait(1, SC_NS);
 
-        // Print results
-        cout << "Area = " << area.read() << endl;
-        cout << "Perimeter = " << perimeter.read() << endl;
+        // Print the results
+        cout << "Area = " << calculated_area.read() << endl;
+        cout << "Perimeter = " << calculated_perimeter.read() << endl;
+    }
+
+    // Constructor to register the process
+    SC_CTOR(Testbench) : rect_calc("rect_calc") {
+        // Connecting signals to the calculator ports
+        rect_calc.length(length);
+        rect_calc.width(width);
+        rect_calc.area(calculated_area);
+        rect_calc.perimeter(calculated_perimeter);
+
+        // Registering the driveAndPrint process
+        SC_THREAD(driveAndPrint);
     }
 };
 
-// Simulation entry point
 int sc_main(int argc, char* argv[]) {
-    Top top("top");
-    sc_start(); // Run simulation
+    Testbench tb("tb");
+    sc_start(); // Start simulation
     return 0;
 }
 ```
 
-#### Explanation of SystemC Code
-- **RectangleCalculator Module**: 
-  - This module encapsulates the logic for calculating the area and perimeter of a rectangle.
-  - It has input signals for the start command, length, and width of the rectangle.
-  - It has output signals for the calculated area and perimeter.
-  - The `calculate` method reads the length and width, computes the area and perimeter, and writes these values to the respective output signals.
+#### Explanation of SystemC Code:
+- **RectangleCalculator Module**: This module calculates the area and perimeter of a rectangle. It has two input ports (`length` and `width`) and two output ports (`area` and `perimeter`). The `calculate` method reads the dimensions, computes the area and perimeter, and writes the results to the respective output ports.
+- **Testbench Module**: This module initializes the dimensions of the rectangle, drives these values to the `RectangleCalculator`, and prints the calculated area and perimeter. It uses a thread (`driveAndPrint`) to perform these operations.
+- **sc_main Function**: This is the entry point of the SystemC simulation. It instantiates the `Testbench` and starts the simulation.
 
-- **Top Module**:
-  - This module instantiates the `RectangleCalculator` module and drives the necessary signals.
-  - It initializes the length and width of the rectangle.
-  - It triggers the calculation by setting the `start` signal.
-  - After the calculation, it reads and prints the area and perimeter from the output signals.
-
-- **Simulation Entry Point (`sc_main`)**:
-  - This function creates an instance of the `Top` module and starts the simulation.
-
-This SystemC code effectively captures the logic of the original C++/C code while adhering to SystemC's modular and event-driven architecture.
+This SystemC code accurately mirrors the functionality of the original C++/C code, making it suitable for high-level synthesis flows.
