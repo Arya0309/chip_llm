@@ -2,9 +2,13 @@ import os
 import torch
 import re
 import examples
+import pandas as pd
 from tqdm import tqdm
 import time
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from torch.nn.utils.rnn import pad_sequence
+
+current_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 def construct_prompt(code: str) -> str:
@@ -32,15 +36,25 @@ def construct_prompt(code: str) -> str:
 - After the summary, generate SystemC code that reflects the same behavior.
 - Provide the SystemC code in a compilable snippet, for example:
 
+### Example 1:
 ```
 {FEW_SHOT_EXAMPLE_1}
+```
+
+### Example 2:
+```
+{FEW_SHOT_EXAMPLE_2}
 ```
 
 Ensure that the SystemC code you provide faithfully captures the logic of the original C++/C source.
 Make the explanation thorough and accessible.
 """
 
-    prompt = prompt.format(CODE=code, FEW_SHOT_EXAMPLE_1=examples.structure_examples_1)
+    prompt = prompt.format(
+        CODE=code,
+        FEW_SHOT_EXAMPLE_1=examples.structure_examples_1,
+        FEW_SHOT_EXAMPLE_2=examples.structure_examples_2,
+    )
 
     messages = [
         {
@@ -53,20 +67,62 @@ Make the explanation thorough and accessible.
     return messages
 
 
-def generate_systemc(code: str, model=None, tokenizer=None, max_new_tokens=4096) -> str:
-    prompt = construct_prompt(code)
-    input = tokenizer.apply_chat_template(
-        prompt, tokenize=False, add_generation_prompt=True
-    )
-    input = tokenizer(input, return_tensors="pt", padding=True, truncation=True).to(
-        next(model.parameters()).device
-    )
-    print("Processing...")
-    with torch.no_grad():
-        output = model.generate(**input, max_new_tokens=max_new_tokens)
-    summary = tokenizer.decode(output[0], skip_special_tokens=False)
+def generate_systemc(
+    dataset: str, model=None, tokenizer=None, max_new_tokens=4096, batch_size=8
+) -> None:
+    data_dir = os.path.join(current_dir, "dataset", dataset)
+    df = pd.DataFrame(columns=["filename", "prompt", "input", "respond", "output_code"])
+    for filename in tqdm(
+        os.listdir(os.path.join(data_dir, "data")),
+        desc="Generating embeddings",
+    ):
+        code_path = os.path.join(data_dir, "data", filename)
+        with open(code_path, "r") as f:
+            code = f.read()
+        prompt = construct_prompt(code)
+        input = tokenizer.apply_chat_template(
+            prompt, tokenize=False, add_generation_prompt=True
+        )
+        input = tokenizer(input, return_tensors="pt", padding=True, truncation=True).to(
+            next(model.parameters()).device
+        )
+        df = df._append(
+            {"filename": filename.split(".")[0], "prompt": prompt, "input": input},
+            ignore_index=True,
+        )
 
-    return response_extractor(summary)
+    def collate_inputs(input_series):
+        # 假設所有字典具有相同的鍵
+        keys = input_series.iloc[0].keys()
+        collated = {}
+        for key in keys:
+            # 先 squeeze 移除第一個維度，再進行 padding
+            collated[key] = pad_sequence(
+                [d[key].squeeze(0) for d in input_series],
+                batch_first=True,
+            )
+        return collated
+
+    for i in tqdm(range(0, len(df), batch_size), desc="Generating responses"):
+        batch = df[i : i + batch_size]
+        # 將 Series 合併成一個單一的字典
+        batch_inputs = collate_inputs(batch["input"])
+        with torch.no_grad():
+            output = model.generate(**batch_inputs, max_new_tokens=max_new_tokens)
+        for j in range(len(batch)):
+            decoded_output = tokenizer.decode(output[j], skip_special_tokens=False)
+            df.loc[i + j, "respond"] = response_extractor(decoded_output)
+            df.loc[i + j, "output_code"] = code_extractor(decoded_output)
+
+    for i, row in tqdm(df.iterrows(), desc="Writing output files"):
+        filename = row["filename"]
+        output_dir = os.path.join(data_dir, "output", filename)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        with open(os.path.join(data_dir, "output", filename, "main.cpp"), "w") as f:
+            f.write(row["output_code"])
+        with open(os.path.join(data_dir, "output", filename, "response.txt"), "w") as f:
+            f.write(row["respond"])
 
 
 def response_extractor(response: str) -> str:
@@ -102,42 +158,6 @@ if __name__ == "__main__":
         device_map="auto",
     )
 
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    # dataset = os.path.join(current_dir, "dataset", "geek")
-
-    # os.makedirs(os.path.join(dataset, "output"), exist_ok=True)
-
-    # start = time.time()
-
-    # for filename in tqdm(os.listdir(dataset)):
-    #     try:
-    #         code_path = os.path.join(dataset, filename)
-    #         with open(code_path, "r") as f:
-    #             code = f.read()
-
-    #         output = generate_systemc(code, model=model, tokenizer=tokenizer)
-    #         code = code_extractor(output)
-    #         os.makedirs(os.path.join(dataset, "output", f"{filename}"), exist_ok=True)
-    #         output_path = os.path.join(dataset, "output", f"{filename}")
-    #         with open(os.path.join(output_path, "output.txt"), "w") as f:
-    #             f.write(output)
-    #         with open(os.path.join(output_path, "main.cpp"), "w") as f:
-    #             f.write(code)
-    #         print(f"Processed: {filename}")
-    #     except Exception as e:
-    #         print(f"Error processing: {filename}")
-
-    # end = time.time()
-    # print(f"Time taken: {end - start}")
-
-    dataset = os.path.join(current_dir, "dataset")
-    code_path = os.path.join(dataset, "bubble_sort", "bubble_sort.cpp")
-
-    with open(code_path, "r") as f:
-        code = f.read()
-
-    output = generate_systemc(code, model=model, tokenizer=tokenizer)
-    print(output)
-
-    # with open(os.path.join(dataset, "output.txt"), "w") as f:
-    #     f.write(output)
+    generate_systemc(
+        "geek", model=model, tokenizer=tokenizer, max_new_tokens=4096, batch_size=16
+    )

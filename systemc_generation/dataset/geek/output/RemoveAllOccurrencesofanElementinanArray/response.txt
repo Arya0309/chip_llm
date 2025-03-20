@@ -1,0 +1,182 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!read and thoroughly analyze the provided C++/C code.
+
+### Inputs and Outputs:
+- **Inputs**:
+  - `arr[]`: An integer array containing elements.
+  - `target`: An integer value whose occurrences need to be removed from the array.
+  - `n`: The size of the input array `arr[]`.
+  
+- **Outputs**:
+  - The function prints a new array where all occurrences of `target` have been removed.
+
+### Line-by-Line or Block-by-Block Explanation:
+1. **Function Definition**:
+   ```cpp
+   void remove_all_occurrence(int arr[], int target, int n)
+   ```
+   - This function takes an array `arr`, a `target` integer, and the size `n` of the array as arguments. It removes all occurrences of `target` from `arr`.
+
+2. **Counting Occurrences**:
+   ```cpp
+   int cnt = 0;
+   for(int i = 0; i < n; i++) {
+       if(arr[i] == target) 
+           cnt++;
+   }
+   ```
+   - A variable `cnt` is initialized to count the number of times `target` appears in `arr`. The loop iterates through each element of `arr` and increments `cnt` whenever it finds an element equal to `target`.
+
+3. **Creating a New Array**:
+   ```cpp
+   int new_arr[n - cnt];
+   int ind = 0;
+   for(int i = 0; i < n; i++) {
+       if(arr[i] != target) {
+           new_arr[ind] = arr[i];
+           ind++;
+       }
+   }
+   ```
+   - A new array `new_arr` is created with a size of `n - cnt`, which is the size of `arr` minus the number of `target` elements. The loop then iterates through `arr` again, copying only the elements that are not equal to `target` into `new_arr`.
+
+4. **Printing the New Array**:
+   ```cpp
+   int m = (sizeof(new_arr) / sizeof(new_arr[0]));
+   for(int i = 0; i < m; i++) {
+       cout << new_arr[i] << " "; 
+   }
+   ```
+   - The size of `new_arr` is calculated using `sizeof` operations, and a loop prints each element of `new_arr`.
+
+5. **Driver Code**:
+   ```cpp
+   int main() {
+       int arr[]={1, 4, 3, 6, 8, 3, 9, 10, 3, 3, 7};
+       int target = 3;
+       int n = (sizeof(arr) / sizeof(arr[0]));
+       remove_all_occurrence(arr, target, n);
+       return 0;
+   }
+   ```
+   - The `main` function initializes an array `arr`, sets `target` to `3`, calculates the size `n` of `arr`, and calls `remove_all_occurrence` to print the modified array.
+
+### Equivalent SystemC Code Snippet:
+Below is the equivalent SystemC code that performs the same operation as the provided C++ code. This code defines a module that removes all occurrences of a target element from an array and prints the resulting array.
+
+```cpp
+#include <systemc.h>
+#include <vector>
+#include <iostream>
+
+// Module to remove all occurrences of a target element from an array
+SC_MODULE(RemoveOccurrences) {
+    sc_in<sc_uint<32>> target; // Target element to remove
+    sc_in<sc_uint<32>> arr_size; // Size of the input array
+    sc_vector<sc_in<sc_uint<32>>> arr; // Input array
+    sc_out<sc_vector<sc_uint<32>>> result; // Resulting array without target elements
+
+    // Constructor
+    SC_CTOR(RemoveOccurrences) : arr("arr", arr_size), result("result", arr_size) {
+        // Process to remove occurrences
+        SC_METHOD(remove_occurrences);
+        sensitive << arr_size;
+    }
+
+    // Method to remove occurrences of target from array
+    void remove_occurrences() {
+        std::vector<sc_uint<32>> new_arr;
+        int cnt = 0;
+
+        // Count occurrences of target
+        for (int i = 0; i < arr_size.read(); i++) {
+            if (arr[i].read() == target.read()) {
+                cnt++;
+            }
+        }
+
+        // Create new array without target elements
+        new_arr.resize(arr_size.read() - cnt);
+        int ind = 0;
+        for (int i = 0; i < arr_size.read(); i++) {
+            if (arr[i].read() != target.read()) {
+                new_arr[ind++] = arr[i].read();
+            }
+        }
+
+        // Write result to output vector
+        for (int i = 0; i < new_arr.size(); i++) {
+            result[i].write(new_arr[i]);
+        }
+
+        // Print the new array
+        for (int i = 0; i < new_arr.size(); i++) {
+            std::cout << new_arr[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_signal<sc_uint<32>> target; // Target element to remove
+    sc_signal<sc_uint<32>> arr_size; // Size of the input array
+    sc_vector<sc_signal<sc_uint<32>>> arr; // Input array
+    sc_vector<sc_signal<sc_uint<32>>> result; // Resulting array without target elements
+
+    RemoveOccurrences remove_occurrences_inst; // Instance of the RemoveOccurrences module
+
+    // Constructor
+    SC_CTOR(Testbench) : arr("arr", arr_size), result("result", arr_size),
+                         remove_occurrences_inst("remove_occurrences_inst") {
+        // Connect signals to ports
+        remove_occurrences_inst.target(target);
+        remove_occurrences_inst.arr_size(arr_size);
+        for (int i = 0; i < arr_size.read(); i++) {
+            remove_occurrences_inst.arr[i](arr[i]);
+            remove_occurrences_inst.result[i](result[i]);
+        }
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Initialize the array and target
+        arr_size.write(11);
+        arr[0].write(1);
+        arr[1].write(4);
+        arr[2].write(3);
+        arr[3].write(6);
+        arr[4].write(8);
+        arr[5].write(3);
+        arr[6].write(9);
+        arr[7].write(10);
+        arr[8].write(3);
+        arr[9].write(3);
+        arr[10].write(7);
+        target.write(3);
+
+        // Wait for the process to complete
+        wait(1, SC_NS);
+
+        // Stop the simulation
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+- **RemoveOccurrences Module**: This module takes an input array, a target element, and the size of the array. It processes the array to remove all occurrences of the target element and outputs the resulting array.
+- **Testbench Module**: This module initializes the input array and target element, connects them to the `RemoveOccurrences` module, and runs the simulation.
+- **Simulation Flow**: The `run_tests` thread in the testbench initializes the array and target, waits for the `RemoveOccurrences` module to process the array, and then stops the simulation. The `RemoveOccurrences` module prints the resulting array after removing the target elements.

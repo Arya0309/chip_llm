@@ -1,136 +1,163 @@
 structure_examples_1 = """
 #include <systemc.h>
 
-// User Defined Complex module
-SC_MODULE(ComplexAdder) {
-    // Input ports for real and imaginary parts of two complex numbers
-    sc_in<int> real1, imag1; // For C1
-    sc_in<int> real2, imag2; // For C2
-    
-    // Output ports for real and imaginary parts of the sum
-    sc_out<int> realSum, imagSum;
+// Module that adds two natural numbers
+SC_MODULE(Adder) {
+    sc_in<unsigned int> a;  // Input port for the first number
+    sc_in<unsigned int> b;  // Input port for the second number
+    sc_out<unsigned int> sum; // Output port for the sum
 
-    // Process to add two complex numbers
-    void addComplexNumbers() {
-        // Reading inputs
-        int r1 = real1.read();
-        int i1 = imag1.read();
-        int r2 = real2.read();
-        int i2 = imag2.read();
-
-        // Calculating the sum of real and imaginary parts
-        int sumReal = r1 + r2;
-        int sumImag = i1 + i2;
-
-        // Writing outputs
-        realSum.write(sumReal);
-        imagSum.write(sumImag);
+    // Constructor
+    SC_CTOR(Adder) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << a << b;
     }
 
-    // Constructor to register the process
-    SC_CTOR(ComplexAdder) {
-        SC_METHOD(addComplexNumbers);
-        sensitive << real1 << imag1 << real2 << imag2;
+    // Method to add the two numbers
+    void add() {
+        sum.write(a.read() + b.read());
     }
 };
 
-// Testbench module to drive inputs and capture outputs
+// Testbench module
 SC_MODULE(Testbench) {
-    // Signals to connect with ComplexAdder
-    sc_signal<int> real1, imag1; // For C1
-    sc_signal<int> real2, imag2; // For C2
-    sc_signal<int> realSum, imagSum;
+    sc_signal<unsigned int> a; // Signal for the first number
+    sc_signal<unsigned int> b; // Signal for the second number
+    sc_signal<unsigned int> sum; // Signal for the sum
 
-    // Instance of ComplexAdder
-    ComplexAdder adder;
+    Adder adder_inst; // Instance of the Adder module
 
-    // Process to drive inputs and print outputs
-    void driveAndPrint() {
-        // Initializing Complex numbers
-        real1 = 3; imag1 = 2;
-        real2 = 9; imag2 = 5;
+    // Constructor
+    SC_CTOR(Testbench) : adder_inst("adder") {
+        // Connect signals to ports
+        adder_inst.a(a);
+        adder_inst.b(b);
+        adder_inst.sum(sum);
 
-        // Wait for one delta cycle to let the adder process
-        wait(1, SC_NS);
-
-        // Print the results
-        cout << "Complex number 1 : " << real1.read() << " + i" << imag1.read() << endl;
-        cout << "Complex number 2 : " << real2.read() << " + i" << imag2.read() << endl;
-        cout << "Sum of complex number : " << realSum.read() << " + i" << imagSum.read() << endl;
+        // Process to run tests
+        SC_THREAD(run_tests);
     }
 
-    // Constructor to register the process
-    SC_CTOR(Testbench) : adder("adder") {
-        // Connecting signals to the adder ports
-        adder.real1(real1); adder.imag1(imag1);
-        adder.real2(real2); adder.imag2(imag2);
-        adder.realSum(realSum); adder.imagSum(imagSum);
+    // Thread to run test cases
+    void run_tests() {
+        // Test case 1: Adding zero values
+        // a = 0; b = 0;
+        // wait(1, SC_NS); // Wait for the adder to process
+        // assert(sum.read() == 0);
+        // cout << sum.read() << endl; 
 
-        // Registering the driveAndPrint process
-        SC_THREAD(driveAndPrint);
+        // Test case 2: Simple addition
+        a = 1; b = 2;
+        wait(1, SC_NS);
+        assert(sum.read() == 3);
+        cout << sum.read() << endl;
+
+        // Test case 3: Larger numbers
+        a = 100; b = 200;
+        wait(1, SC_NS);
+        assert(sum.read() == 300);
+        cout << sum.read() << endl;
+
+        // Additional test case: One operand is zero
+        a = 0; b = 5;
+        wait(1, SC_NS);
+        assert(sum.read() == 5);
+        cout << sum.read() << endl;
+
+        // Print success message
+        cout << "All tests passed successfully." << endl;
+
+        // User interaction simulation
+        a = 3; b = 7; // Example user input
+        wait(1, SC_NS);
+        cout << "Sum: " << sum.read() << endl;
+
+        sc_stop(); // Stop the simulation
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    Testbench tb("tb");
-    sc_start(); // Start simulation
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
     return 0;
 }"""
 
 structure_examples_2 = """
 #include <systemc.h>
 
-// SystemC module to convert octal to decimal
-SC_MODULE(OctalToDecimalConverter) {
-    sc_in<int> octal_in;  // Input port for octal number
-    sc_out<int> decimal_out;  // Output port for decimal number
+// Module to calculate the GCD of two numbers
+SC_MODULE(GcdCalculator) {
+    // Input ports for two integers
+    sc_in<int> a;
+    sc_in<int> b;
+    // Output port for the result (GCD)
+    sc_out<int> gcd_result;
 
-    void conversion_process() {
-        int num = octal_in.read();
-        int dec_value = 0;
-        int base = 1;
-        int temp = num;
-
-        while (temp) {
-            int last_digit = temp % 10;
-            temp = temp / 10;
-            dec_value += last_digit * base;
-            base = base * 8;
-        }
-
-        decimal_out.write(dec_value);
+    // Constructor: Register the method to compute GCD
+    SC_CTOR(GcdCalculator) {
+        SC_METHOD(compute_gcd);
+        sensitive << a << b;
     }
 
-    SC_CTOR(OctalToDecimalConverter) {
-        SC_METHOD(conversion_process);
-        sensitive << octal_in;
+    // Method to compute the GCD
+    void compute_gcd() {
+        int x = a.read();
+        int y = b.read();
+        int res = (x < y) ? x : y; // Equivalent to min(x, y)
+        
+        // Loop from min(x, y) down to 1
+        while (res > 1) {
+            if ((x % res == 0) && (y % res == 0))
+                break;
+            res--;
+        }
+        gcd_result.write(res);
     }
 };
 
-// Testbench for OctalToDecimalConverter
+// Testbench module
 SC_MODULE(Testbench) {
-    sc_signal<int> octal_signal;
-    sc_signal<int> decimal_signal;
+    sc_signal<int> a_sig;       // Signal for the first input
+    sc_signal<int> b_sig;       // Signal for the second input
+    sc_signal<int> gcd_sig;     // Signal for the GCD output
 
-    OctalToDecimalConverter converter{"converter"};
-    
-    SC_CTOR(Testbench) {
-        converter.octal_in(octal_signal);
-        converter.decimal_out(decimal_signal);
+    // Instance of the GcdCalculator module
+    GcdCalculator gcd_inst;
 
-        SC_THREAD(test_process);
+    // Constructor: Initialize the module and run the test thread
+    SC_CTOR(Testbench)
+    : gcd_inst("gcd_inst") {
+        // Connect signals to module ports
+        gcd_inst.a(a_sig);
+        gcd_inst.b(b_sig);
+        gcd_inst.gcd_result(gcd_sig);
+
+        // Create a test thread to provide stimulus and check the result
+        SC_THREAD(run_tests);
     }
 
-    void test_process() {
-        octal_signal = 67;  // Input octal number
-        wait(1, SC_NS);  // Wait for the conversion process to complete
-        cout << "Octal: 67 -> Decimal: " << decimal_signal.read() << endl;
-        sc_stop();  // Stop the simulation
+    // Thread to run test cases
+    void run_tests() {
+        // Test case: a = 12, b = 16 (expected GCD = 4)
+        a_sig.write(12);
+        b_sig.write(16);
+        wait(1, SC_NS); // Wait for the process to update
+        int result = gcd_sig.read();
+        std::cout << "GCD(" << a_sig.read() << ", " << b_sig.read() << ") = " << result << std::endl;
+        assert(result == 4);
+
+        // End simulation after successful test
+        std::cout << "Test passed successfully." << std::endl;
+        sc_stop();
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    Testbench tb{"tb"};
-    sc_start();  // Start the simulation
+    Testbench tb("tb"); // Instantiate the testbench module
+    sc_start();         // Start the simulation
     return 0;
 }"""

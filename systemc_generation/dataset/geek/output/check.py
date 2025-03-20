@@ -10,14 +10,16 @@ init(autoreset=True)
 
 class GenCodeChecker:
     def __init__(self):
+        # 初始化新統計欄位
         self.table = pd.DataFrame(
-            data=[[0, 0, 0, 0, 0]],
+            data=[[0, 0, 0, 0, 0, 0]],
             columns=[
-                "complete",
-                "uncompilable",
-                "execution_fail",
+                "compilation_success",
+                "compilation_error",
+                "runtime_success",
+                "runtime_error",
+                "unit_test_success",
                 "unit_test_fail",
-                "timeout",
             ],
             dtype=int,
         )
@@ -29,42 +31,72 @@ class GenCodeChecker:
             print(Fore.RED + "Error: directory not exist")
             return False
 
+        # 編譯檢查
         if not self._check_compilable(dir, type):
-            self.table[self.status] += 1
+            # 更新編譯失敗統計
+            self.table["compilation_error"] += 1
             self.recorder.append(
                 {
                     "dir": dir,
                     "compilable": False,
+                    "execution_pass": False,
                     "unit_test_pass": False,
                     "status": self.status,
-                    "error_msg": self.compile_result.stdout,
+                    "error_msg": self.compile_result.stdout.decode("utf-8", "ignore"),
                 }
             )
             return
 
-        if not self._check_unit_test(dir):
-            self.table[self.status] += 1
+        # 編譯成功則更新統計
+        self.table["compilation_success"] += 1
+
+        # 執行及單元測試檢查
+        test_status = self._check_unit_test(dir)
+        if test_status == "runtime_error":
+            self.table["runtime_error"] += 1
             self.recorder.append(
                 {
                     "dir": dir,
                     "compilable": True,
+                    "execution_pass": False,
                     "unit_test_pass": False,
                     "status": self.status,
-                    "error_msg": self.unit_test_result.stdout,
+                    "error_msg": (
+                        self.unit_test_result.stdout.decode("utf-8", "ignore")
+                        if self.unit_test_result
+                        and isinstance(self.unit_test_result.stdout, bytes)
+                        else ""
+                    ),
                 }
             )
-            return
-
-        self.table[self.status] += 1
-        self.recorder.append(
-            {
-                "dir": dir,
-                "compilable": True,
-                "unit_test_pass": True,
-                "status": self.status,
-                "error_msg": self.unit_test_result.stdout,
-            }
-        )
+        elif test_status == "unit_test_fail":
+            # 執行成功但單元測試失敗
+            self.table["runtime_success"] += 1
+            self.table["unit_test_fail"] += 1
+            self.recorder.append(
+                {
+                    "dir": dir,
+                    "compilable": True,
+                    "execution_pass": True,
+                    "unit_test_pass": False,
+                    "status": self.status,
+                    "error_msg": self.unit_test_result.stdout.decode("utf-8", "ignore"),
+                }
+            )
+        elif test_status == "unit_test_success":
+            # 執行與單元測試皆成功
+            self.table["runtime_success"] += 1
+            self.table["unit_test_success"] += 1
+            self.recorder.append(
+                {
+                    "dir": dir,
+                    "compilable": True,
+                    "execution_pass": True,
+                    "unit_test_pass": True,
+                    "status": self.status,
+                    "error_msg": self.unit_test_result.stdout.decode("utf-8", "ignore"),
+                }
+            )
         return
 
     def _check_compilable(self, dir, type: str = "cpp"):
@@ -97,12 +129,13 @@ class GenCodeChecker:
         self.compile_result = result
 
         if result.returncode != 0:
-            print(Fore.RED + "Compilation failed.")
+            print(Fore.RED + "Compilation Error.")
             print(result.stdout.decode("utf-8", "ignore"))
-            self.status = "uncompilable"
+            self.status = "compilation_error"
             return False
         else:
-            print(Fore.GREEN + "Compilation successful!")
+            print(Fore.GREEN + "Compilation Successful!")
+            self.status = "compilation_success"
             return True
 
     def _check_unit_test(self, dir):
@@ -116,30 +149,35 @@ class GenCodeChecker:
             )
             self.unit_test_result = result
         except subprocess.TimeoutExpired as e:
-            result = e
+            # 若超時，將結果記錄為執行失敗
+            self.unit_test_result = e
+            print(Fore.RED + "Timeout during execution.")
+            self.status = "runtime_error"
+            return "runtime_error"
 
-        # 移除main檔案
-        os.remove(os.path.join(dir, "main"))
-
-        if isinstance(result, subprocess.TimeoutExpired):
-            print(Fore.RED + "Timeout.")
-            print(result.stdout.decode("utf-8", "ignore"))
-            self.status = "timeout"
-            return False
-        elif "Error" in result.stdout.decode("utf-8", "ignore"):
-            print(Fore.RED + "Excution failed.")
-            print(result.stdout.decode("utf-8", "ignore"))
-            self.status = "execution_fail"
-            return False
-        elif "fail" in result.stdout.decode("utf-8", "ignore"):
-            print(Fore.RED + "Unit test failed.")
-            print(result.stdout.decode("utf-8", "ignore"))
-            self.status = "unit_test_fail"
-            return False
+        output = result.stdout.decode("utf-8", "ignore")
+        # 檢查是否有執行錯誤
+        if "Error" in output:
+            print(Fore.RED + "Runtime Error.")
+            print(output)
+            self.status = "runtime_error"
+            return "runtime_error"
         else:
-            print(Fore.GREEN + "Unit test successful!")
-            self.status = "complete"
-            return True
+            # 執行成功
+            if "success" in output.lower():
+                print(Fore.GREEN + "Unit test successful!")
+                self.status = "unit_test_success"
+                return "unit_test_success"
+            else:
+                print(Fore.RED + "Unit test failed.")
+                print(output)
+                self.status = "unit_test_fail"
+                return "unit_test_fail"
+        # 最後移除main檔案
+        try:
+            os.remove(os.path.join(dir, "main"))
+        except Exception:
+            pass
 
     def _write_record(self):
         os.makedirs(".log", exist_ok=True)
@@ -154,9 +192,9 @@ class GenCodeChecker:
         print(self.table)
 
         index = len(self.table) - 1
-        for dict in self.recorder:
-            if isinstance(dict["error_msg"], bytes):
-                dict["error_msg"] = dict["error_msg"].decode("utf-8", "ignore")
+        for rec in self.recorder:
+            if isinstance(rec["error_msg"], bytes):
+                rec["error_msg"] = rec["error_msg"].decode("utf-8", "ignore")
         with open(
             os.path.join(log_path, f"compile_check_result_{index}.json"),
             "w",
