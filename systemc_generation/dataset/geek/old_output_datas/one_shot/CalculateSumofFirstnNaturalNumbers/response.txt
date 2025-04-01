@@ -1,0 +1,115 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+--------------------
+
+### Inputs and Outputs:
+- **Input**: The integer `n` which represents the number of natural numbers up to which the sum is calculated.
+- **Output**: The sum of the first `n` natural numbers, printed to the console.
+
+### Line-by-Line Explanation:
+1. **`#include <iostream>`**: Includes the input-output stream library to allow the use of `std::cout`.
+2. **`using namespace std;`**: Allows the use of standard library functions and objects without prefixing them with `std::`.
+3. **`int findSum(int n)`**: Declares a function named `findSum` that takes an integer `n` as an argument and returns an integer.
+4. **`int sum = 0;`**: Initializes an integer variable `sum` to zero. This variable will hold the cumulative sum of natural numbers.
+5. **`for (int i = 1; i <= n; i++)`**: Starts a loop that iterates from 1 to `n`, inclusive.
+6. **`sum = sum + i;`**: Inside the loop, this statement adds the current value of `i` to `sum`.
+7. **`return sum;`**: After the loop completes, the function returns the total sum.
+8. **`int main()`**: Declares the main function, which serves as the entry point of the program.
+9. **`int n = 5;`**: Initializes an integer variable `n` to 5. This is the number of natural numbers whose sum is to be calculated.
+10. **`cout << findSum(n);`**: Calls the `findSum` function with `n` as the argument and prints the returned sum to the console.
+11. **`return 0;`**: Ends the main function, indicating successful execution.
+
+### Equivalent SystemC Code:
+The SystemC code below encapsulates the logic of the original C++ program into a SystemC module. It calculates the sum of the first `n` natural numbers and prints the result. The code includes a testbench to demonstrate the usage of the module.
+
+```cpp
+#include <systemc.h>
+
+// Module to calculate the sum of first n natural numbers
+SC_MODULE(SumCalculator) {
+    sc_in<int> n;  // Input port for the number of natural numbers
+    sc_out<int> sum; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(SumCalculator) {
+        // Process to calculate the sum
+        SC_METHOD(calculate_sum);
+        sensitive << n;
+    }
+
+    // Method to calculate the sum of first n natural numbers
+    void calculate_sum() {
+        int local_sum = 0;
+        for (int i = 1; i <= n.read(); i++) {
+            local_sum += i;
+        }
+        sum.write(local_sum);
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_signal<int> n; // Signal for the number of natural numbers
+    sc_signal<int> sum; // Signal for the sum
+
+    SumCalculator calculator_inst; // Instance of the SumCalculator module
+
+    // Constructor
+    SC_CTOR(Testbench) : calculator_inst("calculator") {
+        // Connect signals to ports
+        calculator_inst.n(n);
+        calculator_inst.sum(sum);
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Test case 1: Calculate sum of first 5 natural numbers
+        n = 5;
+        wait(1, SC_NS); // Wait for the calculator to process
+        assert(sum.read() == 15);
+        cout << "Sum of first " << n.read() << " natural numbers: " << sum.read() << endl;
+
+        // Test case 2: Calculate sum of first 10 natural numbers
+        n = 10;
+        wait(1, SC_NS);
+        assert(sum.read() == 55);
+        cout << "Sum of first " << n.read() << " natural numbers: " << sum.read() << endl;
+
+        // Test case 3: Calculate sum of first 1 natural number
+        n = 1;
+        wait(1, SC_NS);
+        assert(sum.read() == 1);
+        cout << "Sum of first " << n.read() << " natural numbers: " << sum.read() << endl;
+
+        // Test case 4: Calculate sum of first 0 natural numbers (edge case)
+        n = 0;
+        wait(1, SC_NS);
+        assert(sum.read() == 0);
+        cout << "Sum of first " << n.read() << " natural numbers: " << sum.read() << endl;
+
+        // Print success message
+        cout << "All tests passed successfully." << endl;
+
+        sc_stop(); // Stop the simulation
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **`SumCalculator` Module**: This module has an input port `n` for the number of natural numbers and an output port `sum` for the resulting sum. The method `calculate_sum` computes the sum using a loop similar to the C++ code.
+- **`Testbench` Module**: This module sets up a test environment for the `SumCalculator` module. It initializes the `n` signal with different values, waits for the calculation to complete, checks the results, and prints the sums.
+- **`sc_main` Function**: This function creates an instance of the `Testbench` module and starts the simulation.
+
+This SystemC code can be compiled and simulated using a SystemC simulator to verify that it behaves as expected, preserving the logic of the original C++ code.

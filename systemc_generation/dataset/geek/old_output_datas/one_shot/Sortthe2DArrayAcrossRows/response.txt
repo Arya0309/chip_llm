@@ -1,0 +1,278 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!certainly! Let's break down the provided C++/C code step by step and then translate it into a SystemC code snippet.
+
+### Detailed Analysis of the Provided C++/C Code
+
+#### Inputs:
+- A 2D integer matrix `m` with dimensions `r` (rows) x `c` (columns).
+- In the given example, the matrix `m` is initialized with specific values and has 4 rows and 4 columns.
+
+#### Outputs:
+- The sorted 2D matrix where each row is sorted in ascending order.
+- The sorted matrix is printed row by row to the console.
+
+#### Line-by-Line/Block-by-Block Explanation:
+
+1. **Include Directives and Namespace:**
+   ```cpp
+   #include<bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes all standard C++ libraries.
+   - Uses the `std` namespace to avoid prefixing standard library functions and objects with `std::`.
+
+2. **Swap Function:**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - A simple function to swap two integers pointed by `xp` and `yp`.
+   - Uses a temporary variable `temp` to hold one of the values during the swap.
+
+3. **sortRowWise Function:**
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   {
+       for (int i = 0; i < r; i++) 
+       {
+           for (int j = 0; j < c; j++) 
+           {
+               for (int k = 0; k < c - j - 1; k++) 
+               {
+                   if (m[i][k] > m[i][k + 1]) 
+                   {
+                       swap(m[i][k], m[i][k + 1]);
+                   }
+               }
+           }
+       }
+   ```
+   - This function sorts each row of the matrix `m` in ascending order.
+   - It uses a nested loop structure:
+     - The outermost loop iterates over each row.
+     - The middle loop iterates over each column.
+     - The innermost loop performs a bubble sort on each row.
+   - If an element is greater than the next element, they are swapped using the `swap` function.
+
+4. **Printing the Sorted Matrix:**
+   ```cpp
+       for (int i = 0; i < r; i++) 
+       {
+           for (int j = 0; j < c; j++)
+               cout << m[i][j] << " ";
+           cout << endl;
+       }
+   }
+   ```
+   - After sorting, this block prints each element of the matrix row by row.
+
+5. **Main Function:**
+   ```cpp
+   int main()
+   {
+       int m[][4] = {{9, 8, 7, 1},
+                     {7, 3, 0, 2},
+                     {9, 5, 3, 2},
+                     {6, 3, 1, 2}};
+       int c = sizeof(m[0]) / sizeof(m[0][0]);
+       int r = sizeof(m) / sizeof(m[0]);
+       sortRowWise(m, r, c);
+       return 0;
+   }
+   ```
+   - Initializes a 4x4 matrix `m` with predefined values.
+   - Calculates the number of columns `c` and rows `r` using `sizeof`.
+   - Calls the `sortRowWise` function to sort the matrix.
+   - Returns 0 indicating successful execution.
+
+### Equivalent SystemC Code
+
+Below is a SystemC module that replicates the behavior of the provided C++/C code. This module sorts each row of a 2D matrix and outputs the sorted matrix.
+
+```cpp
+#include <systemc.h>
+
+// Module to sort a 2D matrix row-wise
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> reset;        // Reset signal
+    sc_in<bool> start;        // Start signal to initiate sorting
+    sc_out<bool> done;        // Done signal indicating sorting completion
+
+    // Fixed-size matrix input and output ports
+    sc_in<int> matrix_in[4][4]; // Input matrix
+    sc_out<int> matrix_out[4][4]; // Output matrix
+
+    int matrix[4][4];         // Internal matrix storage
+    bool is_done;              // Flag to indicate sorting completion
+
+    // Constructor
+    SC_CTOR(MatrixSorter) {
+        // Process to handle sorting
+        SC_METHOD(sort_matrix);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to handle reset
+        SC_METHOD(reset_process);
+        sensitive << reset;
+    }
+
+    // Method to reset the sorter
+    void reset_process() {
+        if (reset.read()) {
+            is_done = false;
+            done.write(false);
+            // Clear the matrix if needed
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    matrix[i][j] = 0;
+                    matrix_out[i][j].write(0);
+                }
+            }
+        }
+    }
+
+    // Method to sort the matrix row-wise
+    void sort_matrix() {
+        if (start.read() && !is_done) {
+            // Copy input matrix to internal storage
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    matrix[i][j] = matrix_in[i][j].read();
+                }
+            }
+
+            // Perform row-wise sorting using bubble sort
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    for (int k = 0; k < 4 - j - 1; ++k) {
+                        if (matrix[i][k] > matrix[i][k + 1]) {
+                            // Swap elements
+                            int temp = matrix[i][k];
+                            matrix[i][k] = matrix[i][k + 1];
+                            matrix[i][k + 1] = temp;
+                        }
+                    }
+                }
+            }
+
+            // Write sorted matrix to output ports
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    matrix_out[i][j].write(matrix[i][j]);
+                }
+            }
+
+            // Indicate sorting is done
+            done.write(true);
+            is_done = true;
+        }
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_clock clk;                  // Clock signal
+    sc_signal<bool> reset;          // Reset signal
+    sc_signal<bool> start;          // Start signal
+    sc_signal<bool> done;           // Done signal
+
+    sc_signal<int> matrix_in[4][4]; // Input matrix signals
+    sc_signal<int> matrix_out[4][4];// Output matrix signals
+
+    MatrixSorter sorter_inst;       // Instance of the MatrixSorter module
+
+    // Constructor
+    SC_CTOR(Testbench) : clk("clk", 10, SC_NS), sorter_inst("sorter") {
+        // Connect signals to ports
+        sorter_inst.clk(clk);
+        sorter_inst.reset(reset);
+        sorter_inst.start(start);
+        sorter_inst.done(done);
+
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                sorter_inst.matrix_in[i][j](matrix_in[i][j]);
+                sorter_inst.matrix_out[i][j](matrix_out[i][j]);
+            }
+        }
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Initialize matrix with test values
+        matrix_in[0][0] = 9; matrix_in[0][1] = 8; matrix_in[0][2] = 7; matrix_in[0][3] = 1;
+        matrix_in[1][0] = 7; matrix_in[1][1] = 3; matrix_in[1][2] = 0; matrix_in[1][3] = 2;
+        matrix_in[2][0] = 9; matrix_in[2][1] = 5; matrix_in[2][2] = 3; matrix_in[2][3] = 2;
+        matrix_in[3][0] = 6; matrix_in[3][1] = 3; matrix_in[3][2] = 1; matrix_in[3][3] = 2;
+
+        // Reset the sorter
+        reset = true;
+        wait(1, SC_NS);
+        reset = false;
+        wait(1, SC_NS);
+
+        // Start sorting
+        start = true;
+        wait(1, SC_NS);
+        start = false;
+
+        // Wait until sorting is done
+        while (!done.read()) {
+            wait(1, SC_NS);
+        }
+
+        // Print the sorted matrix
+        cout << "Sorted Matrix:" << endl;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                cout << matrix_out[i][j].read() << " ";
+            }
+            cout << endl;
+        }
+
+        // Stop the simulation
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **MatrixSorter Module:**
+  - **Inputs:**
+    - `clk`: Clock signal to synchronize operations.
+    - `reset`: Reset signal to initialize the module.
+    - `start`: Signal to start the sorting process.
+    - `matrix_in`: 4x4 matrix input ports.
+  - **Outputs:**
+    - `done`: Signal indicating the completion of sorting.
+    - `matrix_out`: 4x4 matrix output ports.
+  - **Processes:**
+    - `sort_matrix`: Sorts the matrix row-wise when the `start` signal is active and `done` is not set.
+    - `reset_process`: Resets the sorter when the `reset` signal is active.
+
+- **Testbench Module:**
+  - Initializes the matrix with test values.
+  - Resets the sorter and starts the sorting process.
+  - Waits for the `done` signal and prints the sorted matrix.
+  - Stops the simulation once the sorting is complete.
+
+This SystemC code accurately replicates the logic of the original C++/C code, making it suitable for high-level synthesis flows.

@@ -155,7 +155,9 @@ class GenCodeChecker:
             self.status = "runtime_error"
             return "runtime_error"
 
-        output = result.stdout.decode("utf-8", "ignore")
+        output_stdout = result.stdout.decode("utf-8", "ignore")
+        output_stderr = result.stderr.decode("utf-8", "ignore")
+        output = output_stdout + output_stderr
         # 檢查是否有執行錯誤
         if "Error" in output:
             print(Fore.RED + "Runtime Error.")
@@ -169,6 +171,7 @@ class GenCodeChecker:
                 self.status = "unit_test_success"
                 return "unit_test_success"
             else:
+                output = "Assertion" + output.split("Assertion")[1]
                 print(Fore.RED + "Unit test failed.")
                 print(output)
                 self.status = "unit_test_fail"

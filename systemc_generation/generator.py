@@ -22,8 +22,7 @@ def construct_prompt(code: str) -> str:
 3. Provide a detailed, line-by-line or block-by-block natural language summary that explains:
    - The inputs and outputs of the code.
    - Each major line or block of code and its functionality (e.g., declarations, loops, conditions, data transformations).
-4. Finally, based on your analysis, generate an equivalent SystemC code snippet 
-   that preserves the logic and can be used in a high-level synthesis flow.
+4. Finally, based on your analysis, generate an equivalent SystemC code snippet that preserves the logic and can be used in a high-level synthesis flow.
 
 **C++/C Code**:
 ```
@@ -34,17 +33,16 @@ def construct_prompt(code: str) -> str:
 - Your answer must explicitly list the inputs and outputs.
 - Your answer must include a clear, line-by-line or block-by-block natural language explanation.
 - After the summary, generate SystemC code that reflects the same behavior.
-- Provide the SystemC code in a compilable snippet, for example:
+- Provide the SystemC code in a compilable snippet and build a testbench that contains assert function, for example:
 
-### Example 1:
+
 ```
-{FEW_SHOT_EXAMPLE_1}
+#include <systemc.h>
+// ...
+// <systemC code here>
+// ...
 ```
 
-### Example 2:
-```
-{FEW_SHOT_EXAMPLE_2}
-```
 
 Ensure that the SystemC code you provide faithfully captures the logic of the original C++/C source.
 Make the explanation thorough and accessible.
@@ -53,7 +51,7 @@ Make the explanation thorough and accessible.
     prompt = prompt.format(
         CODE=code,
         FEW_SHOT_EXAMPLE_1=examples.structure_examples_1,
-        FEW_SHOT_EXAMPLE_2=examples.structure_examples_2,
+        # FEW_SHOT_EXAMPLE_2=examples.structure_examples_2,
     )
 
     messages = [
@@ -92,11 +90,9 @@ def generate_systemc(
         )
 
     def collate_inputs(input_series):
-        # 假設所有字典具有相同的鍵
         keys = input_series.iloc[0].keys()
         collated = {}
         for key in keys:
-            # 先 squeeze 移除第一個維度，再進行 padding
             collated[key] = pad_sequence(
                 [d[key].squeeze(0) for d in input_series],
                 batch_first=True,
@@ -105,7 +101,6 @@ def generate_systemc(
 
     for i in tqdm(range(0, len(df), batch_size), desc="Generating responses"):
         batch = df[i : i + batch_size]
-        # 將 Series 合併成一個單一的字典
         batch_inputs = collate_inputs(batch["input"])
         with torch.no_grad():
             output = model.generate(**batch_inputs, max_new_tokens=max_new_tokens)

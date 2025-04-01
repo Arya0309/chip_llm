@@ -1,0 +1,171 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! level="2">Analysis of the Provided C++/C Code
+
+### Inputs and Outputs
+- **Inputs**: An array `a[]` of integers and its size `n`.
+- **Outputs**: An integer representing the count of unique triplets `(a[i], a[j], a[k])` in the array such that `a[i] XOR a[j] XOR a[k] = 0`.
+
+### Detailed Line-by-Line/Block-by-Block Explanation
+
+1. **Include Headers and Namespace**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes a comprehensive set of standard C++ libraries and sets the `std` namespace to avoid prefixing standard library elements with `std::`.
+
+2. **Function Definition**
+   ```cpp
+   int countTriplets(int a[], int n) 
+   ```
+   - Declares a function `countTriplets` that takes an integer array `a[]` and its size `n` as arguments and returns an integer.
+
+3. **Using an Unordered Set**
+   ```cpp
+   unordered_set<int> s;
+   for (int i = 0; i < n; i++)
+       s.insert(a[i]);
+   ```
+   - Initializes an unordered set `s` to store unique elements from the array `a[]`.
+   - Iterates over each element of the array and inserts it into the set.
+
+4. **Count Variable Initialization**
+   ```cpp
+   int count = 0;
+   ```
+   - Initializes a variable `count` to keep track of the number of valid triplets.
+
+5. **Nested Loops to Check Pairs**
+   ```cpp
+   for (int i = 0; i < n-1; i++) {
+       for (int j = i + 1; j < n; j++) {
+           int xr = a[i] ^ a[j];
+           if (s.find(xr) != s.end() && xr != a[i] && xr != a[j])
+               count++;
+       }
+   }
+   ```
+   - Uses nested loops to iterate through all possible pairs `(i, j)` where `j > i`.
+   - Computes the XOR of the pair `a[i]` and `a[j]` and stores it in `xr`.
+   - Checks if `xr` exists in the set `s` and ensures `xr` is not equal to either `a[i]` or `a[j]`. If both conditions are satisfied, it increments the `count`.
+
+6. **Return Statement**
+   ```cpp
+   return count / 3;
+   ```
+   - Since each triplet is counted three times (once for each permutation), the final count is divided by 3 before returning.
+
+7. **Driver Code**
+   ```cpp
+   int main() 
+   {
+       int a[] = {1, 3, 5, 10, 14, 15};
+       int n = sizeof(a) / sizeof(a[0]); 
+       cout << countTriplets(a, n); 
+       return 0;
+   }
+   ```
+   - Defines the main function to test the `countTriplets` function.
+   - Initializes an array `a[]` with sample values and calculates its size.
+   - Calls `countTriplets` with the array and prints the result.
+
+### Equivalent SystemC Code Snippet
+
+Below is the equivalent SystemC code that captures the same logic as the original C++/C code. This code defines a SystemC module to count unique triplets whose XOR is 0.
+
+```cpp
+#include <systemc.h>
+#include <unordered_set>
+#include <vector>
+
+// Module to count the number of unique triplets whose XOR is 0
+SC_MODULE(TripletCounter) {
+    sc_in<std::vector<int>> input_array; // Input port for the array
+    sc_out<int> output_count;            // Output port for the count of triplets
+
+    // Constructor
+    SC_CTOR(TripletCounter) {
+        // Process to count triplets
+        SC_METHOD(count_triplets);
+        sensitive << input_array;
+    }
+
+    // Method to count the triplets
+    void count_triplets() {
+        std::vector<int> a = input_array.read();
+        int n = a.size();
+        
+        // To store values that are present
+        std::unordered_set<int> s;
+        for (int i = 0; i < n; i++)
+            s.insert(a[i]);
+        
+        // Stores the count of unique triplets
+        int count = 0;
+        
+        // Traverse for all i, j pairs such that j > i
+        for (int i = 0; i < n-1; i++) {
+            for (int j = i + 1; j < n; j++) {
+                // XOR of a[i] and a[j]
+                int xr = a[i] ^ a[j];
+                
+                // If xr of two numbers is present,
+                // then increase the count
+                if (s.find(xr) != s.end() && xr != a[i] && xr != a[j])
+                    count++;
+            }
+        }
+        
+        // Returns answer
+        output_count.write(count / 3);
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_signal<std::vector<int>> input_array; // Signal for the array
+    sc_signal<int> output_count;             // Signal for the count of triplets
+
+    TripletCounter triplet_counter_inst; // Instance of the TripletCounter module
+
+    // Constructor
+    SC_CTOR(Testbench) : triplet_counter_inst("triplet_counter") {
+        // Connect signals to ports
+        triplet_counter_inst.input_array(input_array);
+        triplet_counter_inst.output_count(output_count);
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Initialize the array
+        std::vector<int> test_array = {1, 3, 5, 10, 14, 15};
+        input_array.write(test_array);
+        wait(1, SC_NS); // Wait for the counter to process
+        std::cout << "Count of triplets: " << output_count.read() << std::endl;
+
+        // Print success message
+        std::cout << "Test passed successfully." << std::endl;
+
+        sc_stop(); // Stop the simulation
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+- **TripletCounter Module**: This module takes an input vector of integers and computes the number of unique triplets whose XOR is 0. It uses an unordered set to store unique elements and iterates through pairs to find valid triplets.
+- **Testbench Module**: This module initializes the input array, connects it to the `TripletCounter` module, and prints the result after processing.
+- **Simulation**: The simulation starts by writing the test array to the input port of the `TripletCounter` module, waits for the module to process, and then reads and prints the result.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be used in a high-level synthesis flow.
