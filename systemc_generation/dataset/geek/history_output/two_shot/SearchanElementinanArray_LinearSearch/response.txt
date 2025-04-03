@@ -1,0 +1,146 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!endl;
+
+### Detailed Analysis of the Provided C++/C Code
+
+#### Inputs:
+1. **Vector `v`**: A vector of integers `{1, 2, 3, 4, 5, 8, 9, 11}`.
+2. **Key**: An integer `8` which is the value to be searched in the vector `v`.
+
+#### Outputs:
+1. **Position of Key**: If the key is found in the vector, the program outputs the position (1-based index) of the key.
+2. **Key Not Found Message**: If the key is not found in the vector, the program outputs a message stating that the key is not found.
+
+#### Line-by-Line Explanation:
+
+1. **Include Directive**: `#include <bits/stdc++.h>` - This includes all standard C++ libraries, which is useful for quick prototyping but generally not recommended in production code due to performance overhead.
+2. **Namespace Declaration**: `using namespace std;` - This allows us to use standard library names without prefixing them with `std::`.
+3. **Function Definition**: `int linearSearch(vector<int> v, int key)` - This function takes a vector of integers `v` and an integer `key` as arguments and returns the index of the key in the vector if found, otherwise `-1`.
+4. **For Loop**: `for (int i = 0; i < v.size(); i++)` - Iterates over each element in the vector `v`.
+5. **If Condition**: `if (v[i] == key)` - Checks if the current element is equal to the key.
+6. **Return Index**: `return i;` - If the key is found, returns the current index `i`.
+7. **Return Not Found**: `return -1;` - If the loop completes without finding the key, returns `-1`.
+8. **Main Function**: `int main()` - The entry point of the program.
+9. **Vector Initialization**: `vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};` - Initializes a vector with the given integers.
+10. **Key Initialization**: `int key = 8;` - Sets the key to be searched in the vector.
+11. **Function Call**: `int i = linearSearch(v, key);` - Calls the `linearSearch` function with the vector and key as arguments.
+12. **If Condition**: `if (i != -1)` - Checks if the key was found.
+13. **Output Found**: `cout << key << " Found at Position: " << i + 1;` - Prints the position of the key (1-based index).
+14. **Else Condition**: `else` - Executes if the key is not found.
+15. **Output Not Found**: `cout << key << " NOT found.";` - Prints a message indicating the key was not found.
+16. **Return Statement**: `return 0;` - Indicates successful execution of the program.
+
+### Equivalent SystemC Code Snippet
+
+Below is the equivalent SystemC code that performs the same linear search operation. The code is encapsulated within a SystemC module and a testbench to simulate the behavior.
+
+```cpp
+#include <systemc.h>
+
+// Linear Search Module
+SC_MODULE(LinearSearchModule) {
+    sc_in<sc_vector<sc_in<int>>> vec_in;  // Input vector of integers
+    sc_in<int> key_in;                     // Input key to search
+    sc_out<int> result_out;                // Output result (index or -1)
+
+    int vec_size;
+
+    // Constructor
+    SC_CTOR(LinearSearchModule, const char* name, int size) : sc_module(name), vec_size(size) {
+        // Process to perform linear search
+        SC_METHOD(search);
+        sensitive << key_in;
+        for (int i = 0; i < vec_size; ++i) {
+            sensitive << vec_in[i];
+        }
+    }
+
+    // Method to perform linear search
+    void search() {
+        int key = key_in.read();
+        for (int i = 0; i < vec_size; ++i) {
+            if (vec_in[i].read() == key) {
+                result_out.write(i);
+                return;
+            }
+        }
+        result_out.write(-1);
+    }
+};
+
+// Testbench Module
+SC_MODULE(Testbench) {
+    sc_vector<sc_signal<int>> vec_sig;    // Signals for the vector elements
+    sc_signal<int> key_sig;               // Signal for the key
+    sc_signal<int> result_sig;            // Signal for the result
+
+    LinearSearchModule ls_inst;           // Instance of the LinearSearchModule
+
+    // Constructor
+    SC_CTOR(Testbench) : ls_inst("ls_inst", 8) {
+        // Connect signals to module ports
+        ls_inst.vec_in(vec_sig);
+        ls_inst.key_in(key_sig);
+        ls_inst.result_out(result_sig);
+
+        // Initialize vector with given values
+        vec_sig[0].write(1);
+        vec_sig[1].write(2);
+        vec_sig[2].write(3);
+        vec_sig[3].write(4);
+        vec_sig[4].write(5);
+        vec_sig[5].write(8);
+        vec_sig[6].write(9);
+        vec_sig[7].write(11);
+
+        // Set key to search
+        key_sig.write(8);
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Wait for the linear search to complete
+        wait(1, SC_NS);
+
+        // Check the result
+        int result = result_sig.read();
+        if (result != -1) {
+            cout << "Key " << key_sig.read() << " Found at Position: " << result + 1 << endl;
+        } else {
+            cout << "Key " << key_sig.read() << " NOT found." << endl;
+        }
+
+        // End simulation after successful test
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+1. **LinearSearchModule**:
+   - **Inputs**: `vec_in` (a vector of integer signals representing the vector elements) and `key_in` (an integer signal representing the key to search).
+   - **Output**: `result_out` (an integer signal representing the result of the search).
+   - **Constructor**: Registers the `search` method to be triggered whenever any input changes.
+   - **Method `search`**: Implements the linear search logic. It reads the key and iterates through the vector elements, checking if any element matches the key. If a match is found, it writes the index to `result_out`; otherwise, it writes `-1`.
+
+2. **Testbench**:
+   - **Signals**: `vec_sig` (signals for vector elements), `key_sig` (signal for the key), and `result_sig` (signal for the result).
+   - **Instance**: An instance of `LinearSearchModule` named `ls_inst`.
+   - **Connections**: Connects the signals to the corresponding ports of the `LinearSearchModule`.
+   - **Initialization**: Initializes the vector elements and sets the key to search.
+   - **Thread `run_tests`**: Waits for the `search` method to complete, checks the result, and prints the appropriate message. Ends the simulation after the test.
+
+This SystemC code faithfully captures the logic of the original C++/C source, making it suitable for high-level synthesis flows.

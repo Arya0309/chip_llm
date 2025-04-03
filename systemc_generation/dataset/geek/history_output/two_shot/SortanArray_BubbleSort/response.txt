@@ -1,0 +1,208 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!read and analyze the provided C++/C code for implementing the Bubble Sort algorithm. Below is a detailed summary of the code, including the inputs and outputs, followed by a SystemC equivalent that preserves the logic.
+
+### Detailed Summary of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: An array of integers `arr` and its size `n`.
+- **Outputs**: The sorted array printed to the console.
+
+#### Line-by-Line Explanation:
+1. **Include Statement**: 
+   ```c
+   #include <stdio.h>
+   ```
+   - This includes the standard I/O library, which provides functions like `printf`.
+
+2. **Swap Function**:
+   ```c
+   void swap(int* arr, int i, int j) {
+       int temp = arr[i];
+       arr[i] = arr[j];
+       arr[j] = temp;
+   }
+   ```
+   - This function swaps two elements in the array `arr` at indices `i` and `j`. It uses a temporary variable `temp` to hold one of the values during the swap.
+
+3. **Bubble Sort Function**:
+   ```c
+   void bubbleSort(int arr[], int n) {
+       for (int i = 0; i < n - 1; i++) {
+           for (int j = 0; j < n - i - 1; j++) {
+               if (arr[j] > arr[j + 1])
+                   swap(arr, j, j + 1);
+           }
+       }
+   }
+   ```
+   - The `bubbleSort` function sorts the array using the Bubble Sort algorithm.
+   - The outer loop runs from `0` to `n-2`, representing each pass through the array.
+   - The inner loop runs from `0` to `n-i-2`, comparing adjacent elements and swapping them if they are in the wrong order.
+   - This process repeats until the array is sorted.
+
+4. **Main Function**:
+   ```c
+   int main() {
+       int arr[] = { 6, 0, 3, 5 };
+       int n = sizeof(arr) / sizeof(arr[0]);
+       bubbleSort(arr, n);
+       for (int i = 0; i < n; i++)
+           printf("%d ", arr[i]);
+       return 0;
+   }
+   ```
+   - The `main` function initializes an array `arr` with four elements.
+   - It calculates the number of elements `n` in the array.
+   - It calls the `bubbleSort` function to sort the array.
+   - It prints the sorted array to the console.
+
+### Equivalent SystemC Code Snippet
+
+Below is a SystemC module that implements the Bubble Sort algorithm. This module can be used in a high-level synthesis flow.
+
+```cpp
+#include <systemc.h>
+
+// Module to perform Bubble Sort
+SC_MODULE(BubbleSortModule) {
+    sc_in<bool> clk;             // Clock signal
+    sc_in<bool> rst;             // Reset signal
+    sc_in<sc_uint<8>> arr_size;  // Size of the array
+    sc_inout<sc_uint<8>> arr[4]; // Array to be sorted (fixed size for simplicity)
+    sc_out<bool> done;            // Done signal indicating sorting completion
+
+    // Internal variables
+    int i, j;
+    bool sorting;
+    sc_uint<8> temp;
+
+    // Constructor
+    SC_CTOR(BubbleSortModule) {
+        // Register the process for sorting
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Register the reset process
+        SC_METHOD(reset_process);
+        sensitive << rst;
+    }
+
+    // Process to handle reset
+    void reset_process() {
+        if (rst.read()) {
+            i = 0;
+            j = 0;
+            sorting = false;
+            done.write(false);
+        }
+    }
+
+    // Process to perform Bubble Sort
+    void sort_process() {
+        if (!sorting) {
+            if (i < arr_size.read() - 1) {
+                sorting = true;
+                j = 0;
+            } else {
+                done.write(true);
+            }
+        }
+
+        if (sorting) {
+            if (j < arr_size.read() - i - 1) {
+                if (arr[j].read() > arr[j + 1].read()) {
+                    temp = arr[j].read();
+                    arr[j].write(arr[j + 1].read());
+                    arr[j + 1].write(temp);
+                }
+                j++;
+            } else {
+                i++;
+                sorting = false;
+            }
+        }
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_clock clk;                 // Clock signal
+    sc_signal<bool> rst;          // Reset signal
+    sc_signal<sc_uint<8>> arr_size;// Size of the array
+    sc_signal<sc_uint<8>> arr[4];  // Array to be sorted (fixed size for simplicity)
+    sc_signal<bool> done;          // Done signal indicating sorting completion
+
+    BubbleSortModule bubble_sort_inst; // Instance of the BubbleSortModule
+
+    // Constructor
+    SC_CTOR(Testbench)
+    : bubble_sort_inst("bubble_sort_inst"), clk("clk", 10, SC_NS, 0.5, 0, SC_NS, true) {
+        // Connect signals to ports
+        bubble_sort_inst.clk(clk);
+        bubble_sort_inst.rst(rst);
+        bubble_sort_inst.arr_size(arr_size);
+        for (int k = 0; k < 4; k++) {
+            bubble_sort_inst.arr[k](arr[k]);
+        }
+        bubble_sort_inst.done(done);
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Initialize array
+        arr[0].write(6);
+        arr[1].write(0);
+        arr[2].write(3);
+        arr[3].write(5);
+        arr_size.write(4);
+
+        // Assert reset
+        rst.write(true);
+        wait(1, SC_NS);
+        rst.write(false);
+        wait(1, SC_NS);
+
+        // Wait for sorting to complete
+        while (!done.read()) {
+            wait(1, SC_NS);
+        }
+
+        // Print sorted array
+        for (int k = 0; k < 4; k++) {
+            std::cout << arr[k].read() << " ";
+        }
+        std::cout << std::endl;
+
+        // Stop simulation
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **BubbleSortModule**: This module performs the Bubble Sort algorithm.
+  - **Inputs**: `clk` (clock), `rst` (reset), `arr_size` (size of the array), `arr` (array to be sorted).
+  - **Output**: `done` (signal indicating sorting completion).
+  - **Internal Variables**: `i`, `j` for loop counters, `sorting` flag to indicate whether sorting is in progress, `temp` for swapping.
+  - **Processes**: `sort_process` handles the sorting logic, `reset_process` resets the module when `rst` is asserted.
+
+- **Testbench**: This module tests the `BubbleSortModule`.
+  - **Signals**: `clk` (clock), `rst` (reset), `arr_size` (size of the array), `arr` (array to be sorted), `done` (signal indicating sorting completion).
+  - **Instance**: `bubble_sort_inst` of `BubbleSortModule`.
+  - **Processes**: `run_tests` initializes the array, asserts reset, waits for sorting completion, and prints the sorted array.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C Bubble Sort implementation and can be used in a high-level synthesis flow.

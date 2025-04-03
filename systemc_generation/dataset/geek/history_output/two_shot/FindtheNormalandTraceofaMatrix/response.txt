@@ -1,0 +1,180 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! sc_systemc
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: A square matrix of size `n x n` where `n` is up to 100.
+- **Outputs**: Two values:
+  - The trace of the matrix.
+  - The normal of the matrix.
+
+#### Line-by-Line/Block-by-Block Explanation:
+1. **Header Inclusion and Namespace**:
+   ```cpp
+   #include<bits/stdc++.h> 
+   using namespace std;
+   ```
+   - Includes all standard C++ libraries.
+   - Uses the standard namespace.
+
+2. **Constant Declaration**:
+   ```cpp
+   const int MAX = 100;
+   ```
+   - Defines a constant `MAX` with a value of 100, which represents the maximum size of the matrix.
+
+3. **Function to Find Normal of a Matrix**:
+   ```cpp
+   int findNormal(int mat[][MAX], int n) 
+   { 
+       int sum = 0; 
+       for (int i = 0; i < n; i++) 
+           for (int j = 0; j < n; j++) 
+               sum += mat[i][j] * mat[i][j]; 
+       return sqrt(sum); 
+   }
+   ```
+   - This function calculates the normal of the matrix.
+   - It initializes a variable `sum` to 0.
+   - It iterates over each element of the matrix, squares it, and adds it to `sum`.
+   - It returns the square root of `sum`, which is the Euclidean norm (normal) of the matrix.
+
+4. **Function to Find Trace of a Matrix**:
+   ```cpp
+   int findTrace(int mat[][MAX], int n) 
+   { 
+       int sum = 0; 
+       for (int i = 0; i < n; i++) 
+           sum += mat[i][i]; 
+       return sum; 
+   }
+   ```
+   - This function calculates the trace of the matrix.
+   - It initializes a variable `sum` to 0.
+   - It iterates over the diagonal elements of the matrix (where row index equals column index) and adds them to `sum`.
+   - It returns the sum, which is the trace of the matrix.
+
+5. **Main Function**:
+   ```cpp
+   int main() 
+   { 
+       int mat[][MAX] = {{1, 1, 1, 1, 1}, 
+                       {2, 2, 2, 2, 2}, 
+                       {3, 3, 3, 3, 3}, 
+                       {4, 4, 4, 4, 4}, 
+                       {5, 5, 5, 5, 5}}; 
+       cout << "Trace of Matrix = " << 
+               findTrace(mat, 5) << endl; 
+       cout << "Normal of Matrix = " << 
+               findNormal(mat, 5) << endl; 
+       return 0; 
+   }
+   ```
+   - Initializes a 5x5 matrix with specific values.
+   - Calls `findTrace` to compute and print the trace of the matrix.
+   - Calls `findNormal` to compute and print the normal of the matrix.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same operations as the provided C++/C code. This code includes a module to compute the trace and normal of a matrix, and a testbench to verify its functionality.
+
+```cpp
+#include <systemc.h>
+
+// Module to compute trace and normal of a matrix
+SC_MODULE(MatrixOperations) {
+    sc_in<sc_matrix<int>> mat; // Input matrix
+    sc_in<int> n; // Size of the matrix
+    sc_out<int> trace; // Output trace
+    sc_out<double> normal; // Output normal
+
+    // Constructor
+    SC_CTOR(MatrixOperations) {
+        // Process to compute trace and normal
+        SC_METHOD(compute_trace_normal);
+        sensitive << mat << n;
+    }
+
+    // Method to compute trace and normal
+    void compute_trace_normal() {
+        int trace_sum = 0;
+        double normal_sum = 0.0;
+
+        // Iterate over the matrix
+        for (int i = 0; i < n.read(); i++) {
+            for (int j = 0; j < n.read(); j++) {
+                normal_sum += mat.read()[i][j] * mat.read()[i][j];
+                if (i == j) {
+                    trace_sum += mat.read()[i][j];
+                }
+            }
+        }
+
+        // Write results to output ports
+        trace.write(trace_sum);
+        normal.write(sqrt(normal_sum));
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_signal<sc_matrix<int>> mat; // Signal for the matrix
+    sc_signal<int> n; // Signal for the size of the matrix
+    sc_signal<int> trace; // Signal for the trace
+    sc_signal<double> normal; // Signal for the normal
+
+    MatrixOperations matrix_ops_inst; // Instance of the MatrixOperations module
+
+    // Constructor
+    SC_CTOR(Testbench) : matrix_ops_inst("matrix_ops") {
+        // Connect signals to ports
+        matrix_ops_inst.mat(mat);
+        matrix_ops_inst.n(n);
+        matrix_ops_inst.trace(trace);
+        matrix_ops_inst.normal(normal);
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Initialize a 5x5 matrix
+        sc_matrix<int> matrix(5, 5);
+        matrix[0] = {1, 1, 1, 1, 1};
+        matrix[1] = {2, 2, 2, 2, 2};
+        matrix[2] = {3, 3, 3, 3, 3};
+        matrix[3] = {4, 4, 4, 4, 4};
+        matrix[4] = {5, 5, 5, 5, 5};
+
+        // Set matrix and size
+        mat.write(matrix);
+        n.write(5);
+
+        // Wait for the computation to complete
+        wait(1, SC_NS);
+
+        // Print results
+        std::cout << "Trace of Matrix = " << trace.read() << std::endl;
+        std::cout << "Normal of Matrix = " << normal.read() << std::endl;
+
+        // Stop the simulation
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Notes:
+- The `sc_matrix<int>` type is not a built-in SystemC type. You may need to define this type or use a suitable container like `std::vector<std::vector<int>>` with appropriate conversion.
+- The `wait(1, SC_NS)` in the `run_tests` method allows the simulation to proceed and compute the results before printing them.
+- The `sqrt` function is used to compute the square root, similar to the C++/C code. Ensure that the necessary headers (`cmath`) are included if using a custom matrix type.

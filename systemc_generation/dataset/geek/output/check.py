@@ -171,7 +171,7 @@ class GenCodeChecker:
                 self.status = "unit_test_success"
                 return "unit_test_success"
             else:
-                output = "Assertion" + output.split("Assertion")[1]
+                # output = "Assertion" + output.split("Assertion")[1]
                 print(Fore.RED + "Unit test failed.")
                 print(output)
                 self.status = "unit_test_fail"

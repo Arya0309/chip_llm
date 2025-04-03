@@ -4,88 +4,30 @@ import re
 import examples
 import pandas as pd
 from tqdm import tqdm
-import time
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-
-
-def construct_prompt(code: str) -> str:
-
-    prompt = """
-    You will receive C++/C code as input. 
-
-**Tasks**:
-1. Read and thoroughly analyze the provided C++/C code.
-2. Identify the input(s) and output(s) of the code.
-3. Provide a detailed, line-by-line or block-by-block natural language summary that explains:
-   - The inputs and outputs of the code.
-   - Each major line or block of code and its functionality (e.g., declarations, loops, conditions, data transformations).
-4. Finally, based on your analysis, generate an equivalent SystemC code snippet that preserves the logic and can be used in a high-level synthesis flow.
-
-**C++/C Code**:
-```
-{CODE}
-```
-
-**Instructions**:
-- Your answer must explicitly list the inputs and outputs.
-- Your answer must include a clear, line-by-line or block-by-block natural language explanation.
-- After the summary, generate SystemC code that reflects the same behavior.
-- Provide the SystemC code in a compilable snippet and build a testbench that contains assert function, for example:
-
-
-```
-#include <systemc.h>
-// ...
-// <systemC code here>
-// ...
-```
-
-
-Ensure that the SystemC code you provide faithfully captures the logic of the original C++/C source.
-Make the explanation thorough and accessible.
-"""
-
-    prompt = prompt.format(
-        CODE=code,
-        FEW_SHOT_EXAMPLE_1=examples.structure_examples_1,
-        # FEW_SHOT_EXAMPLE_2=examples.structure_examples_2,
-    )
-
-    messages = [
-        {
-            "role": "system",
-            "content": "You are Qwen, created by Alibaba Cloud. You are a coding expert in C++/C code analysis and SystemC.",
-        },
-        {"role": "user", "content": prompt},
-    ]
-
-    return messages
+dataset_dir = os.path.join(current_dir, "dataset")
 
 
 def generate_systemc(
     dataset: str, model=None, tokenizer=None, max_new_tokens=4096, batch_size=8
-) -> None:
-    data_dir = os.path.join(current_dir, "dataset", dataset)
-    df = pd.DataFrame(columns=["filename", "prompt", "input", "respond", "output_code"])
-    for filename in tqdm(
-        os.listdir(os.path.join(data_dir, "data")),
-        desc="Generating embeddings",
-    ):
-        code_path = os.path.join(data_dir, "data", filename)
-        with open(code_path, "r") as f:
-            code = f.read()
-        prompt = construct_prompt(code)
+) -> pd.DataFrame:
+    df = pd.read_json(os.path.join(dataset_dir, dataset, "data.json"), orient="records")
+    df_input = pd.DataFrame(columns=["task", "prompt", "input"])
+
+    for i, row in tqdm(df.iterrows(), desc="Generating Embeddings"):
+        prompt = row["prompt"]
         input = tokenizer.apply_chat_template(
             prompt, tokenize=False, add_generation_prompt=True
         )
         input = tokenizer(input, return_tensors="pt", padding=True, truncation=True).to(
             next(model.parameters()).device
         )
-        df = df._append(
-            {"filename": filename.split(".")[0], "prompt": prompt, "input": input},
+
+        df_input = df_input._append(
+            {"task": row["task"], "prompt": prompt, "input": input},
             ignore_index=True,
         )
 
@@ -99,25 +41,17 @@ def generate_systemc(
             )
         return collated
 
-    for i in tqdm(range(0, len(df), batch_size), desc="Generating responses"):
-        batch = df[i : i + batch_size]
+    for i in tqdm(range(0, len(df_input), batch_size), desc="Generating responses"):
+        batch = df_input[i : i + batch_size]
         batch_inputs = collate_inputs(batch["input"])
         with torch.no_grad():
             output = model.generate(**batch_inputs, max_new_tokens=max_new_tokens)
         for j in range(len(batch)):
             decoded_output = tokenizer.decode(output[j], skip_special_tokens=False)
-            df.loc[i + j, "respond"] = response_extractor(decoded_output)
-            df.loc[i + j, "output_code"] = code_extractor(decoded_output)
+            df_input.loc[i + j, "respond"] = response_extractor(decoded_output)
+            df_input.loc[i + j, "output_code"] = code_extractor(decoded_output)
 
-    for i, row in tqdm(df.iterrows(), desc="Writing output files"):
-        filename = row["filename"]
-        output_dir = os.path.join(data_dir, "output", filename)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        with open(os.path.join(data_dir, "output", filename, "main.cpp"), "w") as f:
-            f.write(row["output_code"])
-        with open(os.path.join(data_dir, "output", filename, "response.txt"), "w") as f:
-            f.write(row["respond"])
+    return df_input
 
 
 def response_extractor(response: str) -> str:
@@ -143,6 +77,19 @@ def code_extractor(response: str) -> str:
     return matches[0]
 
 
+def output_dir_generator(df: pd.DataFrame, data_dir: str):
+
+    for i, row in tqdm(df.iterrows(), desc="Writing output files"):
+        filename = row["task"]
+        output_dir = os.path.join(data_dir, "output", filename)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        with open(os.path.join(data_dir, "output", filename, "main.cpp"), "w") as f:
+            f.write(row["output_code"])
+        with open(os.path.join(data_dir, "output", filename, "response.txt"), "w") as f:
+            f.write(row["respond"])
+
+
 if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-Coder-32B-Instruct")
     tokenizer.padding_side = "left"
@@ -153,6 +100,7 @@ if __name__ == "__main__":
         device_map="auto",
     )
 
-    generate_systemc(
-        "geek", model=model, tokenizer=tokenizer, max_new_tokens=4096, batch_size=16
-    )
+    dataset = "geek"
+
+    df_output = generate_systemc(dataset, model=model, tokenizer=tokenizer)
+    output_dir_generator(df_output, dataset)

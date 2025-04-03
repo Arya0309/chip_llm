@@ -1,0 +1,198 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!output
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: A 4x4 integer matrix `m` initialized with specific values.
+- **Outputs**: The function `interchangeFirstLast` swaps the elements of the first and last rows of the matrix. The modified matrix is then printed to the console.
+
+#### Detailed Explanation:
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - These lines include the standard input-output stream library and specify that we are using the standard namespace, which contains definitions for `cin`, `cout`, and other I/O operations.
+
+2. **Constant Definition**:
+   ```cpp
+   #define n 4
+   ```
+   - Defines a constant `n` with a value of 4. This constant represents the size of the square matrix.
+
+3. **Function Definition**:
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   - Declares a function named `interchangeFirstLast` that takes a 2D array `m` of size `n x n` as its parameter. This function is responsible for swapping the elements of the first and last rows of the matrix.
+
+4. **Swapping Logic**:
+   ```cpp
+   int rows = n;
+   for (int i = 0; i < n; i++)
+   {
+       int t = m[0][i];
+       m[0][i] = m[rows - 1][i];
+       m[rows - 1][i] = t;
+   }
+   ```
+   - `rows` is set to `n` (which is 4).
+   - A loop runs from `i = 0` to `i < n`. For each iteration, it swaps the `i`th element of the first row (`m[0][i]`) with the `i`th element of the last row (`m[rows - 1][i]`).
+
+5. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int m[n][n] = {{8, 9, 7, 6},
+                      {4, 7, 6, 5},
+                      {3, 2, 1, 8},
+                      {9, 9, 7, 7}};
+       interchangeFirstLast(m);
+       for (int i = 0; i < n; i++)
+       {
+           for (int j = 0; j < n; j++)
+               cout << m[i][j] << " ";
+           cout << endl;
+       }
+   }
+   ```
+   - Initializes a 4x4 matrix `m` with predefined values.
+   - Calls `interchangeFirstLast` to swap the first and last rows.
+   - Nested loops iterate through the matrix to print each element, displaying the modified matrix.
+
+### Equivalent SystemC Code
+
+Below is a SystemC implementation of the above C++ code. This SystemC code includes a module that performs the row swapping operation and a testbench to verify its functionality.
+
+```cpp
+#include <systemc.h>
+
+// Module to interchange the first and last rows of a matrix
+SC_MODULE(MatrixInterchanger) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> rst;  // Reset signal
+    sc_in<sc_matrix<int, 4, 4>> input_matrix;  // Input matrix
+    sc_out<sc_matrix<int, 4, 4>> output_matrix; // Output matrix
+
+    // Internal storage for the matrix
+    sc_matrix<int, 4, 4> matrix;
+
+    // Constructor
+    SC_CTOR(MatrixInterchanger) {
+        // Register the method to process the matrix
+        SC_METHOD(interchangeRows);
+        sensitive << clk.posedge_event() << rst.posedge_event();
+    }
+
+    // Method to interchange the first and last rows
+    void interchangeRows() {
+        if (rst.read()) {
+            // Reset matrix to initial state if reset is active
+            matrix = input_matrix.read();
+        } else {
+            // Swap the first and last rows
+            for (int i = 0; i < 4; ++i) {
+                int temp = matrix[0][i];
+                matrix[0][i] = matrix[3][i];
+                matrix[3][i] = temp;
+            }
+            // Write the modified matrix to the output
+            output_matrix.write(matrix);
+        }
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_clock clk; // Clock signal
+    sc_signal<bool> rst; // Reset signal
+    sc_signal<sc_matrix<int, 4, 4>> input_matrix; // Input matrix signal
+    sc_signal<sc_matrix<int, 4, 4>> output_matrix; // Output matrix signal
+
+    MatrixInterchanger matrix_interchanger_inst; // Instance of the MatrixInterchanger module
+
+    // Constructor
+    SC_CTOR(Testbench) : matrix_interchanger_inst("matrix_interchanger"), clk("clk", 10, SC_NS) {
+        // Connect signals to ports
+        matrix_interchanger_inst.clk(clk);
+        matrix_interchanger_inst.rst(rst);
+        matrix_interchanger_inst.input_matrix(input_matrix);
+        matrix_interchanger_inst.output_matrix(output_matrix);
+
+        // Process to initialize and run the test
+        SC_THREAD(run_test);
+    }
+
+    // Thread to run test cases
+    void run_test() {
+        // Initialize the input matrix
+        sc_matrix<int, 4, 4> init_matrix = {{8, 9, 7, 6},
+                                            {4, 7, 6, 5},
+                                            {3, 2, 1, 8},
+                                            {9, 9, 7, 7}};
+        input_matrix.write(init_matrix);
+        rst.write(true); // Assert reset
+        wait(1, SC_NS);
+        rst.write(false); // Deassert reset
+        wait(1, SC_NS);
+
+        // Print the output matrix
+        sc_matrix<int, 4, 4> result_matrix = output_matrix.read();
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                cout << result_matrix[i][j] << " ";
+            }
+            cout << endl;
+        }
+
+        // Stop the simulation
+        sc_stop();
+    }
+};
+
+// Custom matrix type definition
+template<typename T, int ROWS, int COLS>
+class sc_matrix : public sc_vector<sc_vector<T>> {
+public:
+    sc_matrix(sc_module_name name) : sc_vector<sc_vector<T>>(name, ROWS, sc_gen_unique_name("row")) {
+        for (int i = 0; i < ROWS; ++i) {
+            (*this)[i].init(COLS, sc_gen_unique_name("col"));
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+1. **MatrixInterchanger Module**:
+   - **Ports**:
+     - `clk`: Clock signal.
+     - `rst`: Reset signal.
+     - `input_matrix`: Input matrix signal.
+     - `output_matrix`: Output matrix signal.
+   - **Internal Storage**: Uses an internal `sc_matrix` to store the matrix.
+   - **Constructor**: Registers the `interchangeRows` method sensitive to clock edges and reset.
+   - **Method**: `interchangeRows` swaps the first and last rows of the matrix when the reset is deasserted.
+
+2. **Testbench Module**:
+   - **Signals**:
+     - `clk`: Clock signal.
+     - `rst`: Reset signal.
+     - `input_matrix`: Input matrix signal.
+     - `output_matrix`: Output matrix signal.
+   - **Instance**: Creates an instance of `MatrixInterchanger`.
+   - **Constructor**: Connects signals to ports and runs the `run_test` thread.
+   - **Thread**: `run_test` initializes the input matrix, asserts and deasserts the reset, reads the output matrix, prints it, and stops the simulation.
+
+3. **Custom Matrix Type**:
+   - Defines a custom `sc_matrix` class using `sc_vector` to handle 2D matrices within SystemC.
+
+This SystemC code accurately replicates the functionality of the original C++ code, suitable for high-level synthesis flows.

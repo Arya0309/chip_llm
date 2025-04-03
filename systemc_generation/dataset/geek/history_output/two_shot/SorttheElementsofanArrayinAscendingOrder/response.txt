@@ -1,0 +1,210 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - An integer array `nums` initialized with values `{1, 12, 6, 8, 10}`.
+  - The length of the array `size_nums` which is calculated as `(sizeof(nums) / sizeof(nums[0]))`.
+
+- **Outputs**:
+  - Prints the array before sorting.
+  - Prints the array after sorting.
+
+#### Detailed Explanation of the Code
+
+1. **Header Inclusion and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes all standard C++ libraries.
+   - Uses the standard namespace to avoid prefixing standard library names with `std::`.
+
+2. **Function Declarations**:
+   ```cpp
+   void sort(int num[], int len);
+   void swapNums(int nums[], int first, int second);
+   ```
+   - Declares two functions: `sort` to sort the array and `swapNums` to swap two elements in the array.
+
+3. **Driver Code (`main` function)**:
+   - Initializes the array `nums` with specific values.
+   - Calculates the size of the array.
+   - Prints the array before sorting.
+   - Calls the `sort` function to sort the array.
+   - Prints the array after sorting.
+
+4. **Sort Function**:
+   ```cpp
+   void sort(int num[], int len) {
+       bool isSwapped;
+       for (int i = 0; i < len; i++) {
+           isSwapped = false;
+           for (int j = 1; j < len - i; j++) {
+               if (num[j] < num[j - 1]) {
+                   swapNums(num, j, (j - 1));
+                   isSwapped = true;
+               }
+           }
+           if (!isSwapped) {
+               break;
+           }
+       }
+   }
+   ```
+   - Implements the Bubble Sort algorithm.
+   - Iterates over the array multiple times.
+   - Compares adjacent elements and swaps them if they are in the wrong order.
+   - Uses a flag `isSwapped` to optimize the process by stopping early if no swaps are made in an iteration.
+
+5. **Swap Function**:
+   ```cpp
+   void swapNums(int nums[], int first, int second) {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - Swaps the elements at indices `first` and `second` in the array `nums`.
+
+### Equivalent SystemC Code
+
+Below is a SystemC module that encapsulates the sorting functionality of the provided C++/C code. This module can be used in a high-level synthesis flow.
+
+```cpp
+#include <systemc.h>
+
+// Module to sort an array using Bubble Sort
+SC_MODULE(BubbleSort) {
+    // Input port for the array size
+    sc_in<int> size_in;
+    // Output port for the sorted array
+    sc_out<sc_vector<sc_int<32>>> sorted_array_out;
+    // Input port for the array to be sorted
+    sc_in<sc_vector<sc_int<32>>> array_in;
+
+    // Internal signal to hold the array during sorting
+    sc_vector<sc_int<32>> array;
+    // Internal signal to indicate completion of sorting
+    sc_signal<bool> done;
+
+    // Constructor
+    SC_CTOR(BubbleSort) : array("array", 5) {
+        // Process to perform sorting
+        SC_THREAD(sort_array);
+        sensitive << size_in;
+    }
+
+    // Method to perform Bubble Sort
+    void sort_array() {
+        int len = size_in.read();
+        bool isSwapped;
+
+        // Copy input array to internal array
+        for (int i = 0; i < len; ++i) {
+            array[i] = array_in[i].read();
+        }
+
+        // Bubble Sort algorithm
+        for (int i = 0; i < len; i++) {
+            isSwapped = false;
+            for (int j = 1; j < len - i; j++) {
+                if (array[j] < array[j - 1]) {
+                    swap(array[j], array[j - 1]);
+                    isSwapped = true;
+                }
+            }
+            if (!isSwapped) {
+                break;
+            }
+        }
+
+        // Write sorted array to output
+        for (int i = 0; i < len; ++i) {
+            sorted_array_out[i].write(array[i]);
+        }
+
+        // Indicate sorting is complete
+        done.write(true);
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_signal<int> size_sig; // Signal for the size of the array
+    sc_signal<sc_vector<sc_int<32>>> array_sig; // Signal for the array to be sorted
+    sc_signal<sc_vector<sc_int<32>>> sorted_array_sig; // Signal for the sorted array
+
+    // Instance of the BubbleSort module
+    BubbleSort bubble_sort_inst;
+
+    // Constructor
+    SC_CTOR(Testbench) : array_sig("array_sig", 5), sorted_array_sig("sorted_array_sig", 5), bubble_sort_inst("bubble_sort_inst") {
+        // Connect signals to module ports
+        bubble_sort_inst.size_in(size_sig);
+        bubble_sort_inst.array_in(array_sig);
+        bubble_sort_inst.sorted_array_out(sorted_array_sig);
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Initialize array
+        int initial_array[] = {1, 12, 6, 8, 10};
+        size_sig.write(5);
+
+        // Write initial array to input signal
+        for (int i = 0; i < 5; ++i) {
+            array_sig[i].write(initial_array[i]);
+        }
+
+        // Wait for sorting to complete
+        wait(1, SC_NS);
+
+        // Read sorted array from output signal
+        cout << "After sorting the array is: \n";
+        for (int i = 0; i < 5; ++i) {
+            cout << sorted_array_sig[i].read() << " ";
+        }
+        cout << "\n";
+
+        // End simulation after successful test
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **BubbleSort Module**:
+  - **Ports**: 
+    - `size_in`: Input port for the size of the array.
+    - `array_in`: Input port for the array to be sorted.
+    - `sorted_array_out`: Output port for the sorted array.
+  - **Internal Signals**:
+    - `array`: A vector to hold the array during sorting.
+    - `done`: A signal to indicate completion of sorting (not used in this simple example but can be useful in more complex scenarios).
+  - **Constructor**: Registers the `sort_array` method to be sensitive to changes in `size_in`.
+  - **sort_array Method**: Implements the Bubble Sort algorithm, copying the input array to an internal vector, performing the sort, and writing the sorted array back to the output port.
+
+- **Testbench Module**:
+  - **Signals**:
+    - `size_sig`: Signal for the size of the array.
+    - `array_sig`: Signal for the array to be sorted.
+    - `sorted_array_sig`: Signal for the sorted array.
+  - **Instance**: Creates an instance of the `BubbleSort` module.
+  - **Constructor**: Connects the signals to the module's ports and registers the `run_tests` method.
+  - **run_tests Method**: Initializes the array, writes it to the input signal, waits for the sorting to complete, reads the sorted array from the output signal, and prints it.
+
+This SystemC code faithfully captures the logic of the original C++/C source and can be used in a high-level synthesis flow.

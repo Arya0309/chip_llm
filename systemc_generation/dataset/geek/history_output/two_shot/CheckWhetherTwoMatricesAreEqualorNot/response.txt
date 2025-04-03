@@ -1,0 +1,207 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! outputs.
+3. **Line-by-Line/Block-by-Block Explanation**:
+4. **SystemC Code Snippet**
+
+---
+
+### Inputs and Outputs
+
+**Inputs**:
+- Two matrices `A` and `B`, each of size `N x N` (where `N` is defined as 4 in this code).
+
+**Outputs**:
+- A message indicating whether the matrices `A` and `B` are identical or not.
+
+### Line-by-Line/Block-by-Block Explanation
+
+```cpp
+#include <bits/stdc++.h> 
+#define N 4 
+using namespace std; 
+```
+- Include the standard library and define `N` as 4, which represents the size of the matrices.
+
+```cpp
+int areSame(int A[][N], int B[][N]) 
+{ 
+	int i, j; 
+	for (i = 0; i < N; i++) 
+		for (j = 0; j < N; j++) 
+			if (A[i][j] != B[i][j]) 
+				return 0; 
+	return 1; 
+} 
+```
+- Function `areSame` checks if two matrices `A` and `B` are identical.
+- It iterates over each element of the matrices using nested loops.
+- If any corresponding elements of `A` and `B` differ, it returns `0` (false).
+- If all elements match, it returns `1` (true).
+
+```cpp
+int main() 
+{ 
+	int A[N][N] = {{1, 1, 1, 1}, 
+				{2, 2, 2, 2}, 
+				{3, 3, 3, 3}, 
+				{4, 4, 4, 4}}; 
+
+	int B[N][N] = {{1, 1, 1, 1}, 
+				{2, 2, 2, 2}, 
+				{3, 3, 3, 3}, 
+				{4, 4, 4, 4}}; 
+```
+- The `main` function initializes two matrices `A` and `B` with predefined values.
+- Both matrices have identical values in this example.
+
+```cpp
+	if (areSame(A, B)) 
+		cout << "Matrices are identical"; 
+	else
+		cout << "Matrices are not identical"; 
+	return 0; 
+} 
+```
+- The `main` function calls `areSame` to check if `A` and `B` are identical.
+- It prints "Matrices are identical" if they are the same, otherwise "Matrices are not identical".
+- The program returns `0` to indicate successful execution.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that performs the same logic:
+
+```cpp
+#include <systemc.h>
+
+const int N = 4;
+
+// Module to compare two matrices
+SC_MODULE(MatrixComparator) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> rst;          // Reset signal
+    sc_in<int> A[N][N];      // Input matrix A
+    sc_in<int> B[N][N];      // Input matrix B
+    sc_out<bool> identical;   // Output indicating if matrices are identical
+
+    bool is_identical;
+
+    // Constructor
+    SC_CTOR(MatrixComparator) {
+        // Register the comparison process
+        SC_METHOD(compare_matrices);
+        sensitive << clk.posedge_event() << rst.posedge_event();
+    }
+
+    // Method to compare matrices
+    void compare_matrices() {
+        if (rst.read()) {
+            is_identical = true;
+            identical.write(false);
+        } else {
+            is_identical = true;
+            for (int i = 0; i < N; ++i) {
+                for (int j = 0; j < N; ++j) {
+                    if (A[i][j].read() != B[i][j].read()) {
+                        is_identical = false;
+                        break;
+                    }
+                }
+                if (!is_identical) break;
+            }
+            identical.write(is_identical);
+        }
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_clock clk;             // Clock signal
+    sc_signal<bool> rst;      // Reset signal
+    sc_signal<int> A[N][N];   // Signals for matrix A
+    sc_signal<int> B[N][N];   // Signals for matrix B
+    sc_signal<bool> identical; // Signal for the result
+
+    MatrixComparator comparator_inst; // Instance of the MatrixComparator module
+
+    // Constructor
+    SC_CTOR(Testbench) : clk("clk", 10, SC_NS), comparator_inst("comparator") {
+        // Connect signals to ports
+        comparator_inst.clk(clk);
+        comparator_inst.rst(rst);
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                comparator_inst.A[i][j](A[i][j]);
+                comparator_inst.B[i][j](B[i][j]);
+            }
+        }
+        comparator_inst.identical(identical);
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Initialize matrices
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                A[i][j].write(1 + i); // Fill A with values 1 to 4
+                B[i][j].write(1 + i); // Fill B with values 1 to 4
+            }
+        }
+
+        // Apply reset
+        rst.write(true);
+        wait(2, SC_NS);
+        rst.write(false);
+
+        // Wait for the comparison to complete
+        wait(2, SC_NS);
+
+        // Check the result
+        if (identical.read()) {
+            cout << "Matrices are identical" << endl;
+        } else {
+            cout << "Matrices are not identical" << endl;
+        }
+
+        // Modify B to make matrices different
+        B[0][0].write(99); // Change the first element of B
+
+        // Wait for the comparison to complete
+        wait(2, SC_NS);
+
+        // Check the result again
+        if (identical.read()) {
+            cout << "Matrices are identical" << endl;
+        } else {
+            cout << "Matrices are not identical" << endl;
+        }
+
+        // Stop the simulation
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **MatrixComparator Module**:
+   - **Inputs**: Two matrices `A` and `B`, each of size `N x N`.
+   - **Output**: A boolean signal `identical` indicating if the matrices are identical.
+   - **Process**: The `compare_matrices` method compares the matrices every clock cycle. If the reset signal (`rst`) is active, it resets the comparison state. Otherwise, it iterates through the matrices to check for equality.
+
+2. **Testbench Module**:
+   - **Signals**: Clock (`clk`), reset (`rst`), and matrices `A` and `B`.
+   - **Process**: Initializes matrices `A` and `B` with identical values, applies a reset, and checks the comparison result. Then, it modifies matrix `B` to make it different and checks the result again.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C source, making it suitable for high-level synthesis flows.
