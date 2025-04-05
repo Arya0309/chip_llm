@@ -86,7 +86,7 @@ SC_MODULE(Testbench) {
         Divisor = 3;
         wait(1, SC_NS);
         assert(Error.read() == false);
-        assert(Quotient.read() == -7);
+        assert(Quotient.read() == -6);
         assert(Remainder.read() == -2);
         cout << "Test Case 4: Quotient: " << Quotient.read() << ", Remainder: " << Remainder.read() << endl;
 
@@ -95,8 +95,8 @@ SC_MODULE(Testbench) {
         Divisor = -3;
         wait(1, SC_NS);
         assert(Error.read() == false);
-        assert(Quotient.read() == -7);
-        assert(Remainder.read() == 1);
+        assert(Quotient.read() == -6);
+        assert(Remainder.read() == 2);
         cout << "Test Case 5: Quotient: " << Quotient.read() << ", Remainder: " << Remainder.read() << endl;
 
         // Test case 6: Both negative

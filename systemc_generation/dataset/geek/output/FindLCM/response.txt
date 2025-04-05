@@ -1,0 +1,114 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Inputs**: Two integers, `a` and `b`.
+- **Outputs**: The Least Common Multiple (LCM) of `a` and `b`.
+
+### Detailed Line-by-Line/Block-by-Block Explanation:
+
+1. **Variable Declarations and Initialization:**
+   ```cpp
+   int a = 15, b = 20, max_num, flag = 1;
+   ```
+   - `a` and `b` are initialized with values 15 and 20 respectively.
+   - `max_num` is declared but not initialized yet.
+   - `flag` is set to 1 which will be used as a control variable for the while loop.
+
+2. **Finding the Larger Number:**
+   ```cpp
+   max_num = (a > b) ? a : b;
+   ```
+   - This line uses the ternary operator to determine which of the two numbers (`a` or `b`) is larger and assigns this value to `max_num`.
+
+3. **While Loop for Finding LCM:**
+   ```cpp
+   while (flag) {
+       if (max_num % a == 0 && max_num % b == 0) {
+           cout << "LCM of " << a << " and " << b << " is " << max_num;
+           break;
+       }
+       ++max_num;
+   }
+   ```
+   - The loop continues indefinitely until `flag` becomes 0.
+   - Inside the loop, there is an `if` condition checking if `max_num` is divisible by both `a` and `b` without any remainder.
+   - If the condition is true, it prints the LCM and breaks out of the loop.
+   - If the condition is false, `max_num` is incremented by 1 and the loop continues.
+
+4. **Return Statement:**
+   ```cpp
+   return 0;
+   ```
+   - The program returns 0 indicating successful execution.
+
+### Equivalent SystemC Code Snippet:
+
+Below is the SystemC code that replicates the logic of the given C++/C code. It uses the provided signals `a`, `b`, and `lcm_result` for input and output.
+
+```cpp
+#include <systemc.h>
+
+// Module to compute the LCM of two integers
+SC_MODULE(LCMCalculator) {
+    sc_in<int> a;          // Input port for the first number
+    sc_in<int> b;          // Input port for the second number
+    sc_out<int> lcm_result; // Output port for the LCM result
+
+    // Constructor
+    SC_CTOR(LCMCalculator) {
+        // Process to compute the LCM
+        SC_METHOD(compute_lcm);
+        sensitive << a << b;
+    }
+
+    // Method to compute the LCM
+    void compute_lcm() {
+        int max_num, flag = 1;
+
+        // Determine the larger number
+        max_num = (a.read() > b.read()) ? a.read() : b.read();
+
+        // Loop to find the LCM
+        while (flag) {
+            if (max_num % a.read() == 0 && max_num % b.read() == 0) {
+                lcm_result.write(max_num);
+                flag = 0; // Exit the loop after finding LCM
+            } else {
+                ++max_num;
+            }
+        }
+    }
+};
+
+// Example usage
+int sc_main(int argc, char* argv[]) {
+    sc_signal<int> a_sig, b_sig, lcm_result_sig;
+
+    // Instantiate the LCMCalculator module
+    LCMCalculator lcm_calc("lcm_calc");
+    lcm_calc.a(a_sig);
+    lcm_calc.b(b_sig);
+    lcm_calc.lcm_result(lcm_result_sig);
+
+    // Assign values to inputs
+    a_sig.write(15);
+    b_sig.write(20);
+
+    // Run the simulation
+    sc_start();
+
+    // Output the result
+    cout << "LCM of " << a_sig.read() << " and " << b_sig.read() << " is " << lcm_result_sig.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Declaration**: The `LCMCalculator` class inherits from `sc_module`. It has three ports: `a`, `b`, and `lcm_result`.
+- **Constructor**: The constructor sets up a method (`compute_lcm`) that is sensitive to changes in `a` and `b`.
+- **Method `compute_lcm`**: This method replicates the logic of finding the LCM using a similar approach to the C++/C code.
+- **Main Function**: The `sc_main` function instantiates the `LCMCalculator` module, assigns values to the input ports, runs the simulation, and prints the result.
+
+This SystemC code is designed to be integrated into an existing testbench and can be synthesized using high-level synthesis tools.

@@ -58,7 +58,7 @@ SC_MODULE(Testbench) {
         // Test case: Compute factorial for 0
         num_sig.write(0);
         wait(1, SC_NS);  // Wait for the process to execute
-        unsigned int result = fact_sig.read();
+        result = fact_sig.read();
         cout << "Factorial of 0 is " << result << endl;
         // Assert that the computed result is correct (1 for 0!)
         assert(result == 1);

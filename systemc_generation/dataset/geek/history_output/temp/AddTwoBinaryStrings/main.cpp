@@ -91,28 +91,28 @@ SC_MODULE(Testbench) {
         a = "1101"; b = "100";
         wait(1, SC_NS); // Wait for the adder to process
         assert(sum.read() == "10001");
-        cout << "Sum: " << sum.read() << endl;
+        std::cout << "Sum: " << sum.read() << std::endl;
 
         // Test case 2: Different lengths
         a = "1010"; b = "11010";
         wait(1, SC_NS);
         assert(sum.read() == "100100");
-        cout << "Sum: " << sum.read() << endl;
+        std::cout << "Sum: " << sum.read() << std::endl;
 
         // Test case 3: Leading zeros in result
         a = "0"; b = "0";
         wait(1, SC_NS);
         assert(sum.read() == "0");
-        cout << "Sum: " << sum.read() << endl;
+        std::cout << "Sum: " << sum.read() << std::endl;
 
         // Test case 4: Different values
         a = "1111"; b = "1";
         wait(1, SC_NS);
         assert(sum.read() == "10000");
-        cout << "Sum: " << sum.read() << endl;
+        std::cout << "Sum: " << sum.read() << std::endl;
 
         // Print success message
-        cout << "All tests passed successfully." << endl;
+        std::cout << "All tests passed successfully." << std::endl;
 
         sc_stop(); // Stop the simulation
     }

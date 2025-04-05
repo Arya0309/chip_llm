@@ -67,19 +67,19 @@ SC_MODULE(Testbench) {
         key_sig.write(8);
         wait(1, SC_NS);
         assert(index_sig.read() == 5);
-        cout << "Test 1 Passed: 8 found at index " << index_sig.read() << endl;
+        std::cout << "Test 1 Passed: 8 found at index " << index_sig.read() << std::endl;
 
         // Test Case 2: key = 10; expected index = -1 (not found)
         key_sig.write(10);
         wait(1, SC_NS);
         assert(index_sig.read() == -1);
-        cout << "Test 2 Passed: 10 not found (index: " << index_sig.read() << ")" << endl;
+        std::cout << "Test 2 Passed: 10 not found (index: " << index_sig.read() << ")" << std::endl;
 
         // Test Case 3: key = 1; expected index = 0
         key_sig.write(1);
         wait(1, SC_NS);
         assert(index_sig.read() == 0);
-        cout << "Test 3 Passed: 1 found at index " << index_sig.read() << endl;
+        std::cout << "Test 3 Passed: 1 found at index " << index_sig.read() << std::endl;
 
         std::cout << "All tests completed successfully." << std::endl;
         

@@ -46,22 +46,24 @@ SC_MODULE(Testbench) {
 
     // Thread that runs test cases for the Multiplier module
     void run_tests() {
+        const float epsilon = 1e-6;
+
         // Test case 1: Multiply 1.2 and 3.0 (Expected product: 3.6)
         a.write(1.2);
         b.write(3.0);
         wait(1, SC_NS);
-        // Assert to verify the output is as expected
-        assert(product.read() == 3.6);
-        std::cout << "1.2 * 3.0 = " << product.read() << std::endl;
+        float result = product.read();
+        std::cout << "1.2 * 3.0 = " << result << std::endl;
+        assert(std::fabs(result - 3.6) < epsilon);
 
-        // Additional test case: Multiply 2.5 and 4.0 (Expected product: 10.0)
+        // Test case 2: Multiply 2.5 and 4.0 (Expected product: 10.0)
         a.write(2.5);
         b.write(4.0);
         wait(1, SC_NS);
-        assert(product.read() == 10.0);
-        std::cout << "2.5 * 4.0 = " << product.read() << std::endl;
+        result = product.read();
+        std::cout << "2.5 * 4.0 = " << result << std::endl;
+        assert(std::fabs(result - 10.0) < epsilon);
 
-        // Print success message and stop simulation
         std::cout << "All tests passed successfully." << std::endl;
         sc_stop();
     }

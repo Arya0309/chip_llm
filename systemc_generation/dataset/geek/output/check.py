@@ -139,48 +139,50 @@ class GenCodeChecker:
             return True
 
     def _check_unit_test(self, dir):
-        try:
-            result = subprocess.run(
-                ["./main"],
-                cwd=dir,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=5,
-            )
-            self.unit_test_result = result
-        except subprocess.TimeoutExpired as e:
-            # 若超時，將結果記錄為執行失敗
-            self.unit_test_result = e
-            print(Fore.RED + "Timeout during execution.")
-            self.status = "runtime_error"
-            return "runtime_error"
+        result = subprocess.run(
+            ["./main"],
+            cwd=dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=5,
+        )
+        self.unit_test_result = result
 
-        output_stdout = result.stdout.decode("utf-8", "ignore")
-        output_stderr = result.stderr.decode("utf-8", "ignore")
-        output = output_stdout + output_stderr
-        # 檢查是否有執行錯誤
-        if "Error" in output:
-            print(Fore.RED + "Runtime Error.")
-            print(output)
-            self.status = "runtime_error"
-            return "runtime_error"
-        else:
-            # 執行成功
-            if "success" in output.lower():
-                print(Fore.GREEN + "Unit test successful!")
-                self.status = "unit_test_success"
-                return "unit_test_success"
-            else:
-                # output = "Assertion" + output.split("Assertion")[1]
-                print(Fore.RED + "Unit test failed.")
-                print(output)
-                self.status = "unit_test_fail"
-                return "unit_test_fail"
-        # 最後移除main檔案
+        # 移除 main 檔案
         try:
             os.remove(os.path.join(dir, "main"))
         except Exception:
             pass
+
+        # 合併輸出內容
+        output = result.stdout.decode("utf-8", "ignore") + result.stderr.decode(
+            "utf-8", "ignore"
+        )
+
+        # 如果輸出中包含斷言失敗的相關字樣，視為單元測試失敗
+        if "assert" in output.lower():
+            print(Fore.RED + "Unit test fail.")
+            self.status = "unit_test_fail"
+            return "unit_test_fail"
+
+        # 如果回傳碼不為 0，且不屬於斷言失敗，則視為運行時錯誤
+        if result.returncode != 0:
+            print(
+                Fore.RED + "Runtime Error (return code: {})".format(result.returncode)
+            )
+            self.status = "runtime_error"
+            return "runtime_error"
+
+        # 回傳碼為 0 時，依據輸出判斷是否成功
+        if "success" in output.lower():
+            print(Fore.GREEN + "Unit test successful!")
+            self.status = "unit_test_success"
+            return "unit_test_success"
+        else:
+            print(Fore.RED + "Unit test failed.")
+            print(output)
+            self.status = "unit_test_fail"
+            return "unit_test_fail"
 
     def _write_record(self):
         os.makedirs(".log", exist_ok=True)

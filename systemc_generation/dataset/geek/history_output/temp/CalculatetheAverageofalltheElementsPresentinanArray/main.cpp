@@ -79,10 +79,10 @@ SC_MODULE(Testbench) {
         wait(1, SC_NS);
 
         // 讀取並檢查結果
-        double computed_avg2 = avg_sig.read();
-        std::cout << "Computed average: " << computed_avg2 << std::endl;
+        computed_avg = avg_sig.read();
+        std::cout << "Computed average: " << computed_avg << std::endl;
         double epsilon = 1e-5; // 允許的誤差範圍
-        assert(fabs(computed_avg2 - 5.11111) < epsilon); // 檢查計算結果是否在允許範圍內
+        assert(fabs(computed_avg - 5.11111) < epsilon); // 檢查計算結果是否在允許範圍內
 
         std::cout << "Test passed successfully." << std::endl;
 

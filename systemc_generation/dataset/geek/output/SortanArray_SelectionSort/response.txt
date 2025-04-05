@@ -1,0 +1,155 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs
+- **Inputs**:
+  - An integer array `arr` which contains the unsorted elements.
+  - The size of the array `n`.
+
+- **Outputs**:
+  - The sorted array `arr` after applying the selection sort algorithm.
+
+### Detailed Line-by-Line Explanation
+
+1. **Swap Function**:
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   }
+   ```
+   - This function swaps the values pointed to by `xp` and `yp`.
+   - It uses a temporary variable `temp` to hold one value during the swap.
+
+2. **Selection Sort Function**:
+   ```cpp
+   void selectionSort(int arr[], int n) 
+   { 
+       int i, j, min_idx; 
+
+       for (i = 0; i < n-1; i++) 
+       { 
+           min_idx = i; 
+           for (j = i+1; j < n; j++) 
+               if (arr[j] < arr[min_idx]) 
+                   min_idx = j; 
+
+           swap(&arr[min_idx], &arr[i]); 
+       } 
+   }
+   ```
+   - The `selectionSort` function sorts the array `arr` using the selection sort algorithm.
+   - It iterates over each element, treating it as the boundary between the sorted and unsorted parts of the array.
+   - For each position `i`, it finds the smallest element in the unsorted part (`min_idx`) and swaps it with the element at position `i`.
+
+3. **Print Array Function**:
+   ```cpp
+   void printArray(int arr[], int size) 
+   { 
+       int i; 
+       for (i=0; i < size; i++) 
+           cout << arr[i] << " "; 
+       cout << endl; 
+   }
+   ```
+   - This function prints the elements of the array `arr` separated by spaces.
+
+4. **Main Function**:
+   ```cpp
+   int main() 
+   { 
+       int arr[] = {64, 25, 12, 22, 11}; 
+       int n = sizeof(arr)/sizeof(arr[0]); 
+       selectionSort(arr, n); 
+       cout << "Sorted array: "; 
+       printArray(arr, n); 
+       return 0; 
+   }
+   ```
+   - The `main` function initializes an array `arr` with unsorted integers.
+   - It calculates the size of the array `n`.
+   - It calls `selectionSort` to sort the array.
+   - It prints the sorted array using `printArray`.
+
+### SystemC Equivalent Code
+
+Below is the equivalent SystemC code that implements the selection sort algorithm. It incorporates the provided signals `clk`, `start`, and `done` for seamless integration with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// SelectionSort Module: Implements the selection sort algorithm
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;      // Clock input
+    sc_in<bool> start;    // Signal to start sorting
+    sc_out<bool> done;    // Signal to indicate sorting is complete
+
+    // Internal storage for the array (fixed size of 5 elements)
+    int arr[5];
+
+    // Constructor: register the process
+    SC_CTOR(SelectionSort) {
+        SC_THREAD(sort_process);
+        sensitive << clk.pos();
+    }
+
+    // Process that waits for the start signal and performs sorting
+    void sort_process() {
+        while (true) {
+            wait(); // wait for a clock cycle
+            if (start.read() == true) {
+                selectionSort(); // perform sorting
+                done.write(true);
+                wait(); // wait for one cycle to signal completion
+                done.write(false);
+            }
+        }
+    }
+
+    // Selection sort algorithm implementation (sorts the internal array)
+    void selectionSort() {
+        int n = 5; // Fixed number of elements in the array
+        int i, j, min_idx;
+
+        for (i = 0; i < n-1; i++) 
+        { 
+            min_idx = i; 
+            for (j = i+1; j < n; j++) 
+                if (arr[j] < arr[min_idx]) 
+                    min_idx = j; 
+
+            // Swap the found minimum element with the first element
+            int temp = arr[min_idx];
+            arr[min_idx] = arr[i];
+            arr[i] = temp;
+        }
+    }
+
+    // Helper method to load an input array into the module
+    void load_array(const int input[5]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    // Helper method to read the sorted array from the module
+    void read_array(int output[5]) {
+        for (int i = 0; i < 5; i++) {
+            output[i] = arr[i];
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+- **Module Definition**: The `SelectionSort` module encapsulates the selection sort logic.
+- **Signals**: The module uses `clk` for synchronization, `start` to trigger sorting, and `done` to indicate completion.
+- **Internal Storage**: The module maintains an internal array `arr` of size 5 to store the elements to be sorted.
+- **Constructor**: Registers the `sort_process` thread sensitive to the positive edge of `clk`.
+- **sort_process**: Waits for the `start` signal to become true, then performs sorting and sets `done` to true upon completion.
+- **selectionSort**: Implements the selection sort algorithm on the internal array.
+- **Helper Methods**: `load_array` loads the input array into the module's internal storage, and `read_array` reads the sorted array from the module.
+
+This SystemC module is designed to be integrated into a larger system where it can be controlled via the provided signals and interact with other modules or testbenches.

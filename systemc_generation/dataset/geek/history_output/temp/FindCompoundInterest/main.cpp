@@ -53,23 +53,26 @@ SC_MODULE(Testbench) {
         rate_sig = 5;
         time_sig = 2;
         wait(1, SC_NS); // Wait for the process to update
-
+        
         // Read and print the compound interest
         double result = ci_sig.read();
-        assert(result == 1025); // Check if the result is as expected
-
+        // Check if the result is as expected (allowing a small tolerance)
+        assert(fabs(result - 1025) < 1e-6);
+        
         // Test Case 2: Principal = 20000, Rate = 10%, Time = 5 years
         principal_sig = 20000;
         rate_sig = 10;
         time_sig = 5;
         wait(1, SC_NS); // Wait for the process to update
-        double result = ci_sig.read();
-        assert(result == 10510); // Check if the result is as expected
-
-        std::cout << "All test passed successful!" << std::endl;
+        
+        result = ci_sig.read(); // Reuse the already declared variable
+        // The correct expected compound interest should be around 12210.2
+        assert(fabs(result - 12210.2) < 1e-6);
+        
+        std::cout << "All tests passed successfully!" << std::endl;
         // End simulation after successful test
         sc_stop();
-    }
+    }    
 };
 
 int sc_main(int argc, char* argv[]) {

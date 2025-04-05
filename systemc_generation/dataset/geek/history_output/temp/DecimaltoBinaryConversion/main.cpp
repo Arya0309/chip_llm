@@ -56,7 +56,7 @@ SC_MODULE(Testbench) {
         wait(1, SC_NS);  // Wait for the process to trigger
 
         int result = bin_sig.read();
-        cout << "Input: 10, Binary Output: " << result << endl;
+        std::cout << "Input: 10, Binary Output: " << result << std::endl;
         assert(result == 1010);
 
         // Test Case: Input n = 0 should result in binary 0
@@ -64,18 +64,18 @@ SC_MODULE(Testbench) {
         wait(1, SC_NS);  // Wait for the process to trigger
 
         int result2 = bin_sig.read();
-        cout << "Input: 0, Binary Output: " << result2 << endl;
+        std::cout << "Input: 0, Binary Output: " << result2 << std::endl;
         assert(result2 == 0);
 
         // Test Case: Input n = 1000 should result in binary 1111101000
         dec_sig.write(1000);
         wait(1, SC_NS);  // Wait for the process to trigger
         int result3 = bin_sig.read();
-        cout << "Input: 1000, Binary Output: " << result3 << endl;
+        std::cout << "Input: 1000, Binary Output: " << result3 << std::endl;
         assert(result3 == 1111101000);
 
         // Print success message and stop simulation
-        cout << "Test passed successfully." << endl;
+        std::cout << "Test passed successfully." << std::endl;
         sc_stop();
     }
 
