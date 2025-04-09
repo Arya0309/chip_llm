@@ -1,0 +1,111 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Analysis of Provided C++ Code
+
+#### Inputs and Outputs
+- **Inputs**: None (The code uses a hardcoded value `n = 153` which is not passed as an argument)
+- **Outputs**: Prints "Yes. It is Armstrong No." if the number is an Armstrong number, otherwise prints "No. It is not an Armstrong No."
+
+#### Detailed Explanation Line-by-Line
+1. **Include Header**
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - This includes the standard I/O library and sets the namespace to `std`.
+
+2. **Driver Code**
+   ```cpp
+   int main()
+   {
+       int n = 153;
+       int temp = n;
+       int p = 0;
+   ```
+   - `n` is initialized to 153.
+   - `temp` is set to the value of `n` (to keep track of the original number).
+   - `p` is initialized to 0 (to store the sum of cubes of each digit).
+
+3. **Loop to Calculate Sum of Cubes**
+   ```cpp
+       while (n > 0) {
+           int rem = n % 10;
+           p = (p) + (rem * rem * rem);
+           n = n / 10;
+       }
+   ```
+   - A `while` loop runs until `n` becomes 0.
+   - Inside the loop:
+     - `rem` stores the last digit of `n` (`n % 10`).
+     - `p` accumulates the sum of the cubes of the digits (`p += rem * rem * rem`).
+     - `n` is updated to remove the last digit (`n /= 10`).
+
+4. **Condition Check and Output**
+   ```cpp
+       if (temp == p) {
+           cout << ("Yes. It is Armstrong No.");
+       } else {
+           cout << ("No. It is not an Armstrong No.");
+       }
+       return 0;
+   }
+   ```
+   - If `temp` (original number) is equal to `p` (sum of cubes), it prints "Yes. It is Armstrong No."
+   - Otherwise, it prints "No. It is not an Armstrong No."
+   - The function returns 0 indicating successful execution.
+
+### Equivalent SystemC Code
+
+Here's how we can convert this C++ code into a SystemC module:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArmstrongChecker) {
+    sc_in<int> num_in;  // Input port for the number to check
+    sc_out<bool> is_armstrong; // Output port indicating if the number is an Armstrong number
+
+    // Constructor
+    SC_CTOR(ArmstrongChecker) {
+        // Process to perform the Armstrong check
+        SC_THREAD(check_armstrong);
+        sensitive << num_in;
+    }
+
+    // Method to check if the number is an Armstrong number
+    void check_armstrong() {
+        int n = num_in.read();
+        int temp = n;
+        int p = 0;
+
+        while (n > 0) {
+            int rem = n % 10;
+            p = (p) + (rem * rem * rem);
+            n = n / 10;
+        }
+
+        if (temp == p) {
+            is_armstrong.write(true);
+        } else {
+            is_armstrong.write(false);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+- **Inputs and Outputs**:
+  - `num_in`: An input signal to pass the number to check.
+  - `is_armstrong`: An output signal that indicates whether the number is an Armstrong number (`true`) or not (`false`).
+
+- **Constructor**:
+  - `SC_CTOR(ArmstrongChecker)`: Initializes the module.
+  - `SC_THREAD(check_armstrong)`: Registers a thread to perform the Armstrong check.
+  - `sensitive << num_in`: Specifies that the thread should be triggered whenever `num_in` changes.
+
+- **check_armstrong Method**:
+  - Reads the input number `n`.
+  - Calculates the sum of the cubes of its digits.
+  - Compares the sum with the original number.
+  - Writes `true` to `is_armstrong` if they are equal, otherwise writes `false`.
+
+This SystemC code captures the logic of the original C++ code and can be integrated into a larger system or used with a testbench that provides the `num_in` signal.

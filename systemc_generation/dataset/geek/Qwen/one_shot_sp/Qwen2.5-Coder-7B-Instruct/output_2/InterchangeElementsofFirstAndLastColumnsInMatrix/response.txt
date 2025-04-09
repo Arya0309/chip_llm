@@ -1,0 +1,139 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs:**
+- A 2D integer array `m` of size `n x n`.
+
+**Outputs:**
+- The modified 2D array `m` where the first and last rows have been swapped.
+
+### Detailed Explanation
+
+#### Line-by-Line Analysis
+
+1. **Include Statements and Namespace Declaration**
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - Includes the standard I/O library for input/output operations.
+   - Declares the use of the `std` namespace to avoid prefixing standard library functions with `std::`.
+
+2. **Define Constant Size**
+   ```cpp
+   #define n 4
+   ```
+   - Defines a constant `n` with the value `4`, which represents the size of the matrix.
+
+3. **Function Declaration**
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n` as input.
+
+4. **Variable Declaration**
+   ```cpp
+   int rows = n;
+   ```
+   - Declares and initializes a variable `rows` with the value of `n`.
+
+5. **Loop to Swap Rows**
+   ```cpp
+   for (int i = 0; i < n; i++)
+   {
+       int t = m[0][i];
+       m[0][i] = m[rows - 1][i];
+       m[rows - 1][i] = t;
+   }
+   ```
+   - Iterates over each column index `i`.
+   - Swaps the elements at positions `(0, i)` and `(rows - 1, i)`.
+
+6. **Main Function**
+   ```cpp
+   int main()
+   {
+       int m[n][n] = {{8, 9, 7, 6},
+                       {4, 7, 6, 5},
+                       {3, 2, 1, 8},
+                       {9, 9, 7, 7}};
+       
+       interchangeFirstLast(m);
+       
+       for (int i = 0; i < n; i++)
+       {
+           for (int j = 0; j < n; j++)
+               cout << m[i][j] << " ";
+           cout << endl;
+       }
+   }
+   ```
+   - Initializes a 4x4 matrix `m`.
+   - Calls the `interchangeFirstLast` function to swap the first and last rows.
+   - Prints the modified matrix.
+
+### SystemC Equivalent Code
+
+Below is the SystemC code that replicates the functionality of the given C++ code:
+
+```cpp
+#include <systemc.h>
+
+// Define constants
+static const int N = 4;
+static const int SIZE = N * N;
+
+// Module to interchange first and last rows of a matrix
+SC_MODULE(MatrixRowSwapper) {
+    // Input port for the matrix (flattened as 1D array)
+    sc_in<int> in[SIZE];
+    // Output port for the modified matrix (flattened as 1D array)
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(MatrixRowSwapper) {
+        // Sensitive to all input changes
+        SC_METHOD(interchangeRows);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
+    }
+
+    // Method to interchange the first and last rows
+    void interchangeRows() {
+        int temp[SIZE];
+        
+        // Copy the original matrix into a temporary array
+        for (int i = 0; i < SIZE; i++) {
+            temp[i] = in[i].read();
+        }
+        
+        // Interchange the first and last rows
+        for (int i = 0; i < N; i++) {
+            out[i].write(temp[(N-1)*N + i]);
+            out[N*N - N + i].write(temp[i]);
+        }
+        
+        // Copy the remaining rows unchanged
+        for (int i = N; i < N*(N-1); i++) {
+            out[i].write(temp[i]);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Constants and Port Declarations**
+   - Constants `N` and `SIZE` are defined to represent the size of the matrix.
+   - Input and output ports `in` and `out` are declared as 1D arrays of integers.
+
+2. **Constructor**
+   - The constructor sets up the module to be sensitive to changes in any of the input ports.
+   - It binds the `interchangeRows` method to handle these events.
+
+3. **Interchange Rows Method**
+   - A temporary array `temp` is used to store the original values of the matrix.
+   - The first and last rows are swapped by copying elements from `temp` to the appropriate positions in the output ports.
+   - The remaining rows are copied unchanged from the input to the output.
+
+This SystemC code should work seamlessly with the provided testbench signals and replicate the behavior of the original C++ code.

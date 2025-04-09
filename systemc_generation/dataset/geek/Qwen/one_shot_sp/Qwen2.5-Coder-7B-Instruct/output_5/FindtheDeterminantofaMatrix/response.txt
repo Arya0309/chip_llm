@@ -1,0 +1,145 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs:**
+- `matrix`: A 2D array of doubles representing the square matrix whose determinant is to be calculated. This is passed through the `sc_in<double>` signal `matrix[SIZE]` in the SystemC version.
+
+**Outputs:**
+- `det`: The determinant of the input matrix, calculated as a double. This is exposed through the `sc_out<double>` signal `det`.
+
+### Detailed Line-by-Line Explanation
+
+#### Main Function
+
+The `main()` function sets up a 4x4 matrix and calls the `determinant()` function to compute its determinant. The result is then printed to the console.
+
+#### Determinant Calculation
+
+The `determinant(int n)` function calculates the determinant of an `n x n` matrix using Gaussian elimination with partial pivoting.
+
+1. **Initialization**:
+   ```cpp
+   double det = 1.0;
+   ```
+   Initializes the determinant to 1.0.
+
+2. **Pivoting and Elimination Loop**:
+   ```cpp
+   for (int i = 0; i < n; i++) {
+       int pivot = i;
+       for (int j = i + 1; j < n; j++) {
+           if (abs(a[j][i]) > abs(a[pivot][i])) {
+               pivot = j;
+           }
+       }
+       if (pivot != i) {
+           swap(a[i], a[pivot]);
+           det *= -1;
+       }
+       if (a[i][i] == 0) {
+           return 0;
+       }
+       det *= a[i][i];
+       for (int j = i + 1; j < n; j++) {
+           double factor = a[j][i] / a[i][i];
+           for (int k = i + 1; k < n; k++) {
+               a[j][k] -= factor * a[i][k];
+           }
+       }
+   }
+   ```
+   - **Outer Loop (`i`)**: Iterates over each row.
+   - **Inner Loop (`j`)**: Finds the maximum element in the current column to use as the pivot.
+   - **Swapping Rows**: If a larger pivot is found, the rows are swapped, and the sign of the determinant is flipped.
+   - **Check for Zero Pivot**: If the pivot is zero, the matrix is singular, and the determinant is zero.
+   - **Scaling and Elimination**: For each subsequent row, scale the pivot row and subtract it from the other rows to eliminate the pivot element below it.
+
+3. **Return Determinant**:
+   ```cpp
+   return det;
+   ```
+   Returns the computed determinant.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that implements the same functionality using the provided signals:
+
+```cpp
+#include <systemc.h>
+
+// Constants for matrix size
+static const int N = 4;
+static const int SIZE = N * N;
+
+// SystemC module to calculate the determinant of a matrix
+SC_MODULE(DeterminantCalculator) {
+    // Input port for the matrix (flattened as 1D array)
+    sc_in<double> matrix[SIZE];
+    // Output port for the determinant
+    sc_out<double> det;
+
+    SC_CTOR(DeterminantCalculator) {
+        // Register the method to handle the computation
+        SC_THREAD(compute_determinant);
+        sensitive << matrix[0]; // Sensitive to any change in the matrix
+    }
+
+    // Method to compute the determinant
+    void compute_determinant() {
+        double a[N][N];
+        double det = 1.0;
+
+        // Copy the flattened input matrix into a 2D array
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                a[i][j] = matrix[i * N + j].read();
+            }
+        }
+
+        // Pivoting and elimination loop
+        for (int i = 0; i < N; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < N; j++) {
+                if (fabs(a[j][i]) > fabs(a[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(a[i], a[pivot]);
+                det *= -1;
+            }
+            if (a[i][i] == 0) {
+                det = 0;
+                break;
+            }
+            det *= a[i][i];
+            for (int j = i + 1; j < N; j++) {
+                double factor = a[j][i] / a[i][i];
+                for (int k = i + 1; k < N; k++) {
+                    a[j][k] -= factor * a[i][k];
+                }
+            }
+        }
+
+        // Write the determinant to the output port
+        det.write(det);
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Constants and Ports**:
+   - `N` and `SIZE` define the dimensions of the matrix.
+   - `matrix` is an input port for the flattened 2D matrix.
+   - `det` is an output port for the determinant.
+
+2. **Constructor**:
+   - Registers the `compute_determinant` method to run whenever there's a change in the matrix.
+
+3. **Compute Determinant Method**:
+   - Copies the flattened input matrix into a 2D array.
+   - Implements the Gaussian elimination with partial pivoting algorithm to compute the determinant.
+   - Writes the computed determinant to the output port.
+
+This SystemC code should be able to integrate seamlessly with the existing testbench using the provided signals.

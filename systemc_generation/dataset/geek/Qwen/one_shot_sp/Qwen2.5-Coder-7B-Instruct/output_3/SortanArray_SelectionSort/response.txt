@@ -1,0 +1,170 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Input and Output Analysis
+
+#### Inputs:
+1. `clk`: A clock signal that drives the system.
+2. `start`: A signal that indicates when the sorting process should begin.
+
+#### Outputs:
+1. `done`: A signal that indicates when the sorting process has completed.
+
+### Detailed Line-by-Line Explanation
+
+#### Header Files and Namespace
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+```
+- Includes all standard library headers and uses the standard namespace.
+
+#### Swap Function
+```cpp
+void swap(int *xp, int *yp) 
+{ 
+	int temp = *xp; 
+	*xp = *yp; 
+	*yp = temp; 
+}
+```
+- Swaps the values pointed to by `xp` and `yp`.
+
+#### Selection Sort Function
+```cpp
+void selectionSort(int arr[], int n) 
+{ 
+	int i, j, min_idx; 
+
+	for (i = 0; i < n-1; i++) 
+	{ 
+		min_idx = i; 
+		for (j = i+1; j < n; j++) 
+		if (arr[j] < arr[min_idx]) 
+			min_idx = j; 
+
+		swap(&arr[min_idx], &arr[i]); 
+	} 
+}
+```
+- Sorts the array using the selection sort algorithm:
+  - Iterates over each element of the array.
+  - Finds the minimum element in the unsorted part of the array.
+  - Swaps the minimum element with the current element.
+
+#### Print Array Function
+```cpp
+void printArray(int arr[], int size) 
+{ 
+	int i; 
+	for (i=0; i < size; i++) 
+		cout << arr[i] << " "; 
+	cout << endl; 
+}
+```
+- Prints the elements of the array separated by spaces.
+
+#### Main Function
+```cpp
+int main() 
+{ 
+	int arr[] = {64, 25, 12, 22, 11}; 
+	int n = sizeof(arr)/sizeof(arr[0]); 
+	selectionSort(arr, n); 
+	cout << "Sorted array: "; 
+	printArray(arr, n); 
+	return 0; 
+}
+```
+- Defines an array, calculates its size, sorts it using selection sort, and prints the sorted array.
+
+### SystemC Code Snippet
+
+```cpp
+#include <systemc.h>
+
+// SelectionSort Module: Implements the selection sort algorithm
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;      // Clock input
+    sc_in<bool> start;    // Signal to start sorting
+    sc_out<bool> done;    // Signal to indicate sorting is complete
+
+    // Internal storage for the array (fixed size of 5 elements)
+    int arr[5];
+
+    // Constructor: register the process
+    SC_CTOR(SelectionSort) {
+        SC_THREAD(sort_process);
+        sensitive << clk.pos();
+    }
+
+    // Process that waits for the start signal and performs sorting
+    void sort_process() {
+        while (true) {
+            wait(); // wait for a clock cycle
+            if (start.read() == true) {
+                selectionSort(); // perform sorting
+                done.write(true);
+                wait(); // wait for one cycle to signal completion
+                done.write(false);
+            }
+        }
+    }
+
+    // Selection sort algorithm implementation (sorts the internal array)
+    void selectionSort() {
+        // Number of elements is fixed at 5
+        const int n = 5;
+        for (int i = 0; i < n-1; i++) {
+            int min_idx = i;
+            for (int j = i+1; j < n; j++) {
+                if (arr[j] < arr[min_idx]) {
+                    min_idx = j;
+                }
+            }
+            // Swap arr[min_idx] and arr[i]
+            int temp = arr[min_idx];
+            arr[min_idx] = arr[i];
+            arr[i] = temp;
+        }
+    }
+
+    // Helper method to load an input array into the module
+    void load_array(const int input[5]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    // Helper method to read the sorted array from the module
+    void read_array(int output[5]) {
+        for (int i = 0; i < 5; i++) {
+            output[i] = arr[i];
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   - `SelectionSort` module is declared with `clk`, `start`, and `done` as inputs and outputs.
+   
+2. **Internal Storage**:
+   - An array `arr` of size 5 is used to store the input data.
+
+3. **Constructor**:
+   - Registers the `sort_process` thread to run on positive edges of the clock (`clk.pos()`).
+
+4. **Sorting Process**:
+   - Waits for the `start` signal to become true.
+   - Calls the `selectionSort` function to sort the array.
+   - Sets the `done` signal to true to indicate sorting completion.
+   - Waits for one more clock cycle before resetting the `done` signal to false.
+
+5. **Selection Sort Implementation**:
+   - Iterates through the array to find the minimum element and swaps it with the current element.
+
+6. **Helper Methods**:
+   - `load_array` loads an external array into the internal array.
+   - `read_array` reads the sorted array from the internal array.
+
+This SystemC code preserves the logic of the original C++ code and can be integrated into a high-level synthesis flow.

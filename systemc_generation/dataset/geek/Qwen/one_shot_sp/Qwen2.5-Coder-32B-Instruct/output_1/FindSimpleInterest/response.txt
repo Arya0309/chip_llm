@@ -1,0 +1,84 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs
+- **Inputs**: The program takes three floating-point numbers as input: `P` (principal amount), `R` (rate of interest), and `T` (time period).
+- **Outputs**: The program calculates and prints the simple interest (`SI`).
+
+### Line-by-Line Explanation
+1. **#include<iostream>**: This includes the standard input-output stream library, which is necessary for using `cout` to print output to the console.
+2. **using namespace std;**: This statement allows us to use standard library functions and objects without prefixing them with `std::`.
+3. **int main()**: This is the main function where the execution of the program begins.
+4. **float P = 1, R = 1, T = 1;**: These lines declare three float variables `P`, `R`, and `T` and initialize them with the value `1`. These represent the principal amount, rate of interest, and time period respectively.
+5. **float SI = (P * T * R) / 100;**: This line calculates the simple interest using the formula `(P * T * R) / 100` and stores the result in the variable `SI`.
+6. **cout << "Simple Interest = " << SI;**: This line prints the calculated simple interest to the console.
+7. **return 0;**: This indicates that the program executed successfully and returns control to the operating system.
+
+### SystemC Equivalent Code
+
+Below is the equivalent SystemC code that performs the same calculation and integrates with the provided signals.
+
+```cpp
+#include <systemc.h>
+
+// Module that calculates simple interest
+SC_MODULE(SimpleInterestCalculator) {
+    sc_in<float> P;  // Input port for the principal amount
+    sc_in<float> R;  // Input port for the rate of interest
+    sc_in<float> T;  // Input port for the time period
+    sc_out<float> SI; // Output port for the simple interest
+
+    // Constructor
+    SC_CTOR(SimpleInterestCalculator) {
+        // Process to calculate simple interest
+        SC_METHOD(calculate_interest);
+        sensitive << P << R << T;
+    }
+
+    // Method to calculate the simple interest
+    void calculate_interest() {
+        float principal = P.read();
+        float rate = R.read();
+        float time = T.read();
+        float simple_interest = (principal * time * rate) / 100.0;
+        SI.write(simple_interest);
+    }
+};
+
+// Example usage
+int sc_main(int argc, char* argv[]) {
+    SimpleInterestCalculator calc("SimpleInterestCalc");
+    sc_signal<float> p, r, t, si;
+
+    // Connecting the signals to the module's ports
+    calc.P(p);
+    calc.R(r);
+    calc.T(t);
+    calc.SI(si);
+
+    // Assigning some values for testing
+    p.write(1.0);
+    r.write(1.0);
+    t.write(1.0);
+
+    // Start simulation
+    sc_start();
+
+    // Print the result
+    cout << "Simple Interest = " << si.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+- **SC_MODULE(SimpleInterestCalculator)**: Defines a new SystemC module named `SimpleInterestCalculator`.
+- **sc_in<float> P, R, T;**: Declares three input ports `P`, `R`, and `T` to receive the principal amount, rate of interest, and time period respectively.
+- **sc_out<float> SI;**: Declares an output port `SI` to send the calculated simple interest.
+- **SC_CTOR(SimpleInterestCalculator)**: Constructor that initializes the module and sets up a method to be called whenever any of the input ports change.
+- **SC_METHOD(calculate_interest);**: Declares a method `calculate_interest` that will be executed when the sensitive signals change.
+- **sensitive << P << R << T;**: Specifies that the `calculate_interest` method should be triggered whenever there is a change in the values of `P`, `R`, or `T`.
+- **void calculate_interest()**: This method reads the values from the input ports, computes the simple interest using the formula `(P * T * R) / 100`, and writes the result to the output port `SI`.
+- **sc_main**: The main function for SystemC simulation, where the module is instantiated, connected to signals, and tested. It also prints the result to the console.
+
+This SystemC code snippet can be compiled and simulated using a SystemC simulator, and it integrates seamlessly with the provided testbench signals.

@@ -1,0 +1,150 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Input and Outputs
+
+The provided C++/C code calculates the sum of the first `n` natural numbers and prints the result. Here's the breakdown:
+
+- **Input**: An integer `n`.
+- **Output**: The sum of the first `n` natural numbers.
+
+### Detailed Explanation
+
+1. **Include Directive and Namespace Declaration**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - This includes the standard I/O library and uses the `std` namespace to avoid prefixing standard library functions with `std::`.
+
+2. **Function Declaration**
+   ```cpp
+   int findSum(int n) 
+   { 
+       int sum = 0; 
+       for (int i = 1; i <= n; i++) 
+           sum = sum + i; 
+       return sum; 
+   } 
+   ```
+   - **Parameters**: Takes one integer parameter `n`.
+   - **Local Variables**:
+     - `sum`: Initializes to 0 to store the cumulative sum.
+   - **Loop**:
+     - Iterates from 1 to `n`, adding each value to `sum`.
+   - **Return**: Returns the calculated sum.
+
+3. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int n = 5; 
+       cout << findSum(n); 
+       return 0; 
+   }
+   ```
+   - **Variable Initialization**: Sets `n` to 5.
+   - **Function Call**: Calls `findSum(n)` and prints the result using `cout`.
+
+### Equivalent SystemC Code
+
+Here is the equivalent SystemC code that integrates with the provided signals (`n` and `result`):
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SumCalculator) {
+    sc_in<unsigned int> n;  // Input port for the number of terms
+    sc_out<unsigned int> result; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(SumCalculator) {
+        // Process to calculate the sum
+        SC_THREAD(calculate_sum);
+        sensitive << n;
+    }
+
+    // Thread to perform the summation
+    void calculate_sum() {
+        unsigned int sum = 0;
+        for (unsigned int i = 1; i <= n.read(); i++) {
+            sum += i;
+        }
+        result.write(sum);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    SumCalculator sum_calculator("sum_calculator");
+
+    // Connect the signals to the module
+    sc_signal<unsigned int> n_signal;
+    sc_signal<unsigned int> result_signal;
+
+    sum_calculator.n(n_signal);
+    sum_calculator.result(result_signal);
+
+    // Test values
+    n_signal = 5;
+
+    // Start the simulation
+    sc_start();
+
+    // Print the result
+    std::cout << "Sum of first " << n_signal << " natural numbers: " << result_signal << std::endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **Module Definition**
+   ```cpp
+   SC_MODULE(SumCalculator) {
+       sc_in<unsigned int> n;  // Input port for the number of terms
+       sc_out<unsigned int> result; // Output port for the sum
+   ```
+   - Defines a SystemC module named `SumCalculator` with input `n` and output `result`.
+
+2. **Constructor**
+   ```cpp
+   SC_CTOR(SumCalculator) {
+       SC_THREAD(calculate_sum);
+       sensitive << n;
+   }
+   ```
+   - Registers a thread `calculate_sum` that will be triggered whenever `n` changes.
+
+3. **Thread Implementation**
+   ```cpp
+   void calculate_sum() {
+       unsigned int sum = 0;
+       for (unsigned int i = 1; i <= n.read(); i++) {
+           sum += i;
+       }
+       result.write(sum);
+   }
+   ```
+   - Initializes `sum` to 0.
+   - Loops from 1 to the value of `n` and accumulates the sum.
+   - Writes the calculated sum to the `result` port.
+
+4. **Main Simulation Function**
+   ```cpp
+   int sc_main(int argc, char* argv[]) {
+       SumCalculator sum_calculator("sum_calculator");
+       sc_signal<unsigned int> n_signal;
+       sc_signal<unsigned int> result_signal;
+       sum_calculator.n(n_signal);
+       sum_calculator.result(result_signal);
+       n_signal = 5;
+       sc_start();
+       std::cout << "Sum of first " << n_signal << " natural numbers: " << result_signal << std::endl;
+       return 0;
+   }
+   ```
+   - Creates an instance of `SumCalculator`.
+   - Connects the input and output signals.
+   - Sets `n` to 5 and starts the simulation.
+   - Prints the result to the console.
+
+This SystemC code replicates the functionality of the original C++/C code while being compatible with a SystemC-based testbench.

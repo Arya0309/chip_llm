@@ -1,0 +1,109 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Inputs**: 
+  - An integer array `nums` containing unsorted integers.
+  - The length of the array `size_nums`.
+
+- **Outputs**: 
+  - The sorted integer array `nums` in ascending order.
+  - The program prints the array before and after sorting.
+
+### Detailed Explanation:
+1. **Main Function**:
+   - Initializes an array `nums` with predefined values.
+   - Calculates the size of the array.
+   - Prints the array before sorting.
+   - Calls the `sort` function to sort the array.
+   - Prints the array after sorting.
+
+2. **Sort Function**:
+   - Implements the bubble sort algorithm.
+   - Uses a boolean flag `isSwapped` to optimize the algorithm by stopping early if no swaps are made in an iteration.
+   - Iterates over the array multiple times, comparing adjacent elements and swapping them if they are out of order.
+
+3. **SwapNums Function**:
+   - Swaps two elements in the array at specified indices.
+
+### SystemC Code Generation:
+The following SystemC code snippet replicates the logic of the provided C++/C code. It uses the provided signals (`clk`, `start`, `done`) and implements the bubble sort algorithm within a SystemC module.
+
+```cpp
+#include <systemc.h>
+
+// BubbleSort Module: Implements the bubble sort algorithm
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;      // Clock input
+    sc_in<bool> start;    // Signal to start sorting
+    sc_out<bool> done;    // Signal to indicate sorting is complete
+
+    // Internal storage for the array (fixed size of 5 elements)
+    int arr[5];
+
+    // Constructor: register the process
+    SC_CTOR(BubbleSort) {
+        SC_THREAD(sort_process);
+        sensitive << clk.pos();
+    }
+
+    // Process that waits for the start signal and performs sorting
+    void sort_process() {
+        while (true) {
+            wait(); // wait for a clock cycle
+            if (start.read() == true) {
+                bubbleSort(); // perform sorting
+                done.write(true);
+                wait(); // wait for one cycle to signal completion
+                done.write(false);
+            }
+        }
+    }
+
+    // Bubble sort algorithm implementation (sorts the internal array)
+    void bubbleSort() {
+        const int n = 5; // Number of elements in the array
+        bool isSwapped;
+        for (int i = 0; i < n - 1; i++) {
+            isSwapped = false;
+            for (int j = 1; j < n - i; j++) {
+                if (arr[j] < arr[j - 1]) {
+                    // Swap arr[j] and arr[j-1]
+                    int temp = arr[j];
+                    arr[j] = arr[j - 1];
+                    arr[j - 1] = temp;
+                    isSwapped = true;
+                }
+            }
+            if (!isSwapped) {
+                break;
+            }
+        }
+    }
+
+    // Helper method to load an input array into the module
+    void load_array(const int input[5]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    // Helper method to read the sorted array from the module
+    void read_array(int output[5]) {
+        for (int i = 0; i < 5; i++) {
+            output[i] = arr[i];
+        }
+    }
+};
+
+```
+
+### Explanation of SystemC Code:
+- **Module Declaration**: The `BubbleSort` module encapsulates the sorting logic.
+- **Signals**: The module uses `clk` for synchronization, `start` to trigger sorting, and `done` to indicate completion.
+- **Array Storage**: An internal array `arr` of size 5 is used to store the data to be sorted.
+- **Process Registration**: The `sort_process` method is registered as a thread and is sensitive to positive edges of the `clk` signal.
+- **Sorting Logic**: The `bubbleSort` method implements the bubble sort algorithm, similar to the C++/C code.
+- **Helper Methods**: `load_array` and `read_array` are utility functions to load data into the module and retrieve the sorted data, respectively.
+
+This SystemC module can be integrated into a larger design, using the provided signals to control and monitor the sorting process.

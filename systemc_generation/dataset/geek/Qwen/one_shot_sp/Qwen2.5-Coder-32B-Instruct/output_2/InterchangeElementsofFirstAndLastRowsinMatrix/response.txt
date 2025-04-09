@@ -1,0 +1,161 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!use static const for constants instead of #define
+static const int N = 4;
+static const int SIZE = N;
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: A 4x4 integer matrix `m` initialized with specific values.
+- **Outputs**: The modified 4x4 matrix after swapping the first and last columns.
+
+#### Line-by-Line/Block-by-Block Explanation:
+
+1. **Header and Namespace**:
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - Includes the iostream library for input/output operations.
+   - Uses the standard namespace to avoid prefixing standard library functions with `std::`.
+
+2. **Constant Definition**:
+   ```cpp
+   #define n 4
+   ```
+   - Defines a constant `n` with value 4, representing the size of the square matrix.
+
+3. **Function Declaration**:
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n` as an argument.
+
+4. **Swapping Logic**:
+   ```cpp
+   for (int i = 0; i < n; i++)
+   {
+       int t = m[i][0];
+       m[i][0] = m[i][n - 1];
+       m[i][n - 1] = t;
+   }
+   ```
+   - Iterates over each row of the matrix.
+   - Swaps the element at the first column (`m[i][0]`) with the element at the last column (`m[i][n - 1]`) for each row.
+
+5. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int m[n][n] = {{8, 9, 7, 6},
+                      {4, 7, 6, 5},
+                      {3, 2, 1, 8},
+                      {9, 9, 7, 7}};
+       interchangeFirstLast(m);
+       for (int i = 0; i < n; i++)
+       {
+           for (int j = 0; j < n; j++)
+               cout << m[i][j] << " ";
+           cout << endl;
+       }
+   }
+   ```
+   - Initializes a 4x4 matrix `m` with predefined values.
+   - Calls the `interchangeFirstLast` function to swap the first and last columns.
+   - Prints the modified matrix to the console.
+
+### Equivalent SystemC Code Snippet
+
+Below is the equivalent SystemC code that implements the same logic using the provided `sc_in` and `sc_out` signals for seamless integration with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// Use static const for constants instead of #define
+static const int N = 4;
+static const int SIZE = N;
+
+// Module that performs the column interchange
+SC_MODULE(ColumnInterchanger) {
+    // Input ports for the matrix (flattened as 1D arrays)
+    sc_in<int> in[SIZE];
+    // Output ports for the modified matrix (flattened as 1D array)
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(ColumnInterchanger) {
+        // Use an SC_METHOD to perform the column interchange
+        SC_METHOD(interchangeColumns);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
+    }
+
+    // Method that swaps the first and last columns
+    void interchangeColumns() {
+        for (int i = 0; i < N; i++) {
+            int t = in[i * N + 0].read();  // Read first column element
+            out[i * N + 0].write(in[i * N + N - 1].read());  // Write last column element to first column
+            out[i * N + N - 1].write(t);  // Write saved first column element to last column
+        }
+        // Copy remaining elements unchanged
+        for (int i = 0; i < N; i++) {
+            for (int j = 1; j < N - 1; j++) {
+                out[i * N + j].write(in[i * N + j].read());
+            }
+        }
+    }
+};
+
+// Example top-level module to instantiate ColumnInterchanger
+SC_MODULE(TopLevel) {
+    sc_signal<int> matrix_in[SIZE];
+    sc_signal<int> matrix_out[SIZE];
+    ColumnInterchanger colInterchanger;
+
+    SC_CTOR(TopLevel) : colInterchanger("ColumnInterchanger") {
+        // Connect signals
+        for (int i = 0; i < SIZE; i++) {
+            colInterchanger.in[i](matrix_in[i]);
+            colInterchanger.out[i](matrix_out[i]);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    TopLevel topLevel("TopLevel");
+
+    // Initialize input matrix
+    int init_matrix[N][N] = {{8, 9, 7, 6},
+                             {4, 7, 6, 5},
+                             {3, 2, 1, 8},
+                             {9, 9, 7, 7}};
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            topLevel.matrix_in[i * N + j].write(init_matrix[i][j]);
+        }
+    }
+
+    // Start simulation
+    sc_start();
+
+    // Print output matrix
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            cout << topLevel.matrix_out[i * N + j].read() << " ";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+```
+
+#### Explanation of SystemC Code:
+- **Constants**: Defined `N` as 4 and `SIZE` as `N` to represent the matrix dimensions.
+- **Module Definition**: `ColumnInterchanger` module encapsulates the column interchange logic.
+  - **Ports**: `in` and `out` are arrays of `sc_in<int>` and `sc_out<int>` respectively, representing the input and output matrices.
+  - **Constructor**: Registers the `interchangeColumns` method to be triggered whenever any input changes.
+  - **Method**: `interchangeColumns` performs the column swap operation.
+- **Top-Level Module**: `TopLevel` instantiates `ColumnInterchanger` and connects its ports.
+- **Simulation Initialization**: Initializes the input matrix and starts the simulation.
+- **Output**: Reads and prints the modified matrix after simulation completes.

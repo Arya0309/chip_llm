@@ -1,0 +1,108 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Inputs**: The integer `n` which is checked to see if it can be expressed as the sum of two prime numbers.
+- **Outputs**: A boolean value indicating whether the given number `n` can be expressed as the sum of two prime numbers.
+
+### Detailed Line-by-Line Explanation:
+
+1. **Function `isPrime(int n)`**:
+   - This function checks if a given integer `n` is a prime number.
+   - If `n` is less than or equal to 1, it returns `false` because numbers less than or equal to 1 are not prime.
+   - It then iterates from 2 up to the square root of `n`. If `n` is divisible by any of these numbers, it is not a prime, and the function returns `false`.
+   - If no divisors are found, the function returns `true`, indicating that `n` is a prime number.
+
+2. **Function `isPossible(int N)`**:
+   - This function checks if the given integer `N` can be expressed as the sum of two prime numbers.
+   - It does this by checking if `N` itself is a prime number and if `N - 2` is also a prime number.
+   - If both conditions are satisfied, it returns `true`; otherwise, it returns `false`.
+
+3. **Main Function**:
+   - The main function initializes an integer `n` with the value 13.
+   - It calls the `isPossible` function with `n` as the argument.
+   - Based on the result, it prints "Yes" if `n` can be expressed as the sum of two primes, and "No" otherwise.
+
+### Equivalent SystemC Code:
+
+Below is the SystemC code that implements the same logic as the provided C++/C code. It uses the signals `n_in` and `result_out` for integration with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// Module to check if a number can be expressed as the sum of two prime numbers
+SC_MODULE(CheckSumOfPrimes) {
+    sc_in<int> n_in;       // Input port for the number to check
+    sc_out<bool> result_out; // Output port for the result
+
+    // Constructor
+    SC_CTOR(CheckSumOfPrimes) {
+        // Process to perform the check
+        SC_METHOD(check);
+        sensitive << n_in;
+    }
+
+    // Method to check if the number can be expressed as the sum of two primes
+    void check() {
+        int N = n_in.read();
+        bool result = isPossible(N);
+        result_out.write(result);
+    }
+
+private:
+    // Helper function to check if a number is prime
+    bool isPrime(int n) {
+        if (n <= 1)
+            return false;
+
+        for (int i = 2; i <= sqrt(n); i++) {
+            if (n % i == 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    // Function to check if a prime number can be expressed as the sum of two primes
+    bool isPossible(int N) {
+        if (isPrime(N) && isPrime(N - 2))
+            return true;
+        else
+            return false;
+    }
+};
+
+// Example usage
+int sc_main(int argc, char* argv[]) {
+    sc_signal<int> n_in;
+    sc_signal<bool> result_out;
+
+    CheckSumOfPrimes check("CheckSumOfPrimes");
+    check.n_in(n_in);
+    check.result_out(result_out);
+
+    sc_start();
+
+    // Test the module with different values of n
+    n_in = 13;
+    sc_start(1, SC_NS);
+    cout << "For n = 13: " << (result_out.read() ? "Yes" : "No") << endl;
+
+    n_in = 17;
+    sc_start(1, SC_NS);
+    cout << "For n = 17: " << (result_out.read() ? "Yes" : "No") << endl;
+
+    n_in = 20;
+    sc_start(1, SC_NS);
+    cout << "For n = 20: " << (result_out.read() ? "Yes" : "No") << endl;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+- **Module Definition**: The `CheckSumOfPrimes` module encapsulates the logic to check if a number can be expressed as the sum of two prime numbers.
+- **Ports**: The module has an input port `n_in` for the number to check and an output port `result_out` for the result.
+- **Process Sensitivity**: The `check` method is triggered whenever there is a change in the `n_in` signal.
+- **Logic Implementation**: The `check` method reads the input value, performs the logic using the `isPossible` and `isPrime` helper functions, and writes the result to the `result_out` port.
+- **Testbench**: The `sc_main` function sets up the testbench, connects the module's ports to signals, and tests the module with different values of `n`.

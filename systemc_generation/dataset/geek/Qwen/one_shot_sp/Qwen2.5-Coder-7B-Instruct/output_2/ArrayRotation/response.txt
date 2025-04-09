@@ -1,0 +1,224 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs**:
+1. `clk` - A clock signal (`sc_in<bool>`).
+2. `rst` - A reset signal (`sc_in<bool>`).
+3. `d` - An integer representing the number of positions to rotate the array to the left (`sc_in<int>`).
+4. `in_array[7]` - An array of integers containing the input values (`sc_in<int>[7]`).
+
+**Outputs**:
+1. `out_array[7]` - An array of integers containing the rotated values (`sc_out<int>[7]`).
+
+### Detailed Explanation
+
+#### Main Function
+
+1. **Initialization**:
+   ```cpp
+   int arr[] = { 1, 2, 3, 4, 5, 6, 7 };
+   int N = sizeof(arr) / sizeof(arr[0]);
+   int d = 2;
+   ```
+   - Initializes an array `arr` with values `{1, 2, 3, 4, 5, 6, 7}`.
+   - Calculates the length of the array `N`.
+   - Sets the rotation value `d` to `2`.
+
+2. **Function Calls**:
+   ```cpp
+   Rotate(arr, d, N);
+   PrintTheArray(arr, N);
+   ```
+   - Calls the `Rotate` function to rotate the array by `d` positions.
+   - Calls the `PrintTheArray` function to print the rotated array.
+
+#### Rotate Function
+
+1. **Temporary Array Initialization**:
+   ```cpp
+   int temp[n];
+   int k = 0;
+   ```
+   - Initializes a temporary array `temp` to store the rotated elements.
+   - Initializes an index `k` to keep track of the position in `temp`.
+
+2. **Copying Elements**:
+   ```cpp
+   for (int i = d; i < n; i++) {
+       temp[k] = arr[i];
+       k++;
+   }
+   for (int i = 0; i < d; i++) {
+       temp[k] = arr[i];
+       k++;
+   }
+   ```
+   - Copies the last `n - d` elements of `arr` to the front of `temp`.
+   - Copies the first `d` elements of `arr` to the end of `temp`.
+
+3. **Updating Original Array**:
+   ```cpp
+   for (int i = 0; i < n; i++) {
+       arr[i] = temp[i];
+   }
+   ```
+   - Copies the elements of `temp` back into `arr`, effectively rotating the array.
+
+#### PrintTheArray Function
+
+1. **Printing Elements**:
+   ```cpp
+   for (int i = 0; i < n; i++) {
+       cout << arr[i] << " ";
+   }
+   ```
+   - Iterates through the array and prints each element followed by a space.
+
+### SystemC Equivalent
+
+Below is the SystemC code that replicates the behavior of the provided C++ code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(RotateArray) {
+    sc_in<bool> clk;      // Clock input
+    sc_in<bool> rst;      // Reset input
+    sc_in<int> d;         // Rotation amount
+    sc_in<int> in_array[7];// Input array
+    sc_out<int> out_array[7]; // Output array
+
+    // Internal storage for the array
+    int arr[7];
+
+    // Constructor: register the process
+    SC_CTOR(RotateArray) {
+        SC_THREAD(process);
+        sensitive << clk.pos();
+    }
+
+    // Process that handles the rotation and updates the output array
+    void process() {
+        while (true) {
+            wait(); // Wait for a clock cycle
+            if (rst.read() == true) {
+                // Reset the array to initial state
+                for (int i = 0; i < 7; i++) {
+                    arr[i] = in_array[i];
+                }
+            } else {
+                // Perform rotation
+                Rotate(arr, d, 7);
+                // Update the output array
+                for (int i = 0; i < 7; i++) {
+                    out_array[i].write(arr[i]);
+                }
+            }
+        }
+    }
+
+    // Function to rotate array
+    void Rotate(int arr[], int d, int n) {
+        int temp[n];
+        int k = 0;
+
+        for (int i = d; i < n; i++) {
+            temp[k] = arr[i];
+            k++;
+        }
+
+        for (int i = 0; i < d; i++) {
+            temp[k] = arr[i];
+            k++;
+        }
+
+        for (int i = 0; i < n; i++) {
+            arr[i] = temp[i];
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(RotateArray) {
+   ```
+   - Declares a SystemC module named `RotateArray`.
+
+2. **Signals**:
+   ```cpp
+   sc_in<bool> clk;
+   sc_in<bool> rst;
+   sc_in<int> d;
+   sc_in<int> in_array[7];
+   sc_out<int> out_array[7];
+   ```
+   - Defines the input and output signals as specified.
+
+3. **Internal Storage**:
+   ```cpp
+   int arr[7];
+   ```
+   - Declares an internal array `arr` to store the rotated values.
+
+4. **Constructor**:
+   ```cpp
+   SC_CTOR(RotateArray) {
+       SC_THREAD(process);
+       sensitive << clk.pos();
+   }
+   ```
+   - Registers a thread `process` that will handle the rotation logic.
+   - Sensitive to positive edges of the clock signal.
+
+5. **Process**:
+   ```cpp
+   void process() {
+       while (true) {
+           wait(); // Wait for a clock cycle
+           if (rst.read() == true) {
+               // Reset the array to initial state
+               for (int i = 0; i < 7; i++) {
+                   arr[i] = in_array[i];
+               }
+           } else {
+               // Perform rotation
+               Rotate(arr, d, 7);
+               // Update the output array
+               for (int i = 0; i < 7; i++) {
+                   out_array[i].write(arr[i]);
+               }
+           }
+       }
+   }
+   ```
+   - Waits for each clock cycle.
+   - On reset, it copies the input array into the internal array.
+   - Otherwise, it rotates the array using the `Rotate` function and writes the result to the output array.
+
+6. **Rotate Function**:
+   ```cpp
+   void Rotate(int arr[], int d, int n) {
+       int temp[n];
+       int k = 0;
+
+       for (int i = d; i < n; i++) {
+           temp[k] = arr[i];
+           k++;
+       }
+
+       for (int i = 0; i < d; i++) {
+           temp[k] = arr[i];
+           k++;
+       }
+
+       for (int i = 0; i < n; i++) {
+           arr[i] = temp[i];
+       }
+   }
+   ```
+   - Rotates the array by copying elements to a temporary array and then updating the original array.
+
+This SystemC code should faithfully capture the logic of the original C++ code and can be integrated with the provided signals for testing purposes.

@@ -1,0 +1,159 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Input**: An integer `n` which is the decimal number to be converted to binary.
+- **Output**: The binary representation of the decimal number printed to the console.
+
+### Detailed Line-by-Line/Block-by-Block Explanation:
+
+1. **Include Directives and Namespace Declaration**:
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - This includes the standard input-output stream library, allowing the use of `cout`.
+   - The `using namespace std;` directive allows us to use standard library names without prefixing them with `std::`.
+
+2. **Function Definition**:
+   ```cpp
+   void decToBinary(int n)
+   ```
+   - This function takes an integer `n` as input and converts it to its binary representation.
+
+3. **Array Declaration**:
+   ```cpp
+   int binaryNum[32];
+   ```
+   - An array `binaryNum` of size 32 is declared to store the binary digits of the input number.
+
+4. **Counter Initialization**:
+   ```cpp
+   int i = 0;
+   ```
+   - A counter `i` is initialized to zero. This counter will keep track of the current position in the `binaryNum` array.
+
+5. **Conversion Loop**:
+   ```cpp
+   while (n > 0) {
+       binaryNum[i] = n % 2;
+       n = n / 2;
+       i++;
+   }
+   ```
+   - This loop continues until `n` becomes zero.
+   - Inside the loop, `n % 2` calculates the remainder when `n` is divided by 2, which is the least significant bit of the binary representation. This value is stored in the `binaryNum` array at index `i`.
+   - `n = n / 2` divides `n` by 2, effectively removing the least significant bit.
+   - `i++` increments the counter to point to the next position in the array.
+
+6. **Printing Binary Representation**:
+   ```cpp
+   for (int j = i - 1; j >= 0; j--)
+       cout << binaryNum[j];
+   ```
+   - This loop iterates over the `binaryNum` array from the last filled position (`i - 1`) to the first (`0`), printing each element. This is necessary because the binary digits were stored in reverse order during the conversion process.
+
+7. **Driver Code**:
+   ```cpp
+   int main()
+   {
+       int n = 10;
+       decToBinary(n);
+       return 0;
+   }
+   ```
+   - The `main` function initializes `n` to 10 and calls the `decToBinary` function to print its binary representation.
+   - The program then returns 0, indicating successful execution.
+
+### Equivalent SystemC Code Snippet
+
+Below is the equivalent SystemC code snippet that performs the same decimal-to-binary conversion using the provided signals `dec_in` and `binary_out`. The SystemC module reads a decimal number from `dec_in`, performs the conversion, and writes the resulting binary number to `binary_out`.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(DecToBinConverter) {
+    sc_in<int> dec_in;     // Input port for the decimal number
+    sc_out<int> binary_out; // Output port for the binary number
+
+    // Constructor
+    SC_CTOR(DecToBinConverter) {
+        // Process to convert decimal to binary
+        SC_METHOD(convert);
+        sensitive << dec_in;
+    }
+
+    // Method to perform the conversion
+    void convert() {
+        int n = dec_in.read();
+        int binaryNum[32];
+        int i = 0;
+
+        // Conversion loop
+        while (n > 0) {
+            binaryNum[i] = n % 2;
+            n = n / 2;
+            i++;
+        }
+
+        // Calculate the binary number as an integer
+        int binary_result = 0;
+        for (int j = 0; j < i; j++) {
+            binary_result = (binary_result << 1) | binaryNum[j];
+        }
+
+        // Write the result to the output port
+        binary_out.write(binary_result);
+    }
+};
+
+// Example top-level module for simulation
+SC_MODULE(TopLevel) {
+    DecToBinConverter converter;
+    sc_signal<int> dec_in;
+    sc_signal<int> binary_out;
+
+    SC_CTOR(TopLevel) : converter("converter") {
+        converter.dec_in(dec_in);
+        converter.binary_out(binary_out);
+
+        // Initialize and start the simulation
+        SC_THREAD(testbench);
+    }
+
+    void testbench() {
+        // Test case
+        dec_in.write(10);
+        wait(10, SC_NS); // Wait for some time to observe the output
+
+        // Print the result
+        cout << "Decimal: " << dec_in.read() << ", Binary: " << binary_out.read() << endl;
+
+        // End the simulation
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    TopLevel top("top");
+    sc_start(); // Start the simulation
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Definition**:
+  - `DecToBinConverter` is a SystemC module that includes two ports: `dec_in` for receiving the decimal number and `binary_out` for sending the binary result.
+  
+- **Constructor**:
+  - The constructor registers the `convert` method to be triggered whenever `dec_in` changes.
+
+- **Conversion Logic**:
+  - The `convert` method reads the decimal number from `dec_in`, performs the conversion to binary, and writes the binary number to `binary_out`.
+  - The binary number is constructed as an integer by shifting and combining the binary digits stored in `binaryNum`.
+
+- **Top-Level Module**:
+  - `TopLevel` is a simple module to simulate the `DecToBinConverter` module.
+  - It includes a `testbench` thread that writes a test value to `dec_in`, waits for a short period, and prints the converted binary value from `binary_out`.
+
+This SystemC code is designed to be integrated into a larger simulation environment, where it can interact with other modules through the defined ports.

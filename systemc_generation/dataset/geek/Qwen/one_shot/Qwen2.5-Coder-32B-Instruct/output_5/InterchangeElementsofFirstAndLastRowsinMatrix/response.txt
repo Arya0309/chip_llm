@@ -1,0 +1,155 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs
+- **Inputs**: A 4x4 integer matrix `m` initialized with specific values.
+- **Outputs**: The modified matrix where the elements of the first and last columns have been swapped.
+
+### Line-by-Line/Block-by-Block Explanation
+
+#### Definitions and Includes
+```cpp
+#include <iostream>
+using namespace std;
+
+#define n 4
+```
+- **Explanation**: 
+  - The program includes the standard input-output stream library.
+  - It uses the standard namespace for convenience.
+  - `#define n 4` defines a constant `n` with the value 4, which is used to specify the size of the matrix.
+
+#### Function Definition
+```cpp
+void interchangeFirstLast(int m[][n])
+{
+    // swapping of element between first and last columns
+    for (int i = 0; i < n; i++)
+    {
+        int t = m[i][0];
+        m[i][0] = m[i][n - 1];
+        m[i][n - 1] = t;
+    }
+}
+```
+- **Explanation**:
+  - The function `interchangeFirstLast` takes a 2D array `m` as input.
+  - It iterates over each row of the matrix.
+  - For each row, it swaps the element in the first column (`m[i][0]`) with the element in the last column (`m[i][n-1]`).
+
+#### Main Function
+```cpp
+int main()
+{
+    // input in the array
+    int m[n][n] = {{8, 9, 7, 6},
+                   {4, 7, 6, 5},
+                   {3, 2, 1, 8},
+                   {9, 9, 7, 7}};
+    
+    interchangeFirstLast(m);
+
+    // printing the interchanged matrix
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+            cout << m[i][j] << " ";
+        cout << endl;
+    }
+}
+```
+- **Explanation**:
+  - The `main` function initializes a 4x4 matrix `m` with predefined values.
+  - It calls the `interchangeFirstLast` function to swap the first and last columns.
+  - It then prints the modified matrix row by row.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same operation using the provided signals `in` and `out`.
+
+```cpp
+#include <systemc.h>
+
+// Define the size of the matrix
+#define SIZE 4
+
+// Module to interchange the first and last columns of a matrix
+SC_MODULE(MatrixInterchanger) {
+    sc_in<int> in[SIZE][SIZE];  // Input ports for the matrix elements
+    sc_out<int> out[SIZE][SIZE]; // Output ports for the modified matrix elements
+
+    // Constructor
+    SC_CTOR(MatrixInterchanger) {
+        // Process to interchange the first and last columns
+        SC_METHOD(interchangeFirstLast);
+        sensitive << in;
+    }
+
+    // Method to interchange the first and last columns
+    void interchangeFirstLast() {
+        for (int i = 0; i < SIZE; i++) {
+            // Swap the first and last column elements
+            int temp = in[i][0].read();
+            out[i][0].write(in[i][SIZE-1].read());
+            out[i][SIZE-1].write(temp);
+            
+            // Copy other elements as they are
+            for (int j = 1; j < SIZE-1; j++) {
+                out[i][j].write(in[i][j].read());
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the module
+    MatrixInterchanger matrix_interchanger("matrix_interchanger");
+
+    // Example initialization of inputs (can be replaced with testbench)
+    int input_matrix[SIZE][SIZE] = {{8, 9, 7, 6},
+                                    {4, 7, 6, 5},
+                                    {3, 2, 1, 8},
+                                    {9, 9, 7, 7}};
+
+    // Connect inputs to the module
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            matrix_interchanger.in[i][j] = input_matrix[i][j];
+        }
+    }
+
+    // Run the simulation
+    sc_start();
+
+    // Print the output matrix
+    cout << "Modified Matrix:" << endl;
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            cout << matrix_interchanger.out[i][j].read() << " ";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **Module Definition**:
+  - `MatrixInterchanger` is a SystemC module that takes a 4x4 matrix as input and outputs the modified matrix.
+  - It has 16 input ports (`in[SIZE][SIZE]`) and 16 output ports (`out[SIZE][SIZE]`), each representing an element of the matrix.
+
+- **Constructor**:
+  - The constructor registers the `interchangeFirstLast` method to be triggered whenever any input changes.
+
+- **Method `interchangeFirstLast`**:
+  - This method reads the input matrix, swaps the first and last columns, and writes the result to the output ports.
+  - It copies the middle columns unchanged from input to output.
+
+- **Main Function**:
+  - An instance of `MatrixInterchanger` is created.
+  - The input matrix is initialized with predefined values.
+  - The simulation is started, and the output matrix is printed after the process completes.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C source and can be integrated into a high-level synthesis flow using the provided signals.

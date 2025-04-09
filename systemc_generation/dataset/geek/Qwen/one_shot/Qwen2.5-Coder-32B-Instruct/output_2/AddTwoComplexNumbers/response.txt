@@ -1,0 +1,93 @@
+
+!!certainly! Let's break down the provided C++/C code and then translate it into SystemC.
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: Two complex numbers, each consisting of a real and an imaginary part.
+- **Outputs**: A single complex number which is the sum of the two input complex numbers.
+
+#### Detailed Explanation
+1. **Class Definition**:
+   - `class Complex`: Defines a user-defined class to represent complex numbers.
+   - `public: int real, imaginary;`: Declares public integer members for the real and imaginary parts of the complex number.
+   
+2. **Constructor**:
+   - `Complex(int tempReal = 0, int tempImaginary = 0)`: Initializes the complex number with given real and imaginary parts. Default values are 0 if no arguments are provided.
+   - `real = tempReal;`: Assigns the real part.
+   - `imaginary = tempImaginary;`: Assigns the imaginary part.
+
+3. **Method to Add Complex Numbers**:
+   - `Complex addComp(Complex C1, Complex C2)`: A method to add two complex numbers.
+   - `Complex temp;`: Creates a temporary complex number to store the result.
+   - `temp.real = C1.real + C2.real;`: Adds the real parts of the two complex numbers.
+   - `temp.imaginary = (C1.imaginary + C2.imaginary);`: Adds the imaginary parts of the two complex numbers.
+   - `return temp;`: Returns the resulting complex number.
+
+4. **Main Function**:
+   - `Complex C1(3, 2);`: Instantiates the first complex number with real part 3 and imaginary part 2.
+   - `cout << "Complex number 1 : " << C1.real << " + i" << C1.imaginary << endl;`: Prints the first complex number.
+   - `Complex C2(9, 5);`: Instantiates the second complex number with real part 9 and imaginary part 5.
+   - `cout << "Complex number 2 : " << C2.real << " + i" << C2.imaginary << endl;`: Prints the second complex number.
+   - `Complex C3;`: Declares a complex number to store the sum.
+   - `C3 = C3.addComp(C1, C2);`: Calls the `addComp` method to add `C1` and `C2`.
+   - `cout << "Sum of complex number : " << C3.real << " + i" << C3.imaginary;`: Prints the sum of the complex numbers.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that mirrors the logic of the provided C++/C code. It uses the specified signals for input and output.
+
+```cpp
+#include <systemc.h>
+
+// Module that adds two complex numbers
+SC_MODULE(ComplexAdder) {
+    sc_in<int> real1;  // Input port for the real part of the first complex number
+    sc_in<int> imag1;  // Input port for the imaginary part of the first complex number
+    sc_in<int> real2;  // Input port for the real part of the second complex number
+    sc_in<int> imag2;  // Input port for the imaginary part of the second complex number
+    sc_out<int> real_sum; // Output port for the real part of the sum
+    sc_out<int> imag_sum; // Output port for the imaginary part of the sum
+
+    // Constructor
+    SC_CTOR(ComplexAdder) {
+        // Process to perform addition
+        SC_METHOD(add_complex);
+        sensitive << real1 << imag1 << real2 << imag2;
+    }
+
+    // Method to add the two complex numbers
+    void add_complex() {
+        // Calculate the real part of the sum
+        int real_result = real1.read() + real2.read();
+        // Calculate the imaginary part of the sum
+        int imag_result = imag1.read() + imag2.read();
+        // Write the results to the output ports
+        real_sum.write(real_result);
+        imag_sum.write(imag_result);
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**:
+   - `SC_MODULE(ComplexAdder)`: Declares a SystemC module named `ComplexAdder`.
+
+2. **Port Declarations**:
+   - `sc_in<int> real1, imag1, real2, imag2;`: Input ports for the real and imaginary parts of the two complex numbers.
+   - `sc_out<int> real_sum, imag_sum;`: Output ports for the real and imaginary parts of the sum.
+
+3. **Constructor**:
+   - `SC_CTOR(ComplexAdder)`: Constructor for the module.
+   - `SC_METHOD(add_complex);`: Registers the `add_complex` method to be executed whenever any of the input ports change.
+   - `sensitive << real1 << imag1 << real2 << imag2;`: Specifies that the `add_complex` method should be sensitive to changes on any of the input ports.
+
+4. **Method to Add Complex Numbers**:
+   - `void add_complex()`: Method to add two complex numbers.
+   - `int real_result = real1.read() + real2.read();`: Reads the real parts from the input ports and adds them.
+   - `int imag_result = imag1.read() + imag2.read();`: Reads the imaginary parts from the input ports and adds them.
+   - `real_sum.write(real_result);`: Writes the result of the real part sum to the `real_sum` output port.
+   - `imag_sum.write(imag_result);`: Writes the result of the imaginary part sum to the `imag_sum` output port.
+
+This SystemC module can be easily integrated into a larger design or testbench using the provided signals.

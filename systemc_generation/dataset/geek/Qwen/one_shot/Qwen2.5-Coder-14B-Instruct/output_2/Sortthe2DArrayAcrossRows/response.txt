@@ -1,0 +1,67 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs**:
+   - **Inputs**: A 2D matrix `m` with dimensions `r` (rows) and `c` (columns), where each element is an integer.
+   - **Outputs**: The same 2D matrix `m`, but sorted row-wise.
+
+2. **Line-by-Line Summary**:
+   - **Lines 1-4**: Include necessary headers and use the standard namespace.
+   - **Lines 6-11**: Define a swap function to swap two integers.
+   - **Lines 13-31**: Define a function `sortRowWise` that takes a 2D matrix `m`, the number of rows `r`, and the number of columns `c`. It sorts each row of the matrix using a simple bubble sort algorithm.
+     - **Lines 14-16**: Outer loop iterating over each row of the matrix.
+     - **Lines 17-19**: Middle loop iterating over each column of the matrix.
+     - **Lines 20-26**: Inner loop for comparing and swapping adjacent elements within the same row.
+     - **Lines 28-30**: Conditional statement to check if the current element is greater than the next one, and if so, swap them.
+   - **Lines 33-40**: After sorting, print the sorted matrix row by row.
+   - **Lines 42-53**: Main function where a sample 2D matrix is defined, its dimensions are calculated, and the `sortRowWise` function is called.
+
+3. **SystemC Code Snippet**:
+   ```
+   #include <systemc.h>
+   #include <iostream>
+
+   SC_MODULE(MatrixSorter) {
+       sc_in<bool> clk;
+       sc_in<bool> start;
+       sc_out<bool> done;
+       sc_vector<sc_vector<sc_signal<int>>> matrix;
+       int rows, cols;
+
+       SC_CTOR(MatrixSorter) : matrix("matrix", 4) {
+           for (int i = 0; i < 4; ++i) {
+               matrix[i] = sc_vector<sc_signal<int>>("row", 4);
+           }
+           rows = 4;
+           cols = 4;
+           SC_THREAD(sortRowWise);
+           sensitive << clk.pos();
+           dont_initialize();
+       }
+
+       void sortRowWise() {
+           while (true) {
+               wait(start.event());
+               for (int i = 0; i < rows; i++) {
+                   for (int j = 0; j < cols; j++) {
+                       for (int k = 0; k < cols - j - 1; k++) {
+                           if (matrix[i][k].read() > matrix[i][k + 1].read()) {
+                               int temp = matrix[i][k].read();
+                               matrix[i][k].write(matrix[i][k + 1].read());
+                               matrix[i][k + 1].write(temp);
+                           }
+                       }
+                   }
+               }
+               done.write(true);
+               wait();
+           }
+       }
+   };
+   ```
+
+   **Explanation**:
+   - **Module Definition**: `MatrixSorter` is defined as a SystemC module.
+   - **Ports**: `clk`, `start`, and `done` are defined as input/output ports.
+   - **Matrix Declaration**: A 2D vector of signals `matrix` is declared to represent the matrix.
+   - **Constructor**: Initializes the matrix dimensions and starts the `sortRowWise` thread sensitive to the positive edge of `clk`.
+   - **sortRowWise Function**: Implements the row-wise sorting logic similar to the C++ code, using SystemC's signal reading/writing methods.
+   - **Event Handling**: Waits for the `start` event to begin sorting and sets `done` to true after sorting is complete.

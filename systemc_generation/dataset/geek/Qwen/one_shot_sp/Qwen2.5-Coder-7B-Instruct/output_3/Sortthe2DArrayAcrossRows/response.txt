@@ -1,0 +1,155 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs:**
+1. `start`: A boolean signal indicating when the sorting process should begin.
+2. `clk`: A clock signal used for synchronization.
+
+**Outputs:**
+1. `done`: A boolean signal indicating when the sorting process has completed.
+
+### Detailed Explanation
+
+#### Line-by-Line Explanation
+
+**Line 1-3:**
+```cpp
+#include<bits/stdc++.h>
+using namespace std;
+```
+- Includes all standard libraries and uses the standard namespace for simplicity.
+
+**Lines 5-11:**
+```cpp
+void swap(int *xp, int *yp) 
+{ 
+	int temp = *xp; 
+	*xp = *yp; 
+	*yp = temp; 
+} 
+```
+- Defines a `swap` function that swaps two integer values pointed to by `xp` and `yp`.
+
+**Lines 13-34:**
+```cpp
+void sortRowWise(int m[][4], int r, int c)
+{
+	for (int i = 0; i < r; i++) 
+	{
+		for (int j = 0; j < c; j++) 
+		{
+			for (int k = 0; k < c - j - 1; k++) 
+			{
+				if (m[i][k] > m[i][k + 1]) 
+				{
+					swap(m[i][k], m[i][k + 1]);
+				}
+			}
+		}
+	}
+	
+	for (int i = 0; i < r; i++) 
+	{
+		for (int j = 0; j < c; j++)
+			cout << m[i][j] << " ";
+		cout << endl;
+	}
+}
+```
+- Defines a `sortRowWise` function that sorts each row of a 2D matrix `m` with dimensions `r` x `c`.
+  - Uses nested loops to iterate through each element of the matrix and swaps adjacent elements if they are out of order.
+  - Prints the sorted matrix after sorting each row.
+
+**Lines 36-46:**
+```cpp
+int main()
+{
+	int m[][4] = {{9, 8, 7, 1},
+				{7, 3, 0, 2},
+				{9, 5, 3, 2},
+				{6, 3, 1, 2}};
+	int c = sizeof(m[0]) / sizeof(m[0][0]);
+	int r = sizeof(m) / sizeof(m[0]);
+	sortRowWise(m, r, c);
+	return 0;
+}
+```
+- Initializes a 2D matrix `m` with 4x4 elements.
+- Calculates the number of columns (`c`) and rows (`r`) in the matrix.
+- Calls the `sortRowWise` function to sort the matrix.
+- Returns 0 indicating successful execution.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+// Constants for matrix size
+static const int N = 4;
+static const int SIZE = N * N;
+
+// Module that sorts a 2D matrix row-wise
+SC_MODULE(MatrixSorter) {
+    // Input ports for matrix data
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    // Output port for indication of completion
+    sc_out<bool> done;
+
+    // Internal signals to hold matrix data
+    sc_signal<int> matrix[N][N];
+    sc_signal<bool> sort_complete;
+
+    SC_CTOR(MatrixSorter) {
+        // Sensitive edge detection for clock and start signal
+        SC_THREAD(sort_matrix);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        SC_METHOD(check_done);
+        sensitive << sort_complete;
+    }
+
+    // Method to sort the matrix row-wise
+    void sort_matrix() {
+        while (true) {
+            wait();  // Wait for rising edge of clock
+            if (start.read()) {
+                // Copy input matrix data into internal signals
+                for (int i = 0; i < N; i++) {
+                    for (int j = 0; j < N; j++) {
+                        matrix[i][j].write(matrix[i][j].read());
+                    }
+                }
+
+                // Sort each row of the matrix
+                for (int i = 0; i < N; i++) {
+                    for (int j = 0; j < N; j++) {
+                        for (int k = 0; k < N - j - 1; k++) {
+                            if (matrix[i][k].read() > matrix[i][k + 1].read()) {
+                                swap(matrix[i][k].read(), matrix[i][k + 1].read());
+                            }
+                        }
+                    }
+                }
+
+                // Indicate that sorting is complete
+                sort_complete.write(true);
+
+                // Wait for next cycle before accepting new start signal
+                wait();
+                sort_complete.write(false);
+            }
+        }
+    }
+
+    // Method to check if sorting is complete and set done signal
+    void check_done() {
+        done.write(sort_complete.read());
+    }
+};
+```
+
+This SystemC module `MatrixSorter` takes in a `start` signal to initiate the sorting process and a `clk` signal for synchronization. It sorts a 4x4 matrix row-wise and sets the `done` signal once the sorting is complete. The sorting logic is implemented within the `sort_matrix` method, which uses nested loops similar to the original C++ code. The `check_done` method updates the `done` signal based on the sorting completion status.

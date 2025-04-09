@@ -1,0 +1,143 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!use static const for constants instead of #define
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: A 4x4 integer matrix `m` initialized with specific values.
+- **Outputs**: The modified 4x4 integer matrix where the first and last columns have been swapped.
+
+#### Line-by-Line Explanation
+
+1. **Include Directive**: 
+   ```cpp
+   #include <iostream>
+   ```
+   - This includes the standard input-output stream library, which is used for printing the matrix to the console.
+
+2. **Namespace Declaration**:
+   ```cpp
+   using namespace std;
+   ```
+   - This allows the use of standard library names without prefixing them with `std::`.
+
+3. **Constant Definition**:
+   ```cpp
+   #define n 4
+   ```
+   - Defines a constant `n` with the value 4, representing the size of the matrix.
+
+4. **Function Definition**:
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n` as an argument.
+
+5. **Swapping Logic**:
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[i][0]; 
+       m[i][0] = m[i][n - 1]; 
+       m[i][n - 1] = t; 
+   }
+   ```
+   - Iterates over each row `i` of the matrix.
+   - Swaps the element in the first column (`m[i][0]`) with the element in the last column (`m[i][n - 1]`) for each row.
+
+6. **Main Function**:
+   ```cpp
+   int main()
+   ```
+   - The entry point of the program.
+
+7. **Matrix Initialization**:
+   ```cpp
+   int m[n][n] = {{8, 9, 7, 6}, {4, 7, 6, 5}, {3, 2, 1, 8}, {9, 9, 7, 7}};
+   ```
+   - Initializes a 4x4 matrix `m` with predefined values.
+
+8. **Function Call**:
+   ```cpp
+   interchangeFirstLast(m);
+   ```
+   - Calls the `interchangeFirstLast` function to swap the first and last columns of the matrix.
+
+9. **Printing the Matrix**:
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       for (int j = 0; j < n; j++) 
+           cout << m[i][j] << " "; 
+       cout << endl; 
+   }
+   ```
+   - Iterates through each element of the matrix and prints it to the console, displaying the modified matrix.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code snippet that implements the same logic. It uses the provided `sc_in<int>` and `sc_out<int>` signals for testbench integration.
+
+```cpp
+#include <systemc.h>
+
+// Use static const for constants instead of #define
+static const int N = 4;
+static const int SIZE = N;
+
+// Module that swaps the first and last columns of a matrix
+SC_MODULE(MatrixColumnSwapper) {
+    // Input ports for the matrix (flattened as 1D arrays)
+    sc_in<int> in[SIZE][N];
+    // Output ports for the modified matrix (flattened as 1D array)
+    sc_out<int> out[SIZE][N];
+
+    SC_CTOR(MatrixColumnSwapper) {
+        // Use an SC_METHOD to perform the column swap operation
+        SC_METHOD(swap_columns);
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < N; j++) {
+                sensitive << in[i][j];
+            }
+        }
+    }
+
+    // Method that swaps the first and last columns of the matrix
+    void swap_columns() {
+        for (int i = 0; i < SIZE; i++) {
+            // Swap the first and last column elements
+            int temp = in[i][0].read();
+            out[i][0].write(in[i][N - 1].read());
+            out[i][N - 1].write(temp);
+
+            // Copy other elements unchanged
+            for (int j = 1; j < N - 1; j++) {
+                out[i][j].write(in[i][j].read());
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Constants**:
+   - `N` is defined as 4, representing the size of the matrix.
+   - `SIZE` is defined as `N`, representing the number of rows.
+
+2. **Module Declaration**:
+   - `MatrixColumnSwapper` is declared as a SystemC module.
+
+3. **Ports**:
+   - `in` is a 2D array of `sc_in<int>` representing the input matrix.
+   - `out` is a 2D array of `sc_out<int>` representing the output matrix.
+
+4. **Constructor**:
+   - The constructor registers the `swap_columns` method to be triggered whenever any input changes.
+
+5. **Method**:
+   - `swap_columns` iterates over each row of the matrix.
+   - It swaps the elements in the first and last columns.
+   - Other elements remain unchanged and are copied directly from the input to the output.
+
+This SystemC module can be integrated into a larger testbench using the provided `sc_in` and `sc_out` signals.

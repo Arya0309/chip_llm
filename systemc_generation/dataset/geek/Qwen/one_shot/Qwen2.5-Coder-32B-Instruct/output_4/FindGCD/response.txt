@@ -1,0 +1,136 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Inputs**: Two integers `a` and `b`.
+- **Output**: The greatest common divisor (GCD) of the two integers.
+
+### Detailed Line-by-Line Explanation:
+
+1. **Include Libraries**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes a large number of standard C++ libraries, and `using namespace std;` allows us to use standard library names without the `std::` prefix.
+
+2. **Function Definition**:
+   ```cpp
+   int gcd(int a, int b) {
+   ```
+   - This defines a function `gcd` that takes two integer parameters `a` and `b`.
+
+3. **Find Minimum**:
+   ```cpp
+   int res = min(a, b);
+   ```
+   - This initializes `res` to the smaller of the two input integers `a` and `b`.
+
+4. **While Loop**:
+   ```cpp
+   while (res > 1) {
+   ```
+   - This loop continues as long as `res` is greater than 1.
+
+5. **Divisibility Check**:
+   ```cpp
+       if (a % res == 0 && b % res == 0)
+           break;
+   ```
+   - This checks if both `a` and `b` are divisible by `res`. If they are, `res` is the GCD, and the loop breaks.
+
+6. **Decrement Result**:
+   ```cpp
+       res--;
+   ```
+   - If `res` does not divide both `a` and `b`, decrement `res` and continue checking.
+
+7. **Return Result**:
+   ```cpp
+   return res;
+   ```
+   - Once the loop exits, `res` contains the GCD, which is returned.
+
+8. **Main Function**:
+   ```cpp
+   int main() {
+       int a = 12, b = 16;
+       cout << gcd(a, b);
+       return 0;
+   }
+   ```
+   - The `main` function initializes `a` and `b` to 12 and 16, respectively, then calls `gcd(a, b)` and prints the result.
+
+### Equivalent SystemC Code:
+
+Below is the SystemC equivalent of the provided C++/C code, utilizing the specified signals for seamless integration with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// Module that calculates GCD of two integers
+SC_MODULE(GCD_Calculator) {
+    sc_in<int> a;          // Input port for the first number
+    sc_in<int> b;          // Input port for the second number
+    sc_out<int> gcd_result; // Output port for the GCD
+
+    // Constructor
+    SC_CTOR(GCD_Calculator) {
+        // Process to calculate GCD
+        SC_METHOD(calculate_gcd);
+        sensitive << a << b;
+    }
+
+    // Method to calculate the GCD
+    void calculate_gcd() {
+        int x = a.read();  // Read the value of a
+        int y = b.read();  // Read the value of b
+        int res = min(x, y); // Initialize res to the smaller of x and y
+
+        // Find the GCD using the same logic as the C++ code
+        while (res > 1) {
+            if (x % res == 0 && y % res == 0)
+                break;
+            res--;
+        }
+
+        // Write the result to the output port
+        gcd_result.write(res);
+    }
+};
+
+// Example usage of the GCD_Calculator module
+int sc_main(int argc, char* argv[]) {
+    // Create instances of the GCD_Calculator module
+    GCD_Calculator gcd_calc("gcd_calc");
+
+    // Create signal instances
+    sc_signal<int> a_sig;
+    sc_signal<int> b_sig;
+    sc_signal<int> gcd_result_sig;
+
+    // Connect signals to the module's ports
+    gcd_calc.a(a_sig);
+    gcd_calc.b(b_sig);
+    gcd_calc.gcd_result(gcd_result_sig);
+
+    // Initialize inputs
+    a_sig.write(12);
+    b_sig.write(16);
+
+    // Start simulation
+    sc_start();
+
+    // Print the result
+    cout << "GCD of " << a_sig.read() << " and " << b_sig.read() << " is " << gcd_result_sig.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+- **Module Declaration**: `GCD_Calculator` is a SystemC module that computes the GCD of two integers.
+- **Ports**: The module has three ports: `a`, `b` for inputs and `gcd_result` for the output.
+- **Constructor**: The constructor sets up a method `calculate_gcd` that triggers whenever either `a` or `b` changes.
+- **Method**: `calculate_gcd` reads the values of `a` and `b`, computes the GCD using the same algorithm as the original C++ code, and writes the result to `gcd_result`.
+- **Simulation Setup**: The `sc_main` function sets up the module, connects signals, initializes inputs, starts the simulation, and prints the result.

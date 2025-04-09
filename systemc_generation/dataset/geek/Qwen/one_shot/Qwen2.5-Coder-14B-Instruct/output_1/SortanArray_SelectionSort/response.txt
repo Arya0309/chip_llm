@@ -1,0 +1,78 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs of the Code**:
+   - **Input**: An array of integers and its size.
+   - **Output**: A sorted version of the input array.
+
+2. **Line-by-Line Explanation**:
+   - `#include <bits/stdc++.h>`: Includes all standard C++ libraries.
+   - `using namespace std;`: Uses the standard namespace.
+   - `void swap(int *xp, int *yp)`: A function to swap two integer pointers.
+   - `void selectionSort(int arr[], int n)`: A function to perform selection sort on an array of size `n`.
+     - `int i, j, min_idx;`: Declare loop variables and a variable to store the index of the minimum element.
+     - `for (i = 0; i < n-1; i++)`: Loop through the array to place each element in its correct position.
+       - `min_idx = i;`: Assume the first element is the smallest.
+       - `for (j = i+1; j < n; j++)`: Compare with other elements.
+         - `if (arr[j] < arr[min_idx])`: Update `min_idx` if a smaller element is found.
+       - `swap(&arr[min_idx], &arr[i]);`: Swap the found minimum element with the first element.
+   - `void printArray(int arr[], int size)`: A function to print the elements of an array.
+     - `for (i=0; i < size; i++)`: Loop through the array and print each element.
+   - `int main()`: The main function where the program execution starts.
+     - `int arr[] = {64, 25, 12, 22, 11};`: Declare and initialize an array.
+     - `int n = sizeof(arr)/sizeof(arr[0]);`: Calculate the size of the array.
+     - `selectionSort(arr, n);`: Call the selection sort function.
+     - `cout << "Sorted array: ";`: Print the sorted array.
+     - `printArray(arr, n);`: Call the function to print the sorted array.
+     - `return 0;`: Return 0 to indicate successful execution.
+
+3. **SystemC Code Snippet**:
+```
+#include <systemc.h>
+
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+    sc_vector<sc_signal<int>> data_in;
+    sc_vector<sc_signal<int>> data_out;
+
+    SC_CTOR(SelectionSort) : data_in("data_in", 5), data_out("data_out", 5) {
+        SC_THREAD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sort_process() {
+        while (true) {
+            wait(start.event());
+            int arr[5];
+            for (int i = 0; i < 5; i++) {
+                arr[i] = data_in[i].read();
+            }
+
+            int n = 5;
+            int i, j, min_idx;
+
+            for (i = 0; i < n-1; i++) {
+                min_idx = i;
+                for (j = i+1; j < n; j++) {
+                    if (arr[j] < arr[min_idx]) {
+                        min_idx = j;
+                    }
+                }
+                int temp = arr[min_idx];
+                arr[min_idx] = arr[i];
+                arr[i] = temp;
+            }
+
+            for (int i = 0; i < 5; i++) {
+                data_out[i].write(arr[i]);
+            }
+            done.write(true);
+            wait();
+            done.write(false);
+        }
+    }
+};
+```
+
+This SystemC module `SelectionSort` replicates the functionality of the provided C++ selection sort code. It uses the `clk`, `start`, and `done` signals for synchronization and control. The `data_in` and `data_out` vectors are used to pass the array data into and out of the module. The `sort_process` thread waits for the `start` signal, performs the selection sort, writes the sorted data to `data_out`, and sets the `done` signal to indicate completion.

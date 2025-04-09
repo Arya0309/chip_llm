@@ -1,0 +1,171 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs:**
+- A 2D integer array `m` of size `n x n`.
+
+**Outputs:**
+- The modified 2D integer array where the first and last columns have been swapped.
+
+### Detailed Explanation
+
+#### Line-by-Line Analysis
+
+1. **Header Files and Namespace Declaration:**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - Includes the standard I/O library for console input/output operations.
+   - Uses the `std` namespace to avoid prefixing standard library functions with `std::`.
+
+2. **Macro Definition:**
+   ```cpp
+   #define n 4 
+   ```
+   - Defines a constant `n` with the value 4, which represents the size of the square matrix.
+
+3. **Function Declaration:**
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   { 
+       // Function to interchange the first and last columns of the matrix
+   } 
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n` as an argument.
+
+4. **Loop to Swap Columns:**
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[i][0]; 
+       m[i][0] = m[i][n - 1]; 
+       m[i][n - 1] = t; 
+   } 
+   ```
+   - Iterates over each row of the matrix.
+   - Swaps the first (`m[i][0]`) and last (`m[i][n - 1]`) elements of the current row using a temporary variable `t`.
+
+5. **Driver Function:**
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                    {4, 7, 6, 5}, 
+                    {3, 2, 1, 8}, 
+                    {9, 9, 7, 7}}; 
+       interchangeFirstLast(m); 
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - Initializes a 4x4 matrix `m`.
+   - Calls the `interchangeFirstLast` function to swap the first and last columns.
+   - Prints the modified matrix to the console.
+
+### SystemC Equivalent Code
+
+Here is the equivalent SystemC code that integrates the provided signals:
+
+```cpp
+#include <systemc.h>
+
+// Define constants
+static const int N = 4;
+static const int SIZE = N * N;
+
+// SystemC module to interchange first and last columns of a matrix
+SC_MODULE(ColumnSwapper) {
+    // Input port for the matrix (flattened as a 1D array)
+    sc_in<int> in[SIZE];
+    // Output port for the modified matrix (flattened as a 1D array)
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(ColumnSwapper) {
+        // Sensitive to changes in any input signal
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
+
+        // Perform the operation when any input changes
+        SC_METHOD(interchange_columns);
+    }
+
+    // Method to interchange the first and last columns
+    void interchange_columns() {
+        for (int i = 0; i < N; i++) {
+            int t = in[i * N].read();
+            out[i * N].write(in[(i + 1) * N - 1].read());
+            out[(i + 1) * N - 1].write(t);
+        }
+    }
+};
+
+// Testbench to drive the ColumnSwapper module
+SC_MODULE(Testbench) {
+    sc_signal<int> in[SIZE];
+    sc_signal<int> out[SIZE];
+
+    ColumnSwapper* swapper;
+
+    SC_CTOR(Testbench) {
+        swapper = new ColumnSwapper("swapper");
+        swapper->in(in);
+        swapper->out(out);
+
+        // Initialize the input matrix
+        int m[N][N] = {{8, 9, 7, 6}, 
+                       {4, 7, 6, 5}, 
+                       {3, 2, 1, 8}, 
+                       {9, 9, 7, 7}};
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                in[i * N + j].write(m[i][j]);
+            }
+        }
+
+        // Wait for the operation to complete and print the output
+        wait(10, SC_NS);
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                cout << out[i * N + j].read() << " ";
+            }
+            cout << endl;
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **Constants and Port Definitions:**
+   - `N` is defined as 4, representing the size of the matrix.
+   - `SIZE` is calculated as `N * N`, giving the total number of elements in the matrix.
+   - Two ports, `in` and `out`, are declared as `sc_in<int>` and `sc_out<int>` respectively, each with `SIZE` elements.
+
+2. **Module Declaration:**
+   - `ColumnSwapper` is a SystemC module that contains the logic to swap the first and last columns of the matrix.
+   - It has two ports: `in` for input and `out` for output.
+
+3. **Constructor:**
+   - The constructor initializes the module and sets up sensitivity to changes in any input signal.
+   - It also registers the `interchange_columns` method to execute whenever any input changes.
+
+4. **Method to Interchange Columns:**
+   - The `interchange_columns` method iterates over each row of the matrix and swaps the first and last elements using a temporary variable `t`.
+
+5. **Testbench:**
+   - The `Testbench` module drives the `ColumnSwapper` module.
+   - It initializes the input matrix and waits for the operation to complete before printing the modified matrix.
+
+This SystemC code should work seamlessly with the provided testbench signals and faithfully replicate the behavior of the original C++ code.

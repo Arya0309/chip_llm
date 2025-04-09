@@ -1,0 +1,96 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Inputs**: Two integers `a` and `b`. In the given code, these are hardcoded as 15 and 20, respectively.
+- **Output**: The Least Common Multiple (LCM) of the two integers, printed to the console.
+
+### Detailed Line-by-Line Explanation:
+1. `#include <iostream>`: Includes the standard input-output stream library, which is used for printing the result to the console.
+2. `using namespace std;`: Allows us to use standard library functions without prefixing them with `std::`.
+3. `int main()`: The entry point of the program where execution starts.
+4. `int a = 15, b = 20, max_num, flag = 1;`: Declares three integer variables. `a` and `b` are initialized to 15 and 20, respectively. `max_num` is uninitialized, and `flag` is set to 1, indicating that the loop should run initially.
+5. `max_num = (a > b) ? a : b;`: Uses the ternary operator to assign the larger of `a` and `b` to `max_num`. This is the starting point for checking the LCM.
+6. `while (flag) { ... }`: Begins a loop that continues until `flag` becomes 0.
+7. `if (max_num % a == 0 && max_num % b == 0) { ... }`: Checks if `max_num` is divisible by both `a` and `b`. If true, this means `max_num` is the LCM.
+8. `cout << "LCM of " << a << " and " << b << " is " << max_num;`: Prints the LCM to the console.
+9. `break;`: Exits the loop once the LCM is found.
+10. `++max_num;`: Increments `max_num` by 1 in each iteration, moving to the next number to check.
+11. `return 0;`: Indicates successful termination of the program.
+
+### SystemC Equivalent Code:
+Below is the SystemC code that implements the same logic as the provided C++/C code. It uses the signals `a`, `b`, and `lcm_result` for integration with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// Module to calculate the LCM of two numbers
+SC_MODULE(LCMCalculator) {
+    sc_in<int> a;          // Input port for the first number
+    sc_in<int> b;          // Input port for the second number
+    sc_out<int> lcm_result; // Output port for the LCM
+
+    // Constructor
+    SC_CTOR(LCMCalculator) {
+        // Process to calculate LCM
+        SC_METHOD(calculate_lcm);
+        sensitive << a << b;
+    }
+
+    // Method to calculate the LCM
+    void calculate_lcm() {
+        int num_a = a.read();
+        int num_b = b.read();
+        int max_num = (num_a > num_b) ? num_a : num_b;
+        int flag = 1;
+
+        while (flag) {
+            if (max_num % num_a == 0 && max_num % num_b == 0) {
+                lcm_result.write(max_num);
+                flag = 0; // Exit the loop
+            } else {
+                ++max_num;
+            }
+        }
+    }
+};
+
+// Example top-level module for simulation
+SC_MODULE(TopLevel) {
+    sc_signal<int> a;
+    sc_signal<int> b;
+    sc_signal<int> lcm_result;
+
+    LCMCalculator lcm_calculator;
+
+    SC_CTOR(TopLevel) : lcm_calculator("lcm_calculator") {
+        lcm_calculator.a(a);
+        lcm_calculator.b(b);
+        lcm_calculator.lcm_result(lcm_result);
+
+        // Initialization process
+        SC_THREAD(initialize);
+    }
+
+    void initialize() {
+        a.write(15); // Set the value of a
+        b.write(20); // Set the value of b
+        wait(1, SC_NS); // Wait for the calculation to complete
+        cout << "LCM of " << a.read() << " and " << b.read() << " is " << lcm_result.read() << endl;
+        sc_stop(); // Stop the simulation
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    TopLevel top("top");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+- **Module Definition**: `LCMCalculator` is defined as a SystemC module with input ports `a` and `b` and an output port `lcm_result`.
+- **Constructor**: The constructor sets up a method `calculate_lcm` that is sensitive to changes in `a` and `b`.
+- **Method `calculate_lcm`**: Implements the logic to compute the LCM, similar to the C++/C code. It reads the values from the input ports, calculates the LCM, and writes the result to the output port.
+- **Top-Level Module**: `TopLevel` initializes the signals and connects them to the `LCMCalculator` module. It also contains an initialization process to set the input values and print the result after computation.
+- **Simulation Control**: `sc_main` function creates an instance of `TopLevel` and starts the simulation. The simulation stops after calculating the LCM and printing the result.

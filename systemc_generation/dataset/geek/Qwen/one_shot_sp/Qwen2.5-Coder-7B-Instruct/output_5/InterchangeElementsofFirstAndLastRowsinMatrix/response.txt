@@ -1,0 +1,142 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs:**
+- A 2D integer array `m` of size `n x n`.
+
+**Outputs:**
+- The modified 2D integer array after swapping the elements of the first and last columns.
+
+### Detailed Explanation
+
+#### Line-by-Line Analysis
+
+1. **Header File Include:**
+   ```cpp
+   #include <iostream>
+   ```
+   This includes the standard input-output stream library for console input and output operations.
+
+2. **Namespace Declaration:**
+   ```cpp
+   using namespace std;
+   ```
+   This directive allows us to use standard library functions without prefixing them with `std::`.
+
+3. **Constant Definition:**
+   ```cpp
+   #define n 4
+   ```
+   Defines a constant `n` which represents the dimension of the square matrix.
+
+4. **Function Declaration:**
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   Declares a function `interchangeFirstLast` that takes a 2D integer array `m` of size `n x n` as input and modifies it by swapping the elements of the first and last columns.
+
+5. **Loop for Swapping Elements:**
+   ```cpp
+   for (int i = 0; i < n; i++)
+   {
+       int t = m[i][0];
+       m[i][0] = m[i][n - 1];
+       m[i][n - 1] = t;
+   }
+   ```
+   This loop iterates over each row of the matrix and swaps the first (`m[i][0]`) and last (`m[i][n - 1]`) elements of each row.
+
+6. **Main Function:**
+   ```cpp
+   int main()
+   {
+       int m[n][n] = {{8, 9, 7, 6},
+                      {4, 7, 6, 5},
+                      {3, 2, 1, 8},
+                      {9, 9, 7, 7}};
+   ```
+   Initializes a 4x4 matrix `m` with given values.
+
+7. **Function Call:**
+   ```cpp
+   interchangeFirstLast(m);
+   ```
+   Calls the `interchangeFirstLast` function to swap the first and last columns of the matrix `m`.
+
+8. **Output Loop:**
+   ```cpp
+   for (int i = 0; i < n; i++)
+   {
+       for (int j = 0; j < n; j++)
+           cout << m[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   Iterates over each element of the modified matrix `m` and prints it to the console.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that integrates the provided signals and maintains the logic of the original C++ code:
+
+```cpp
+#include <systemc.h>
+
+// Define constants for matrix dimensions
+static const int N = 4;
+static const int SIZE = N * N;
+
+// Module to perform the operation of swapping the first and last columns of a matrix
+SC_MODULE(MatrixSwapColumns) {
+    // Input port for the matrix (flattened as a 1D array)
+    sc_in<int> in[SIZE];
+    // Output port for the modified matrix (flattened as a 1D array)
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(MatrixSwapColumns) {
+        // Create an SC_METHOD to handle the swapping operation
+        SC_METHOD(do_swap);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
+    }
+
+    // Method to swap the first and last columns of the matrix
+    void do_swap() {
+        for (int i = 0; i < N; i++) {
+            int temp = in[i * N].read();
+            out[i * N].write(in[(i + 1) * N - 1].read());
+            out[(i + 1) * N - 1].write(temp);
+        }
+        // Emit the updated matrix through the output port
+        for (int i = 0; i < SIZE; i++) {
+            if (i != 0 && i % N == 0) cout << endl;
+            cout << out[i].read() << " ";
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the module
+    MatrixSwapColumns matrixSwap("matrixSwap");
+
+    // Initialize input values
+    int inputMatrix[N][N] = {
+        {8, 9, 7, 6},
+        {4, 7, 6, 5},
+        {3, 2, 1, 8},
+        {9, 9, 7, 7}
+    };
+
+    // Connect input signals to the matrix elements
+    for (int i = 0; i < SIZE; i++) {
+        matrixSwap.in[i](inputMatrix[i / N][i % N]);
+    }
+
+    // Start simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+This SystemC code defines a module `MatrixSwapColumns` that takes a flattened 1D array as input, swaps the first and last columns of the matrix, and emits the modified matrix through another flattened 1D array. The `do_swap` method handles the actual swapping logic, and the `sc_main` function initializes the input matrix and connects it to the module's input ports.

@@ -1,0 +1,180 @@
+
+### Inputs and Outputs
+The given C++/C code takes two binary strings `A` and `B` as inputs and returns their sum as another binary string. Specifically:
+
+- **Inputs**:
+  - `A`: A binary string representing the first operand.
+  - `B`: A binary string representing the second operand.
+
+- **Outputs**:
+  - `sum`: A binary string representing the sum of `A` and `B`.
+
+### Detailed Explanation
+
+#### Line-by-Line Analysis
+
+1. **Include Header Files**
+   ```cpp
+   #include <bits/stdc++.h>
+   ```
+   - This includes all standard library headers.
+
+2. **Namespace Declaration**
+   ```cpp
+   using namespace std;
+   ```
+   - Uses the standard namespace for easier access to standard library functions.
+
+3. **Function Definition: `addBinary`**
+   ```cpp
+   string addBinary(string A, string B)
+   ```
+   - Defines a function that takes two strings (`A` and `B`) and returns a string representing their sum.
+
+4. **Length Check and Swap**
+   ```cpp
+   if (A.length() > B.length())
+       return addBinary(B, A);
+   ```
+   - Ensures that `A` is always the shorter string for simplicity in the algorithm.
+
+5. **Padding the Shorter String**
+   ```cpp
+   int diff = B.length() - A.length();
+   string padding;
+   for (int i = 0; i < diff; i++)
+       padding.push_back('0');
+   A = padding + A;
+   ```
+   - Calculates the difference in lengths and pads the shorter string with zeros.
+
+6. **Initialize Result and Carry**
+   ```cpp
+   string res;
+   char carry = '0';
+   ```
+   - Initializes an empty result string and a carry variable set to '0'.
+
+7. **Iterate Over Strings from Right to Left**
+   ```cpp
+   for (int i = A.length() - 1; i >= 0; i--)
+   ```
+   - Loops through each character of the strings from right to left.
+
+8. **Case 1: Both Characters Are '1'**
+   ```cpp
+   if (A[i] == '1' && B[i] == '1')
+   ```
+   - Handles the case where both characters are '1'.
+     - If there's a carry, appends '1' to the result and keeps the carry as '1'.
+     - Otherwise, appends '0' to the result and sets the carry to '1'.
+
+9. **Case 2: Both Characters Are '0'**
+   ```cpp
+   else if (A[i] == '0' && B[i] == '0')
+   ```
+   - Handles the case where both characters are '0'.
+     - If there's a carry, appends '1' to the result and resets the carry to '0'.
+     - Otherwise, appends '0' to the result and keeps the carry as '0'.
+
+10. **Case 3: One Character Is '1' and the Other Is '0'**
+    ```cpp
+    else if (A[i] != B[i])
+    ```
+    - Handles the case where one character is '1' and the other is '0'.
+      - If there's a carry, appends '0' to the result and keeps the carry as '1'.
+      - Otherwise, appends '1' to the result and resets the carry to '0'.
+
+11. **Append Final Carry if Exists**
+    ```cpp
+    if (carry == '1')
+        res.push_back(carry);
+    ```
+    - Appends any remaining carry to the result.
+
+12. **Reverse the Result String**
+    ```cpp
+    reverse(res.begin(), res.end());
+    ```
+    - Reverses the result string to get the correct order.
+
+13. **Remove Leading Zeros**
+    ```cpp
+    int index = 0;
+    while (index + 1 < res.length() && res[index] == '0')
+        index++;
+    return (res.substr(index));
+    ```
+    - Removes any leading zeros from the result and returns it.
+
+#### SystemC Code Snippet
+
+Here’s how you can implement this in SystemC:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinaryAdder) {
+    sc_in<sc_string> A;  // Input port for the first binary string
+    sc_in<sc_string> B;  // Input port for the second binary string
+    sc_out<sc_string> sum; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(BinaryAdder) {
+        // Process to perform binary addition
+        SC_THREAD(add_binary);
+        sensitive << A << B;
+    }
+
+    // Thread to add the two binary strings
+    void add_binary() {
+        sc_string result = addBinary(A->to_string(), B->to_string());
+        sum.write(result);
+    }
+
+    // Function to add two binary strings
+    sc_string addBinary(const std::string& A, const std::string& B) {
+        if (A.length() > B.length())
+            return addBinary(B, A);
+
+        int diff = B.length() - A.length();
+        std::string padding(diff, '0');
+        std::string padded_A = padding + A;
+
+        std::string res;
+        char carry = '0';
+
+        for (int i = padded_A.length() - 1; i >= 0; i--) {
+            if (padded_A[i] == '1' && B[i] == '1') {
+                if (carry == '1')
+                    res.push_back('1'), carry = '1';
+                else
+                    res.push_back('0'), carry = '1';
+            } else if (padded_A[i] == '0' && B[i] == '0') {
+                if (carry == '1')
+                    res.push_back('1'), carry = '0';
+                else
+                    res.push_back('0'), carry = '0';
+            } else {
+                if (carry == '1')
+                    res.push_back('0'), carry = '1';
+                else
+                    res.push_back('1'), carry = '0';
+            }
+        }
+
+        if (carry == '1')
+            res.push_back(carry);
+
+        std::reverse(res.begin(), res.end());
+
+        int index = 0;
+        while (index + 1 < res.length() && res[index] == '0')
+            index++;
+
+        return res.substr(index);
+    }
+};
+```
+
+This SystemC module (`BinaryAdder`) takes two binary strings (`A` and `B`) as inputs and produces their sum as an output (`sum`). It uses a thread to handle the computation and calls the `addBinary` function to perform the actual addition.

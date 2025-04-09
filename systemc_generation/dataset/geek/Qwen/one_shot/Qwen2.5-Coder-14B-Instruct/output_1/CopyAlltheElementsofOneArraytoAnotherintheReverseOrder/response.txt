@@ -1,0 +1,168 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! **Analysis of the Provided C++/C Code**
+
+1. **Inputs and Outputs**:
+   - **Input**: None. The program uses a hardcoded array `original_arr` with predefined values.
+   - **Output**: The program prints the original array and the resultant reversed array to the console.
+
+2. **Line-by-Line Explanation**:
+   ```cpp
+   #include <stdio.h>
+   ```
+   - Includes the standard input-output library for printing functions.
+
+   ```cpp
+   // Function to print the array 
+   void printArray(int arr[], int len) 
+   { 
+       int i; 
+       for (i = 0; i < len; i++) { 
+           printf("%d ", arr[i]); 
+       } 
+   }
+   ```
+   - Defines a function `printArray` that takes an integer array `arr` and its length `len` as parameters. It prints each element of the array separated by a space.
+
+   ```cpp
+   // Driver code 
+   int main() 
+   { 
+       int original_arr[] = {1, 2, 3, 4, 5}; 
+       int len = sizeof(original_arr)/sizeof(original_arr[0]); 
+   ```
+   - Declares and initializes the `original_arr` array with values `{1, 2, 3, 4, 5}`.
+   - Calculates the length of the array using `sizeof`.
+
+   ```cpp
+       int copied_arr[len], i, j; 
+   ```
+   - Declares an array `copied_arr` of the same length as `original_arr` to store the reversed elements.
+   - Declares variables `i` and `j` (though `j` is not used).
+
+   ```cpp
+       // Copy the elements of the array 
+       // in the copied_arr in Reverse Order 
+       for (i = 0; i < len; i++) { 
+           copied_arr[i] = original_arr[len - i - 1]; 
+       } 
+   ```
+   - Uses a `for` loop to iterate over each element of `original_arr`.
+   - Copies each element to `copied_arr` in reverse order.
+
+   ```cpp
+       // Print the original_arr 
+       printf(" Original array: "); 
+       printArray(original_arr, len); 
+   ```
+   - Prints the string "Original array: ".
+   - Calls `printArray` to print the elements of `original_arr`.
+
+   ```cpp
+       // Print the copied array 
+       printf(" Resultant array: "); 
+       printArray(copied_arr, len); 
+   ```
+   - Prints the string "Resultant array: ".
+   - Calls `printArray` to print the elements of `copied_arr`.
+
+   ```cpp
+       return 0; 
+   }
+   ```
+   - Returns 0 to indicate successful execution of the program.
+
+**SystemC Code Equivalent**
+
+The provided C++/C code processes an array to reverse its contents and prints the results. We need to convert this logic into a SystemC module that can be integrated into a high-level synthesis flow. The SystemC module will use the provided signals `clk`, `start`, and `done`.
+
+```cpp
+#include <systemc.h>
+
+// Module to reverse an array
+SC_MODULE(ArrayReverser) {
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
+    sc_out<bool> done;     // Done signal
+
+    // Internal signals
+    sc_signal<int> original_arr[5]; // Original array
+    sc_signal<int> copied_arr[5];   // Copied array
+    sc_signal<int> index;          // Index for array operations
+    sc_signal<bool> processing;     // Processing flag
+
+    // Constructor
+    SC_CTOR(ArrayReverser) {
+        // Initialize original array
+        original_arr[0] = 1;
+        original_arr[1] = 2;
+        original_arr[2] = 3;
+        original_arr[3] = 4;
+        original_arr[4] = 5;
+
+        // Process to handle array reversal
+        SC_THREAD(reverse_array);
+        sensitive << clk.pos();
+        async_reset_signal_is(start, false);
+
+        // Process to print the arrays
+        SC_THREAD(print_arrays);
+        sensitive << clk.pos();
+        async_reset_signal_is(start, false);
+    }
+
+    // Method to reverse the array
+    void reverse_array() {
+        index = 0;
+        processing = true;
+        while (index < 5) {
+            wait(); // Wait for clock edge
+            copied_arr[index].write(original_arr[4 - index].read());
+            index++;
+        }
+        processing = false;
+        done.write(true);
+    }
+
+    // Method to print the arrays
+    void print_arrays() {
+        wait(); // Wait for start signal
+        cout << "Original array: ";
+        for (int i = 0; i < 5; i++) {
+            cout << original_arr[i].read() << " ";
+        }
+        cout << endl;
+
+        wait(); // Wait for processing to complete
+        cout << "Resultant array: ";
+        for (int i = 0; i < 5; i++) {
+            cout << copied_arr[i].read() << " ";
+        }
+        cout << endl;
+    }
+};
+```
+
+**Explanation of the SystemC Code**:
+1. **Module Declaration**:
+   - `ArrayReverser` is the SystemC module that encapsulates the array reversal logic.
+   - It uses the provided signals `clk`, `start`, and `done`.
+
+2. **Internal Signals**:
+   - `original_arr` and `copied_arr` are arrays to store the original and reversed arrays, respectively.
+   - `index` is used to track the current position in the array.
+   - `processing` is a flag to indicate whether the array is being processed.
+
+3. **Constructor**:
+   - Initializes the `original_arr` with the hardcoded values.
+   - Registers `reverse_array` and `print_arrays` as threads sensitive to the positive edge of the clock (`clk`).
+
+4. **reverse_array Method**:
+   - Waits for the start signal and initializes the `index` and `processing` flag.
+   - Iterates through the `original_arr` and copies elements to `copied_arr` in reverse order.
+   - Sets `processing` to false and `done` to true when the reversal is complete.
+
+5. **print_arrays Method**:
+   - Waits for the start signal and prints the elements of `original_arr`.
+   - Waits for the processing to complete and prints the elements of `copied_arr`.
+
+This SystemC module faithfully replicates the logic of the original C++/C code, using the provided signals for synchronization and control.

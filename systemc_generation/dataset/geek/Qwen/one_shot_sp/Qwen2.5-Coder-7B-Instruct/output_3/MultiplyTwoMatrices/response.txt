@@ -1,0 +1,148 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs:**
+- Two 2D integer matrices `mat1` and `mat2`.
+- These matrices are specified using macros `R1`, `C1`, `R2`, and `C2`.
+
+**Outputs:**
+- The result of multiplying `mat1` and `mat2`.
+- This result is printed to the console.
+
+### Detailed Explanation of the C++/C Code
+
+1. **Header and Macros**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - Standard library includes.
+   - Namespace `std` is used for convenience.
+
+2. **Macro Definitions**:
+   ```cpp
+   #define R1 2 // number of rows in Matrix-1
+   #define C1 2 // number of columns in Matrix-1
+   #define R2 2 // number of rows in Matrix-2
+   #define C2 3 // number of columns in Matrix-2
+   ```
+   - Define dimensions of the matrices.
+
+3. **Function `mulMat`**:
+   ```cpp
+   void mulMat(int mat1[][C1], int mat2[][C2]) {
+       int rslt[R1][C2];
+   ```
+   - Declare the function `mulMat` which takes two 2D integer matrices as input.
+   - Declare a result matrix `rslt` with dimensions `R1 x C2`.
+
+4. **Output Message**:
+   ```cpp
+   cout << "Multiplication of given two matrices is:\n";
+   ```
+   - Print a message indicating the start of the multiplication result.
+
+5. **Nested Loops for Multiplication**:
+   ```cpp
+   for (int i = 0; i < R1; i++) {
+       for (int j = 0; j < C2; j++) {
+           rslt[i][j] = 0;
+           for (int k = 0; k < R2; k++) {
+               rslt[i][j] += mat1[i][k] * mat2[k][j];
+           }
+           cout << rslt[i][j] << "\t";
+       }
+       cout << endl;
+   }
+   ```
+   - Outer loop iterates over rows of `mat1`.
+   - Inner loop iterates over columns of `mat2`.
+   - Nested loop calculates each element of the resulting matrix `rslt`.
+   - Prints each element followed by a tab.
+   - Ends each row with a newline character.
+
+6. **Driver Code**:
+   ```cpp
+   int main() {
+       int mat1[R1][C1] = { { 1, 1 }, { 2, 2 } };
+       int mat2[R2][C2] = { { 1, 1, 1 }, { 2, 2, 2 } };
+       if (C1 != R2) {
+           cout << "The number of columns in Matrix-1 must be equal to the number of rows in Matrix-2" << endl;
+           exit(EXIT_FAILURE);
+       }
+       mulMat(mat1, mat2);
+       return 0;
+   }
+   ```
+   - Initializes two matrices `mat1` and `mat2`.
+   - Checks if the number of columns in `mat1` is equal to the number of rows in `mat2`.
+   - Calls the `mulMat` function with these matrices.
+   - Exits if the condition fails.
+
+### Equivalent SystemC Code
+
+```cpp
+#include <systemc.h>
+
+// Define constants for matrix dimensions
+static const int R1 = 2;
+static const int C1 = 2;
+static const int R2 = 2;
+static const int C2 = 3;
+static const int SIZE_A = R1 * C1;
+static const int SIZE_B = R2 * C2;
+static const int SIZE_RESULT = R1 * C2;
+
+// Module that performs matrix multiplication
+SC_MODULE(MatrixMultiplier) {
+    // Input ports for matrices A and B (flattened as 1D arrays)
+    sc_in<int> A[SIZE_A];
+    sc_in<int> B[SIZE_B];
+    // Output port for matrix C (flattened as 1D array)
+    sc_out<int> C[SIZE_RESULT];
+
+    SC_CTOR(MatrixMultiplier) {
+        // Use an SC_METHOD to perform combinational matrix multiplication
+        SC_METHOD(do_multiply);
+        for (int i = 0; i < SIZE_A; i++) {
+            sensitive << A[i];
+        }
+        for (int i = 0; i < SIZE_B; i++) {
+            sensitive << B[i];
+        }
+    }
+
+    // Method that multiplies corresponding elements of A and B
+    void do_multiply() {
+        int rslt[R1][C2] = {0}; // Initialize result matrix
+
+        for (int i = 0; i < R1; i++) {
+            for (int j = 0; j < C2; j++) {
+                for (int k = 0; k < R2; k++) {
+                    rslt[i][j] += A[i * C1 + k] * B[k * C2 + j];
+                }
+                C[i * C2 + j].write(rslt[i][j]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Constants**:
+   - Constants `R1`, `C1`, `R2`, and `C2` define the dimensions of the matrices.
+   - `SIZE_A`, `SIZE_B`, and `SIZE_RESULT` represent the total number of elements in matrices `A`, `B`, and the result `C`, respectively.
+
+2. **Module Declaration**:
+   - `MatrixMultiplier` module is declared with input ports `A` and `B` and an output port `C`.
+
+3. **Constructor**:
+   - The constructor sets up the `do_multiply` method to be triggered whenever any element of `A` or `B` changes.
+
+4. **Method `do_multiply`**:
+   - Initializes a result matrix `rslt` with dimensions `R1 x C2`.
+   - Uses nested loops to calculate each element of the result matrix `rslt`.
+   - Writes each calculated element to the corresponding position in the output port `C`.
+
+This SystemC code accurately replicates the functionality of the original C++/C code while utilizing the provided signals.

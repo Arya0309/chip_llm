@@ -1,0 +1,121 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!use the provided C++/C code to understand its functionality and then translate it into a SystemC module. Let's break down the original code first.
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: A square matrix `mat` of size `n x n` where `n` is up to `MAX` (100). In the example, `n` is 4.
+- **Outputs**: The sums of the principal and secondary diagonals of the matrix.
+
+#### Line-by-Line Explanation:
+1. `#include <bits/stdc++.h>`: This includes all standard C++ libraries.
+2. `using namespace std;`: Allows using standard library functions without prefixing them with `std::`.
+3. `const int MAX = 100;`: Defines a constant `MAX` which is the maximum size of the matrix.
+4. `void printDiagonalSums(int mat[][MAX], int n)`: Declares a function to calculate and print the sums of the principal and secondary diagonals.
+5. `int principal = 0, secondary = 0;`: Initializes two variables to store the sums of the principal and secondary diagonals.
+6. `for (int i = 0; i < n; i++)`: Outer loop iterating over rows of the matrix.
+7. `for (int j = 0; j < n; j++)`: Inner loop iterating over columns of the matrix.
+8. `if (i == j) principal += mat[i][j];`: Checks if the current element is on the principal diagonal (`i == j`) and adds it to `principal`.
+9. `if ((i + j) == (n - 1)) secondary += mat[i][j];`: Checks if the current element is on the secondary diagonal (`i + j == n - 1`) and adds it to `secondary`.
+10. `cout << "Principal Diagonal:" << principal << endl;`: Prints the sum of the principal diagonal.
+11. `cout << "Secondary Diagonal:" << secondary << endl;`: Prints the sum of the secondary diagonal.
+12. `int a[][MAX] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {1, 2, 3, 4}, {5, 6, 7, 8}};`: Initializes a sample matrix `a` of size 4x4.
+13. `printDiagonalSums(a, 4);`: Calls the function to compute and print the diagonal sums for matrix `a`.
+
+### SystemC Code
+
+Below is the equivalent SystemC code that performs the same operations. It uses the provided `sc_in` and `sc_out` signals for integration with a testbench.
+
+```cpp
+#include <systemc.h>
+
+// Define constants
+static const int N = 4;
+static const int SIZE = N;
+
+// SystemC module to calculate diagonal sums of a matrix
+SC_MODULE(DiagonalSumCalculator) {
+    // Input port for the matrix (flattened as 1D array)
+    sc_in<int> matrix[SIZE][SIZE];
+    // Output ports for principal and secondary diagonal sums
+    sc_out<int> principal;
+    sc_out<int> secondary;
+
+    SC_CTOR(DiagonalSumCalculator) {
+        // Use an SC_METHOD to perform combinational calculation of diagonal sums
+        SC_METHOD(calculate_diagonal_sums);
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                sensitive << matrix[i][j];
+            }
+        }
+    }
+
+    // Method that calculates the sums of the principal and secondary diagonals
+    void calculate_diagonal_sums() {
+        int principal_sum = 0;
+        int secondary_sum = 0;
+
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                // Check if the element is on the principal diagonal
+                if (i == j) {
+                    principal_sum += matrix[i][j].read();
+                }
+                // Check if the element is on the secondary diagonal
+                if ((i + j) == (SIZE - 1)) {
+                    secondary_sum += matrix[i][j].read();
+                }
+            }
+        }
+
+        // Write the results to the output ports
+        principal.write(principal_sum);
+        secondary.write(secondary_sum);
+    }
+};
+
+// Example usage
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the DiagonalSumCalculator module
+    DiagonalSumCalculator calc("calc");
+
+    // Initialize matrix input signals
+    sc_signal<int> matrix_signals[N][N];
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            calc.matrix[i][j](matrix_signals[i][j]);
+        }
+    }
+
+    // Initialize output signals
+    sc_signal<int> principal_out, secondary_out;
+    calc.principal(principal_out);
+    calc.secondary(secondary_out);
+
+    // Assign values to matrix signals
+    matrix_signals[0][0] = 1; matrix_signals[0][1] = 2; matrix_signals[0][2] = 3; matrix_signals[0][3] = 4;
+    matrix_signals[1][0] = 5; matrix_signals[1][1] = 6; matrix_signals[1][2] = 7; matrix_signals[1][3] = 8;
+    matrix_signals[2][0] = 1; matrix_signals[2][1] = 2; matrix_signals[2][2] = 3; matrix_signals[2][3] = 4;
+    matrix_signals[3][0] = 5; matrix_signals[3][1] = 6; matrix_signals[3][2] = 7; matrix_signals[3][3] = 8;
+
+    // Start simulation
+    sc_start();
+
+    // Print the results
+    cout << "Principal Diagonal Sum: " << principal_out.read() << endl;
+    cout << "Secondary Diagonal Sum: " << secondary_out.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Constants**: `N` defines the size of the matrix, and `SIZE` is set to `N` for clarity.
+- **Module Declaration**: `DiagonalSumCalculator` is declared as a SystemC module.
+- **Ports**: `matrix` is a 2D array of `sc_in<int>` representing the matrix input. `principal` and `secondary` are `sc_out<int>` for the sums of the principal and secondary diagonals.
+- **Constructor**: The constructor sets up sensitivity to changes in any matrix element, ensuring the sums are recalculated whenever the matrix changes.
+- **Method**: `calculate_diagonal_sums` computes the sums of the principal and secondary diagonals and writes the results to the output ports.
+- **Example Usage**: `sc_main` initializes the module, assigns values to the matrix, starts the simulation, and prints the results.
+
+This SystemC code faithfully captures the logic of the original C++/C code and is ready for integration with a testbench.

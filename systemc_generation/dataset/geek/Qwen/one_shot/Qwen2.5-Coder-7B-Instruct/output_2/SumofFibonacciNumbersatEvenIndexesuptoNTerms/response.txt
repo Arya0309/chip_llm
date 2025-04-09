@@ -1,0 +1,166 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+The given C++ program takes an integer `n` as input and computes the sum of the even-indexed Fibonacci numbers up to `n` terms. The output is printed to the console.
+
+### Line-by-Line Explanation
+
+1. **Include Directives**
+   ```cpp
+   #include <bits/stdc++.h>
+   ```
+   This includes all standard C++ libraries.
+
+2. **Namespace Declaration**
+   ```cpp
+   using namespace std;
+   ```
+   Uses the standard namespace for convenience.
+
+3. **Function Definition: calculateEvenSum**
+   ```cpp
+   int calculateEvenSum(int n)
+   ```
+   Defines a function that calculates the sum of even-indexed Fibonacci numbers up to `n` terms.
+
+4. **Initial Checks**
+   ```cpp
+   if (n <= 0)
+       return 0;
+   ```
+   If `n` is less than or equal to zero, returns 0 since there are no positive terms to consider.
+
+5. **Array Initialization**
+   ```cpp
+   int fibo[2 * n + 1];
+   fibo[0] = 0, fibo[1] = 1;
+   ```
+   Initializes an array `fibo` to store Fibonacci numbers up to `2*n`. Sets the first two Fibonacci numbers (`fibo[0]` and `fibo[1]`) to 0 and 1 respectively.
+
+6. **Variable Initialization**
+   ```cpp
+   int sum = 0;
+   ```
+   Initializes a variable `sum` to store the sum of even-indexed Fibonacci numbers.
+
+7. **Loop to Calculate Fibonacci Numbers and Sum Even-Indexed Terms**
+   ```cpp
+   for (int i = 2; i <= 2 * n; i++) {
+       fibo[i] = fibo[i - 1] + fibo[i - 2];
+       if (i % 2 == 0)
+           sum += fibo[i];
+   }
+   ```
+   Iterates from 2 to `2*n`, calculating each Fibonacci number and adding it to `sum` if the index `i` is even.
+
+8. **Return Statement**
+   ```cpp
+   return sum;
+   ```
+   Returns the computed sum of even-indexed Fibonacci numbers.
+
+9. **Main Function**
+   ```cpp
+   int main() {
+       int n = 8;
+       cout << "Even indexed Fibonacci Sum upto " << n << " terms: " << calculateEvenSum(n) << endl;
+       return 0;
+   }
+   ```
+   Main function that sets `n` to 8 and prints the result of `calculateEvenSum(n)`.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code snippet that integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(EvenFibonacciSum) {
+    sc_in<int> n;      // Input signal for the number of terms
+    sc_out<int> sum;  // Output signal for the sum of even-indexed Fibonacci numbers
+
+    // Constructor
+    SC_CTOR(EvenFibonacciSum) {
+        // Process to compute the sum of even-indexed Fibonacci numbers
+        SC_THREAD(calculate_even_sum);
+        sensitive << n;
+    }
+
+    // Thread method to calculate the sum
+    void calculate_even_sum() {
+        int n_val = n.read();
+        if (n_val <= 0) {
+            sum.write(0);
+            wait();  // Wait for next input
+            return;
+        }
+
+        int fibo[2 * n_val + 1];
+        fibo[0] = 0;
+        fibo[1] = 1;
+
+        int sum_val = 0;
+
+        for (int i = 2; i <= 2 * n_val; i++) {
+            fibo[i] = fibo[i - 1] + fibo[i - 2];
+            if (i % 2 == 0) {
+                sum_val += fibo[i];
+            }
+        }
+
+        sum.write(sum_val);
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(EvenFibonacciSum) {
+   ```
+   Declares a SystemC module named `EvenFibonacciSum`.
+
+2. **Signal Declarations**
+   ```cpp
+   sc_in<int> n;
+   sc_out<int> sum;
+   ```
+   Defines input and output signals `n` and `sum` respectively.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(EvenFibonacciSum) {
+       SC_THREAD(calculate_even_sum);
+       sensitive << n;
+   }
+   ```
+   Registers a thread method `calculate_even_sum` to run whenever the input `n` changes.
+
+4. **Thread Method**
+   ```cpp
+   void calculate_even_sum() {
+       int n_val = n.read();
+       if (n_val <= 0) {
+           sum.write(0);
+           wait();  // Wait for next input
+           return;
+       }
+
+       int fibo[2 * n_val + 1];
+       fibo[0] = 0;
+       fibo[1] = 1;
+
+       int sum_val = 0;
+
+       for (int i = 2; i <= 2 * n_val; i++) {
+           fibo[i] = fibo[i - 1] + fibo[i - 2];
+           if (i % 2 == 0) {
+               sum_val += fibo[i];
+           }
+       }
+
+       sum.write(sum_val);
+   }
+   ```
+   Reads the value of `n`, initializes the Fibonacci sequence, calculates the sum of even-indexed Fibonacci numbers, and writes the result to the `sum` signal. Waits for the next change in `n` before exiting the method.

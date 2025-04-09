@@ -1,0 +1,106 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: Two binary strings `A` and `B`.
+- **Output**: A single binary string representing the sum of `A` and `B`.
+
+#### Detailed Explanation:
+1. **Function Definition**: The function `addBinary` takes two binary strings `A` and `B` as input.
+2. **Length Check and Swap**: If the length of `A` is greater than `B`, the function calls itself with `B` and `A` swapped. This ensures that `B` is always the longer string.
+3. **Padding Calculation**: It calculates the difference in lengths between `A` and `B` and creates a padding string filled with zeros to match the length of `B`.
+4. **Padding Addition**: The padding is added to the beginning of `A` to make both strings of equal length.
+5. **Result Initialization**: An empty string `res` is initialized to store the result, and a character `carry` is initialized to '0'.
+6. **Bitwise Addition Loop**: A loop iterates over the bits of `A` and `B` from right to left:
+   - If both bits are '1', it checks the carry:
+     - If carry is '1', append '1' to `res` and keep carry as '1'.
+     - If carry is '0', append '0' to `res` and set carry to '1'.
+   - If both bits are '0', it checks the carry:
+     - If carry is '1', append '1' to `res` and reset carry to '0'.
+     - If carry is '0', append '0' to `res' and keep carry as '0'.
+   - If one bit is '1' and the other is '0', it checks the carry:
+     - If carry is '1', append '0' to `res` and keep carry as '1'.
+     - If carry is '0', append '1' to `res` and reset carry to '0'.
+7. **Final Carry Check**: After the loop, if there's a carry left, it appends '1' to `res`.
+8. **Reversing the Result**: The result string `res` is reversed to get the correct order.
+9. **Removing Leading Zeros**: Any leading zeros in `res` are removed.
+10. **Return Result**: The final result is returned.
+
+#### Driver Code:
+The `main` function initializes two binary strings `a` and `b`, calls `addBinary` with these strings, and prints the result.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that implements the same logic:
+
+```cpp
+#include <systemc.h>
+#include <string>
+#include <algorithm>
+
+SC_MODULE(BinaryAdder) {
+    sc_in<std::string> A;  // Input port for the first binary string
+    sc_in<std::string> B;  // Input port for the second binary string
+    sc_out<std::string> sum; // Output port for the sum
+
+    // Method to add two binary strings
+    void addBinary() {
+        std::string a = A.read();
+        std::string b = B.read();
+
+        // Ensure B is the longer string
+        if (a.length() > b.length())
+            return addBinary(b, a);
+
+        int diff = b.length() - a.length();
+        std::string padding(diff, '0');
+        a = padding + a;
+
+        std::string res;
+        char carry = '0';
+
+        for (int i = a.length() - 1; i >= 0; i--) {
+            if (a[i] == '1' && b[i] == '1') {
+                if (carry == '1')
+                    res.push_back('1'), carry = '1';
+                else
+                    res.push_back('0'), carry = '1';
+            } else if (a[i] == '0' && b[i] == '0') {
+                if (carry == '1')
+                    res.push_back('1'), carry = '0';
+                else
+                    res.push_back('0'), carry = '0';
+            } else if (a[i] != b[i]) {
+                if (carry == '1')
+                    res.push_back('0'), carry = '1';
+                else
+                    res.push_back('1'), carry = '0';
+            }
+        }
+
+        if (carry == '1')
+            res.push_back(carry);
+
+        std::reverse(res.begin(), res.end());
+
+        int index = 0;
+        while (index + 1 < res.length() && res[index] == '0')
+            index++;
+
+        sum.write(res.substr(index));
+    }
+
+    // Constructor
+    SC_CTOR(BinaryAdder) {
+        SC_METHOD(addBinary);
+        sensitive << A << B;
+    }
+};
+```
+
+### Explanation of the SystemC Code:
+1. **Module Definition**: The `BinaryAdder` module defines three ports: `A`, `B`, and `sum`.
+2. **Method Definition**: The `addBinary` method reads the input strings `A` and `B`, performs the binary addition logic as described, and writes the result to the `sum` port.
+3. **Constructor**: The constructor sets up the `addBinary` method to be triggered whenever either `A` or `B` changes.
+
+This SystemC code can be integrated into a larger SystemC design and used in a high-level synthesis flow.

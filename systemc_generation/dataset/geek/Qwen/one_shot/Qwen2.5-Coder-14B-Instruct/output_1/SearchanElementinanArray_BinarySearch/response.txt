@@ -1,0 +1,100 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs**:
+   - **Inputs**: 
+     - A vector of integers (`v`), which is implicitly passed to the `binarySearch` function.
+     - An integer (`target`), which is also implicitly passed to the `binarySearch` function.
+   - **Outputs**:
+     - A boolean value indicating whether the `target` was found in the vector (`true` if found, `false` otherwise).
+
+2. **Line-by-Line Explanation**:
+   ```cpp
+   bool binarySearch(vector<int>& v, int target) {
+       int low = 0, high = v.size() - 1;
+       while (low <= high) {
+           int mid = ((high - low) / 2) + low;
+           if (v[mid] == target) {
+               return true;
+           }
+           if (v[mid] > target)
+               high = mid - 1;
+           else
+               low = mid + 1;
+       }
+       return false;
+   }
+   ```
+   - **Function Declaration**: The function `binarySearch` takes a reference to a vector of integers and an integer target as inputs and returns a boolean.
+   - **Initialization**: Variables `low` and `high` are initialized to the start and end indices of the vector, respectively.
+   - **While Loop**: The loop continues as long as `low` is less than or equal to `high`.
+   - **Mid Calculation**: The middle index `mid` is calculated.
+   - **Comparison**:
+     - If the element at `mid` equals the `target`, the function returns `true`.
+     - If the element at `mid` is greater than the `target`, the `high` index is updated to `mid - 1` to search the left half.
+     - Otherwise, the `low` index is updated to `mid + 1` to search the right half.
+   - **Return False**: If the loop exits without finding the `target`, the function returns `false`.
+
+   ```cpp
+   int main() {
+       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+       int target = 8;
+       if (binarySearch(v, target)) {
+           cout << target << " found.";
+       } else {
+           cout << target << " NOT found.";
+       }
+       return 0;
+   }
+   ```
+   - **Main Function**: Initializes a vector `v` and a `target` value.
+   - **Function Call**: Calls `binarySearch` with `v` and `target`.
+   - **Output**: Prints whether the `target` was found based on the result of `binarySearch`.
+
+3. **SystemC Code**:
+   Below is the SystemC code that implements the same logic using the provided signals:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinarySearchModule) {
+    sc_in<int> target;
+    sc_out<bool> found;
+    sc_vector<sc_in<int>> v;
+
+    // Constructor
+    SC_CTOR(BinarySearchModule) : v("v", 8) { // Assuming the vector size is known
+        // Process to perform binary search
+        SC_METHOD(binary_search);
+        sensitive << target;
+        for (int i = 0; i < v.size(); ++i) {
+            sensitive << v[i];
+        }
+    }
+
+    // Method to perform binary search
+    void binary_search() {
+        int low = 0;
+        int high = v.size() - 1;
+        bool result = false;
+
+        while (low <= high) {
+            int mid = ((high - low) / 2) + low;
+            if (v[mid].read() == target.read()) {
+                result = true;
+                break;
+            }
+            if (v[mid].read() > target.read())
+                high = mid - 1;
+            else
+                low = mid + 1;
+        }
+
+        found.write(result);
+    }
+};
+```
+
+4. **Explanation of SystemC Code**:
+   - **Module Declaration**: The `BinarySearchModule` class inherits from `sc_module`.
+   - **Signals**: It uses `sc_in<int>` for `target` and `sc_out<bool>` for `found`. `sc_vector<sc_in<int>>` is used for the vector `v`.
+   - **Constructor**: Initializes the `v` vector with a specified size (assuming 8 elements for this example). The `binary_search` method is registered as a sensitive process to changes in `target` and any element in `v`.
+   - **Method Definition**: The `binary_search` method performs the binary search logic. It reads values from the `v` vector and the `target` signal, and writes the result to the `found` signal.

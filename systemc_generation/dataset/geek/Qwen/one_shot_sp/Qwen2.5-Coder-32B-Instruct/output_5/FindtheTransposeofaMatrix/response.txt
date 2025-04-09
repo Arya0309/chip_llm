@@ -1,0 +1,148 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!use static const for constants instead of #define
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: A 4x4 matrix `A` initialized with values.
+- **Outputs**: A 4x4 matrix `B` which is the transpose of matrix `A`.
+
+#### Detailed Line-by-Line Explanation:
+
+1. **Include Headers and Define Constants**:
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std; 
+   #define N 4
+   ```
+   - The program includes a universal header file `<bits/stdc++.h>` which contains all standard C++ library headers.
+   - It uses the `std` namespace for convenience.
+   - `N` is defined as a constant representing the size of the square matrix (4x4).
+
+2. **Transpose Function**:
+   ```cpp
+   void transpose(int A[][N], int B[][N])
+   {
+       int i, j;
+       for (i = 0; i < N; i++)
+           for (j = 0; j < N; j++)
+               B[i][j] = A[j][i];
+   }
+   ```
+   - This function takes two 4x4 integer matrices `A` and `B` as arguments.
+   - It iterates over each element of matrix `A` and assigns the value at position `(j, i)` in `A` to position `(i, j)` in `B`, effectively transposing the matrix.
+
+3. **Driver Code**:
+   ```cpp
+   int main()
+   {
+       int A[N][N] = {{1, 1, 1, 1},
+                      {2, 2, 2, 2},
+                      {3, 3, 3, 3},
+                      {4, 4, 4, 4}};
+   
+       int B[N][N], i, j;
+   
+       transpose(A, B);
+   
+       cout << "Result matrix is \n";
+       for (i = 0; i < N; i++)
+       {
+           for (j = 0; j < N; j++)
+               cout << " " << B[i][j];
+           cout <<"\n";
+       }
+       return 0;
+   }
+   ```
+   - The `main` function initializes a 4x4 matrix `A` with predefined values.
+   - It declares another 4x4 matrix `B` to store the result.
+   - The `transpose` function is called with `A` and `B` as arguments to compute the transpose.
+   - The resulting matrix `B` is printed row by row.
+
+### Equivalent SystemC Code
+
+Below is the SystemC equivalent of the provided C++/C code. This code utilizes the `sc_in<int>` and `sc_out<int>` signals for matrix inputs and outputs, respectively.
+
+```cpp
+#include <systemc.h>
+
+// Use static const for constants instead of #define
+static const int N = 4;
+static const int SIZE = N * N;
+
+// Module that performs matrix transposition
+SC_MODULE(MatrixTransposer) {
+    // Input ports for matrix A (flattened as 1D arrays)
+    sc_in<int> A[SIZE];
+    // Output ports for matrix B (flattened as 1D array)
+    sc_out<int> B[SIZE];
+
+    SC_CTOR(MatrixTransposer) {
+        // Use an SC_METHOD to perform combinational matrix transposition
+        SC_METHOD(do_transpose);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << A[i];
+        }
+    }
+
+    // Method that transposes matrix A into matrix B
+    void do_transpose() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                B[i * N + j].write(A[j * N + i].read());
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Constants Definition**:
+   ```cpp
+   static const int N = 4;
+   static const int SIZE = N * N;
+   ```
+   - `N` is defined as the size of the matrix (4).
+   - `SIZE` is calculated as `N * N` (16), representing the total number of elements in the matrix when flattened.
+
+2. **Module Declaration**:
+   ```cpp
+   SC_MODULE(MatrixTransposer) {
+   ```
+   - Declares a SystemC module named `MatrixTransposer`.
+
+3. **Port Declarations**:
+   ```cpp
+   sc_in<int> A[SIZE];
+   sc_out<int> B[SIZE];
+   ```
+   - `A` is an array of `SIZE` (`sc_in<int>`) representing the input matrix.
+   - `B` is an array of `SIZE` (`sc_out<int>`) representing the output matrix.
+
+4. **Constructor**:
+   ```cpp
+   SC_CTOR(MatrixTransposer) {
+       SC_METHOD(do_transpose);
+       for (int i = 0; i < SIZE; i++) {
+           sensitive << A[i];
+       }
+   }
+   ```
+   - The constructor registers the `do_transpose` method to be triggered whenever any element of `A` changes.
+   - The sensitivity list ensures that `do_transpose` is called whenever there is a change in any input signal.
+
+5. **Transpose Method**:
+   ```cpp
+   void do_transpose() {
+       for (int i = 0; i < N; i++) {
+           for (int j = 0; j < N; j++) {
+               B[i * N + j].write(A[j * N + i].read());
+           }
+       }
+   }
+   ```
+   - The `do_transpose` method implements the logic to transpose the matrix.
+   - It reads elements from the input matrix `A` and writes them to the output matrix `B` in transposed order.
+
+This SystemC module can be integrated into a larger design and tested using the provided `sc_in<int>` and `sc_out<int>` signals.

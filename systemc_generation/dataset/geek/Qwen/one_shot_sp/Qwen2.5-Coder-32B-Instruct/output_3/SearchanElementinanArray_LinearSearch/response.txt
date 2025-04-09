@@ -1,0 +1,156 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! the provided C++/C code implements a simple linear search algorithm to find a specific integer (`key`) within a vector of integers (`v`). Let's break down the code step-by-step:
+
+### Inputs and Outputs:
+- **Inputs**:
+  - `vector<int> v`: A vector containing the integers to be searched.
+  - `int key`: The integer value to search for within the vector.
+- **Outputs**:
+  - An integer representing the index of the `key` in the vector if found, otherwise `-1`.
+
+### Detailed Line-by-Line/Block-by-Block Explanation:
+1. **Include Directives**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes all standard C++ libraries and uses the standard namespace.
+
+2. **Function Definition**:
+   ```cpp
+   int linearSearch(vector<int> v, int key) {
+   ```
+   - Defines a function `linearSearch` that takes a vector `v` and an integer `key` as parameters and returns an integer.
+
+3. **Loop Through Vector**:
+   ```cpp
+   for (int i = 0; i < v.size(); i++) {
+   ```
+   - Iterates over each element of the vector `v` using a `for` loop.
+
+4. **Check for Key**:
+   ```cpp
+   if (v[i] == key) {
+       return i;
+   }
+   ```
+   - Checks if the current element `v[i]` is equal to `key`. If true, it returns the current index `i`.
+
+5. **Return Not Found**:
+   ```cpp
+   return -1;
+   ```
+   - If the loop completes without finding the `key`, the function returns `-1` indicating that the key was not found in the vector.
+
+6. **Main Function**:
+   ```cpp
+   int main() {
+       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+       int key = 8;
+       int i = linearSearch(v, key);
+       if (i != -1)
+           cout << key << " Found at Position: " << i + 1;
+       else
+           cout << key << " NOT found.";
+       return 0;
+   }
+   ```
+   - Initializes a vector `v` with predefined values.
+   - Sets `key` to `8`.
+   - Calls `linearSearch` with `v` and `key` and stores the result in `i`.
+   - Checks the result and prints whether the key was found and its position (1-based index).
+
+### Equivalent SystemC Code:
+Below is the equivalent SystemC code that implements the same linear search logic and integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+// LinearSearch Module: Implements the linear search algorithm
+SC_MODULE(LinearSearch) {
+    sc_in<int> key;         // Input signal for the key to search
+    sc_out<int> index;       // Output signal for the index of the key
+    sc_vector< sc_in<int> > data; // Vector of input signals representing the data array
+
+    // Constructor: register the process
+    SC_CTOR(LinearSearch) {
+        SC_METHOD(search_process);
+        sensitive << key;
+    }
+
+    // Process that performs the linear search
+    void search_process() {
+        int search_key = key.read();
+        int found_index = -1;
+
+        // Iterate through the data vector to find the key
+        for (int i = 0; i < data.size(); i++) {
+            if (data[i].read() == search_key) {
+                found_index = i;
+                break;
+            }
+        }
+
+        // Write the result to the index output
+        index.write(found_index);
+    }
+};
+
+// Example usage in a top-level module
+SC_MODULE(TopLevel) {
+    sc_signal<int> key_sig;       // Signal for the key
+    sc_signal<int> index_sig;     // Signal for the index
+    sc_vector< sc_signal<int> > data_sig; // Vector of signals for the data array
+
+    LinearSearch ls_inst; // Instance of the LinearSearch module
+
+    SC_CTOR(TopLevel) : data_sig("data_sig", 8), ls_inst("ls_inst") {
+        ls_inst.key(key_sig);
+        ls_inst.index(index_sig);
+
+        // Connect the data vector signals
+        for (int i = 0; i < data_sig.size(); i++) {
+            ls_inst.data[i](data_sig[i]);
+        }
+
+        // Initialize the data vector with predefined values
+        SC_METHOD(init_data);
+        sensitive << sc_start_of_simulation_event();
+    }
+
+    // Method to initialize the data vector
+    void init_data() {
+        int data_values[] = {1, 2, 3, 4, 5, 8, 9, 11};
+        for (int i = 0; i < data_sig.size(); i++) {
+            data_sig[i].write(data_values[i]);
+        }
+
+        // Set the key to search
+        key_sig.write(8);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    TopLevel top("top");
+    sc_start();
+
+    // Output the result
+    cout << "Key " << top.key_sig.read() << " ";
+    if (top.index_sig.read() != -1)
+        cout << "Found at Position: " << top.index_sig.read() + 1;
+    else
+        cout << "NOT found.";
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Definition**: `LinearSearch` is defined as a SystemC module that includes input and output signals and a vector of input signals for the data array.
+- **Constructor**: Registers the `search_process` method, which is sensitive to changes in the `key` signal.
+- **Search Process**: Reads the key, iterates through the data vector, and writes the found index to the `index` output signal.
+- **Top-Level Module**: `TopLevel` initializes the data vector and sets the key to search. It connects the `LinearSearch` instance's signals to the corresponding signals in the top-level module.
+- **Initialization**: The `init_data` method initializes the data vector with predefined values and sets the key to search.
+- **Simulation Start**: `sc_start()` begins the simulation, and the result is printed after the simulation completes.
+
+This SystemC code faithfully captures the logic of the original C++/C source and integrates with the provided signals for seamless testbench integration.

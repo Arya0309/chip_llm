@@ -1,0 +1,182 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: The code initializes an array `nums` with values `{1, 12, 6, 8, 10}`. This array is implicitly the input to the sorting function.
+- **Outputs**: The code prints the array before and after sorting. The sorted array is the primary output.
+
+#### Line-by-Line/Block-by-Block Explanation
+
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - These lines include all standard C++ libraries and bring all standard library entities into the global namespace.
+
+2. **Function Declarations**:
+   ```cpp
+   void sort(int num[], int len);
+   void swapNums(int nums[], int first, int second);
+   ```
+   - `sort`: Declares a function that sorts an array of integers.
+   - `swapNums`: Declares a helper function that swaps two elements in an array.
+
+3. **Driver Code (`main` Function)**:
+   ```cpp
+   int main() {
+       int nums[] = {1, 12, 6, 8, 10};
+       int size_nums = sizeof(nums) / sizeof(nums[0]);
+   ```
+   - Initializes an integer array `nums` with five elements.
+   - Calculates the number of elements in the array `nums`.
+
+4. **Printing the Array Before Sorting**:
+   ```cpp
+       cout << "Before sorting the array is: \n";
+       for (int i = 0; i < size_nums; i++)
+           cout << nums[i] << " ";
+       cout << "\n\n";
+   ```
+   - Prints the contents of the array `nums` before sorting.
+
+5. **Sorting the Array**:
+   ```cpp
+       sort(nums, size_nums);
+   ```
+   - Calls the `sort` function to sort the array `nums`.
+
+6. **Printing the Array After Sorting**:
+   ```cpp
+       cout << "After sorting the array is: \n";
+       for (int i = 0; i < size_nums; i++)
+           cout << nums[i] << " ";
+       cout << "\n";
+       return 0;
+   }
+   ```
+   - Prints the contents of the array `nums` after sorting.
+
+7. **Sorting Function Implementation**:
+   ```cpp
+   void sort(int num[], int len) {
+       bool isSwapped;
+       for (int i = 0; i < len; i++) {
+           isSwapped = false;
+           for (int j = 1; j < len - i; j++) {
+               if (num[j] < num[j - 1]) {
+                   swapNums(num, j, (j - 1));
+                   isSwapped = true;
+               }
+           }
+           if (!isSwapped) {
+               break;
+           }
+       }
+   }
+   ```
+   - Implements the bubble sort algorithm.
+   - Uses a nested loop to iterate over the array.
+   - Swaps elements if they are out of order.
+   - Stops early if no swaps are made in an entire pass.
+
+8. **Swap Function Implementation**:
+   ```cpp
+   void swapNums(int nums[], int first, int second) {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - Swaps the elements at indices `first` and `second` in the array `nums`.
+
+### Equivalent SystemC Code Snippet
+
+Below is the SystemC code that implements the same logic as the provided C++/C code. It uses the provided signals (`clk`, `start`, `done`) for testbench integration.
+
+```cpp
+#include <systemc.h>
+
+// BubbleSort Module: Implements the bubble sort algorithm
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;      // Clock input
+    sc_in<bool> start;    // Signal to start sorting
+    sc_out<bool> done;    // Signal to indicate sorting is complete
+
+    // Internal storage for the array (fixed size of 5 elements)
+    int arr[5];
+
+    // Constructor: register the process
+    SC_CTOR(BubbleSort) {
+        SC_THREAD(sort_process);
+        sensitive << clk.pos();
+    }
+
+    // Process that waits for the start signal and performs sorting
+    void sort_process() {
+        done.write(false); // Initialize done signal to false
+        while (true) {
+            wait(); // Wait for a clock cycle
+            if (start.read() == true) {
+                bubbleSort(); // Perform sorting
+                done.write(true);
+                wait(); // Wait for one cycle to signal completion
+                done.write(false);
+            }
+        }
+    }
+
+    // Bubble sort algorithm implementation (sorts the internal array)
+    void bubbleSort() {
+        // Number of elements is fixed at 5
+        const int n = 5;
+        for (int i = 0; i < n - 1; i++) {
+            bool isSwapped = false;
+            for (int j = 1; j < n - i; j++) {
+                if (arr[j] < arr[j - 1]) {
+                    // Swap arr[j] and arr[j-1]
+                    int temp = arr[j];
+                    arr[j] = arr[j - 1];
+                    arr[j - 1] = temp;
+                    isSwapped = true;
+                }
+            }
+            if (!isSwapped) {
+                break;
+            }
+        }
+    }
+
+    // Helper method to load an input array into the module
+    void load_array(const int input[5]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    // Helper method to read the sorted array from the module
+    void read_array(int output[5]) {
+        for (int i = 0; i < 5; i++) {
+            output[i] = arr[i];
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+- **Module Declaration**: The `BubbleSort` module encapsulates the bubble sort logic.
+- **Signals**: The module has three signals: `clk` for clocking, `start` to initiate sorting, and `done` to indicate completion.
+- **Internal Array**: An internal array `arr` of size 5 is used to store the elements to be sorted.
+- **Constructor**: Registers the `sort_process` thread sensitive to the positive edge of the clock.
+- **Sorting Process**:
+  - Waits for the `start` signal.
+  - Calls `bubbleSort` to sort the array.
+  - Sets `done` to `true` after sorting completes.
+  - Resets `done` after one more clock cycle.
+- **Bubble Sort Algorithm**: Implemented similarly to the C++/C code, using a nested loop to sort the array.
+- **Helper Methods**:
+  - `load_array`: Loads an input array into the internal array.
+  - `read_array`: Reads the sorted array from the internal array.
+
+This SystemC module can be integrated into a larger testbench using the provided signals.

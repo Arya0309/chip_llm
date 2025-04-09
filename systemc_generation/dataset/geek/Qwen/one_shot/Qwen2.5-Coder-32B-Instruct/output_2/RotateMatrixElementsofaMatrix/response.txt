@@ -1,0 +1,206 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: A 2D array `mat` of size `R x C` (4x4 in this case). The matrix is passed to the `rotatematrix` function along with its dimensions `m` and `n`.
+- **Outputs**: The function rotates the matrix 90 degrees clockwise in-place and prints the rotated matrix.
+
+#### Detailed Line-by-Line/Block-by-Block Explanation:
+
+1. **Matrix Declaration and Initialization**:
+   ```cpp
+   #define R 4 
+   #define C 4 
+   ```
+   - Defines constants `R` and `C` representing the number of rows and columns of the matrix, respectively.
+
+2. **Function Definition**:
+   ```cpp
+   void rotatematrix(int m, int n, int mat[R][C])
+   ```
+   - Declares a function `rotatematrix` that takes the number of rows `m`, the number of columns `n`, and a reference to a 2D array `mat`.
+
+3. **Variable Initialization**:
+   ```cpp
+   int row = 0, col = 0; 
+   int prev, curr; 
+   ```
+   - Initializes variables `row` and `col` to zero, which will be used to track the current layer of the matrix being rotated.
+   - `prev` and `curr` are used to temporarily store values during the rotation process.
+
+4. **Outer While Loop**:
+   ```cpp
+   while (row < m && col < n)
+   ```
+   - This loop continues until all layers of the matrix have been rotated.
+
+5. **Break Condition**:
+   ```cpp
+   if (row + 1 == m || col + 1 == n) break;
+   ```
+   - If there's only one row or one column left, the loop breaks as no further rotation is needed.
+
+6. **First Row Rotation**:
+   ```cpp
+   prev = mat[row + 1][col]; 
+   for (int i = col; i < n; i++)
+   { 
+       curr = mat[row][i]; 
+       mat[row][i] = prev; 
+       prev = curr; 
+   } 
+   row++;
+   ```
+   - Stores the first element of the next row in `prev`.
+   - Rotates the elements of the first row from the remaining columns.
+   - Moves to the next row.
+
+7. **Last Column Rotation**:
+   ```cpp
+   for (int i = row; i < m; i++)
+   { 
+       curr = mat[i][n-1]; 
+       mat[i][n-1] = prev; 
+       prev = curr; 
+   } 
+   n--;
+   ```
+   - Rotates the elements of the last column from the remaining rows.
+   - Decrements `n` to move inward.
+
+8. **Last Row Rotation**:
+   ```cpp
+   if (row < m)
+   { 
+       for (int i = n-1; i >= col; i--)
+       { 
+           curr = mat[m-1][i]; 
+           mat[m-1][i] = prev; 
+           prev = curr; 
+       } 
+   } 
+   m--;
+   ```
+   - Checks if there are still rows left.
+   - Rotates the elements of the last row from the remaining columns.
+   - Decrements `m` to move inward.
+
+9. **First Column Rotation**:
+   ```cpp
+   if (col < n)
+   { 
+       for (int i = m-1; i >= row; i--)
+       { 
+           curr = mat[i][col]; 
+           mat[i][col] = prev; 
+           prev = curr; 
+       } 
+   } 
+   col++;
+   ```
+   - Checks if there are still columns left.
+   - Rotates the elements of the first column from the remaining rows.
+   - Increments `col` to move inward.
+
+10. **Print Rotated Matrix**:
+    ```cpp
+    for (int i=0; i<R; i++) 
+    { 
+        for (int j=0; j<C; j++) 
+            cout << mat[i][j] << " "; 
+        cout << endl; 
+    } 
+    ```
+    - Prints the rotated matrix.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same matrix rotation operation using the provided `sc_in` and `sc_out` signals.
+
+```cpp
+#include <systemc.h>
+
+#define SIZE 4
+
+SC_MODULE(MatrixRotator) {
+    sc_in<int> in[SIZE*SIZE];  // Input ports for the matrix elements
+    sc_out<int> out[SIZE*SIZE]; // Output ports for the rotated matrix elements
+
+    // Constructor
+    SC_CTOR(MatrixRotator) {
+        // Process to perform matrix rotation
+        SC_METHOD(rotate_matrix);
+        sensitive << in;
+    }
+
+    void rotate_matrix() {
+        int mat[SIZE][SIZE];
+        int rotated_mat[SIZE][SIZE];
+
+        // Read the input matrix
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                mat[i][j] = in[i*SIZE + j].read();
+            }
+        }
+
+        int row = 0, col = 0;
+        int prev, curr;
+
+        while (row < SIZE && col < SIZE) {
+            if (row + 1 == SIZE || col + 1 == SIZE)
+                break;
+
+            prev = mat[row + 1][col];
+            for (int i = col; i < SIZE; i++) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            for (int i = row; i < SIZE; i++) {
+                curr = mat[i][SIZE - 1];
+                mat[i][SIZE - 1] = prev;
+                prev = curr;
+            }
+            SIZE--;
+
+            if (row < SIZE) {
+                for (int i = SIZE - 1; i >= col; i--) {
+                    curr = mat[SIZE - 1][i];
+                    mat[SIZE - 1][i] = prev;
+                    prev = curr;
+                }
+            }
+            SIZE--;
+
+            if (col < SIZE) {
+                for (int i = SIZE - 1; i >= row; i--) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        // Write the rotated matrix to the output ports
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                out[i*SIZE + j].write(mat[i][j]);
+            }
+        }
+    }
+};
+
+```
+
+### Explanation of SystemC Code:
+- **Module Definition**: `MatrixRotator` is a SystemC module that includes input and output ports for the matrix elements.
+- **Constructor**: The constructor sets up a method `rotate_matrix` that is sensitive to changes in the input ports.
+- **Matrix Reading**: Reads the input matrix from the `in` ports into a local 2D array `mat`.
+- **Matrix Rotation Logic**: Implements the same logic as the C++ function to rotate the matrix.
+- **Matrix Writing**: Writes the rotated matrix to the `out` ports.
+
+This SystemC code can be integrated into a larger SystemC simulation or synthesis flow using the provided `sc_in` and `sc_out` signals.

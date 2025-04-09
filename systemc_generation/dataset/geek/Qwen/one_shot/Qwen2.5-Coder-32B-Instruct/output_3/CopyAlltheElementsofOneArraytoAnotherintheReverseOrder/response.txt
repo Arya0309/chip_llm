@@ -1,0 +1,184 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!clock
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: The code does not take any external inputs from the user or through function parameters. It uses a hardcoded array `original_arr` initialized with values `{1, 2, 3, 4, 5}`.
+- **Outputs**: The code prints the original array and the resultant array (which is the reversed version of the original array) to the console using `printf`.
+
+#### Detailed Line-by-Line Explanation:
+
+1. **Include Header File**:
+   ```c
+   #include <stdio.h>
+   ```
+   This includes the standard I/O library which is necessary for using `printf` to print output to the console.
+
+2. **Function Definition: `printArray`**:
+   ```c
+   void printArray(int arr[], int len) 
+   ```
+   - This function takes an integer array `arr` and its length `len` as arguments.
+   - It iterates over the array and prints each element followed by a space.
+   ```c
+       int i; 
+       for (i = 0; i < len; i++) { 
+           printf("%d ", arr[i]); 
+       } 
+   ```
+
+3. **Main Function**:
+   ```c
+   int main() 
+   ```
+   - This is the entry point of the program.
+   - An integer array `original_arr` is initialized with values `{1, 2, 3, 4, 5}`.
+   - The length of the array is calculated using `sizeof`.
+   ```c
+       int original_arr[] = {1, 2, 3, 4, 5}; 
+       int len = sizeof(original_arr)/sizeof(original_arr[0]); 
+   ```
+
+4. **Copying Array in Reverse Order**:
+   - A new array `copied_arr` of the same length as `original_arr` is declared.
+   - A loop runs from `0` to `len-1`. For each index `i`, the element at position `len-i-1` in `original_arr` is copied to position `i` in `copied_arr`.
+   ```c
+       int copied_arr[len], i, j; 
+       
+       for (i = 0; i < len; i++) { 
+           copied_arr[i] = original_arr[len - i - 1]; 
+       } 
+   ```
+
+5. **Printing Arrays**:
+   - The original array is printed using the `printArray` function.
+   - The resultant array (reversed array) is also printed using the `printArray` function.
+   ```c
+       printf(" Original array: "); 
+       printArray(original_arr, len); 
+
+       printf(" Resultant array: "); 
+       printArray(copied_arr, len); 
+   ```
+
+6. **Return Statement**:
+   ```c
+       return 0; 
+   ```
+   - The program returns `0` indicating successful execution.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that replicates the behavior of the provided C++/C code. It incorporates the provided signals `clk`, `start`, and `done` for testbench integration.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayReverser) {
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
+    sc_out<bool> done;    // Done signal
+
+    // Internal signals and variables
+    sc_signal<sc_uint<3>> counter;  // Counter to iterate over the array
+    sc_signal<sc_uint<3>> len;      // Length of the array
+    sc_signal<sc_uint<8>> original_arr[5]; // Original array
+    sc_signal<sc_uint<8>> copied_arr[5];   // Copied array in reverse order
+
+    // Constructor
+    SC_CTOR(ArrayReverser) {
+        // Initialize the length of the array
+        len = 5;
+
+        // Initialize the original array
+        original_arr[0] = 1;
+        original_arr[1] = 2;
+        original_arr[2] = 3;
+        original_arr[3] = 4;
+        original_arr[4] = 5;
+
+        // Reset the done signal
+        done.write(false);
+
+        // Process to handle the start signal and reverse the array
+        SC_METHOD(reverse_array);
+        sensitive << clk.pos();
+    }
+
+    // Method to reverse the array
+    void reverse_array() {
+        if (start.read()) {
+            // Initialize counter
+            counter = 0;
+
+            // Loop to copy elements in reverse order
+            while (counter < len.read()) {
+                copied_arr[counter] = original_arr[len.read() - counter - 1];
+                counter = counter + 1;
+            }
+
+            // Signal completion
+            done.write(true);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Create an instance of the ArrayReverser module
+    ArrayReverser reverser("reverser");
+
+    // Create clock and control signals
+    sc_clock clk("clk", 10, SC_NS); // 10 ns period
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    // Bind the signals to the module
+    reverser.clk(clk);
+    reverser.start(start);
+    reverser.done(done);
+
+    // Simulation control
+    start.write(false);
+    sc_start(10, SC_NS); // Wait for 10 ns before starting
+
+    start.write(true);
+    sc_start(100, SC_NS); // Wait long enough for the process to complete
+
+    start.write(false);
+    sc_start(10, SC_NS); // Wait for 10 ns before ending
+
+    sc_stop();
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+
+- **Module Definition**:
+  - `ArrayReverser`: This module encapsulates the logic to reverse an array.
+  - It has three ports: `clk` (clock), `start` (start signal), and `done` (done signal).
+
+- **Internal Signals and Variables**:
+  - `counter`: A counter to iterate over the array indices.
+  - `len`: Length of the array, set to `5`.
+  - `original_arr` and `copied_arr`: Arrays to store the original and reversed arrays respectively.
+
+- **Constructor**:
+  - Initializes the `len` and `original_arr`.
+  - Resets the `done` signal.
+  - Registers the `reverse_array` method to be sensitive to the positive edge of the `clk` signal.
+
+- **Method: `reverse_array`**:
+  - Checks if the `start` signal is active.
+  - Initializes the `counter`.
+  - Uses a `while` loop to copy elements from `original_arr` to `copied_arr` in reverse order.
+  - Sets the `done` signal to `true` once the copying is complete.
+
+- **Simulation Control**:
+  - Creates an instance of `ArrayReverser`.
+  - Defines and binds the clock and control signals.
+  - Controls the simulation by writing to the `start` signal and advancing the simulation time with `sc_start`.
+
+This SystemC code snippet is designed to work within a high-level synthesis flow and integrates seamlessly with the provided testbench signals.

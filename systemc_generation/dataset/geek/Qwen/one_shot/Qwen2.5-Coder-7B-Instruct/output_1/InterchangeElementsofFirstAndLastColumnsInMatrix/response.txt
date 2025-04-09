@@ -1,0 +1,216 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+The provided C++ code takes a 2D integer array `m` of size `n x n` as input and swaps the elements of the first and last rows of this array. The output is the modified array after the swap.
+
+### Detailed Explanation of the C++ Code
+1. **Header File and Namespace Declaration**
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - This includes the standard I/O library for input/output operations and uses the standard namespace `std`.
+
+2. **Macro Definition**
+   ```cpp
+   #define n 4
+   ```
+   - Defines the size of the matrix `n` as 4.
+
+3. **Function to Interchange Rows**
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   {
+       int rows = n;
+       
+       // Swapping of element between first and last rows
+       for (int i = 0; i < n; i++)
+       {
+           int t = m[0][i];
+           m[0][i] = m[rows - 1][i];
+           m[rows - 1][i] = t;
+       }
+   }
+   ```
+   - This function takes a 2D array `m` as input.
+   - It initializes `rows` to `n`.
+   - A loop runs from `0` to `n-1` to iterate over each column index.
+   - Inside the loop, it swaps the elements at positions `(0, i)` and `(rows - 1, i)`.
+
+4. **Main Function**
+   ```cpp
+   int main()
+   {
+       // Input in the array
+       int m[n][n] = {{8, 9, 7, 6},
+                       {4, 7, 6, 5},
+                       {3, 2, 1, 8},
+                       {9, 9, 7, 7}};
+                       
+       interchangeFirstLast(m);
+       
+       // Printing the interchanged matrix
+       for (int i = 0; i < n; i++)
+       {
+           for (int j = 0; j < n; j++)
+               cout << m[i][j] << " ";
+           cout << endl;
+       }
+   }
+   ```
+   - Initializes a 4x4 matrix `m` with given values.
+   - Calls the `interchangeFirstLast` function to swap the first and last rows.
+   - Prints the modified matrix to the console.
+
+### Equivalent SystemC Code
+To convert this C++ code into SystemC, we need to create a module that accepts an input signal and produces an output signal. Here’s how you can do it:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSwap)
+{
+    sc_in<int> in[4][4];  // Input port for the matrix
+    sc_out<int> out[4][4]; // Output port for the swapped matrix
+
+    SC_CTOR(MatrixSwap)
+    {
+        // Process to perform row swapping
+        SC_THREAD(interchangeRows);
+        sensitive << in;
+    }
+
+    void interchangeRows()
+    {
+        int temp;
+
+        // Swapping of element between first and last rows
+        for (int i = 0; i < 4; i++)
+        {
+            temp = in[0][i].read();
+            out[0][i].write(in[3][i].read());
+            out[3][i].write(temp);
+        }
+
+        // Copying other rows as they are
+        for (int i = 1; i < 3; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                out[i][j].write(in[i][j].read());
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[])
+{
+    MatrixSwap ms("MatrixSwap");
+
+    // Example input initialization
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            ms.in[i][j](i * 4 + j); // Initialize input matrix
+        }
+    }
+
+    sc_start();
+
+    // Example output check
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            cout << ms.out[i][j].read() << " ";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(MatrixSwap)
+   {
+       sc_in<int> in[4][4];  // Input port for the matrix
+       sc_out<int> out[4][4]; // Output port for the swapped matrix
+   ```
+   - Declares a SystemC module `MatrixSwap` with input and output ports for a 4x4 matrix.
+
+2. **Constructor**
+   ```cpp
+   SC_CTOR(MatrixSwap)
+   {
+       // Process to perform row swapping
+       SC_THREAD(interchangeRows);
+       sensitive << in;
+   }
+   ```
+   - Constructs the module and specifies the thread `interchangeRows` to run whenever any input changes.
+
+3. **Row Swapping Logic**
+   ```cpp
+   void interchangeRows()
+   {
+       int temp;
+
+       // Swapping of element between first and last rows
+       for (int i = 0; i < 4; i++)
+       {
+           temp = in[0][i].read();
+           out[0][i].write(in[3][i].read());
+           out[3][i].write(temp);
+       }
+
+       // Copying other rows as they are
+       for (int i = 1; i < 3; i++)
+       {
+           for (int j = 0; j < 4; j++)
+           {
+               out[i][j].write(in[i][j].read());
+           }
+       }
+   }
+   ```
+   - Implements the row swapping logic similar to the C++ code.
+   - Swaps the first and last rows.
+   - Copies the middle rows unchanged.
+
+4. **Main Function**
+   ```cpp
+   int sc_main(int argc, char* argv[])
+   {
+       MatrixSwap ms("MatrixSwap");
+
+       // Example input initialization
+       for (int i = 0; i < 4; i++)
+       {
+           for (int j = 0; j < 4; j++)
+           {
+               ms.in[i][j](i * 4 + j); // Initialize input matrix
+           }
+       }
+
+       sc_start();
+
+       // Example output check
+       for (int i = 0; i < 4; i++)
+       {
+           for (int j = 0; j < 4; j++)
+           {
+               cout << ms.out[i][j].read() << " ";
+           }
+           cout << endl;
+       }
+
+       return 0;
+   }
+   ```
+   - Initializes the input matrix and starts the simulation.
+   - Reads and prints the output matrix.
+
+This SystemC code should be able to replace the C++ code in your system and work seamlessly with your existing testbench.

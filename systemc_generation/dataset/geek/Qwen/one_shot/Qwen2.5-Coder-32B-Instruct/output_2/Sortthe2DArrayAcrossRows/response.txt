@@ -1,0 +1,211 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Processed the provided C++/C code for sorting a 2D matrix row-wise. Below is the detailed analysis, followed by the equivalent SystemC code snippet.
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - A 2D matrix `m` of integers with dimensions `r x c`.
+  - The number of rows `r` and columns `c` of the matrix.
+- **Outputs**:
+  - The sorted matrix printed row-wise.
+
+#### Detailed Line-by-Line Explanation
+
+1. **Swap Function**:
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   }
+   ```
+   - This function swaps the values pointed to by `xp` and `yp`.
+
+2. **Sorting Function**:
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   ```
+   - This function sorts each row of the matrix `m` with `r` rows and `c` columns.
+
+3. **Outer Loop for Rows**:
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   ```
+   - Iterates over each row of the matrix.
+
+4. **Middle Loop for Columns**:
+   ```cpp
+   for (int j = 0; j < c; j++) 
+   ```
+   - Iterates over each column of the current row.
+
+5. **Inner Loop for Comparison and Swapping**:
+   ```cpp
+   for (int k = 0; k < c - j - 1; k++) 
+   ```
+   - Compares adjacent elements in the current row and swaps them if they are in the wrong order.
+
+6. **Comparison and Swap Condition**:
+   ```cpp
+   if (m[i][k] > m[i][k + 1]) 
+   {
+       swap(m[i][k], m[i][k + 1]);
+   }
+   ```
+   - If the current element is greater than the next element, they are swapped.
+
+7. **Printing the Sorted Matrix**:
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   {
+       for (int j = 0; j < c; j++)
+           cout << m[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - Prints the sorted matrix row-wise.
+
+8. **Driver Code**:
+   ```cpp
+   int main()
+   {
+       int m[][4] = {{9, 8, 7, 1},
+                     {7, 3, 0, 2},
+                     {9, 5, 3, 2},
+                     {6, 3, 1, 2}};
+       int c = sizeof(m[0]) / sizeof(m[0][0]);
+       int r = sizeof(m) / sizeof(m[0]);
+       sortRowWise(m, r, c);
+       return 0;
+   }
+   ```
+   - Initializes a 4x4 matrix and calls the `sortRowWise` function to sort and print it.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that replicates the behavior of the provided C++/C code. It includes the necessary signals (`clk`, `start`, `done`) for integration with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// Module to sort a 2D matrix row-wise
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;         // Done signal
+
+    static const int ROWS = 4;
+    static const int COLS = 4;
+    int matrix[ROWS][COLS];
+
+    SC_CTOR(MatrixSorter) {
+        SC_THREAD(sort_matrix);
+        sensitive << clk.pos();
+        reset_signal_is(start, false);
+    }
+
+    void sort_matrix() {
+        wait(); // Wait for the first clock cycle
+
+        while (true) {
+            wait(); // Wait for the start signal
+            if (start.read()) {
+                // Initialize matrix (this would typically come from external input)
+                matrix[0][0] = 9; matrix[0][1] = 8; matrix[0][2] = 7; matrix[0][3] = 1;
+                matrix[1][0] = 7; matrix[1][1] = 3; matrix[1][2] = 0; matrix[1][3] = 2;
+                matrix[2][0] = 9; matrix[2][1] = 5; matrix[2][2] = 3; matrix[2][3] = 2;
+                matrix[3][0] = 6; matrix[3][1] = 3; matrix[3][2] = 1; matrix[3][3] = 2;
+
+                // Sort each row of the matrix
+                for (int i = 0; i < ROWS; i++) {
+                    for (int j = 0; j < COLS; j++) {
+                        for (int k = 0; k < COLS - j - 1; k++) {
+                            if (matrix[i][k] > matrix[i][k + 1]) {
+                                int temp = matrix[i][k];
+                                matrix[i][k] = matrix[i][k + 1];
+                                matrix[i][k + 1] = temp;
+                            }
+                        }
+                    }
+                }
+
+                // Indicate completion
+                done.write(true);
+                wait(); // Hold the done signal for one clock cycle
+                done.write(false);
+            }
+        }
+    }
+};
+
+// Example testbench
+SC_MODULE(Testbench) {
+    sc_in<bool> clk;
+    sc_out<bool> start;
+    sc_in<bool> done;
+
+    SC_CTOR(Testbench) {
+        SC_THREAD(run_test);
+        sensitive << clk.pos();
+    }
+
+    void run_test() {
+        start.write(false);
+        done.write(false);
+
+        wait(10); // Wait for some initial cycles
+
+        // Start the sorting process
+        start.write(true);
+        wait();
+
+        // Wait until sorting is done
+        while (!done.read()) {
+            wait();
+        }
+
+        // Sorting is complete
+        start.write(false);
+        wait(10); // Wait for some final cycles
+
+        sc_stop(); // Stop simulation
+    }
+};
+
+// Top module
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS); // 10 ns period clock
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    MatrixSorter sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    Testbench tb("tb");
+    tb.clk(clk);
+    tb.start(start);
+    tb.done(done);
+
+    sc_start(); // Run the simulation
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **MatrixSorter Module**:
+  - **Signals**: `clk` (clock), `start` (start signal), `done` (completion signal).
+  - **Matrix Initialization**: The matrix is initialized within the `sort_matrix` method. In a real scenario, this initialization would come from external input.
+  - **Sorting Logic**: Implements the same row-wise sorting logic using nested loops.
+  - **Completion Signal**: Sets `done` to `true` once sorting is complete and resets it after one clock cycle.
+
+- **Testbench Module**:
+  - **Signals**: `clk`, `start`, `done`.
+  - **Simulation Control**: Starts the sorting process and waits for the completion signal before stopping the simulation.
+
+This SystemC code provides a modular and testable implementation of the row-wise matrix sorting algorithm, suitable for high-level synthesis and integration with existing testbenches.

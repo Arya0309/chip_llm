@@ -1,0 +1,106 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Input**: An unsigned integer `n` for which the factorial is to be calculated. In this specific example, `num` is set to `5`.
+- **Output**: The factorial of the input number `n`. For `num = 5`, the output would be `120`.
+
+### Detailed Line-by-Line Explanation:
+1. **Include Directive**: `#include <iostream>` - This includes the standard input-output stream library which is necessary for using `cout` to print to the console.
+2. **Namespace Declaration**: `using namespace std;` - This allows us to use standard library names without the `std::` prefix.
+3. **Function Declaration**: `unsigned int factorial(unsigned int n)` - This function takes an unsigned integer `n` as input and returns its factorial as an unsigned integer.
+4. **Variable Initialization**: `int res = 1, i;` - Initializes `res` to `1` and declares `i` as an integer. `res` will store the result of the factorial computation.
+5. **For Loop**: `for (i = 2; i <= n; i++)` - Loops from `2` to `n` inclusive. The loop calculates the factorial by multiplying `res` by each integer `i` in this range.
+6. **Multiplication**: `res *= i;` - Multiplies the current value of `res` by `i` and updates `res`.
+7. **Return Statement**: `return res;` - Returns the computed factorial value stored in `res`.
+8. **Main Function**: `int main()` - The entry point of the program.
+9. **Variable Declaration**: `int num = 5;` - Declares and initializes `num` to `5`, which is the number for which the factorial will be calculated.
+10. **Output Statement**: `cout << "Factorial of " << num << " is " << factorial(num) << endl;` - Prints the factorial of `num` to the console.
+11. **Return Statement**: `return 0;` - Indicates that the program has executed successfully.
+
+### Equivalent SystemC Code:
+Below is the equivalent SystemC code that performs the same factorial calculation using the provided `sc_in` and `sc_out` signals for integration with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// Define a module named FactorialCalculator
+SC_MODULE(FactorialCalculator) {
+    // Input port for the number to calculate factorial
+    sc_in<unsigned int> in;
+    // Output port for the resulting factorial
+    sc_out<unsigned int> out;
+
+    // Constructor for the module
+    SC_CTOR(FactorialCalculator) {
+        // Sensitivity list: react to changes on the input signal
+        SC_METHOD(calculate_factorial);
+        sensitive << in;
+    }
+
+    // Method to calculate factorial
+    void calculate_factorial() {
+        unsigned int n = in.read();  // Read the input value
+        unsigned int res = 1;       // Initialize result to 1
+        for (unsigned int i = 2; i <= n; i++) {
+            res *= i;               // Calculate factorial
+        }
+        out.write(res);             // Write the result to the output
+    }
+};
+
+// Example testbench module to demonstrate usage
+SC_MODULE(Testbench) {
+    // Instantiate the FactorialCalculator module
+    FactorialCalculator calc;
+
+    // Input and output signals
+    sc_signal<unsigned int> num;
+    sc_signal<unsigned int> result;
+
+    // Constructor for the testbench
+    SC_CTOR(Testbench) : calc("calc") {
+        // Connect the signals to the module's ports
+        calc.in(num);
+        calc.out(result);
+
+        // Process to drive the input and observe the output
+        SC_THREAD(run);
+    }
+
+    // Thread process to run the testbench
+    void run() {
+        // Test case: Calculate factorial of 5
+        num.write(5);
+        wait(1, SC_NS);  // Wait for the calculation to complete
+        cout << "Factorial of " << num.read() << " is " << result.read() << endl;
+
+        // Additional test cases can be added here
+        // num.write(6);
+        // wait(1, SC_NS);
+        // cout << "Factorial of " << num.read() << " is " << result.read() << endl;
+
+        // End simulation
+        sc_stop();
+    }
+};
+
+// Main function to start the simulation
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the testbench
+    Testbench tb("tb");
+
+    // Run the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Definition**: The `FactorialCalculator` module encapsulates the factorial calculation logic.
+- **Signals**: `sc_in<unsigned int> in` and `sc_out<unsigned int> out` are used to interface with the testbench.
+- **Constructor**: Sets up sensitivity to changes in the input signal, ensuring the calculation method is triggered whenever the input changes.
+- **Method**: `calculate_factorial` reads the input, computes the factorial, and writes the result to the output.
+- **Testbench**: Demonstrates how to instantiate and connect the `FactorialCalculator` module to signals, providing an input and observing the output.
+- **Simulation Control**: The `sc_main` function initializes the testbench and starts the simulation.

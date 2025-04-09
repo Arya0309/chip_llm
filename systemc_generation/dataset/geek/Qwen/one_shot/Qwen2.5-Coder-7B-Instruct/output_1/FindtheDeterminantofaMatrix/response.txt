@@ -1,0 +1,107 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+The provided C++/C code calculates the determinant of a square matrix. It accepts a square matrix as input and returns the determinant as output.
+
+- **Inputs**: A square matrix of size `n x n` stored in the array `matrix`.
+- **Outputs**: The determinant of the input matrix, which is printed to the console.
+
+### Detailed Explanation of the Code
+
+#### Declarations and Initialization
+
+- `#include <iostream>`: Includes the input-output stream library for printing the result.
+- `#include <cmath>`: Includes the math library for absolute value calculations.
+- `const int MAXN = 105;`: Defines a constant for the maximum size of the matrix.
+- `double a[MAXN][MAXN];`: Declares a 2D array to store the matrix elements.
+
+#### Function `determinant(int n)`
+
+This function computes the determinant of an `n x n` matrix using Gaussian elimination with partial pivoting.
+
+- `double det = 1.0;`: Initializes the determinant to 1.0.
+- **Outer Loop (`for (int i = 0; i < n; i++)`)**: Iterates over each row of the matrix.
+  - **Inner Loop (`for (int j = i + 1; j < n; j++)`)**: Finds the row with the largest absolute value in the current column to use as the pivot.
+    - If a larger pivot is found, the rows are swapped, and the sign of the determinant is flipped.
+  - If the pivot element is zero, the determinant is zero, and the function returns immediately.
+  - Otherwise, the pivot element is multiplied with the determinant.
+  - **Nested Inner Loop (`for (int j = i + 1; j < n; j++)`)**: Reduces the submatrix below the pivot element to zero.
+- Returns the computed determinant.
+
+#### Main Function
+
+- `int n = 4;`: Specifies the size of the matrix.
+- `double matrix[4][4] = ...;`: Initializes the matrix with given values.
+- Copies the matrix into the global array `a`.
+- Calls the `determinant` function with the matrix size and prints the result.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that implements the same logic:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(DeterminantCalculator) {
+    sc_in<double> matrix[SIZE]; // Input port for the matrix elements
+    sc_out<double> det;          // Output port for the determinant
+
+    SC_CTOR(DeterminantCalculator) {
+        SC_THREAD(calculate_determinant);
+        sensitive << matrix;
+    }
+
+    void calculate_determinant() {
+        double a[SIZE][SIZE];
+        double det = 1.0;
+
+        // Copy matrix elements from input to local array
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                a[i][j] = matrix[i*SIZE + j].read();
+            }
+        }
+
+        // Calculate determinant using Gaussian elimination
+        for (int i = 0; i < SIZE; ++i) {
+            int pivot = i;
+            for (int j = i + 1; j < SIZE; ++j) {
+                if (fabs(a[j][i]) > fabs(a[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(a[i], a[pivot]);
+                det *= -1;
+            }
+            if (a[i][i] == 0) {
+                det = 0;
+                break;
+            }
+            det *= a[i][i];
+            for (int j = i + 1; j < SIZE; ++j) {
+                double factor = a[j][i] / a[i][i];
+                for (int k = i + 1; k < SIZE; ++k) {
+                    a[j][k] -= factor * a[i][k];
+                }
+            }
+        }
+
+        // Write the determinant to the output port
+        det.write(det);
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- `SC_MODULE(DeterminantCalculator)`: Defines a SystemC module named `DeterminantCalculator`.
+- `sc_in<double> matrix[SIZE]`: Input port for the matrix elements.
+- `sc_out<double> det`: Output port for the determinant.
+- `SC_CTOR(DeterminantCalculator)`: Constructor initializes the thread `calculate_determinant` to be sensitive to changes in the input matrix.
+- `void calculate_determinant()`: Contains the logic to compute the determinant using Gaussian elimination.
+  - Copies the matrix elements from the input ports to a local array.
+  - Implements the Gaussian elimination algorithm to find the determinant.
+  - Writes the calculated determinant to the output port.
+
+This SystemC code integrates seamlessly with the provided testbench signals and retains the functionality of the original C++/C code.

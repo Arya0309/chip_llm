@@ -1,0 +1,86 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs
+- **Inputs**: The integer `n`, which represents the number up to which the sum of natural numbers is calculated.
+- **Outputs**: The sum of the first `n` natural numbers.
+
+### Detailed Explanation
+- **Line 1-2**: Include the necessary header for input/output operations and use the standard namespace.
+- **Line 5-11**: Define a function `findSum` that takes an integer `n` as an argument and returns the sum of the first `n` natural numbers.
+  - **Line 6**: Initialize a variable `sum` to 0. This variable will store the cumulative sum.
+  - **Line 7-9**: Use a `for` loop starting from 1 up to `n`. In each iteration, add the current value of `i` to `sum`.
+  - **Line 10**: Return the final value of `sum`.
+- **Line 13-18**: Define the `main` function, which serves as the entry point of the program.
+  - **Line 14**: Declare and initialize `n` to 5. This is the number up to which the sum is calculated.
+  - **Line 15**: Call the `findSum` function with `n` as the argument and print the result using `cout`.
+  - **Line 17**: Return 0 to indicate successful execution of the program.
+
+### SystemC Code Generation
+The following SystemC code snippet implements the same functionality as the provided C++/C code. It uses the provided `sc_in` and `sc_out` signals for seamless integration with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// Module to calculate the sum of first n natural numbers
+SC_MODULE(SumCalculator) {
+    sc_in<unsigned int> n;  // Input port for the number n
+    sc_out<unsigned int> result; // Output port for the result
+
+    // Constructor
+    SC_CTOR(SumCalculator) {
+        // Process to calculate the sum
+        SC_METHOD(calculateSum);
+        sensitive << n;
+    }
+
+    // Method to calculate the sum of first n natural numbers
+    void calculateSum() {
+        unsigned int sum = 0;
+        for (unsigned int i = 1; i <= n.read(); i++) {
+            sum += i;
+        }
+        result.write(sum);
+    }
+};
+
+// Example of a simple testbench
+SC_MODULE(Testbench) {
+    sc_signal<unsigned int> n;
+    sc_signal<unsigned int> result;
+
+    SumCalculator calc_inst;
+
+    SC_CTOR(Testbench) : calc_inst("SumCalculator") {
+        calc_inst.n(n);
+        calc_inst.result(result);
+
+        SC_THREAD(run);
+    }
+
+    void run() {
+        // Test case
+        n.write(5);
+        wait(1, SC_NS);
+        cout << "Sum of first " << n.read() << " natural numbers is: " << result.read() << endl;
+
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("Testbench");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+- **Module Definition**: `SumCalculator` is defined as a SystemC module that calculates the sum of the first `n` natural numbers.
+- **Ports**: The module has an input port `n` and an output port `result`.
+- **Constructor**: The constructor sets up a method `calculateSum` that is sensitive to changes in `n`.
+- **Method `calculateSum`**: This method reads the value of `n`, computes the sum of the first `n` natural numbers using a loop, and writes the result to the `result` port.
+- **Testbench**: A simple testbench `Testbench` is provided to demonstrate how the `SumCalculator` module can be instantiated and tested. It initializes `n` to 5, triggers the calculation, and prints the result.
+- **Simulation Control**: The simulation starts with `sc_start()` and stops after the test case completes.
+
+This SystemC code mirrors the logic of the original C++/C code while being compatible with SystemC's high-level synthesis flows.

@@ -1,0 +1,150 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs:**
+- `m`: A 2D integer array representing a square matrix of size \( n \times n \).
+
+**Outputs:**
+- The function does not return any value directly but modifies the input matrix `m` in-place by swapping the first and last rows.
+
+### Detailed Line-by-Line Explanation
+
+1. **Header and Namespace Declaration**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - Includes the standard input-output stream library and uses the standard namespace.
+
+2. **Matrix Size Definition**
+   ```cpp
+   #define n 4 
+   ```
+   - Defines a constant `n` which represents the size of the square matrix.
+
+3. **Function Declaration**
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   { 
+       int rows = n; 
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D integer array `m` as input.
+   - Initializes a variable `rows` with the value of `n`.
+
+4. **Swapping Rows**
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[0][i]; 
+       m[0][i] = m[rows - 1][i]; 
+       m[rows - 1][i] = t; 
+   } 
+   ```
+   - Loops through each column index `i`.
+   - Stores the value at the first row (`m[0][i]`) in a temporary variable `t`.
+   - Assigns the value at the last row (`m[rows - 1][i]`) to the first row.
+   - Assigns the value stored in `t` to the last row, effectively swapping the two rows.
+
+5. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                       {4, 7, 6, 5}, 
+                       {3, 2, 1, 8}, 
+                       {9, 9, 7, 7}}; 
+                       
+       interchangeFirstLast(m); 
+       
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - Initializes a 4x4 matrix `m` with specific values.
+   - Calls the `interchangeFirstLast` function to swap the first and last rows of the matrix.
+   - Prints the modified matrix to the console.
+
+### Equivalent SystemC Code
+
+Here is the equivalent SystemC code that integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+// Define the size of the matrix
+static const int N = 4;
+static const int SIZE = N * N;
+
+// Module that swaps the first and last rows of a matrix
+SC_MODULE(SwapRows) {
+    // Input port for the matrix (flattened as 1D array)
+    sc_in<int> in[SIZE];
+    // Output port for the modified matrix (flattened as 1D array)
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(SwapRows) {
+        // Sensitive to all input changes
+        SC_METHOD(interchangeFirstLast);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
+    }
+
+    // Method that swaps the first and last rows of the matrix
+    void interchangeFirstLast() {
+        for (int i = 0; i < N; i++) {
+            int t = in[i].read();
+            out[i].write(in[N*N - 1 - i].read());
+            out[N*N - 1 - i].write(t);
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(SwapRows) {
+   ```
+   - Declares a SystemC module named `SwapRows`.
+
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<int> in[SIZE];
+   sc_out<int> out[SIZE];
+   ```
+   - Declares an input port `in` and an output port `out`, both of type `int` and size `SIZE`.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(SwapRows) {
+       SC_METHOD(interchangeFirstLast);
+       for (int i = 0; i < SIZE; i++) {
+           sensitive << in[i];
+       }
+   }
+   ```
+   - Constructs the module and binds the `interchangeFirstLast` method to handle input changes.
+   - Registers the input ports to trigger the method whenever their values change.
+
+4. **Method for Swapping Rows**
+   ```cpp
+   void interchangeFirstLast() {
+       for (int i = 0; i < N; i++) {
+           int t = in[i].read();
+           out[i].write(in[N*N - 1 - i].read());
+           out[N*N - 1 - i].write(t);
+       }
+   }
+   ```
+   - Iterates over each column index `i`.
+   - Reads the value from the current position `in[i]` into a temporary variable `t`.
+   - Writes the value from the opposite position `in[N*N - 1 - i]` to the current position `out[i]`.
+   - Writes the value stored in `t` to the opposite position `out[N*N - 1 - i]`, effectively swapping the first and last rows.
+
+This SystemC code maintains the logic of the original C++/C code while integrating seamlessly with the provided signals.

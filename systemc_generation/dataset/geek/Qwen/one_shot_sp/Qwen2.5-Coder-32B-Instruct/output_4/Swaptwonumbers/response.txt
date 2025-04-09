@@ -1,0 +1,173 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! equivalent SystemC code snippet that mirrors the logic of the provided C++/C code for swapping two numbers using a third variable is given below. Before diving into the SystemC code, let's analyze the C++/C code in detail:
+
+### Analysis of C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - `a`: An integer initialized to 2.
+  - `b`: An integer initialized to 3.
+- **Outputs**:
+  - The values of `a` and `b` before and after swapping are printed to the console.
+
+#### Line-by-Line Explanation
+1. **Include Header Files**:
+   ```cpp
+   #include <bits/stdc++.h>
+   ```
+   This line includes all standard C++ libraries, which is not recommended in production code due to inefficiency and potential conflicts, but it works for simplicity in this example.
+
+2. **Namespace Declaration**:
+   ```cpp
+   using namespace std;
+   ```
+   This allows us to use standard library functions and objects without prefixing them with `std::`.
+
+3. **Main Function**:
+   ```cpp
+   int main()
+   ```
+   The entry point of the program.
+
+4. **Variable Initialization**:
+   ```cpp
+   int a = 2, b = 3;
+   ```
+   Two integer variables `a` and `b` are declared and initialized to 2 and 3 respectively.
+
+5. **Print Initial Values**:
+   ```cpp
+   cout << "Before swapping a = " << a << " , b = " << b << endl;
+   ```
+   The initial values of `a` and `b` are printed to the console.
+
+6. **Temporary Variable Declaration**:
+   ```cpp
+   int temp;
+   ```
+   A temporary variable `temp` is declared to facilitate the swapping process.
+
+7. **Swapping Logic**:
+   ```cpp
+   temp = a;
+   a = b;
+   b = temp;
+   ```
+   The values of `a` and `b` are swapped using the temporary variable `temp`.
+
+8. **Print Swapped Values**:
+   ```cpp
+   cout << "After swapping a = " << a << " , b = " << b << endl;
+   ```
+   The values of `a` and `b` after swapping are printed to the console.
+
+9. **Return Statement**:
+   ```cpp
+   return 0;
+   ```
+   The `main` function returns 0 to indicate successful execution.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that replicates the swapping logic using the provided signals (`sc_in<int>` and `sc_out<int>`).
+
+```cpp
+#include <systemc.h>
+
+// Module to swap two integers
+SC_MODULE(Swapper) {
+    sc_in<int> a;       // Input port for the first number
+    sc_in<int> b;       // Input port for the second number
+    sc_out<int> out_a;  // Output port for the swapped first number
+    sc_out<int> out_b;  // Output port for the swapped second number
+
+    // Constructor
+    SC_CTOR(Swapper) {
+        // Process to perform swapping
+        SC_METHOD(swap_values);
+        sensitive << a << b;
+    }
+
+    // Method to swap the two numbers
+    void swap_values() {
+        // Temporary variable for swapping
+        int temp;
+
+        // Swapping logic
+        temp = a.read();
+        out_a.write(b.read());
+        out_b.write(temp);
+    }
+};
+
+// Example testbench module to demonstrate the Swapper module
+SC_MODULE(Testbench) {
+    sc_signal<int> a;       // Signal for input a
+    sc_signal<int> b;       // Signal for input b
+    sc_signal<int> out_a;    // Signal for output a
+    sc_signal<int> out_b;    // Signal for output b
+
+    Swapper swapper_inst;    // Instance of the Swapper module
+
+    // Constructor
+    SC_CTOR(Testbench) : swapper_inst("swapper") {
+        // Connect signals to the Swapper module
+        swapper_inst.a(a);
+        swapper_inst.b(b);
+        swapper_inst.out_a(out_a);
+        swapper_inst.out_b(out_b);
+
+        // Process to drive inputs and monitor outputs
+        SC_THREAD(run);
+    }
+
+    // Thread to run the testbench
+    void run() {
+        // Initial values
+        a = 2;
+        b = 3;
+        wait(1, SC_NS); // Wait for 1 nanosecond to allow the swapper to process
+
+        // Print initial values
+        cout << "Before swapping a = " << a.read() << " , b = " << b.read() << endl;
+
+        // Print swapped values
+        cout << "After swapping a = " << out_a.read() << " , b = " << out_b.read() << endl;
+
+        // End simulation
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Instantiate the testbench
+    sc_start();         // Start the simulation
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **Module Definition**:
+   - `Swapper`: A SystemC module that swaps two integers.
+     - **Ports**:
+       - `sc_in<int> a`: Input port for the first number.
+       - `sc_in<int> b`: Input port for the second number.
+       - `sc_out<int> out_a`: Output port for the swapped first number.
+       - `sc_out<int> out_b`: Output port for the swapped second number.
+     - **Constructor**: Registers a method `swap_values` that triggers whenever `a` or `b` changes.
+     - **Method `swap_values`**: Implements the swapping logic using a temporary variable.
+
+2. **Testbench Module**:
+   - `Testbench`: A SystemC module to drive inputs and monitor outputs of the `Swapper` module.
+     - **Signals**: Declares signals to connect the `Swapper` module's ports.
+     - **Instance**: Creates an instance of the `Swapper` module.
+     - **Connections**: Connects the signals to the `Swapper` module's ports.
+     - **Thread `run`**: Initializes the input signals, waits for the `Swapper` module to process, prints the values before and after swapping, and stops the simulation.
+
+3. **Simulation Entry Point**:
+   - `sc_main`: The entry point for the SystemC simulation.
+     - Instantiates the `Testbench` module.
+     - Starts the simulation using `sc_start()`.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow using the provided signals.

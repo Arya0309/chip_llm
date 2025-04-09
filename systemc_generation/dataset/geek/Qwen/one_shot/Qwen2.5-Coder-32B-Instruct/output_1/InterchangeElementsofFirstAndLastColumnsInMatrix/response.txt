@@ -1,0 +1,190 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!use static const for constants instead of #define
+
+### Inputs and Outputs:
+- **Inputs**: The input is a 4x4 matrix `m` with integer values.
+- **Outputs**: The output is the modified 4x4 matrix where the elements of the first and last rows have been swapped.
+
+### Detailed Line-by-Line/Block-by-Block Explanation:
+
+1. **Constants and Namespace**:
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   
+   #define n 4 
+   ```
+   - Includes the standard input-output stream library.
+   - Uses the standard namespace.
+   - Defines a constant `n` which represents the size of the square matrix (4x4).
+
+2. **Function Definition**:
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   { 
+       int rows = n; 
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n`.
+   - Initializes `rows` with the value of `n`.
+
+3. **Swapping Elements**:
+   ```cpp
+       for (int i = 0; i < n; i++) 
+       { 
+           int t = m[0][i]; 
+           m[0][i] = m[rows - 1][i]; 
+           m[rows - 1][i] = t; 
+       } 
+   ```
+   - Loops through each column index `i` from 0 to `n-1`.
+   - Swaps the element at position `(0, i)` (first row) with the element at position `(rows-1, i)` (last row).
+
+4. **Main Function**:
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                      {4, 7, 6, 5}, 
+                      {3, 2, 1, 8}, 
+                      {9, 9, 7, 7}};
+   ```
+   - Initializes a 4x4 matrix `m` with predefined values.
+
+5. **Function Call**:
+   ```cpp
+       interchangeFirstLast(m); 
+   ```
+   - Calls the `interchangeFirstLast` function to swap the first and last rows of the matrix `m`.
+
+6. **Printing the Matrix**:
+   ```cpp
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   ```
+   - Loops through each element of the matrix `m` and prints it in a formatted manner (row-wise).
+
+7. **End of Main**:
+   ```cpp
+   }
+   ```
+   - Ends the `main` function.
+
+### Equivalent SystemC Code Snippet:
+Below is the SystemC code that mirrors the behavior of the original C++ code. It uses the provided `sc_in<int>` and `sc_out<int>` signals for testbench integration.
+
+```cpp
+#include <systemc.h>
+
+// Use static const for constants instead of #define
+static const int N = 4;
+static const int SIZE = N * N;
+
+// Module that swaps the first and last rows of a matrix
+SC_MODULE(MatrixRowSwapper) {
+    // Input ports for the matrix (flattened as 1D arrays)
+    sc_in<int> in[SIZE];
+    // Output ports for the matrix (flattened as 1D arrays)
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(MatrixRowSwapper) {
+        // Use an SC_METHOD to perform the row swapping operation
+        SC_METHOD(swap_rows);
+        sensitive << in[0]; // Sensitive to changes in the first element of the matrix
+    }
+
+    // Method that swaps the first and last rows of the matrix
+    void swap_rows() {
+        int temp[N];
+        
+        // Copy the first row into a temporary array
+        for (int i = 0; i < N; i++) {
+            temp[i] = in[i].read();
+        }
+        
+        // Write the last row into the first row positions
+        for (int i = 0; i < N; i++) {
+            out[i].write(in[(N-1)*N + i].read());
+        }
+        
+        // Write the temporary array (original first row) into the last row positions
+        for (int i = 0; i < N; i++) {
+            out[(N-1)*N + i].write(temp[i]);
+        }
+        
+        // Copy the rest of the matrix elements without modification
+        for (int i = 1; i < N-1; i++) {
+            for (int j = 0; j < N; j++) {
+                out[i*N + j].write(in[i*N + j].read());
+            }
+        }
+    }
+};
+
+// Example usage in a simple testbench
+SC_MODULE(Testbench) {
+    sc_clock clk;
+    MatrixRowSwapper swapper;
+
+    // Flatten the 2D matrix into 1D arrays for SystemC ports
+    sc_signal<int> in_signal[SIZE];
+    sc_signal<int> out_signal[SIZE];
+
+    SC_CTOR(Testbench) :
+        clk("clk", 10, SC_NS),
+        swapper("swapper")
+    {
+        // Connect the clock signal to the sensitivity list of the swapper module
+        swapper.clk(clk);
+
+        // Connect the input and output signals to the swapper module
+        for (int i = 0; i < SIZE; i++) {
+            swapper.in[i](in_signal[i]);
+            swapper.out[i](out_signal[i]);
+        }
+
+        // Initialize the input matrix
+        in_signal[0].write(8); in_signal[1].write(9); in_signal[2].write(7); in_signal[3].write(6);
+        in_signal[4].write(4); in_signal[5].write(7); in_signal[6].write(6); in_signal[7].write(5);
+        in_signal[8].write(3); in_signal[9].write(2); in_signal[10].write(1); in_signal[11].write(8);
+        in_signal[12].write(9); in_signal[13].write(9); in_signal[14].write(7); in_signal[15].write(7);
+
+        // Print the output matrix after simulation
+        SC_THREAD(print_output);
+        sensitive << clk.posedge_event();
+    }
+
+    void print_output() {
+        wait(); // Wait for the first clock edge
+        wait(); // Wait for the second clock edge to ensure the swap is complete
+
+        // Print the swapped matrix
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                cout << out_signal[i*N + j].read() << " ";
+            }
+            cout << endl;
+        }
+
+        sc_stop(); // Stop the simulation
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+- **Constants**: `N` is set to 4 representing the matrix size, and `SIZE` is set to `N * N` (16) for the flattened matrix representation.
+- **Module Definition**: `MatrixRowSwapper` is a SystemC module that swaps the first and last rows of a matrix.
+- **Ports**: The module has input and output ports (`in` and `out`) which are arrays of `sc_in<int>` and `sc_out<int>` respectively.
+- **Constructor**: The constructor sets up the sensitivity of the `swap_rows` method to changes in the first element of the matrix.
+- **Method**: `swap_rows` reads the first row into a temporary array, writes the last row into the first row positions, writes the temporary array into the last row positions, and copies the rest of the matrix elements without modification.
+- **Testbench**: `Testbench` initializes the input matrix, connects it to the `MatrixRowSwapper` module, and prints the output matrix after the swap operation.
+- **Simulation Control**: The `print_output` thread waits for two clock edges to ensure the swap operation is complete before printing the output matrix and stopping the simulation.

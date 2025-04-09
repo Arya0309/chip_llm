@@ -1,0 +1,167 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+The provided C++ code has the following inputs and outputs:
+
+**Inputs:**
+- A 2D integer array `m` of size `n x n`.
+
+**Outputs:**
+- The modified 2D integer array after swapping the first and last rows.
+
+### Detailed Explanation
+
+#### Line-by-Line Explanation
+
+1. **Header and Namespace Declaration:**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - Includes the `<iostream>` library for input/output operations and uses the standard namespace.
+
+2. **Constant Definition:**
+   ```cpp
+   #define n 4 
+   ```
+   - Defines a constant `n` with a value of 4, representing the size of the matrix.
+
+3. **Function Declaration:**
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   { 
+       int rows = n; 
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n` as input and swaps the first and last rows of the matrix.
+
+4. **Loop to Swap Rows:**
+   ```cpp
+       for (int i = 0; i < n; i++) 
+       { 
+           int t = m[0][i]; 
+           m[0][i] = m[rows - 1][i]; 
+           m[rows - 1][i] = t; 
+       } 
+   ```
+   - Iterates through each column index `i` from 0 to `n-1`.
+   - Temporarily stores the value at `m[0][i]` in `t`.
+   - Assigns the value at `m[rows - 1][i]` to `m[0][i]`.
+   - Assigns the value stored in `t` (original value at `m[0][i]`) to `m[rows - 1][i]`, effectively swapping the first and last rows.
+
+5. **Driver Function:**
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                   {4, 7, 6, 5}, 
+                   {3, 2, 1, 8}, 
+                   {9, 9, 7, 7}}; 
+                   
+       interchangeFirstLast(m); 
+       
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - Initializes a 2D array `m` with values.
+   - Calls the `interchangeFirstLast` function to swap the first and last rows.
+   - Prints the modified matrix.
+
+### SystemC Code Snippet
+
+To convert this C++ code into a SystemC module, we need to define the necessary signals and implement the logic within a SystemC module. Here's how you can do it:
+
+```cpp
+#include <systemc.h>
+
+static const int N = 4;
+static const int SIZE = N * N;
+
+SC_MODULE(MatrixRowSwapper) {
+    sc_in<int> in[SIZE];
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(MatrixRowSwapper) {
+        SC_METHOD(interchangeRows);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
+    }
+
+    void interchangeRows() {
+        int temp[N];
+        
+        // Copy the first row to a temporary array
+        for (int i = 0; i < N; i++) {
+            temp[i] = in[i].read();
+        }
+        
+        // Write the last row to the first row
+        for (int i = 0; i < N; i++) {
+            out[i].write(in[(N*N)-N+i].read());
+        }
+        
+        // Write the saved first row to the last row
+        for (int i = 0; i < N; i++) {
+            out[(N*N)-N+i].write(temp[i]);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Constants and Signal Declarations:**
+   ```cpp
+   static const int N = 4;
+   static const int SIZE = N * N;
+   
+   sc_in<int> in[SIZE];
+   sc_out<int> out[SIZE];
+   ```
+   - Define constants `N` and `SIZE` to represent the dimensions of the matrix.
+   - Declare input and output signals for the matrix elements.
+
+2. **Constructor and Sensitive Block:**
+   ```cpp
+   SC_CTOR(MatrixRowSwapper) {
+       SC_METHOD(interchangeRows);
+       for (int i = 0; i < SIZE; i++) {
+           sensitive << in[i];
+       }
+   }
+   ```
+   - Constructor initializes the SystemC module and sets up a method `interchangeRows` to handle the computation.
+   - Registers the input signals as sensitive to trigger the `interchangeRows` method whenever any input signal changes.
+
+3. **Interchange Rows Logic:**
+   ```cpp
+   void interchangeRows() {
+       int temp[N];
+       
+       // Copy the first row to a temporary array
+       for (int i = 0; i < N; i++) {
+           temp[i] = in[i].read();
+       }
+       
+       // Write the last row to the first row
+       for (int i = 0; i < N; i++) {
+           out[i].write(in[(N*N)-N+i].read());
+       }
+       
+       // Write the saved first row to the last row
+       for (int i = 0; i < N; i++) {
+           out[(N*N)-N+i].write(temp[i]);
+       }
+   }
+   ```
+   - Creates a temporary array `temp` to store the first row.
+   - Reads the first row into `temp`.
+   - Writes the last row into the first row position.
+   - Writes the saved first row into the last row position, effectively swapping the rows.
+
+This SystemC module captures the logic of the original C++ code and can be integrated into a larger system with appropriate testbenches and other modules.

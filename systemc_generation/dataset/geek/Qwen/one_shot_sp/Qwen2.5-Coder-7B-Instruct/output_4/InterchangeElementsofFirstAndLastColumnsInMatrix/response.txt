@@ -1,0 +1,162 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs:**
+- `m`: A 2D integer array of size \( n \times n \).
+
+**Outputs:**
+- None (The function modifies the input array in-place and does not return any value.)
+
+### Detailed Explanation
+
+#### Line-by-Line Analysis
+
+1. **Header File and Namespace Declaration**
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - Includes the `<iostream>` library for input/output operations and uses the standard namespace `std`.
+
+2. **Macro Definition**
+   ```cpp
+   #define n 4
+   ```
+   - Defines a constant `n` which represents the size of the square matrix.
+
+3. **Function Declaration**
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D integer array `m` of size \( n \times n \) as its parameter.
+
+4. **Variable Declaration**
+   ```cpp
+   int rows = n;
+   ```
+   - Initializes a variable `rows` with the value of `n`, representing the number of rows in the matrix.
+
+5. **Loop to Swap Rows**
+   ```cpp
+   for (int i = 0; i < n; i++)
+   {
+       int t = m[0][i];
+       m[0][i] = m[rows - 1][i];
+       m[rows - 1][i] = t;
+   }
+   ```
+   - Iterates over each column index `i`.
+   - Stores the element at the first row and column `m[0][i]` in a temporary variable `t`.
+   - Swaps the element at the first row and column with the element at the last row and column `m[rows - 1][i]`.
+
+6. **Main Function**
+   ```cpp
+   int main()
+   {
+       int m[n][n] = {{8, 9, 7, 6},
+                       {4, 7, 6, 5},
+                       {3, 2, 1, 8},
+                       {9, 9, 7, 7}};
+       
+       interchangeFirstLast(m);
+       
+       for (int i = 0; i < n; i++)
+       {
+           for (int j = 0; j < n; j++)
+               cout << m[i][j] << " ";
+           cout << endl;
+       }
+   }
+   ```
+   - Defines a 2D integer array `m` initialized with values.
+   - Calls the `interchangeFirstLast` function passing the array `m`.
+   - Prints the modified array `m` after swapping the first and last rows.
+
+### SystemC Code Snippet
+
+Below is the SystemC code snippet that replicates the behavior of the provided C++ code:
+
+```cpp
+#include <systemc.h>
+
+static const int N = 4;
+static const int SIZE = N * N;
+
+SC_MODULE(SwapRows) {
+    sc_in<int> in[SIZE];
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(SwapRows) {
+        SC_METHOD(interchangeFirstLast);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
+    }
+
+    void interchangeFirstLast() {
+        int temp[SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            if (i < N) {
+                temp[i] = in[N*N - N + i].read();
+            } else {
+                temp[i] = in[i].read();
+            }
+        }
+        for (int i = 0; i < SIZE; i++) {
+            if (i < N) {
+                out[i].write(in[N*N - N + i].read());
+            } else {
+                out[i].write(temp[i]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(SwapRows) {
+       sc_in<int> in[SIZE];
+       sc_out<int> out[SIZE];
+   ```
+   - Declares a SystemC module named `SwapRows` with two port arrays `in` and `out` of type `int` and size `SIZE`.
+
+2. **Constructor**
+   ```cpp
+   SC_CTOR(SwapRows) {
+       SC_METHOD(interchangeFirstLast);
+       for (int i = 0; i < SIZE; i++) {
+           sensitive << in[i];
+       }
+   }
+   ```
+   - Registers the method `interchangeFirstLast` to handle events on all input ports.
+   - Sets up sensitivity on all input ports.
+
+3. **Interchange First and Last Rows**
+   ```cpp
+   void interchangeFirstLast() {
+       int temp[SIZE];
+       for (int i = 0; i < SIZE; i++) {
+           if (i < N) {
+               temp[i] = in[N*N - N + i].read();
+           } else {
+               temp[i] = in[i].read();
+           }
+       }
+       for (int i = 0; i < SIZE; i++) {
+           if (i < N) {
+               out[i].write(in[N*N - N + i].read());
+           } else {
+               out[i].write(temp[i]);
+           }
+       }
+   }
+   ```
+   - Creates a temporary array `temp` to hold the swapped elements.
+   - Reads the elements from the input ports into `temp`, ensuring the first `N` elements are swapped with the last `N` elements.
+   - Writes the swapped elements back to the output ports.
+
+This SystemC code snippet should be able to integrate seamlessly with your existing testbench, utilizing the provided `sc_in<int> in[SIZE]` and `sc_out<int> out[SIZE]` signals.

@@ -1,0 +1,150 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs:
+
+**Inputs:**
+- `nums`: An integer array containing the elements to be sorted.
+- `len`: The length of the array.
+
+**Outputs:**
+- The sorted array in ascending order.
+
+### Detailed Explanation:
+
+The provided C++ code sorts an array using the Bubble Sort algorithm. Below is a line-by-line explanation of the code:
+
+#### 1. Include Necessary Headers:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+```
+This includes the standard library headers and uses the `std` namespace for convenience.
+
+#### 2. Function to Swap Two Numbers:
+```cpp
+void swapNums(int nums[], int first, int second) {
+    int curr = nums[first];
+    nums[first] = nums[second];
+    nums[second] = curr;
+}
+```
+This function swaps the elements at indices `first` and `second` in the array `nums`.
+
+#### 3. Sorting Function:
+```cpp
+void sort(int num[], int len) {
+    bool isSwapped;
+    for (int i = 0; i < len; i++) {
+        isSwapped = false;
+        for (int j = 1; j < len - i; j++) {
+            if (num[j] < num[j - 1]) {
+                swapNums(num, j, (j - 1));
+                isSwapped = true;
+            }
+        }
+        if (!isSwapped) {
+            break;
+        }
+    }
+}
+```
+- This function performs the Bubble Sort algorithm.
+- It iterates over the array multiple times (`i` loop).
+- Within each iteration, it compares adjacent elements (`j` loop).
+- If an element is smaller than the previous one, it swaps them using the `swapNums` function.
+- The `isSwapped` flag indicates whether any swaps were made during the inner loop. If no swaps were made, the array is already sorted, and the loop breaks early.
+
+#### 4. Main Function:
+```cpp
+int main() {
+    int nums[] = {1, 12, 6, 8, 10};
+    int size_nums = (sizeof(nums) / sizeof(nums[0]));
+
+    cout << "Before sorting the array is: \n";
+    for (int i = 0; i < size_nums; i++)
+        cout << nums[i] << " ";
+    cout << "\n\n";
+
+    sort(nums, size_nums);
+
+    cout << "After sorting the array is: \n";
+    for (int i = 0; i < size_nums; i++)
+        cout << nums[i] << " ";
+    cout << "\n";
+    return 0;
+}
+```
+- Initializes an array `nums` with values `{1, 12, 6, 8, 10}`.
+- Calculates the size of the array.
+- Prints the unsorted array.
+- Calls the `sort` function to sort the array.
+- Prints the sorted array.
+
+### SystemC Code Snippet:
+
+To convert this C++ code into a SystemC module, we need to adapt it to use SystemC's signal-based communication mechanism. Below is the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSorter) {
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;    // Done signal
+
+    sc_in<ap_uint<32>> nums[5]; // Array of 5 integers
+    sc_out<ap_uint<32>> sorted_nums[5]; // Sorted array of 5 integers
+
+    bool isSwapped;
+    ap_uint<32> temp;
+
+    SC_CTOR(BubbleSorter) {
+        SC_THREAD(sort_array);
+        sensitive << clk.pos();
+    }
+
+    void sort_array() {
+        while (true) {
+            wait(); // Wait for the clock edge
+
+            if (start.read()) {
+                for (int i = 0; i < 5; i++) {
+                    isSwapped = false;
+                    for (int j = 1; j < 5 - i; j++) {
+                        if (nums[j].read() < nums[j - 1].read()) {
+                            temp = nums[j].read();
+                            nums[j].write(nums[j - 1].read());
+                            nums[j - 1].write(temp);
+                            isSwapped = true;
+                        }
+                    }
+                    if (!isSwapped) {
+                        break;
+                    }
+                }
+                done.write(true); // Indicate sorting is complete
+            } else {
+                done.write(false); // Reset done signal
+            }
+        }
+    }
+};
+
+```
+
+### Explanation of the SystemC Code:
+
+- **Inputs and Outputs:**
+  - `clk`: Clock signal.
+  - `start`: Start signal to initiate the sorting process.
+  - `done`: Done signal indicating the sorting is complete.
+  - `nums`: Array of 5 integers to be sorted.
+  - `sorted_nums`: Placeholder for the sorted array (not used in the current implementation).
+
+- **Process (`sort_array`):**
+  - Waits for the positive edge of the clock.
+  - When `start` is high, it enters the sorting loop.
+  - Uses nested loops to perform Bubble Sort.
+  - Swaps elements if they are out of order.
+  - Sets the `done` signal when sorting is complete.
+
+This SystemC code should integrate seamlessly with the provided testbench signals (`clk`, `start`, `done`).

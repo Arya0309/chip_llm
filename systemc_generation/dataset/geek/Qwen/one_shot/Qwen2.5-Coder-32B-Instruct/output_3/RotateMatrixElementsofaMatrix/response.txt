@@ -1,0 +1,149 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: 
+  - A 2D array `mat` of size `R x C` (4x4 in this case).
+  - The dimensions `m` and `n` which represent the number of rows and columns of the matrix, respectively.
+- **Outputs**:
+  - The matrix `mat` is rotated 90 degrees clockwise in-place and then printed.
+
+#### Line-by-Line/Block-by-Block Explanation:
+
+1. **Matrix Rotation Function Definition**:
+   - `void rotatematrix(int m, int n, int mat[R][C])`: This function takes the dimensions `m` and `n` and the matrix `mat` as arguments.
+   
+2. **Initialization**:
+   - `int row = 0, col = 0;`: Initializes the starting row and column indices.
+   - `int prev, curr;`: Declares variables to store previous and current values during rotation.
+
+3. **Outer While Loop**:
+   - `while (row < m && col < n)`: Continues until all layers of the matrix have been rotated.
+   
+4. **Break Condition**:
+   - `if (row + 1 == m || col + 1 == n) break;`: If there's only one row or one column left, breaks out of the loop as no further rotation is needed.
+   
+5. **First Row Rotation**:
+   - `prev = mat[row + 1][col];`: Stores the value of the first element of the next row.
+   - `for (int i = col; i < n; i++)`: Loops through the current row and shifts each element to the left, replacing the first element with the stored value from the next row.
+
+6. **Increment Row Index**:
+   - `row++;`: Moves to the next row after rotating the current row.
+
+7. **Last Column Rotation**:
+   - `for (int i = row; i < m; i++)`: Loops through the current column and shifts each element upwards, replacing the first element with the last element of the previous row.
+
+8. **Decrement Column Count**:
+   - `n--;`: Decreases the column count as the last column has been rotated.
+
+9. **Last Row Rotation**:
+   - `if (row < m)`: Checks if there are still rows left to process.
+   - `for (int i = n-1; i >= col; i--)`: Loops through the current row and shifts each element to the right, replacing the last element with the first element of the previous column.
+
+10. **Decrement Row Count**:
+    - `m--;`: Decreases the row count as the last row has been rotated.
+
+11. **First Column Rotation**:
+    - `if (col < n)`: Checks if there are still columns left to process.
+    - `for (int i = m-1; i >= row; i--)`: Loops through the current column and shifts each element downwards, replacing the last element with the first element of the previous row.
+
+12. **Increment Column Index**:
+    - `col++;`: Moves to the next column after rotating the current column.
+
+13. **Print Rotated Matrix**:
+    - `for (int i=0; i<R; i++)`: Iterates over the rows of the matrix.
+    - `for (int j=0; j<C; j++)`: Iterates over the columns of the matrix.
+    - `cout << mat[i][j] << " ";`: Prints each element of the matrix.
+    - `cout << endl;`: Moves to the next line after printing each row.
+
+### Equivalent SystemC Code Snippet
+
+Below is the SystemC equivalent of the provided C++ code. It uses the `sc_in` and `sc_out` signals as specified.
+
+```cpp
+#include <systemc.h>
+#define SIZE 4
+
+SC_MODULE(MatrixRotator) {
+    sc_in<int> in[SIZE][SIZE];  // Input ports for the matrix elements
+    sc_out<int> out[SIZE][SIZE]; // Output ports for the rotated matrix elements
+
+    // Constructor
+    SC_CTOR(MatrixRotator) {
+        SC_METHOD(rotate_matrix);
+        sensitive << in[0][0]; // Sensitive to any change in the input matrix
+    }
+
+    // Method to rotate the matrix
+    void rotate_matrix() {
+        int mat[SIZE][SIZE];
+        int row = 0, col = 0;
+        int prev, curr;
+
+        // Read input matrix
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                mat[i][j] = in[i][j].read();
+            }
+        }
+
+        while (row < SIZE && col < SIZE) {
+            if (row + 1 == SIZE || col + 1 == SIZE)
+                break;
+
+            // Store the first element of the next row
+            prev = mat[row + 1][col];
+
+            // Move elements of the first row from the remaining rows
+            for (int i = col; i < SIZE; i++) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            // Move elements of the last column from the remaining columns
+            for (int i = row; i < SIZE; i++) {
+                curr = mat[i][SIZE - 1];
+                mat[i][SIZE - 1] = prev;
+                prev = curr;
+            }
+            SIZE--;
+
+            // Move elements of the last row from the remaining rows
+            if (row < SIZE) {
+                for (int i = SIZE - 1; i >= col; i--) {
+                    curr = mat[SIZE - 1][i];
+                    mat[SIZE - 1][i] = prev;
+                    prev = curr;
+                }
+            }
+            SIZE--;
+
+            // Move elements of the first column from the remaining rows
+            if (col < SIZE) {
+                for (int i = SIZE - 1; i >= row; i--) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        // Write rotated matrix to output ports
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                out[i][j].write(mat[i][j]);
+            }
+        }
+    }
+};
+
+```
+
+### Notes:
+- The SystemC module `MatrixRotator` reads from the input ports `in` and writes to the output ports `out`.
+- The `rotate_matrix` method performs the matrix rotation logic similar to the C++ code.
+- The sensitivity list in the constructor (`sensitive << in[0][0];`) ensures the method is triggered whenever there is a change in the input matrix. Depending on the application, you might want to make it sensitive to all input ports.
+- The `SIZE` macro is set to 4, matching the dimensions of the matrix in the original C++ code. Adjust this if you need to handle matrices of different sizes.

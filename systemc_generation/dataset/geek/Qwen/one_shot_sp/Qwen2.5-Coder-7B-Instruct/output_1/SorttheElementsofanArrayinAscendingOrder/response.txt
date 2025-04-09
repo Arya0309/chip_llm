@@ -1,0 +1,125 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs
+
+**Inputs**:
+1. `clk`: A clock signal to synchronize operations within the system.
+2. `start`: A signal to trigger the sorting process.
+
+**Outputs**:
+1. `done`: A signal indicating that the sorting process has completed.
+
+### Detailed Explanation
+
+The provided C++ code sorts an array of integers in ascending order using the Bubble Sort algorithm. Below is a line-by-line breakdown:
+
+#### Main Function
+- Initializes an array `nums` with values `{1, 12, 6, 8, 10}`.
+- Calculates the size of the array `size_nums`.
+- Prints the array before sorting.
+- Calls the `sort` function to sort the array.
+- Prints the array after sorting.
+
+#### Sort Function
+- Takes an integer array `num` and its length `len` as parameters.
+- Uses a nested loop to iterate through the array and sort it in ascending order using the Bubble Sort algorithm.
+- Checks if any swaps were made during a pass; if not, the array is already sorted, and the loop breaks early.
+
+#### SwapNums Function
+- Takes an integer array `nums`, and indices `first` and `second` as parameters.
+- Swaps the elements at `first` and `second` positions in the array.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code snippet that integrates the provided C++/C logic. It includes the necessary signals (`clk`, `start`, `done`) and utilizes them to control the sorting process.
+
+```cpp
+#include <systemc.h>
+
+// BubbleSort Module: Implements the bubble sort algorithm
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;      // Clock input
+    sc_in<bool> start;    // Signal to start sorting
+    sc_out<bool> done;    // Signal to indicate sorting is complete
+
+    // Internal storage for the array (fixed size of 5 elements)
+    int arr[5];
+
+    // Constructor: register the process
+    SC_CTOR(BubbleSort) {
+        SC_THREAD(sort_process);
+        sensitive << clk.pos();
+    }
+
+    // Process that waits for the start signal and performs sorting
+    void sort_process() {
+        while (true) {
+            wait(); // Wait for a clock cycle
+            if (start.read() == true) {
+                bubbleSort(); // Perform sorting
+                done.write(true);
+                wait(); // Wait for one cycle to signal completion
+                done.write(false);
+            }
+        }
+    }
+
+    // Bubble sort algorithm implementation (sorts the internal array)
+    void bubbleSort() {
+        int n = sizeof(arr) / sizeof(arr[0]);
+        for (int i = 0; i < n - 1; i++) {
+            bool swapped = false;
+            for (int j = 0; j < n - i - 1; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    // Swap arr[j] and arr[j+1]
+                    int temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                    swapped = true;
+                }
+            }
+            if (!swapped) break;
+        }
+    }
+
+    // Helper method to load an input array into the module
+    void load_array(const int input[5]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    // Helper method to read the sorted array from the module
+    void read_array(int output[5]) {
+        for (int i = 0; i < 5; i++) {
+            output[i] = arr[i];
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   - The `BubbleSort` module is declared with three signals: `clk`, `start`, and `done`.
+
+2. **Array Storage**:
+   - An integer array `arr` of size 5 is declared to store the input and output arrays.
+
+3. **Constructor**:
+   - The constructor registers a thread `sort_process` to handle the sorting logic and sets up sensitivity to positive edges of the clock signal.
+
+4. **Sorting Process**:
+   - The `sort_process` thread waits for the `start` signal to be high.
+   - Once `start` is high, it calls the `bubbleSort` function to sort the array.
+   - After sorting, it sets `done` high for one clock cycle to indicate completion and then resets it.
+
+5. **Bubble Sort Implementation**:
+   - The `bubbleSort` function sorts the array using the Bubble Sort algorithm.
+   - It uses nested loops to compare adjacent elements and swap them if they are out of order.
+   - If no swaps are made during a pass, the loop breaks early, optimizing performance.
+
+6. **Helper Methods**:
+   - `load_array` loads an input array into the module's internal storage.
+   - `read_array` reads the sorted array from the module's internal storage.
+
+This SystemC code faithfully captures the logic of the original C++/C source and can be integrated into a high-level synthesis flow.

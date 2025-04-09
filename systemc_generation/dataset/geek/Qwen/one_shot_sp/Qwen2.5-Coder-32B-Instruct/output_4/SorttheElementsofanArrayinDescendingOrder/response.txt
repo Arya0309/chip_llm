@@ -1,0 +1,208 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - An array `nums` containing integers.
+  - The length of the array `size_nums`.
+
+- **Outputs**:
+  - The sorted array `nums` in ascending order.
+
+#### Detailed Line-by-Line Explanation
+
+1. **Header and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes all standard C++ libraries and uses the standard namespace.
+
+2. **Function Declarations**:
+   ```cpp
+   void sort(int num[], int len);
+   void swapNums(int nums[], int first, int second);
+   ```
+   - Declares two functions: `sort` for sorting the array and `swapNums` for swapping two elements in the array.
+
+3. **Driver Code**:
+   ```cpp
+   int main()
+   {
+       int nums[] = {1, 12, 6, 8, 10};
+       int size_nums = (sizeof(nums) / sizeof(nums[0]));
+   ```
+   - Initializes an integer array `nums` with values `{1, 12, 6, 8, 10}`.
+   - Calculates the size of the array `size_nums`.
+
+4. **Printing Initial Array**:
+   ```cpp
+       cout << "Before sorting the array is: \n";
+       for (int i = 0; i < size_nums; i++)
+           cout << nums[i] << " ";
+       cout << "\n\n";
+   ```
+   - Prints the elements of the array before sorting.
+
+5. **Sorting Function Call**:
+   ```cpp
+       sort(nums, size_nums);
+   ```
+   - Calls the `sort` function to sort the array.
+
+6. **Printing Sorted Array**:
+   ```cpp
+       cout << "After sorting the array is: \n";
+       for (int i = 0; i < size_nums; i++)
+           cout << nums[i] << " ";
+       cout << "\n";
+       return 0;
+   }
+   ```
+   - Prints the elements of the array after sorting.
+   - Returns 0 indicating successful execution.
+
+7. **Sort Function**:
+   ```cpp
+   void sort(int num[], int len)
+   {
+       bool isSwapped;
+       for (int i = 0; i < len; i++) 
+       {
+           isSwapped = false;
+           for (int j = 1; j < len - i; j++) 
+           {
+               if (num[j] < num[j - 1]) 
+               {
+                   swapNums(num, j, (j - 1));
+                   isSwapped = true;
+               }
+           }
+           if (!isSwapped) 
+           {
+               break;
+           }
+       }
+   }
+   ```
+   - Implements the bubble sort algorithm.
+   - Iterates through the array multiple times.
+   - Compares adjacent elements and swaps them if they are in the wrong order.
+   - Stops early if no swaps are made in an iteration, indicating the array is already sorted.
+
+8. **Swap Function**:
+   ```cpp
+   void swapNums(int nums[], int first, int second)
+   {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - Swaps the elements at indices `first` and `second` in the array `nums`.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that implements the same logic as the provided C++/C code. It uses the provided signals (`clk`, `start`, `done`) and can be integrated with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// BubbleSort Module: Implements the bubble sort algorithm
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;      // Clock input
+    sc_in<bool> start;    // Signal to start sorting
+    sc_out<bool> done;    // Signal to indicate sorting is complete
+
+    // Internal storage for the array (fixed size of 5 elements)
+    int arr[5];
+    int size_arr;
+
+    // Constructor: register the process
+    SC_CTOR(BubbleSort) {
+        SC_THREAD(sort_process);
+        sensitive << clk.pos();
+    }
+
+    // Process that waits for the start signal and performs sorting
+    void sort_process() {
+        done.write(false); // Initialize done to false
+        while (true) {
+            wait(); // wait for a clock cycle
+            if (start.read() == true) {
+                bubbleSort(); // perform sorting
+                done.write(true);
+                wait(); // wait for one cycle to signal completion
+                done.write(false);
+            }
+        }
+    }
+
+    // Bubble sort algorithm implementation (sorts the internal array)
+    void bubbleSort() {
+        bool isSwapped;
+        for (int i = 0; i < size_arr; i++) {
+            isSwapped = false;
+            for (int j = 1; j < size_arr - i; j++) {
+                if (arr[j] < arr[j - 1]) {
+                    // Swap arr[j] and arr[j-1]
+                    int temp = arr[j];
+                    arr[j] = arr[j - 1];
+                    arr[j - 1] = temp;
+                    isSwapped = true;
+                }
+            }
+            if (!isSwapped) {
+                break;
+            }
+        }
+    }
+
+    // Helper method to load an input array into the module
+    void load_array(const int input[5], int size) {
+        for (int i = 0; i < size; i++) {
+            arr[i] = input[i];
+        }
+        size_arr = size;
+    }
+
+    // Helper method to read the sorted array from the module
+    void read_array(int output[5]) {
+        for (int i = 0; i < size_arr; i++) {
+            output[i] = arr[i];
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+- **Module Definition**:
+  - `BubbleSort`: Defines a SystemC module implementing the bubble sort algorithm.
+  
+- **Ports**:
+  - `clk`: Input port for the clock signal.
+  - `start`: Input port to start the sorting process.
+  - `done`: Output port to indicate when sorting is complete.
+
+- **Internal Storage**:
+  - `arr[5]`: Fixed-size array to store the input data.
+  - `size_arr`: Variable to store the size of the array.
+
+- **Constructor**:
+  - Registers the `sort_process` thread and makes it sensitive to the positive edge of the clock signal.
+
+- **sort_process**:
+  - Waits for the `start` signal to be true.
+  - Calls `bubbleSort` to sort the array.
+  - Sets `done` to true after sorting is complete and resets it after one more clock cycle.
+
+- **bubbleSort**:
+  - Implements the bubble sort algorithm similar to the C++/C version.
+  - Uses a flag `isSwapped` to optimize by stopping early if no swaps occur.
+
+- **Helper Methods**:
+  - `load_array`: Loads an input array into the module's internal storage.
+  - `read_array`: Reads the sorted array from the module's internal storage.
+
+This SystemC module can be easily integrated into a larger system or testbench, using the provided `clk`, `start`, and `done` signals.

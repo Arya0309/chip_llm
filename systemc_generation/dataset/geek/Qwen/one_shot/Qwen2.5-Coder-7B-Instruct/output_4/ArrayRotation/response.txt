@@ -1,0 +1,135 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs:
+
+**Inputs:**
+- `d`: An integer representing the number of positions to rotate the array to the left.
+- `in_array[7]`: An array of integers containing the initial values of the array to be rotated.
+
+**Outputs:**
+- `out_array[7]`: An array of integers containing the rotated values of the input array.
+
+### Detailed Explanation:
+
+1. **Function Declarations and Initializations:**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes the standard library and uses the standard namespace.
+
+2. **Rotate Function:**
+   ```cpp
+   void Rotate(int arr[], int d, int n)
+   {
+       int temp[n];
+       int k = 0;
+   ```
+   - Defines a function `Rotate` that takes an array `arr`, the number of rotations `d`, and the size of the array `n`.
+   - Initializes a temporary array `temp` of size `n` to store the rotated elements.
+   - Initializes `k` to keep track of the current index in `temp`.
+
+3. **Copying Elements to Temporary Array:**
+   ```cpp
+   for (int i = d; i < n; i++) {
+       temp[k] = arr[i];
+       k++;
+   }
+   ```
+   - Copies the elements from index `d` to the end of the array `arr` to the beginning of the temporary array `temp`.
+
+4. **Appending Remaining Elements:**
+   ```cpp
+   for (int i = 0; i < d; i++) {
+       temp[k] = arr[i];
+       k++;
+   }
+   ```
+   - Appends the first `d` elements of `arr` to the end of `temp`.
+
+5. **Updating Original Array:**
+   ```cpp
+   for (int i = 0; i < n; i++) {
+       arr[i] = temp[i];
+   }
+   ```
+   - Copies the elements from `temp` back to the original array `arr`.
+
+6. **PrintTheArray Function:**
+   ```cpp
+   void PrintTheArray(int arr[], int n)
+   {
+       for (int i = 0; i < n; i++) {
+           cout << arr[i] << " ";
+       }
+   }
+   ```
+   - A function to print the elements of an array.
+
+7. **Main Function:**
+   ```cpp
+   int main()
+   {
+       int arr[] = { 1, 2, 3, 4, 5, 6, 7 };
+       int N = sizeof(arr) / sizeof(arr[0]);
+       int d = 2;
+       Rotate(arr, d, N);
+       PrintTheArray(arr, N);
+       return 0;
+   }
+   ```
+   - Initializes an array `arr` with values `{1, 2, 3, 4, 5, 6, 7}`.
+   - Calculates the size of the array `N`.
+   - Calls the `Rotate` function to rotate the array by `d` positions.
+   - Prints the rotated array.
+
+### SystemC Equivalent Code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Rotator) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> rst;          // Reset signal
+    sc_in<int> d;             // Number of rotations
+    sc_in<int> in_array[7];   // Input array
+    sc_out<int> out_array[7]; // Output array
+
+    int arr[7];
+    int N = 7;
+
+    SC_CTOR(Rotator) {
+        SC_METHOD(Rotate);
+        sensitive << clk.pos();
+        async_reset_signal_is(rst, true);
+    }
+
+    void Rotate() {
+        if (rst) {
+            // Initialize arr with in_array values when reset is active
+            for (int i = 0; i < N; i++) {
+                arr[i] = in_array[i].read();
+            }
+        } else {
+            // Perform rotation
+            int temp[N];
+            int k = 0;
+            for (int i = d.read(); i < N; i++) {
+                temp[k++] = arr[i];
+            }
+            for (int i = 0; i < d.read(); i++) {
+                temp[k++] = arr[i];
+            }
+            for (int i = 0; i < N; i++) {
+                arr[i] = temp[i];
+            }
+        }
+
+        // Assign the rotated array to out_array
+        for (int i = 0; i < N; i++) {
+            out_array[i].write(arr[i]);
+        }
+    }
+};
+```
+
+This SystemC module, `Rotator`, incorporates the necessary signals (`clk`, `rst`, `d`, `in_array`, `out_array`) and performs the same rotation operation as the original C++ code. It handles both the reset condition and the rotation logic within the `Rotate` method.

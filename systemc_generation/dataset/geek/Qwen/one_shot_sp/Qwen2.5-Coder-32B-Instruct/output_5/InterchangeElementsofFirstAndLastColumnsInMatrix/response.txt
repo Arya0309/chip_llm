@@ -1,0 +1,181 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!use static const for constants instead of #define
+static const int N = 4;
+static const int SIZE = N * N;
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: A 4x4 integer matrix `m` initialized with specific values.
+- **Outputs**: The matrix after swapping the first and last rows is printed to the console.
+
+#### Detailed Line-by-Line Explanation
+
+1. **Constants and Includes**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   
+   #define n 4 
+   ```
+   - The program includes the standard input-output stream library and uses the `std` namespace.
+   - A constant `n` is defined to represent the size of the matrix (4x4).
+
+2. **Function Definition**
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   { 
+       int rows = n; 
+   ```
+   - A function `interchangeFirstLast` is defined which takes a 2D array `m` of size `n x n`.
+   - Inside the function, `rows` is set to `n`, which represents the number of rows in the matrix.
+
+3. **Swapping Elements**
+   ```cpp
+       for (int i = 0; i < n; i++) 
+       { 
+           int t = m[0][i]; 
+           m[0][i] = m[rows - 1][i]; 
+           m[rows - 1][i] = t; 
+       } 
+   ```
+   - A `for` loop iterates over each column index `i` from 0 to `n-1`.
+   - For each column, the element at the first row (`m[0][i]`) is swapped with the element at the last row (`m[rows - 1][i]`).
+
+4. **Driver Code**
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                      {4, 7, 6, 5}, 
+                      {3, 2, 1, 8}, 
+                      {9, 9, 7, 7}}; 
+                      
+       interchangeFirstLast(m); 
+   ```
+   - The `main` function initializes a 4x4 matrix `m` with predefined values.
+   - It calls the `interchangeFirstLast` function to swap the first and last rows of the matrix.
+
+5. **Printing the Matrix**
+   ```cpp
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   }
+   ```
+   - Nested `for` loops iterate over the entire matrix.
+   - Each element of the matrix is printed to the console, with a space separating the columns and a newline after each row.
+
+### Equivalent SystemC Code Snippet
+
+Below is the equivalent SystemC code that captures the logic of the original C++/C code. The code utilizes the provided signals `in` and `out` for seamless integration with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+// Use static const for constants instead of #define
+static const int N = 4;
+static const int SIZE = N * N;
+
+// Module that performs the swapping of first and last rows of a matrix
+SC_MODULE(MatrixRowSwapper) {
+    // Input ports for the matrix (flattened as 1D arrays)
+    sc_in<int> in[SIZE];
+    // Output ports for the matrix (flattened as 1D array)
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(MatrixRowSwapper) {
+        // Use an SC_METHOD to perform the row swapping operation
+        SC_METHOD(do_swap);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
+    }
+
+    // Method that swaps the first and last rows of the matrix
+    void do_swap() {
+        // Temporary storage for swapping
+        int temp[N];
+        
+        // Copy the first row to temp
+        for (int i = 0; i < N; i++) {
+            temp[i] = in[i].read();
+        }
+        
+        // Write the last row to the first row
+        for (int i = 0; i < N; i++) {
+            out[i].write(in[(N-1)*N + i].read());
+        }
+        
+        // Write the temp (original first row) to the last row
+        for (int i = 0; i < N; i++) {
+            out[(N-1)*N + i].write(temp[i]);
+        }
+        
+        // Copy the rest of the matrix unchanged
+        for (int i = 1; i < N-1; i++) {
+            for (int j = 0; j < N; j++) {
+                out[i*N + j].write(in[i*N + j].read());
+            }
+        }
+    }
+};
+
+// Example usage
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the module
+    MatrixRowSwapper swapper("swapper");
+    
+    // Initialize input signals
+    sc_signal<int> input[SIZE];
+    // Initialize output signals
+    sc_signal<int> output[SIZE];
+    
+    // Connect input and output ports
+    for (int i = 0; i < SIZE; i++) {
+        swapper.in[i](input[i]);
+        swapper.out[i](output[i]);
+    }
+    
+    // Assign initial values to input signals
+    int init_matrix[N][N] = {{8, 9, 7, 6}, 
+                             {4, 7, 6, 5}, 
+                             {3, 2, 1, 8}, 
+                             {9, 9, 7, 7}};
+                             
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            input[i*N + j].write(init_matrix[i][j]);
+        }
+    }
+    
+    // Start simulation
+    sc_start(1, SC_NS);
+    
+    // Print the output matrix
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            cout << output[i*N + j].read() << " ";
+        }
+        cout << endl;
+    }
+    
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+- **Constants**: `N` and `SIZE` are defined as constants to represent the matrix size and total number of elements, respectively.
+- **Module Definition**: `MatrixRowSwapper` is a SystemC module that performs the row swapping operation.
+- **Ports**: The module has `SIZE` input and output ports, representing the flattened 4x4 matrix.
+- **Constructor**: The constructor sets up an `SC_METHOD` called `do_swap` that is sensitive to changes in any of the input ports.
+- **Method `do_swap`**: This method performs the row swapping:
+  - It temporarily stores the first row.
+  - It writes the last row to the first row position.
+  - It writes the stored first row to the last row position.
+  - It copies the middle rows unchanged.
+- **Main Function**: Demonstrates how to instantiate the module, connect signals, initialize inputs, start the simulation, and print the output matrix.

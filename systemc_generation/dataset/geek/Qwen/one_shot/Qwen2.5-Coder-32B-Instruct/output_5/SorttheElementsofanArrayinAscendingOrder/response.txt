@@ -1,0 +1,189 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! the provided C++/C code implements a simple Bubble Sort algorithm to sort an array of integers in ascending order. Let's break down the code step-by-step and then translate it into a SystemC module that can be used in a high-level synthesis flow.
+
+### Inputs and Outputs of the Code
+
+**Inputs:**
+- An array of integers `nums` which needs to be sorted.
+- The length of the array `len`.
+
+**Outputs:**
+- The sorted array `nums` is printed to the console.
+
+### Detailed Explanation of the Code
+
+#### Main Function
+```cpp
+int main()
+{
+    int nums[] = {1, 12, 6, 8, 10};
+    int size_nums = sizeof(nums) / sizeof(nums[0]);
+
+    cout << "Before sorting the array is: \n";
+    for (int i = 0; i < size_nums; i++)
+        cout << nums[i] << " ";
+    cout << "\n\n";
+
+    sort(nums, size_nums);
+
+    cout << "After sorting the array is: \n";
+    for (int i = 0; i < size_nums; i++)
+        cout << nums[i] << " ";
+    cout << "\n";
+    return 0;
+}
+```
+- Initializes an array `nums` with values `{1, 12, 6, 8, 10}`.
+- Calculates the size of the array `size_nums`.
+- Prints the array before sorting.
+- Calls the `sort` function to sort the array.
+- Prints the array after sorting.
+
+#### Sort Function
+```cpp
+void sort(int num[], int len)
+{
+    bool isSwapped;
+
+    for (int i = 0; i < len; i++) 
+    {
+        isSwapped = false;
+        for (int j = 1; j < len - i; j++) 
+        {
+            if (num[j] < num[j - 1]) 
+            {
+                swapNums(num, j, (j - 1));
+                isSwapped = true;
+            }
+        }
+        if (!isSwapped) 
+        {
+            break;
+        }
+    }
+}
+```
+- Implements the Bubble Sort algorithm.
+- Iterates over the array multiple times.
+- For each iteration, it checks adjacent elements and swaps them if they are in the wrong order.
+- Uses a flag `isSwapped` to determine if any elements were swapped during the iteration. If no elements were swapped, the array is already sorted, and the loop breaks early.
+
+#### Swap Function
+```cpp
+void swapNums(int nums[], int first, int second)
+{
+    int curr = nums[first];
+    nums[first] = nums[second];
+    nums[second] = curr;
+}
+```
+- Swaps two elements in the array at indices `first` and `second`.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that replicates the logic of the provided C++/C code. It uses the provided signals `clk`, `start`, and `done` for integration with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal to begin sorting
+    sc_out<bool> done;     // Done signal indicating sorting completion
+
+    int nums[5];           // Array to be sorted
+    int size_nums;         // Size of the array
+    bool isSwapped;        // Flag to check if any elements were swapped
+    int i, j;              // Loop counters
+    bool started;          // Flag to indicate if sorting has started
+
+    SC_CTOR(BubbleSort) {
+        // Initialize the array and other variables
+        nums[0] = 1; nums[1] = 12; nums[2] = 6; nums[3] = 8; nums[4] = 10;
+        size_nums = 5;
+        started = false;
+        done.write(false);
+
+        // Process to handle sorting
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+    }
+
+    void sort_process() {
+        if (start.read()) {
+            if (!started) {
+                i = 0;
+                started = true;
+                isSwapped = false;
+                done.write(false);
+            }
+
+            if (i < size_nums) {
+                if (j < size_nums - i) {
+                    if (nums[j] < nums[j - 1]) {
+                        swapNums(j, j - 1);
+                        isSwapped = true;
+                    }
+                    j++;
+                } else {
+                    if (!isSwapped) {
+                        done.write(true);
+                    } else {
+                        i++;
+                        j = 1;
+                        isSwapped = false;
+                    }
+                }
+            }
+        } else {
+            started = false;
+            done.write(false);
+        }
+    }
+
+    void swapNums(int first, int second) {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_signal<bool> clk;
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    BubbleSort sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    sc_start();
+
+    // Example testbench to drive the signals
+    start.write(false);
+    sc_start(10, SC_NS); // Wait for 10 ns
+
+    start.write(true);
+    sc_start(100, SC_NS); // Run for 100 ns
+
+    start.write(false);
+    sc_start(10, SC_NS); // Wait for 10 ns
+
+    sc_stop();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **Module Definition:** The `BubbleSort` module is defined with three ports: `clk`, `start`, and `done`.
+- **Array Initialization:** The array `nums` is initialized with the same values as in the C++/C code.
+- **Sorting Logic:** The `sort_process` method is triggered on the positive edge of the clock (`clk.pos()`). It handles the sorting process similarly to the C++/C code.
+- **Start Signal Handling:** The sorting process begins when the `start` signal is asserted.
+- **Done Signal:** The `done` signal is set to `true` when the sorting is complete.
+- **Swap Function:** The `swapNums` method swaps two elements in the array, similar to the C++/C code.
+- **Testbench:** A simple testbench is included to demonstrate how the module can be driven with the `start` signal and how the `done` signal indicates completion.
+
+This SystemC code can be integrated into a larger design and synthesized using high-level synthesis tools.

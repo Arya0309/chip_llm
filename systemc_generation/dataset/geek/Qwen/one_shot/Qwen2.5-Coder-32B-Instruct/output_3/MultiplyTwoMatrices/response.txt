@@ -1,0 +1,136 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!using the provided C++/C code, let's break down the functionality, identify the inputs and outputs, and then translate this into SystemC code.
+
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - Two matrices: `mat1` and `mat2`.
+  - `mat1` is a 2x2 matrix.
+  - `mat2` is a 2x3 matrix.
+- **Outputs**:
+  - A 2x3 matrix resulting from the multiplication of `mat1` and `mat2`.
+
+#### Line-by-Line Explanation
+
+1. **Include Libraries**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes standard libraries and uses the standard namespace.
+
+2. **Define Matrix Dimensions**:
+   ```cpp
+   #define R1 2 // number of rows in Matrix-1
+   #define C1 2 // number of columns in Matrix-1
+   #define R2 2 // number of rows in Matrix-2
+   #define C2 3 // number of columns in Matrix-2
+   ```
+   - Defines the dimensions of the matrices.
+
+3. **Matrix Multiplication Function**:
+   ```cpp
+   void mulMat(int mat1[][C1], int mat2[][C2]) {
+       int rslt[R1][C2];
+       cout << "Multiplication of given two matrices is:\n";
+       for (int i = 0; i < R1; i++) {
+           for (int j = 0; j < C2; j++) {
+               rslt[i][j] = 0;
+               for (int k = 0; k < R2; k++) {
+                   rslt[i][j] += mat1[i][k] * mat2[k][j];
+               }
+               cout << rslt[i][j] << "\t";
+           }
+           cout << endl;
+       }
+   }
+   ```
+   - Declares a result matrix `rslt` to store the product.
+   - Iterates over each element of the resulting matrix.
+   - For each element, it calculates the dot product of the corresponding row from `mat1` and column from `mat2`.
+   - Prints the result matrix.
+
+4. **Main Function**:
+   ```cpp
+   int main() {
+       int mat1[R1][C1] = { { 1, 1 }, { 2, 2 } };
+       int mat2[R2][C2] = { { 1, 1, 1 }, { 2, 2, 2 } };
+       if (C1 != R2) {
+           cout << "The number of columns in Matrix-1 must be equal to the number of rows in Matrix-2" << endl;
+           cout << "Please update MACROs according to your array dimension in #define section" << endl;
+           exit(EXIT_FAILURE);
+       }
+       mulMat(mat1, mat2);
+       return 0;
+   }
+   ```
+   - Initializes two matrices `mat1` and `mat2`.
+   - Checks if the number of columns in `mat1` equals the number of rows in `mat2`. If not, it prints an error message and exits.
+   - Calls the `mulMat` function to perform matrix multiplication.
+
+### SystemC Code Equivalent
+
+Below is the SystemC equivalent of the provided C++/C code. This SystemC module performs matrix multiplication using the provided signals for integration with the testbench.
+
+```cpp
+#include <systemc.h>
+
+#define SIZE_A 2
+#define SIZE_B 3
+#define SIZE_RESULT 2
+
+SC_MODULE(MatrixMultiplier) {
+    sc_in<int> A[SIZE_A][SIZE_A];  // Input port for matrix A
+    sc_in<int> B[SIZE_A][SIZE_B];  // Input port for matrix B
+    sc_out<int> C[SIZE_RESULT][SIZE_B]; // Output port for result matrix C
+
+    // Constructor
+    SC_CTOR(MatrixMultiplier) {
+        // Process to perform matrix multiplication
+        SC_METHOD(multiply);
+        for (int i = 0; i < SIZE_A; ++i) {
+            for (int j = 0; j < SIZE_A; ++j) {
+                sensitive << A[i][j];
+            }
+        }
+        for (int i = 0; i < SIZE_A; ++i) {
+            for (int j = 0; j < SIZE_B; ++j) {
+                sensitive << B[i][j];
+            }
+        }
+    }
+
+    // Method to multiply matrices
+    void multiply() {
+        int rslt[SIZE_RESULT][SIZE_B];
+
+        for (int i = 0; i < SIZE_RESULT; i++) {
+            for (int j = 0; j < SIZE_B; j++) {
+                rslt[i][j] = 0;
+                for (int k = 0; k < SIZE_A; k++) {
+                    rslt[i][j] += A[i][k].read() * B[k][j].read();
+                }
+                C[i][j].write(rslt[i][j]);
+            }
+        }
+    }
+};
+
+```
+
+### Explanation of the SystemC Code
+
+- **Module Declaration**:
+  - `MatrixMultiplier` is the name of the SystemC module.
+  - It has input ports `A` and `B` for the two matrices and an output port `C` for the result.
+
+- **Constructor**:
+  - The constructor initializes the sensitivity list for the `multiply` method. This means the method will be triggered whenever any input changes.
+
+- **Multiply Method**:
+  - Declares a local variable `rslt` to store the result of the multiplication.
+  - Iterates over each element of the resulting matrix, calculating the dot product of the corresponding row from `A` and column from `B`.
+  - Writes the result to the output port `C`.
+
+This SystemC module can now be integrated into a larger design or testbench using the provided signals `A`, `B`, and `C`.

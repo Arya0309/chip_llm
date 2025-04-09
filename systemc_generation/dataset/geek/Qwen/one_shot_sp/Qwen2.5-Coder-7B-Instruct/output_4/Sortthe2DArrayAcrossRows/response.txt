@@ -1,0 +1,275 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!<|im_start|>### Inputs and Outputs of the C++ Code
+
+The provided C++ code sorts a 2D matrix row-wise. Here are the inputs and outputs:
+
+**Inputs:**
+- `m`: A 2D integer matrix of size `r x c`.
+- `r`: Number of rows in the matrix.
+- `c`: Number of columns in the matrix.
+
+**Outputs:**
+- The sorted 2D matrix printed to the console.
+
+### Detailed Explanation of the C++ Code
+
+Let's break down the code line-by-line:
+
+1. **Include Headers and Namespace Declaration:**
+   ```cpp
+   #include<bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes all standard C++ libraries.
+   - Uses the standard namespace `std`.
+
+2. **Swap Function:**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - Swaps the values pointed to by `xp` and `yp`.
+
+3. **Function to Sort Matrix Row-Wise:**
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   ```
+   - Takes a 2D matrix `m`, number of rows `r`, and number of columns `c`.
+
+4. **Outer Loop for Rows:**
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   ```
+   - Iterates over each row of the matrix.
+
+5. **Inner Loop for Columns:**
+   ```cpp
+   for (int j = 0; j < c; j++) 
+   ```
+   - Not used in this context but part of the structure.
+
+6. **Bubble Sort Loop for Sorting Each Row:**
+   ```cpp
+   for (int k = 0; k < c - j - 1; k++) 
+   ```
+   - Iterates through each element of the current row to sort it.
+
+7. **Condition to Swap Elements:**
+   ```cpp
+   if (m[i][k] > m[i][k + 1]) 
+   ```
+   - Compares adjacent elements in the row.
+
+8. **Swapping Elements Using `swap` Function:**
+   ```cpp
+   swap(&m[i][k], &m[i][k + 1]);
+   ```
+   - Calls the `swap` function to swap the elements.
+
+9. **Printing the Sorted Matrix:**
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   {
+       for (int j = 0; j < c; j++)
+           cout << m[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - Iterates through the sorted matrix and prints each element.
+
+10. **Driver Code:**
+    ```cpp
+    int main()
+    {
+        int m[][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}};
+        int c = sizeof(m[0]) / sizeof(m[0][0]);
+        int r = sizeof(m) / sizeof(m[0]);
+        sortRowWise(m, r, c);
+        return 0;
+    }
+    ```
+    - Defines a sample matrix `m`.
+    - Calculates the number of rows `r` and columns `c`.
+    - Calls `sortRowWise` to sort the matrix.
+    - Prints the sorted matrix.
+
+### Equivalent SystemC Code
+
+Here is the equivalent SystemC code that incorporates the signals `clk`, `start`, and `done`. It also includes a module to handle the sorting operation:
+
+```cpp
+#include <systemc.h>
+
+// Define constants for matrix dimensions
+static const int N = 4;
+static const int SIZE = N * N;
+
+// Module to sort a 2D matrix row-wise
+SC_MODULE(MatrixSorter) {
+    // Input ports for matrix data
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_in<int> matrix[SIZE];
+    
+    // Output port for sorted matrix data
+    sc_out<int> sorted_matrix[SIZE];
+    sc_out<bool> done;
+
+    // Internal signal to indicate when sorting is complete
+    sc_signal<bool> sorting_complete;
+
+    // Constructor for MatrixSorter module
+    SC_CTOR(MatrixSorter) {
+        // Initialize the sorting_complete signal
+        sorting_complete.initialize(false);
+
+        // Always process when clock edge is rising and start is true
+        SC_METHOD(sort_matrix);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process when sorting is complete
+        SC_THREAD(check_done);
+        sensitive << sorting_complete;
+    }
+
+    // Method to perform row-wise sorting
+    void sort_matrix() {
+        while (true) {
+            wait(clk.pos()); // Wait for clock edge
+            if (start.read()) {
+                // Copy matrix data to a local array for sorting
+                int m[SIZE];
+                for (int i = 0; i < SIZE; i++) {
+                    m[i] = matrix[i].read();
+                }
+
+                // Perform bubble sort row-wise
+                for (int i = 0; i < N; i++) {
+                    for (int k = 0; k < N - 1; k++) {
+                        if (m[i * N + k] > m[i * N + k + 1]) {
+                            int temp = m[i * N + k];
+                            m[i * N + k] = m[i * N + k + 1];
+                            m[i * N + k + 1] = temp;
+                        }
+                    }
+                }
+
+                // Write sorted matrix back to output port
+                for (int i = 0; i < SIZE; i++) {
+                    sorted_matrix[i].write(m[i]);
+                }
+
+                // Signal that sorting is complete
+                sorting_complete.write(true);
+            }
+        }
+    }
+
+    // Thread to check when sorting is complete
+    void check_done() {
+        while (true) {
+            wait(sorting_complete.pos());
+            done.write(true); // Indicate sorting is complete
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(MatrixSorter) {
+   ```
+   - Declares a SystemC module named `MatrixSorter`.
+
+2. **Input Ports:**
+   ```cpp
+   sc_in<bool> clk;
+   sc_in<bool> start;
+   sc_in<int> matrix[SIZE];
+   ```
+   - `clk`: Clock signal.
+   - `start`: Start signal to initiate sorting.
+   - `matrix`: Input matrix data flattened into a 1D array.
+
+3. **Output Ports:**
+   ```cpp
+   sc_out<int> sorted_matrix[SIZE];
+   sc_out<bool> done;
+   ```
+   - `sorted_matrix`: Output sorted matrix data flattened into a 1D array.
+   - `done`: Signal indicating sorting is complete.
+
+4. **Internal Signals:**
+   ```cpp
+   sc_signal<bool> sorting_complete;
+   ```
+   - Internal signal to track whether sorting is complete.
+
+5. **Constructor:**
+   ```cpp
+   SC_CTOR(MatrixSorter) {
+       sorting_complete.initialize(false);
+       SC_METHOD(sort_matrix);
+       sensitive << clk.pos();
+       dont_initialize();
+       SC_THREAD(check_done);
+       sensitive << sorting_complete;
+   }
+   ```
+   - Initializes `sorting_complete` to `false`.
+   - Registers `sort_matrix` method to run on positive clock edges.
+   - Registers `check_done` thread to run when `sorting_complete` changes.
+
+6. **Sorting Method:**
+   ```cpp
+   void sort_matrix() {
+       while (true) {
+           wait(clk.pos());
+           if (start.read()) {
+               int m[SIZE];
+               for (int i = 0; i < SIZE; i++) {
+                   m[i] = matrix[i].read();
+               }
+               for (int i = 0; i < N; i++) {
+                   for (int k = 0; k < N - 1; k++) {
+                       if (m[i * N + k] > m[i * N + k + 1]) {
+                           int temp = m[i * N + k];
+                           m[i * N + k] = m[i * N + k + 1];
+                           m[i * N + k + 1] = temp;
+                       }
+                   }
+               }
+               for (int i = 0; i < SIZE; i++) {
+                   sorted_matrix[i].write(m[i]);
+               }
+               sorting_complete.write(true);
+           }
+       }
+   }
+   ```
+   - Waits for clock edges and checks if `start` is true.
+   - Copies matrix data to a local array for sorting.
+   - Performs bubble sort row-wise.
+   - Writes sorted matrix back to output port.
+   - Sets `sorting_complete` to `true` after sorting completes.
+
+7. **Done Check Thread:**
+   ```cpp
+   void check_done() {
+       while (true) {
+           wait(sorting_complete.pos());
+           done.write(true);
+       }
+   }
+   ```
+   - Waits for `sorting_complete` to change.
+   - Sets `done` to `true` when sorting is complete.
+
+This SystemC code captures the logic of the original C++ code and integrates seamlessly with the provided signals.
