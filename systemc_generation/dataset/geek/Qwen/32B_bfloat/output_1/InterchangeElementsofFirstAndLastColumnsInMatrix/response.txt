@@ -1,0 +1,218 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Please find below the detailed analysis of the provided C++/C code, followed by the equivalent SystemC code snippet that integrates with the specified signals.
+
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: A 4x4 integer matrix `m`.
+- **Outputs**: The modified 4x4 integer matrix where the elements of the first and last rows have been swapped.
+
+#### Detailed Line-by-Line/Block-by-Block Explanation
+
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include <iostream> 
+   using namespace std;
+   ```
+   - These lines include the standard input-output stream library and use the standard namespace.
+
+2. **Macro Definition**:
+   ```cpp
+   #define n 4
+   ```
+   - This macro defines `n` as 4, which is used throughout the code to specify the size of the matrix.
+
+3. **Function Definition**:
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   - This function takes a 2D array `m` of size `n x n` and swaps the elements of the first and last rows.
+
+4. **Variable Declaration Inside Function**:
+   ```cpp
+   int rows = n;
+   ```
+   - This line declares a variable `rows` and initializes it to `n`, which is 4.
+
+5. **Loop for Swapping Elements**:
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[0][i]; 
+       m[0][i] = m[rows - 1][i]; 
+       m[rows - 1][i] = t; 
+   }
+   ```
+   - This loop iterates over each column index `i` from 0 to `n-1`.
+   - It swaps the element at position `(0, i)` with the element at position `(rows-1, i)`.
+
+6. **Main Function**:
+   ```cpp
+   int main()
+   ```
+   - The entry point of the program.
+
+7. **Matrix Initialization**:
+   ```cpp
+   int m[n][n] = {{8, 9, 7, 6}, 
+                  {4, 7, 6, 5}, 
+                  {3, 2, 1, 8}, 
+                  {9, 9, 7, 7}};
+   ```
+   - Initializes a 4x4 matrix `m` with the given values.
+
+8. **Function Call**:
+   ```cpp
+   interchangeFirstLast(m);
+   ```
+   - Calls the `interchangeFirstLast` function to swap the first and last rows of the matrix.
+
+9. **Printing the Modified Matrix**:
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       for (int j = 0; j < n; j++) 
+           cout << m[i][j] << " "; 
+       cout << endl; 
+   }
+   ```
+   - Nested loops iterate over each element of the matrix and print it to the console.
+
+### Equivalent SystemC Code Snippet
+
+Below is the SystemC code that performs the same operation as the provided C++/C code. It uses the specified `sc_in<int>` and `sc_out<int>` signals for integration with a testbench.
+
+```cpp
+#include <systemc.h>
+
+#define SIZE 4
+
+SC_MODULE(MatrixSwapper) {
+    sc_in<int> in[SIZE][SIZE];
+    sc_out<int> out[SIZE][SIZE];
+
+    SC_CTOR(MatrixSwapper) {
+        SC_METHOD(interchangeFirstLast);
+        sensitive << in[0][0]; // Sensitive to changes in the first element of the input matrix
+    }
+
+    void interchangeFirstLast() {
+        int temp[SIZE][SIZE];
+        
+        // Copy input to temporary array
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                temp[i][j] = in[i][j].read();
+            }
+        }
+
+        // Swap first and last rows
+        for (int i = 0; i < SIZE; i++) {
+            int t = temp[0][i];
+            temp[0][i] = temp[SIZE - 1][i];
+            temp[SIZE - 1][i] = t;
+        }
+
+        // Write output
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                out[i][j].write(temp[i][j]);
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    MatrixSwapper swapper("swapper");
+
+    // Example initialization of input signals (for testing purposes)
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            swapper.in[i][j].initialize(0); // Initialize to 0 for simplicity
+        }
+    }
+
+    // Start simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **Module Definition**:
+   ```cpp
+   SC_MODULE(MatrixSwapper) {
+   ```
+   - Defines a SystemC module named `MatrixSwapper`.
+
+2. **Signal Declarations**:
+   ```cpp
+   sc_in<int> in[SIZE][SIZE];
+   sc_out<int> out[SIZE][SIZE];
+   ```
+   - Declares input and output signals as 2D arrays of size `SIZE x SIZE`.
+
+3. **Constructor**:
+   ```cpp
+   SC_CTOR(MatrixSwapper) {
+       SC_METHOD(interchangeFirstLast);
+       sensitive << in[0][0];
+   }
+   ```
+   - Registers the `interchangeFirstLast` method as a sensitivity to changes in the first element of the input matrix.
+
+4. **Method Definition**:
+   ```cpp
+   void interchangeFirstLast() {
+   ```
+   - This method performs the swapping of the first and last rows of the matrix.
+
+5. **Temporary Array**:
+   ```cpp
+   int temp[SIZE][SIZE];
+   ```
+   - Declares a temporary 2D array to hold the input values.
+
+6. **Copying Input to Temporary Array**:
+   ```cpp
+   for (int i = 0; i < SIZE; i++) {
+       for (int j = 0; j < SIZE; j++) {
+           temp[i][j] = in[i][j].read();
+       }
+   }
+   ```
+   - Reads the input signals into the temporary array.
+
+7. **Swapping First and Last Rows**:
+   ```cpp
+   for (int i = 0; i < SIZE; i++) {
+       int t = temp[0][i];
+       temp[0][i] = temp[SIZE - 1][i];
+       temp[SIZE - 1][i] = t;
+   }
+   ```
+   - Swaps the elements of the first and last rows in the temporary array.
+
+8. **Writing Output**:
+   ```cpp
+   for (int i = 0; i < SIZE; i++) {
+       for (int j = 0; j < SIZE; j++) {
+           out[i][j].write(temp[i][j]);
+       }
+   }
+   ```
+   - Writes the modified values from the temporary array to the output signals.
+
+9. **Main Function**:
+   ```cpp
+   int sc_main(int argc, char* argv[]) {
+       MatrixSwapper swapper("swapper");
+       // Example initialization of input signals
+       // Start simulation
+       sc_start();
+       return 0;
+   }
+   ```
+   - Instantiates the `MatrixSwapper` module and starts the simulation.

@@ -1,0 +1,138 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: 
+  - An integer array `nums` containing unsorted integers.
+  - The length of the array `len`.
+- **Outputs**:
+  - The sorted integer array `nums`.
+
+#### Detailed Explanation:
+
+1. **Initialization and Output of Initial Array**:
+   - The array `nums` is initialized with values `{1, 12, 6, 8, 10}`.
+   - The size of the array is calculated using `sizeof(nums) / sizeof(nums[0])`.
+   - The initial array is printed to the console.
+
+2. **Sorting Function (`sort`)**:
+   - The `sort` function implements the Bubble Sort algorithm.
+   - A boolean variable `isSwapped` is used to track whether any elements were swapped during a pass through the array.
+   - The outer loop runs `len` times, representing the number of passes over the array.
+   - The inner loop compares each pair of adjacent elements, swapping them if they are out of order.
+   - If no swaps occur during a pass, the array is already sorted, and the loop breaks early.
+
+3. **Swap Function (`swapNums`)**:
+   - This function swaps two elements in the array at indices `first` and `second`.
+   - It uses a temporary variable `curr` to hold the value of the element at index `first` while performing the swap.
+
+4. **Output of Sorted Array**:
+   - After sorting, the sorted array is printed to the console.
+
+### SystemC Code Equivalent
+
+Below is the equivalent SystemC code that implements the same logic using the provided signals `clk`, `start`, and `done`. The array sorting logic is encapsulated within a SystemC module.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    SC_CTOR(BubbleSort) {
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+private:
+    void sort_process() {
+        static bool isSorted = false;
+        static int i = 0, j = 1;
+        static int nums[5] = {1, 12, 6, 8, 10}; // Fixed-size array for simplicity
+        static bool isSwapped = false;
+
+        if (start.read()) {
+            if (!isSorted) {
+                if (i < 5) {
+                    if (j < 5 - i) {
+                        if (nums[j] < nums[j - 1]) {
+                            int temp = nums[j];
+                            nums[j] = nums[j - 1];
+                            nums[j - 1] = temp;
+                            isSwapped = true;
+                        }
+                        j++;
+                    } else {
+                        if (!isSwapped) {
+                            isSorted = true;
+                            done.write(true);
+                        } else {
+                            isSwapped = false;
+                            i++;
+                            j = 1;
+                        }
+                    }
+                }
+            }
+        } else {
+            isSorted = false;
+            i = 0;
+            j = 1;
+            done.write(false);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_signal<bool> clk;
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    BubbleSort sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Clock generation
+    sc_clock clock_gen("clock_gen", 10, SC_NS, 0.5, 0, SC_NS, true);
+
+    clk(clock_gen);
+
+    // Start signal simulation
+    start.write(false);
+    sc_start(10, SC_NS); // Wait for initial setup
+    start.write(true);
+    sc_start(100, SC_NS); // Run sorting process
+    start.write(false);
+    sc_start(10, SC_NS); // Wait for completion
+
+    sc_stop();
+
+    return 0;
+}
+```
+
+#### Explanation of SystemC Code:
+
+- **Module Definition**:
+  - The `BubbleSort` module is defined with input signals `clk` and `start`, and an output signal `done`.
+  - The constructor sets up a method `sort_process` that reacts to the positive edge of the clock signal.
+
+- **State Variables**:
+  - Static variables `isSorted`, `i`, `j`, `nums`, and `isSwapped` are used to maintain state across clock cycles.
+  - `nums` is initialized with the same values as in the C++ code.
+
+- **Sorting Process**:
+  - When `start` is true, the sorting process begins.
+  - The nested loops mimic the behavior of the C++ `sort` function.
+  - If `isSwapped` remains false after a complete pass, `isSorted` is set to true, and `done` is asserted.
+  - If `start` is false, the sorting process resets.
+
+- **Clock Generation**:
+  - A clock generator is created with a period of 10 ns.
+  - The `start` signal is toggled to initiate and terminate the sorting process.
+
+This SystemC code can be integrated into a larger design and tested using the provided signals.

@@ -1,0 +1,185 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Inputs**: An array of integers `arr` and its size `n`.
+- **Outputs**: A single double value representing the average of the array elements.
+
+### Line-by-Line/Block-by-Block Explanation:
+
+1. **Include Directive**:
+   ```cpp
+   #include <iostream>
+   ```
+   - This includes the standard input-output stream library which is necessary for using `cout`.
+
+2. **Namespace Declaration**:
+   ```cpp
+   using namespace std;
+   ```
+   - This allows the use of standard library functions without prefixing them with `std::`.
+
+3. **Function Definition**:
+   ```cpp
+   double average(int a[], int n)
+   ```
+   - This function takes an integer array `a` and its size `n` as parameters and returns a double value representing the average of the array elements.
+
+4. **Sum Calculation**:
+   ```cpp
+   int sum = 0;
+   for (int i = 0; i < n; i++)
+       sum += a[i];
+   ```
+   - Initializes a variable `sum` to zero.
+   - Iterates over each element of the array `a` from index `0` to `n-1`, adding each element's value to `sum`.
+
+5. **Return Statement**:
+   ```cpp
+   return (double)sum / n;
+   ```
+   - Casts `sum` to a double before dividing it by `n` to ensure floating-point division.
+   - Returns the calculated average.
+
+6. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int arr[] = { 10, 2, 3, 4, 5, 6, 7, 8, 9 };
+       int n = sizeof(arr) / sizeof(arr[0]);
+       cout << average(arr, n) << endl;
+       return 0;
+   }
+   ```
+   - Declares and initializes an array `arr` with 9 integer elements.
+   - Calculates the number of elements `n` in the array.
+   - Calls the `average` function with `arr` and `n` as arguments and prints the result to the console.
+   - Ends the program by returning 0.
+
+### Equivalent SystemC Code:
+
+Below is the SystemC code that mirrors the functionality of the provided C++/C code. It utilizes the provided signals `average_out` and `data_in` for seamless integration with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(AverageCalculator) {
+    sc_out<double> average_out;
+    sc_vector< sc_in<int> > data_in;
+
+    SC_CTOR(AverageCalculator) : data_in("data_in", 9) {
+        SC_METHOD(calculate_average);
+        sensitive << data_in;
+    }
+
+    void calculate_average() {
+        int sum = 0;
+        for (int i = 0; i < data_in.size(); i++) {
+            sum += data_in[i].read();
+        }
+        double avg = static_cast<double>(sum) / data_in.size();
+        average_out.write(avg);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    AverageCalculator avg_calc("avg_calc");
+    sc_signal<double> avg_out;
+    sc_vector< sc_signal<int> > data(9);
+
+    // Connecting signals
+    avg_calc.average_out(avg_out);
+    for (int i = 0; i < 9; ++i) {
+        avg_calc.data_in[i](data[i]);
+    }
+
+    // Initialize data values
+    data[0] = 10;
+    data[1] = 2;
+    data[2] = 3;
+    data[3] = 4;
+    data[4] = 5;
+    data[5] = 6;
+    data[6] = 7;
+    data[7] = 8;
+    data[8] = 9;
+
+    // Start simulation
+    sc_start();
+
+    // Output the result
+    cout << "Average: " << avg_out.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+
+- **Module Declaration**:
+  ```cpp
+  SC_MODULE(AverageCalculator) {
+      sc_out<double> average_out;
+      sc_vector< sc_in<int> > data_in;
+  ```
+  - Defines a SystemC module named `AverageCalculator`.
+  - Declares an output signal `average_out` for the computed average.
+  - Declares a vector of input signals `data_in` to hold the array elements.
+
+- **Constructor**:
+  ```cpp
+  SC_CTOR(AverageCalculator) : data_in("data_in", 9) {
+      SC_METHOD(calculate_average);
+      sensitive << data_in;
+  }
+  ```
+  - Initializes the `data_in` vector with 9 elements.
+  - Registers the `calculate_average` method to be triggered whenever any element in `data_in` changes.
+
+- **Method for Calculating Average**:
+  ```cpp
+  void calculate_average() {
+      int sum = 0;
+      for (int i = 0; i < data_in.size(); i++) {
+          sum += data_in[i].read();
+      }
+      double avg = static_cast<double>(sum) / data_in.size();
+      average_out.write(avg);
+  }
+  ```
+  - Computes the sum of all elements in `data_in`.
+  - Calculates the average and writes it to `average_out`.
+
+- **Main Function**:
+  ```cpp
+  int sc_main(int argc, char* argv[]) {
+      AverageCalculator avg_calc("avg_calc");
+      sc_signal<double> avg_out;
+      sc_vector< sc_signal<int> > data(9);
+      // Connecting signals
+      avg_calc.average_out(avg_out);
+      for (int i = 0; i < 9; ++i) {
+          avg_calc.data_in[i](data[i]);
+      }
+      // Initialize data values
+      data[0] = 10;
+      data[1] = 2;
+      data[2] = 3;
+      data[3] = 4;
+      data[4] = 5;
+      data[5] = 6;
+      data[6] = 7;
+      data[7] = 8;
+      data[8] = 9;
+      // Start simulation
+      sc_start();
+      // Output the result
+      cout << "Average: " << avg_out.read() << endl;
+      return 0;
+  }
+  ```
+  - Instantiates the `AverageCalculator` module.
+  - Creates signals for `average_out` and `data_in`.
+  - Connects the module's ports to these signals.
+  - Initializes the `data` signals with the array values.
+  - Starts the simulation and prints the computed average.

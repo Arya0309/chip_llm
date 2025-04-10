@@ -1,10 +1,13 @@
 import os
 import torch
 import re
-import examples
 import warnings
+
+
 import pandas as pd
 from tqdm import tqdm
+
+
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 
@@ -16,13 +19,54 @@ dataset_dir = os.path.join(current_dir, "dataset")
 def generate_systemc(
     dataset: str, model=None, tokenizer=None, max_new_tokens=4096, batch_size=16
 ) -> pd.DataFrame:
-    df = pd.read_json(os.path.join(dataset_dir, dataset), orient="records")
-    df_input = pd.DataFrame(columns=["task", "prompt", "input"])
+    """
+    Processes a JSON-lines dataset to generate model inputs for a SystemC generation task.
 
+    This function reads a JSON-lines dataset file containing test cases for generating SystemC modules.
+    For each entry in the dataset where the "adoption" flag is True, the function:
+      1. Extracts the prompt.
+      2. Formats the prompt using the tokenizer's 'apply_chat_template' method, optionally adding a generation prompt.
+      3. Tokenizes the formatted prompt into a tensor, ensuring it is moved to the same device as the model's parameters.
+      4. Constructs a DataFrame that aggregates the task, the original prompt, the tokenized input,
+         the testbench data, and the module name.
+
+    Parameters:
+        dataset (str): The filename of the dataset JSON-lines file. The file path is constructed using a predefined 'dataset_dir'.
+        model: The model instance used for processing inputs. The device of the first parameter of the model is used to place tensors.
+        tokenizer: The tokenizer that includes a method to apply a chat template ('apply_chat_template') and can tokenize text.
+        max_new_tokens (int, optional): The maximum number of tokens to generate (default is 4096).
+        batch_size (int, optional): The number of samples to process at a time (default is 16).
+
+    Returns:
+        pd.DataFrame: A DataFrame with the following columns:
+            - "task": The description of the task as provided in the dataset.
+            - "prompt": The original prompt from the dataset.
+            - "input": The tokenized input tensor, ready for processing by the model.
+            - "testbench": The testbench information from the dataset.
+            - "module_name": The module name corresponding to the task.
+
+    Usage example:
+        >>> df_inputs = generate_systemc("data.json", model=my_model, tokenizer=my_tokenizer)
+        >>> print(df_inputs.head())
+
+    Note:
+        Within the scope of this function, a helper function 'collate_inputs' is defined, which can be used
+        to collate a series of tokenized inputs by padding sequences to create batches compatible with the model.
+    """
+
+    # Load the dataset JSON
+    dataset = os.path.join(dataset_dir, dataset)
+    df = pd.read_json(dataset, orient="records")
+
+    # Build the dataframe for the model input
+    df_input = pd.DataFrame(
+        columns=["task", "prompt", "input", "testbench", "module_name"]
+    )
+
+    # Generate embeddings and record the informations
     for i, row in tqdm(df.iterrows(), desc="Generating Embeddings"):
         if row["adoption"] == True:
             prompt = row["prompt"]
-            print(prompt)
             input = tokenizer.apply_chat_template(
                 prompt, tokenize=False, add_generation_prompt=True
             )
@@ -51,6 +95,7 @@ def generate_systemc(
             )
         return collated
 
+    # Generate the responses and response batch by batch
     for i in tqdm(range(0, len(df_input), batch_size), desc="Generating Responses"):
         batch = df_input[i : i + batch_size]
         batch_inputs = collate_inputs(batch["input"])
@@ -175,11 +220,11 @@ def output_dir_generator(
 
 if __name__ == "__main__":
 
-    model_name = "Qwen/Qwen2.5-Coder-14B-Instruct"  # Qwen/Qwen2.5-Coder-7B-Instruct, Qwen/Qwen2.5-Coder-14B-Instruct, Qwen/Qwen2.5-Coder-32B-Instruct
+    model_name = "Qwen/Qwen2.5-Coder-32B-Instruct"  # Qwen/Qwen2.5-Coder-7B-Instruct, Qwen/Qwen2.5-Coder-14B-Instruct, Qwen/Qwen2.5-Coder-32B-Instruct
     dataset = "geek"
     data = "zero_shot.json"
-    dtype = None  # float16, bfloat16, None
-    epoach = 4
+    dtype = "bfloat16"  # int8, float16, bfloat16, None
+    epoach = 1
 
     if not model_name == "Qwen/Qwen2.5-Coder-32B-Instruct" and dtype == "float16":
         warnings.warn(
@@ -201,20 +246,27 @@ if __name__ == "__main__":
             torch_dtype=torch.bfloat16,
             device_map="auto",
         )
+    elif dtype == "int8":
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            load_in_8bit=True,
+            device_map="auto",
+        )
     elif dtype == None:
         model = AutoModelForCausalLM.from_pretrained(
             model_name,
             device_map="auto",
         )
 
-    for i in range(2, epoach + 1):
+    for i in range(1, epoach + 1):
         print(f"Epoch {i} / {epoach}")
         df_output = generate_systemc(
-            os.path.join(dataset, data), model=model, tokenizer=tokenizer, batch_size=11
+            os.path.join(dataset, data), model=model, tokenizer=tokenizer, batch_size=16
         )
         output_dir_generator(
             df_output, dataset, output_data_dir=f"{model_name}/output_{i}"
         )
+        output_dir = os.path.join(dataset_dir, dataset, model_name)
         os.system(
-            f"python3 systemc_generation/check.py --file_dir {dataset_dir}/{dataset}/{model_name}/output_{i} --log_dir {dataset_dir}/{dataset}/{model_name}"
+            f"python3 systemc_generation/check.py --file_dir {output_dir}/output_{i} --log_dir {output_dir}"
         )

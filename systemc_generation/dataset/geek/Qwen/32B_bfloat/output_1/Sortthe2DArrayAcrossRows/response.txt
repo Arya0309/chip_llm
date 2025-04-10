@@ -1,0 +1,193 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!register
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs:
+- A 2D matrix `m` with dimensions `r` x `c`.
+- In the specific example, `m` is a 4x4 matrix initialized with values: 
+  ```
+  {9, 8, 7, 1},
+  {7, 3, 0, 2},
+  {9, 5, 3, 2},
+  {6, 3, 1, 2}
+  ```
+
+#### Outputs:
+- The sorted 2D matrix, printed row-wise.
+- For the provided input, the output would be:
+  ```
+  1 7 8 9 
+  0 2 3 7 
+  2 3 5 9 
+  1 2 3 6 
+  ```
+
+#### Detailed Line-by-Line Explanation:
+
+1. **Swap Function:**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   }
+   ```
+   - This function swaps two integer values pointed to by `xp` and `yp`.
+
+2. **sortRowWise Function:**
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   {
+   ```
+   - This function sorts each row of the matrix `m` which has `r` rows and `c` columns.
+   
+3. **Outer Loop for Rows:**
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   { 
+   ```
+   - Iterates over each row of the matrix.
+
+4. **Middle Loop for Columns:**
+   ```cpp
+   for (int j = 0; j < c; j++) 
+   { 
+   ```
+   - Iterates over each column of the current row.
+
+5. **Inner Loop for Comparison and Swapping:**
+   ```cpp
+   for (int k = 0; k < c - j - 1; k++) 
+   { 
+       if (m[i][k] > m[i][k + 1]) 
+       {
+           swap(m[i][k], m[i][k + 1]);
+       }
+   }
+   ```
+   - Compares adjacent elements in the current row and swaps them if they are out of order, effectively performing a bubble sort on each row.
+
+6. **Printing Sorted Matrix:**
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   {
+       for (int j = 0; j < c; j++)
+           cout << m[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - Prints the sorted matrix row-wise.
+
+7. **Driver Code:**
+   ```cpp
+   int main()
+   {
+       int m[][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}};
+       int c = sizeof(m[0]) / sizeof(m[0][0]);
+       int r = sizeof(m) / sizeof(m[0]);
+       sortRowWise(m, r, c);
+       return 0;
+   }
+   ```
+   - Initializes the matrix, calculates the number of rows and columns, calls the sorting function, and then exits.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that incorporates the provided signals (`clk`, `start`, `done`) for integration with an existing testbench. This SystemC module will sort a 4x4 matrix row-wise when the `start` signal is asserted and will set the `done` signal once the sorting is complete.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    SC_CTOR(MatrixSorter) {
+        SC_METHOD(sort_matrix);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sort_matrix() {
+        static bool sorting_started = false;
+        static bool sorting_done = false;
+        static int m[4][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}};
+        static int r = 4;
+        static int c = 4;
+        static int i = 0, j = 0, k = 0;
+
+        if (start.read() && !sorting_started) {
+            sorting_started = true;
+            sorting_done = false;
+            i = 0;
+            j = 0;
+            k = 0;
+            done.write(false);
+        }
+
+        if (sorting_started && !sorting_done) {
+            if (i < r) {
+                if (j < c) {
+                    if (k < c - j - 1) {
+                        if (m[i][k] > m[i][k + 1]) {
+                            // Swap elements
+                            int temp = m[i][k];
+                            m[i][k] = m[i][k + 1];
+                            m[i][k + 1] = temp;
+                        }
+                        k++;
+                    } else {
+                        k = 0;
+                        j++;
+                    }
+                } else {
+                    j = 0;
+                    i++;
+                }
+            } else {
+                sorting_started = false;
+                sorting_done = true;
+                done.write(true);
+
+                // Print the sorted matrix
+                for (int ii = 0; ii < r; ii++) {
+                    for (int jj = 0; jj < c; jj++)
+                        cout << m[ii][jj] << " ";
+                    cout << endl;
+                }
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS); // Create a clock signal
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    MatrixSorter sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Start the simulation
+    start.write(false);
+    sc_start(10, SC_NS); // Wait for some time before starting
+    start.write(true);
+    sc_start(100, SC_NS); // Run the simulation for some time
+    sc_stop();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+- **Module Definition:** `MatrixSorter` is a SystemC module that performs the row-wise sorting of a 4x4 matrix.
+- **Signals:** The module uses `clk`, `start`, and `done` signals for synchronization and control.
+- **Sorting Logic:** The sorting logic is encapsulated within the `sort_matrix` method, which is triggered on the positive edge of the `clk` signal.
+- **State Management:** Static variables manage the state of the sorting process, including the current indices and whether sorting has started or completed.
+- **Printing Sorted Matrix:** Once sorting is complete, the sorted matrix is printed to the console.
+- **Testbench Integration:** The `sc_main` function sets up the simulation environment, including a clock and control signals, and runs the simulation.
