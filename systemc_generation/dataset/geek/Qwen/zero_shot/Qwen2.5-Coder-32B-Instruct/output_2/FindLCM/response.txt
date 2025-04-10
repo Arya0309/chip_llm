@@ -1,0 +1,85 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! sensitivity of the `calculate_lcm` method to changes in the input signals `a` and `b`. This ensures that the LCM calculation is triggered whenever new values are provided to these inputs.
+
+### SystemC Code Snippet
+
+Below is the complete SystemC code snippet that implements the same logic as the provided C++/C code, using the specified signals for seamless integration with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(LCMCalculator) {
+    sc_in<int> a;            // Input signal for the first number
+    sc_in<int> b;            // Input signal for the second number
+    sc_out<int> lcm_result;  // Output signal for the LCM result
+
+    SC_CTOR(LCMCalculator) {
+        SC_METHOD(calculate_lcm);
+        sensitive << a << b;  // Trigger the method when either 'a' or 'b' changes
+    }
+
+    void calculate_lcm() {
+        int num1 = a.read();  // Read the value of 'a'
+        int num2 = b.read();  // Read the value of 'b'
+        int max_num = (num1 > num2) ? num1 : num2;  // Determine the larger number
+        int flag = 1;
+
+        while (flag) {
+            // Check if max_num is divisible by both num1 and num2
+            if (max_num % num1 == 0 && max_num % num2 == 0) {
+                lcm_result.write(max_num);  // Write the LCM result to the output signal
+                break;
+            }
+            ++max_num;  // Increment max_num to check the next number
+        }
+    }
+};
+
+// Example testbench to demonstrate the usage of LCMCalculator
+#include <iostream>
+
+int sc_main(int argc, char* argv[]) {
+    sc_signal<int> a, b, lcm_result;
+
+    LCMCalculator lcm_calculator("lcm_calculator");
+    lcm_calculator.a(a);
+    lcm_calculator.b(b);
+    lcm_calculator.lcm_result(lcm_result);
+
+    sc_start(0, SC_NS);  // Initialize simulation
+    a.write(15);         // Set input 'a' to 15
+    b.write(20);         // Set input 'b' to 20
+    sc_start(1, SC_NS);  // Allow time for the process to complete
+
+    std::cout << "LCM of " << a.read() << " and " << b.read() << " is " << lcm_result.read() << std::endl;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**:
+   - `SC_MODULE(LCMCalculator)` declares a SystemC module named `LCMCalculator`.
+   - Inside the module, three signals are declared: `a`, `b`, and `lcm_result`.
+
+2. **Constructor**:
+   - `SC_CTOR(LCMCalculator)` is the constructor of the module.
+   - `SC_METHOD(calculate_lcm)` registers the `calculate_lcm` method to be executed reactively.
+   - `sensitive << a << b;` sets the sensitivity of the `calculate_lcm` method to changes in the `a` and `b` signals.
+
+3. **Method `calculate_lcm`**:
+   - Reads the current values of `a` and `b` using `a.read()` and `b.read()`.
+   - Determines the larger of the two numbers using the ternary operator.
+   - Initializes `flag` to 1 and enters a loop to find the LCM.
+   - Checks if `max_num` is divisible by both `num1` and `num2`.
+   - If true, writes the LCM to `lcm_result` using `lcm_result.write(max_num)` and breaks out of the loop.
+   - Otherwise, increments `max_num` and continues the loop.
+
+4. **Testbench**:
+   - An example testbench is provided to demonstrate how the `LCMCalculator` module can be instantiated and tested.
+   - Signals `a`, `b`, and `lcm_result` are declared and connected to the corresponding ports of the `LCMCalculator` instance.
+   - The simulation is started, and the values of `a` and `b` are set to 15 and 20, respectively.
+   - The LCM result is printed after allowing sufficient simulation time for the computation to complete.
+
+This SystemC code snippet accurately replicates the logic of the original C++/C code and is ready for integration into a larger SystemC design or testbench.

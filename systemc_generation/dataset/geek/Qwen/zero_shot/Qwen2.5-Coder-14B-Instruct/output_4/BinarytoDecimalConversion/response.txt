@@ -1,0 +1,72 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs**:
+   - Input: An integer `num` representing a binary number.
+   - Output: An integer `dec_value` representing the decimal equivalent of the binary number.
+
+2. **Code Analysis**:
+   - The code defines a function `binaryToDecimal` which takes an integer `n` as input and returns its decimal equivalent.
+   - The function initializes `dec_value` to 0 and `base` to 1.
+   - It then enters a loop where it extracts each digit from the right end of the binary number (`temp % 10`), multiplies it by the current `base`, and adds it to `dec_value`.
+   - The `base` is doubled in each iteration to account for the next power of 2.
+   - The loop continues until all digits have been processed (`temp` becomes 0).
+   - In the `main` function, the binary number `10101001` is passed to `binaryToDecimal`, and the result is printed.
+
+3. **SystemC Code Generation**:
+   - The SystemC code will define a module that takes a binary input and produces a decimal output using the same logic as the C++ code.
+   - The `binary_in` signal will be used to receive the binary input, and the `decimal_out` signal will be used to send the decimal output.
+
+Here is the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinaryToDecimal) {
+    sc_in<int> binary_in;
+    sc_out<int> decimal_out;
+
+    void process() {
+        int num = binary_in.read();
+        int dec_value = 0;
+        int base = 1;
+        int temp = num;
+
+        while (temp) {
+            int last_digit = temp % 10;
+            temp = temp / 10;
+            dec_value += last_digit * base;
+            base = base * 2;
+        }
+
+        decimal_out.write(dec_value);
+    }
+
+    SC_CTOR(BinaryToDecimal) {
+        SC_METHOD(process);
+        sensitive << binary_in;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    BinaryToDecimal b2d("b2d");
+    sc_signal<int> binary_in_signal;
+    sc_signal<int> decimal_out_signal;
+
+    b2d.binary_in(binary_in_signal);
+    b2d.decimal_out(decimal_out_signal);
+
+    // Testbench
+    binary_in_signal = 10101001;
+    sc_start();
+
+    cout << "Decimal Output: " << decimal_out_signal.read() << endl;
+
+    return 0;
+}
+```
+
+**Explanation of the SystemC Code**:
+- The `BinaryToDecimal` module is defined with `binary_in` and `decimal_out` as its input and output ports.
+- The `process` method implements the logic of the `binaryToDecimal` function from the C++ code.
+- The `SC_CTOR` constructor registers the `process` method as a sensitive method to changes in `binary_in`.
+- In `sc_main`, an instance of `BinaryToDecimal` is created, and the signals `binary_in_signal` and `decimal_out_signal` are connected to its ports.
+- A testbench sets the `binary_in_signal` to `10101001`, starts the simulation, and prints the result from `decimal_out_signal`.

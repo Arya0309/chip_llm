@@ -1,0 +1,97 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Inputs**: Two integers `a` and `b`.
+- **Outputs**: An integer representing the greatest common divisor (GCD) of `a` and `b`.
+
+### Detailed Line-by-Line Explanation:
+1. **Include Directives**: The code includes the `<bits/stdc++.h>` header which is a GCC extension that includes almost all standard library headers. This is generally not recommended for production code due to portability issues.
+2. **Namespace Declaration**: The `using namespace std;` directive is used to avoid prefixing standard library names with `std::`.
+3. **Function Definition (`gcd`)**: 
+   - **Parameters**: Takes two integers `a` and `b`.
+   - **Variable Initialization**: Initializes `res` to the minimum of `a` and `b`. This is the starting point for checking divisibility.
+   - **While Loop**: Iterates from `res` down to `2` (since `res--` is used in the loop, and `res > 1` is the condition).
+     - **Condition Check**: Checks if both `a` and `b` are divisible by `res`. If true, breaks out of the loop.
+     - **Decrement**: Decrements `res` by `1` if the condition is not met.
+   - **Return Statement**: Returns the value of `res`, which is the GCD of `a` and `b`.
+4. **Main Function**:
+   - **Variable Initialization**: Initializes `a` to `12` and `b` to `16`.
+   - **Function Call and Output**: Calls the `gcd` function with `a` and `b` as arguments and prints the result using `cout`.
+
+### SystemC Code Equivalent:
+The following SystemC code snippet replicates the logic of the original C++/C code using the provided signals for seamless integration with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(GCDModule) {
+    sc_in<int> a;
+    sc_in<int> b;
+    sc_out<int> gcd_result;
+
+    void gcd_computation() {
+        int res = sc_dt::sc_min(a.read(), b.read()); // Find minimum of a and b
+
+        while (res > 1) {
+            // Check if res divides both a and b
+            if (a.read() % res == 0 && b.read() % res == 0)
+                break;
+            res--;
+        }
+
+        gcd_result.write(res); // Write the result to the output port
+    }
+
+    SC_CTOR(GCDModule) {
+        SC_METHOD(gcd_computation);
+        sensitive << a << b; // Trigger computation when either a or b changes
+    }
+};
+
+// Example testbench (not required for submission but useful for testing)
+#include "systemc.h"
+#include "gcd_module.h"
+
+SC_MODULE(Testbench) {
+    sc_signal<int> a;
+    sc_signal<int> b;
+    sc_signal<int> gcd_result;
+
+    GCDModule gcd_inst;
+
+    SC_CTOR(Testbench) : gcd_inst("gcd_inst") {
+        gcd_inst.a(a);
+        gcd_inst.b(b);
+        gcd_inst.gcd_result(gcd_result);
+
+        SC_THREAD(run_test);
+    }
+
+    void run_test() {
+        a.write(12);
+        b.write(16);
+        wait(1, SC_NS); // Wait for one time unit for the computation to complete
+        cout << "GCD of " << a.read() << " and " << b.read() << " is " << gcd_result.read() << endl;
+
+        a.write(45);
+        b.write(10);
+        wait(1, SC_NS);
+        cout << "GCD of " << a.read() << " and " << b.read() << " is " << gcd_result.read() << endl;
+
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Definition**: `GCDModule` is defined with three ports: `a`, `b`, and `gcd_result`.
+- **Method (`gcd_computation`)**: Implements the logic to compute the GCD using the same algorithm as the original C++/C code. It reads values from `a` and `b` using `.read()` and writes the result to `gcd_result` using `.write()`.
+- **Constructor**: Registers the `gcd_computation` method to be triggered whenever there is a change in either `a` or `b`.
+- **Testbench**: Demonstrates how to instantiate the `GCDModule` and drive inputs to verify the correctness of the GCD computation. The testbench is optional and is included here for demonstration purposes.

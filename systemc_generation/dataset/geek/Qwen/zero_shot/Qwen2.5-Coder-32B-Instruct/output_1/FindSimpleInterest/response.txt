@@ -1,0 +1,148 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!C++/C Code Analysis:
+
+### Inputs and Outputs:
+- **Inputs**: 
+  - `P`: Principal amount (float)
+  - `R`: Rate of interest (float)
+  - `T`: Time period (float)
+- **Output**: 
+  - `SI`: Simple Interest calculated using the formula `(P * T * R) / 100` (float)
+
+### Detailed Line-by-Line Explanation:
+1. **Include and Namespace Declaration**:
+   ```cpp
+   #include<iostream>
+   using namespace std;
+   ```
+   - Includes the iostream library for input/output operations.
+   - Uses the standard namespace to avoid prefixing standard library objects with `std::`.
+
+2. **Main Function**:
+   ```cpp
+   int main()
+   {
+   ```
+   - Entry point of the C++ program.
+
+3. **Variable Declarations and Initialization**:
+   ```cpp
+   float P = 1, R = 1, T = 1;
+   ```
+   - Declares three float variables `P`, `R`, and `T` and initializes them to `1`.
+   - These represent the principal amount, rate of interest, and time period respectively.
+
+4. **Simple Interest Calculation**:
+   ```cpp
+   float SI = (P * T * R) / 100;
+   ```
+   - Calculates the simple interest using the formula `(P * T * R) / 100` and stores the result in the variable `SI`.
+
+5. **Output the Result**:
+   ```cpp
+   cout << "Simple Interest = " << SI;
+   ```
+   - Prints the calculated simple interest to the console.
+
+6. **End of Main Function**:
+   ```cpp
+   return 0;
+   }
+   ```
+   - Ends the `main` function and returns `0` indicating successful execution of the program.
+
+### SystemC Equivalent Code:
+Below is the SystemC code snippet that replicates the functionality of the provided C++/C code. It uses the provided signals for integration with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SimpleInterestCalculator) {
+    // Input ports
+    sc_in<float> P;  // Principal amount
+    sc_in<float> R;  // Rate of interest
+    sc_in<float> T;  // Time period
+
+    // Output port
+    sc_out<float> SI;  // Simple Interest
+
+    // Constructor
+    SC_CTOR(SimpleInterestCalculator) {
+        // Process sensitivity declaration
+        SC_METHOD(calculate);
+        sensitive << P << R << T;
+    }
+
+    // Method to calculate simple interest
+    void calculate() {
+        float p = P.read();
+        float r = R.read();
+        float t = T.read();
+
+        // Calculate simple interest
+        float si = (p * t * r) / 100.0f;
+
+        // Write the result to the output port
+        SI.write(si);
+    }
+};
+
+// Example top module for testing (not required for high-level synthesis)
+SC_MODULE(TopModule) {
+    // Instantiate the SimpleInterestCalculator
+    SimpleInterestCalculator sic;
+
+    // Signals for interconnection
+    sc_signal<float> p;
+    sc_signal<float> r;
+    sc_signal<float> t;
+    sc_signal<float> si;
+
+    // Constructor
+    SC_CTOR(TopModule) : sic("SimpleInterestCalculator") {
+        // Connect signals to the SimpleInterestCalculator ports
+        sic.P(p);
+        sic.R(r);
+        sic.T(t);
+        sic.SI(si);
+
+        // Initialize values for testing
+        p.write(1.0f);
+        r.write(1.0f);
+        t.write(1.0f);
+
+        // Trace signals for debugging (optional)
+        // sc_trace_file *tf = sc_create_vcd_trace_file("simple_interest");
+        // sc_trace(tf, p, "Principal");
+        // sc_trace(tf, r, "Rate");
+        // sc_trace(tf, t, "Time");
+        // sc_trace(tf, si, "SimpleInterest");
+
+        // End simulation after one delta cycle
+        SC_THREAD(end_simulation);
+    }
+
+    // Thread to end simulation
+    void end_simulation() {
+        wait(1, SC_NS);  // Wait for one nanosecond
+        sc_stop();        // Stop the simulation
+    }
+};
+
+// Testbench entry point
+int sc_main(int argc, char* argv[]) {
+    TopModule top("TopModule");
+    sc_start();  // Start the simulation
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+- **SC_MODULE Declaration**: Defines a SystemC module named `SimpleInterestCalculator`.
+- **Ports**: Declares input ports `P`, `R`, and `T` and an output port `SI` to match the provided signals.
+- **Constructor**: Sets up the sensitivity list for the `calculate` method, which triggers whenever any of the input ports change.
+- **calculate Method**: Reads the values from the input ports, computes the simple interest, and writes the result to the output port.
+- **TopModule**: An additional module for testing purposes, instantiates the `SimpleInterestCalculator`, connects signals, and initializes them for testing.
+- **sc_main Function**: Entry point for the SystemC simulation, instantiates the `TopModule` and starts the simulation.
+
+This SystemC code is designed to be integrated into a larger system where the `P`, `R`, and `T` signals are driven by other components, and the `SI` signal can be observed or used in subsequent processing stages.

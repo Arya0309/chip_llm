@@ -1,0 +1,210 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: The input to this program is an integer array `nums` initialized with `{1, 12, 6, 8, 10}`. The length of the array is determined at runtime.
+- **Outputs**: The program prints the array before and after sorting it in ascending order using the bubble sort algorithm.
+
+#### Line-by-Line/Block-by-Block Explanation
+
+1. **Include Directives and Namespace**:
+    ```cpp
+    #include <bits/stdc++.h>
+    using namespace std;
+    ```
+    - Includes all standard C++ libraries.
+    - Uses the standard namespace to avoid prefixing standard library functions with `std::`.
+
+2. **Function Declarations**:
+    ```cpp
+    void sort(int num[], int len);
+    void swapNums(int nums[], int first, int second);
+    ```
+    - Declares the `sort` function which takes an integer array and its length as arguments.
+    - Declares the `swapNums` function which swaps two elements in the array given their indices.
+
+3. **Main Function**:
+    ```cpp
+    int main()
+    {
+        // Initializing array
+        int nums[] = {1, 12, 6, 8, 10};
+        int size_nums = (sizeof(nums) / sizeof(nums[0]));
+    ```
+    - Initializes an integer array `nums` with values `{1, 12, 6, 8, 10}`.
+    - Calculates the number of elements in the array `nums`.
+
+    ```cpp
+        cout << "Before sorting the array is: \n";
+        for (int i = 0; i < size_nums; i++)
+            cout << nums[i] << " ";
+        cout << "\n\n";
+    ```
+    - Prints the array before sorting.
+
+    ```cpp
+        sort(nums, size_nums);
+    ```
+    - Calls the `sort` function to sort the array in ascending order.
+
+    ```cpp
+        cout << "After sorting the array is: \n";
+        for (int i = 0; i < size_nums; i++)
+            cout << nums[i] << " ";
+        cout << "\n";
+        return 0;
+    }
+    ```
+    - Prints the array after sorting.
+    - Returns 0 indicating successful execution.
+
+4. **Sort Function**:
+    ```cpp
+    void sort(int num[], int len)
+    {
+        bool isSwapped;
+    ```
+    - Defines a boolean variable `isSwapped` to track whether any elements were swapped during a pass.
+
+    ```cpp
+        /**
+        * Here we are running n-1 steps, 
+        for each step, max item will 
+        come at the last respective 
+        index and swap element if the 
+        element is smaller than the 
+        previous one.
+        **/
+        for (int i = 0; i < len; i++) 
+        {
+            isSwapped = false;
+            for (int j = 1; j < len - i; j++) 
+            {
+                if (num[j] < num[j - 1]) 
+                {
+                    swapNums(num, j, (j - 1));
+                    isSwapped = true;
+                }
+            }
+            if (!isSwapped) 
+            {
+                break;
+            }
+        }
+    }
+    ```
+    - Implements the bubble sort algorithm.
+    - Outer loop runs `len` times.
+    - Inner loop compares adjacent elements and swaps them if they are in the wrong order.
+    - If no elements are swapped in an inner loop iteration, the array is sorted, and the loop breaks early.
+
+5. **Swap Function**:
+    ```cpp
+    void swapNums(int nums[], int first, int second)
+    {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
+    ```
+    - Swaps the elements at indices `first` and `second` in the array `nums`.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same bubble sort operation. It incorporates the provided signals (`clk`, `start`, `done`) for testbench integration.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    SC_CTOR(BubbleSort) {
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+private:
+    enum State { IDLE, SORTING, DONE };
+    State state;
+    int nums[5]; // Assuming a fixed size array for simplicity
+    int size_nums;
+    int i, j;
+    bool isSwapped;
+
+    void sort_process() {
+        switch (state) {
+            case IDLE:
+                if (start.read()) {
+                    state = SORTING;
+                    // Initialize array and variables
+                    nums[0] = 1; nums[1] = 12; nums[2] = 6; nums[3] = 8; nums[4] = 10;
+                    size_nums = 5;
+                    i = 0;
+                    isSwapped = false;
+                }
+                done.write(false);
+                break;
+
+            case SORTING:
+                if (i < size_nums) {
+                    if (j < size_nums - i) {
+                        if (nums[j] < nums[j - 1]) {
+                            int temp = nums[j];
+                            nums[j] = nums[j - 1];
+                            nums[j - 1] = temp;
+                            isSwapped = true;
+                        }
+                        j++;
+                    } else {
+                        if (!isSwapped) {
+                            state = DONE;
+                        } else {
+                            i++;
+                            j = 1;
+                            isSwapped = false;
+                        }
+                    }
+                }
+                done.write(false);
+                break;
+
+            case DONE:
+                done.write(true);
+                state = IDLE;
+                break;
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    BubbleSort sorter("sorter");
+    sc_signal<bool> clk;
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Clock generation
+    sc_start(0, SC_NS);
+    while (true) {
+        clk = 0; sc_start(1, SC_NS);
+        clk = 1; sc_start(1, SC_NS);
+    }
+
+    return 0;
+}
+```
+
+#### Explanation of SystemC Code
+- **Module Definition**: The `BubbleSort` module is defined with three signals: `clk`, `start`, and `done`.
+- **State Machine**: The module uses a state machine to handle different stages of the sorting process: `IDLE`, `SORTING`, and `DONE`.
+- **Initialization**: When `start` is high, the module initializes the array and starts the sorting process.
+- **Sorting Process**: The sorting logic is implemented within the `SORTING` state, using nested loops similar to the C++ implementation.
+- **Completion**: Once sorting is complete, the `DONE` state is reached, and the `done` signal is set high, indicating completion.
+- **Clock Generation**: A simple clock generator is included in the `sc_main` function to toggle the `clk` signal periodically.

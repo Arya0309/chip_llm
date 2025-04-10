@@ -1,0 +1,100 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ```json
+{
+  "inputs": [
+    {
+      "name": "key",
+      "description": "The integer value to search for in the data vector."
+    },
+    {
+      "name": "data",
+      "description": "A vector of integers where the search will be performed."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "index",
+      "description": "The position (0-based index) of the key in the data vector if found, otherwise -1."
+    }
+  ],
+  "summary": {
+    "line_by_line": [
+      {
+        "line": "int linearSearch(vector<int> v, int key) {",
+        "description": "Function definition for linear search which takes a vector of integers and a key to search for."
+      },
+      {
+        "line": "for (int i = 0; i < v.size(); i++) {",
+        "description": "Loop through each element of the vector v."
+      },
+      {
+        "line": "if (v[i] == key) {",
+        "description": "Check if the current element matches the key."
+      },
+      {
+        "line": "return i;",
+        "description": "Return the index if the key is found."
+      },
+      {
+        "line": "}",
+        "description": "End of if block."
+      },
+      {
+        "line": "}",
+        "description": "End of for loop."
+      },
+      {
+        "line": "return -1;",
+        "description": "Return -1 if the key is not found after checking all elements."
+      },
+      {
+        "line": "}",
+        "description": "End of function linearSearch."
+      },
+      {
+        "line": "int main() {",
+        "description": "Main function where the program execution starts."
+      },
+      {
+        "line": "vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};",
+        "description": "Initialize a vector v with predefined values."
+      },
+      {
+        "line": "int key = 8;",
+        "description": "Define the key value to search for."
+      },
+      {
+        "line": "int i = linearSearch(v, key);",
+        "description": "Call the linearSearch function and store the result in i."
+      },
+      {
+        "line": "if (i != -1)",
+        "description": "Check if the key was found (i.e., i is not -1)."
+      },
+      {
+        "line": "cout << key << \" Found at Position: \" << i + 1;",
+        "description": "Print the position where the key was found (1-based index)."
+      },
+      {
+        "line": "else",
+        "description": "If the key was not found."
+      },
+      {
+        "line": "cout << key << \" NOT found.\";",
+        "description": "Print that the key was not found."
+      },
+      {
+        "line": "return 0;",
+        "description": "Return 0 indicating successful execution."
+      },
+      {
+        "line": "}",
+        "description": "End of main function."
+      }
+    ]
+  },
+  "systemc_code": {
+    "code_snippet": "```cpp\n#include <systemc.h>\n\nSC_MODULE(LinearSearch) {\n    sc_in<int> key;\n    sc_out<int> index;\n    sc_vector< sc_in<int> > data;\n\n    SC_CTOR(LinearSearch) : data(\"data\", 8) {\n        SC_METHOD(search);\n        sensitive << key;\n        for (int i = 0; i < data.size(); i++) {\n            sensitive << data[i];\n        }\n    }\n\n    void search() {\n        int foundIndex = -1;\n        for (int i = 0; i < data.size(); i++) {\n            if (data[i].read() == key.read()) {\n                foundIndex = i;\n                break;\n            }\n        }\n        index.write(foundIndex);\n    }\n};\n\nSC_MODULE(testbench) {\n    sc_signal<int> key;\n    sc_signal<int> index;\n    sc_vector< sc_signal<int> > data;\n\n    LinearSearch *ls;\n\n    SC_CTOR(testbench) : data(\"data\", 8) {\n        ls = new LinearSearch(\"ls\");\n        ls->key(key);\n        ls->index(index);\n        for (int i = 0; i < data.size(); i++) {\n            ls->data[i](data[i]);\n        }\n\n        SC_THREAD(stimulus);\n        SC_THREAD(checker);\n    }\n\n    void stimulus() {\n        data[0].write(1);\n        data[1].write(2);\n        data[2].write(3);\n        data[3].write(4);\n        data[4].write(5);\n        data[5].write(8);\n        data[6].write(9);\n        data[7].write(11);\n        key.write(8);\n        wait(10, SC_NS);\n        sc_stop();\n    }\n\n    void checker() {\n        wait(10, SC_NS);\n        if (index.read() != -1) {\n            cout << \"Key found at position: \" << index.read() + 1 << endl;\n        } else {\n            cout << \"Key NOT found.\" << endl;\n        }\n    }\n};\n\nint sc_main(int argc, char* argv[]) {\n    testbench tb(\"tb\");\n    sc_start();\n    return 0;\n}\n```"
+  }
+}
+```

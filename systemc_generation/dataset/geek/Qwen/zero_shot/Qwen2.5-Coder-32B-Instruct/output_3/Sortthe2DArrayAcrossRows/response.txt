@@ -1,0 +1,205 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!register
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - A 2D matrix `m` of integers.
+  - The number of rows `r` and columns `c` in the matrix.
+- **Outputs**:
+  - The function sorts each row of the matrix in ascending order and prints the sorted matrix.
+
+#### Detailed Line-by-Line Explanation
+
+1. **Include Directives and Namespace**:
+   ```cpp
+   #include<bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes all standard libraries and uses the standard namespace.
+
+2. **Swap Function**:
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - A simple function to swap two integer values pointed to by `xp` and `yp`.
+
+3. **Sorting Function**:
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   ```
+   - Declares a function `sortRowWise` that takes a 2D matrix `m`, number of rows `r`, and number of columns `c`.
+   
+4. **Outer Loop for Rows**:
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   ```
+   - Iterates over each row of the matrix.
+
+5. **Middle Loop for Columns**:
+   ```cpp
+   for (int j = 0; j < c; j++) 
+   ```
+   - Iterates over each column within the current row.
+
+6. **Inner Loop for Comparison and Swapping**:
+   ```cpp
+   for (int k = 0; k < c - j - 1; k++) 
+   {
+       if (m[i][k] > m[i][k + 1]) 
+       {
+           swap(m[i][k], m[i][k + 1]);
+       }
+   }
+   ```
+   - Compares adjacent elements in the row and swaps them if they are in the wrong order. This is a basic implementation of the bubble sort algorithm.
+
+7. **Printing Sorted Matrix**:
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   {
+       for (int j = 0; j < c; j++)
+           cout << m[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - Prints the sorted matrix row by row.
+
+8. **Driver Code**:
+   ```cpp
+   int main()
+   {
+       int m[][4] = {{9, 8, 7, 1},
+                     {7, 3, 0, 2},
+                     {9, 5, 3, 2},
+                     {6, 3, 1, 2}};
+       int c = sizeof(m[0]) / sizeof(m[0][0]);
+       int r = sizeof(m) / sizeof(m[0]);
+       sortRowWise(m, r, c);
+       return 0;
+   }
+   ```
+   - Initializes a 4x4 matrix `m` with predefined values.
+   - Calculates the number of rows and columns.
+   - Calls `sortRowWise` to sort the matrix and print it.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code snippet that captures the logic of the original C++ code and integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;         // Done signal
+
+    SC_CTOR(MatrixSorter) {
+        SC_METHOD(sort_matrix);
+        sensitive << start.pos();
+        dont_initialize();
+    }
+
+    void sort_matrix() {
+        // Define the matrix and its dimensions
+        const int ROWS = 4;
+        const int COLS = 4;
+        int m[ROWS][COLS] = {{9, 8, 7, 1},
+                             {7, 3, 0, 2},
+                             {9, 5, 3, 2},
+                             {6, 3, 1, 2}};
+
+        // Perform row-wise sorting
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLS; j++) {
+                for (int k = 0; k < COLS - j - 1; k++) {
+                    if (m[i][k] > m[i][k + 1]) {
+                        // Swap elements
+                        int temp = m[i][k];
+                        m[i][k] = m[i][k + 1];
+                        m[i][k + 1] = temp;
+                    }
+                }
+            }
+        }
+
+        // Indicate sorting is done
+        done.write(true);
+
+        // Print the sorted matrix (for verification purposes)
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLS; j++) {
+                cout << m[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    MatrixSorter sorter("sorter");
+    sc_signal<bool> clk;
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Initialize signals
+    clk = false;
+    start = false;
+    done = false;
+
+    // Simulate a clock cycle
+    sc_start(0, SC_NS);
+    clk = true;
+    sc_start(1, SC_NS);
+    clk = false;
+    sc_start(1, SC_NS);
+
+    // Trigger start signal
+    start = true;
+    sc_start(1, SC_NS);
+    start = false;
+    sc_start(1, SC_NS);
+
+    // Wait for done signal
+    while (!done.read()) {
+        sc_start(1, SC_NS);
+    }
+
+    sc_stop();
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   - `MatrixSorter` is declared as a SystemC module with input signals `clk` and `start`, and an output signal `done`.
+
+2. **Constructor**:
+   - The constructor sets up a method `sort_matrix` to be triggered on the positive edge of the `start` signal.
+
+3. **sort_matrix Method**:
+   - Initializes a 4x4 matrix with predefined values.
+   - Implements row-wise sorting using nested loops and a simple swap mechanism.
+   - Sets the `done` signal to `true` after sorting is complete.
+   - Prints the sorted matrix to verify correctness.
+
+4. **Main Function**:
+   - Instantiates the `MatrixSorter` module and connects it to the signals.
+   - Initializes the signals and simulates a few clock cycles.
+   - Triggers the `start` signal to begin sorting.
+   - Waits for the `done` signal to confirm completion of sorting.
+
+This SystemC code faithfully replicates the logic of the original C++ code while adhering to the provided signals for seamless integration into an existing testbench.

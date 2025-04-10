@@ -1,0 +1,135 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! **Inputs and Outputs**:
+- **Inputs**: None explicitly mentioned in the code, but conceptually, the input is the array `original_arr` which contains the elements `{1, 2, 3, 4, 5}`.
+- **Outputs**: The outputs are the printed arrays, where the first printed array is the original array and the second printed array is the reversed version of the original array.
+
+ **Line-by-Line Summary**:
+1. **Include the standard I/O library**:
+   ```c
+   #include <stdio.h>
+   ```
+   This line includes the standard input-output library which is used for printing the arrays.
+
+2. **Function to print the array**:
+   ```c
+   void printArray(int arr[], int len)
+   ```
+   This function takes an integer array and its length as arguments and prints each element of the array separated by a space.
+
+3. **Driver code**:
+   ```c
+   int main()
+   ```
+   The main function serves as the entry point of the program.
+
+4. **Declare and initialize the original array**:
+   ```c
+   int original_arr[] = {1, 2, 3, 4, 5};
+   ```
+   This line declares and initializes the original array with the values `{1, 2, 3, 4, 5}`.
+
+5. **Calculate the length of the original array**:
+   ```c
+   int len = sizeof(original_arr)/sizeof(original_arr[0]);
+   ```
+   This line calculates the length of the original array by dividing the total size of the array by the size of one element.
+
+6. **Declare the copied array**:
+   ```c
+   int copied_arr[len];
+   ```
+   This line declares an array `copied_arr` of the same length as the original array.
+
+7. **Copy the elements of the array in reverse order**:
+   ```c
+   for (i = 0; i < len; i++) {
+       copied_arr[i] = original_arr[len - i - 1];
+   }
+   ```
+   This loop iterates over the original array and copies each element to the `copied_arr` in reverse order.
+
+8. **Print the original array**:
+   ```c
+   printf("Original array: ");
+   printArray(original_arr, len);
+   ```
+   This line prints the label "Original array: " followed by the elements of the original array using the `printArray` function.
+
+9. **Print the copied array**:
+   ```c
+   printf("Resultant array: ");
+   printArray(copied_arr, len);
+   ```
+   This line prints the label "Resultant array: " followed by the elements of the `copied_arr` using the `printArray` function.
+
+10. **Return statement**:
+    ```c
+    return 0;
+    ```
+    This line returns 0, indicating successful execution of the program.
+
+ **SystemC Code Snippet**:
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayReversal) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    int original_arr[5] = {1, 2, 3, 4, 5};
+    int copied_arr[5];
+    int len = 5;
+    bool running;
+
+    SC_CTOR(ArrayReversal) : running(false) {
+        SC_THREAD(process);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void process() {
+        while (true) {
+            wait(); // Wait for the rising edge of the clock
+
+            if (start.read()) {
+                running = true;
+                // Copy the elements of the array in reverse order
+                for (int i = 0; i < len; i++) {
+                    copied_arr[i] = original_arr[len - i - 1];
+                }
+                done.write(true);
+            } else {
+                done.write(false);
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    ArrayReversal array_reversal("array_reversal");
+    sc_clock clk("clk", 10, SC_NS); // 10 ns period
+    sc_signal<bool> start("start");
+    sc_signal<bool> done("done");
+
+    array_reversal.clk(clk);
+    array_reversal.start(start);
+    array_reversal.done(done);
+
+    // Testbench
+    start.write(false);
+    sc_start(10, SC_NS);
+    start.write(true);
+    sc_start(10, SC_NS);
+    start.write(false);
+    sc_start(10, SC_NS);
+
+    return 0;
+}
+```
+
+ **Explanation of SystemC Code**:
+- **Module Declaration**: The `ArrayReversal` module is declared with input and output signals.
+- **Constructor**: The constructor sets up the thread `process` to be sensitive to the positive edge of the clock.
+- **Process Method**: The `process` method waits for the clock edge and checks the `start` signal. If `start` is true, it copies the elements of `original_arr` into `copied_arr` in reverse order and sets `done` to true. If `start` is false, it sets `done` to false.
+- **Testbench**: The testbench initializes the signals and starts the simulation, setting the `start` signal to true to trigger the array reversal process.

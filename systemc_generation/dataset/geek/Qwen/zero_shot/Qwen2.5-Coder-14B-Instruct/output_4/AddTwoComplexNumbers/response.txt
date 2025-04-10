@@ -1,0 +1,116 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs Analysis**:
+   - **Inputs**: 
+     - `real1` and `imag1`: Represent the real and imaginary parts of the first complex number.
+     - `real2` and `imag2`: Represent the real and imaginary parts of the second complex number.
+   - **Outputs**:
+     - `real_sum`: Represents the real part of the sum of the two complex numbers.
+     - `imag_sum`: Represents the imaginary part of the sum of the two complex numbers.
+
+2. **Line-by-Line Summary**:
+   - The code defines a `Complex` class to handle complex numbers with real and imaginary parts.
+   - The `Complex` class has a constructor to initialize the real and imaginary parts.
+   - The `addComp` method is defined to add two complex numbers and return their sum.
+   - In the `main` function:
+     - Two complex numbers `C1` and `C2` are initialized.
+     - Their values are printed.
+     - A third complex number `C3` is declared to store the result of the addition.
+     - The `addComp` method is called with `C1` and `C2` as arguments, and the result is stored in `C3`.
+     - The result is then printed.
+
+3. **SystemC Code Snippet**:
+   Below is the equivalent SystemC code snippet that performs the same operations as the provided C++ code. It uses the specified signals for input and output.
+
+```cpp
+#include <systemc.h>
+
+// SystemC Module Definition
+SC_MODULE(ComplexAdder) {
+    // Input and Output Ports
+    sc_in<int> real1;
+    sc_in<int> imag1;
+    sc_in<int> real2;
+    sc_in<int> imag2;
+    sc_out<int> real_sum;
+    sc_out<int> imag_sum;
+
+    // Constructor
+    SC_CTOR(ComplexAdder) {
+        // Process to perform addition
+        SC_METHOD(addComplex);
+        sensitive << real1 << imag1 << real2 << imag2;
+    }
+
+    // Method to add complex numbers
+    void addComplex() {
+        // Temporary variables for real and imaginary parts
+        int temp_real = real1.read() + real2.read();
+        int temp_imag = imag1.read() + imag2.read();
+
+        // Writing the results to output ports
+        real_sum.write(temp_real);
+        imag_sum.write(temp_imag);
+    }
+};
+
+// Testbench Module
+SC_MODULE(Testbench) {
+    // Instantiate the ComplexAdder module
+    ComplexAdder adder;
+
+    // Signals
+    sc_signal<int> real1;
+    sc_signal<int> imag1;
+    sc_signal<int> real2;
+    sc_signal<int> imag2;
+    sc_signal<int> real_sum;
+    sc_signal<int> imag_sum;
+
+    // Constructor
+    SC_CTOR(Testbench) : adder("adder") {
+        // Connect signals
+        adder.real1(real1);
+        adder.imag1(imag1);
+        adder.real2(real2);
+        adder.imag2(imag2);
+        adder.real_sum(real_sum);
+        adder.imag_sum(imag_sum);
+
+        // Stimulus process
+        SC_THREAD(stimulus);
+    }
+
+    // Stimulus thread
+    void stimulus() {
+        // Initialize inputs
+        real1.write(3);
+        imag1.write(2);
+        real2.write(9);
+        imag2.write(5);
+
+        // Wait for some time to allow computation
+        wait(10, SC_NS);
+
+        // Print results
+        cout << "Complex number 1 : " << real1.read() << " + i" << imag1.read() << endl;
+        cout << "Complex number 2 : " << real2.read() << " + i" << imag2.read() << endl;
+        cout << "Sum of complex number : " << real_sum.read() << " + i" << imag_sum.read() << endl;
+
+        // Finish simulation
+        sc_stop();
+    }
+};
+
+// Main Function
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the testbench
+    Testbench tb("tb");
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+This SystemC code defines a `ComplexAdder` module that takes four input signals (`real1`, `imag1`, `real2`, `imag2`) and produces two output signals (`real_sum`, `imag_sum`). The `Testbench` module initializes the inputs, connects them to the `ComplexAdder`, and prints the results.

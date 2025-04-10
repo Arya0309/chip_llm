@@ -1,0 +1,243 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!4
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: A 2D array `m` of size `n x n` (where `n` is defined as 4). This array is hardcoded in the `main` function.
+- **Outputs**: The modified 2D array `m` after swapping the first and last columns. The output is displayed in the console.
+
+#### Line-by-Line Explanation
+1. **Include and Namespace**:
+   ```cpp
+   #include <iostream> 
+   using namespace std;
+   ```
+   - This includes the iostream library for input/output operations and uses the standard namespace.
+
+2. **Macro Definition**:
+   ```cpp
+   #define n 4
+   ```
+   - Defines a constant `n` to be 4, which represents the size of the square matrix.
+
+3. **Function Declaration**:
+   ```cpp
+   void interchangeFirstLast(int m[][n])
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` as an argument.
+
+4. **Loop for Swapping Columns**:
+   ```cpp
+   for (int i = 0; i < n; i++)
+   {
+       int t = m[i][0];
+       m[i][0] = m[i][n - 1];
+       m[i][n - 1] = t;
+   }
+   ```
+   - Iterates over each row of the matrix.
+   - Swaps the elements in the first and last columns of each row using a temporary variable `t`.
+
+5. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int m[n][n] = {{8, 9, 7, 6},
+                     {4, 7, 6, 5},
+                     {3, 2, 1, 8},
+                     {9, 9, 7, 7}};
+   ```
+   - Initializes a 4x4 matrix `m` with predefined values.
+
+6. **Function Call**:
+   ```cpp
+   interchangeFirstLast(m);
+   ```
+   - Calls the `interchangeFirstLast` function to swap the first and last columns of the matrix.
+
+7. **Printing the Matrix**:
+   ```cpp
+   for (int i = 0; i < n; i++)
+   {
+       for (int j = 0; j < n; j++)
+           cout << m[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - Nested loops to print each element of the modified matrix, row by row.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that performs the same functionality as the provided C++/C code:
+
+```cpp
+#include <systemc.h>
+
+#define SIZE 4
+
+SC_MODULE(MatrixSwap) {
+    sc_in<int> in[SIZE];
+    sc_out<int> out[SIZE];
+
+    SC_CTOR(MatrixSwap) {
+        SC_THREAD(process);
+    }
+
+    void process() {
+        // Create a local copy of the input matrix
+        int m[SIZE][SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            m[i][0] = in[i].read();
+            for (int j = 1; j < SIZE - 1; j++) {
+                m[i][j] = in[i + SIZE * j].read();
+            }
+            m[i][SIZE - 1] = in[i + SIZE * (SIZE - 1)].read();
+        }
+
+        // Swap the first and last columns
+        for (int i = 0; i < SIZE; i++) {
+            int t = m[i][0];
+            m[i][0] = m[i][SIZE - 1];
+            m[i][SIZE - 1] = t;
+        }
+
+        // Write the modified matrix to the output
+        for (int i = 0; i < SIZE; i++) {
+            out[i].write(m[i][0]);
+            for (int j = 1; j < SIZE - 1; j++) {
+                out[i + SIZE * j].write(m[i][j]);
+            }
+            out[i + SIZE * (SIZE - 1)].write(m[i][SIZE - 1]);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    MatrixSwap matrix_swap("matrix_swap");
+
+    sc_signal<int> in_signals[SIZE];
+    sc_signal<int> out_signals[SIZE];
+
+    // Initialize input signals
+    for (int i = 0; i < SIZE; i++) {
+        in_signals[i] = i; // Example initialization
+    }
+
+    // Bind signals
+    for (int i = 0; i < SIZE; i++) {
+        matrix_swap.in[i](in_signals[i]);
+        matrix_swap.out[i](out_signals[i]);
+    }
+
+    sc_start();
+
+    // Print output signals
+    for (int i = 0; i < SIZE; i++) {
+        cout << out_signals[i].read() << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(MatrixSwap) {
+   ```
+   - Defines a SystemC module named `MatrixSwap`.
+
+2. **Input and Output Ports**:
+   ```cpp
+   sc_in<int> in[SIZE];
+   sc_out<int> out[SIZE];
+   ```
+   - Declares input and output ports for the module.
+
+3. **Constructor**:
+   ```cpp
+   SC_CTOR(MatrixSwap) {
+       SC_THREAD(process);
+   }
+   ```
+   - Registers the `process` method as a thread within the module.
+
+4. **Process Method**:
+   ```cpp
+   void process() {
+   ```
+   - Contains the logic for reading input, processing the matrix, and writing output.
+
+5. **Reading Input Signals**:
+   ```cpp
+   int m[SIZE][SIZE];
+   for (int i = 0; i < SIZE; i++) {
+       m[i][0] = in[i].read();
+       for (int j = 1; j < SIZE - 1; j++) {
+           m[i][j] = in[i + SIZE * j].read();
+       }
+       m[i][SIZE - 1] = in[i + SIZE * (SIZE - 1)].read();
+   }
+   ```
+   - Reads the input signals into a local 2D array `m`.
+
+6. **Swapping Columns**:
+   ```cpp
+   for (int i = 0; i < SIZE; i++) {
+       int t = m[i][0];
+       m[i][0] = m[i][SIZE - 1];
+       m[i][SIZE - 1] = t;
+   }
+   ```
+   - Swaps the first and last columns of the matrix.
+
+7. **Writing Output Signals**:
+   ```cpp
+   for (int i = 0; i < SIZE; i++) {
+       out[i].write(m[i][0]);
+       for (int j = 1; j < SIZE - 1; j++) {
+           out[i + SIZE * j].write(m[i][j]);
+       }
+       out[i + SIZE * (SIZE - 1)].write(m[i][SIZE - 1]);
+   }
+   ```
+   - Writes the modified matrix back to the output signals.
+
+8. **Main Function**:
+   ```cpp
+   int sc_main(int argc, char* argv[]) {
+       MatrixSwap matrix_swap("matrix_swap");
+
+       sc_signal<int> in_signals[SIZE];
+       sc_signal<int> out_signals[SIZE];
+
+       // Initialize input signals
+       for (int i = 0; i < SIZE; i++) {
+           in_signals[i] = i; // Example initialization
+       }
+
+       // Bind signals
+       for (int i = 0; i < SIZE; i++) {
+           matrix_swap.in[i](in_signals[i]);
+           matrix_swap.out[i](out_signals[i]);
+       }
+
+       sc_start();
+
+       // Print output signals
+       for (int i = 0; i < SIZE; i++) {
+           cout << out_signals[i].read() << " ";
+       }
+       cout << endl;
+
+       return 0;
+   }
+   ```
+   - Initializes the SystemC simulation environment.
+   - Creates instances of the input and output signals.
+   - Binds the signals to the module's ports.
+   - Starts the simulation and prints the output signals.
+
+This SystemC code replicates the functionality of the original C++/C code while adhering to the requirements of integrating with the provided testbench signals.

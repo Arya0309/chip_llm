@@ -8,6 +8,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
 
+
 current_dir = os.path.dirname(os.path.realpath(__file__))
 dataset_dir = os.path.join(current_dir, "dataset")
 
@@ -21,6 +22,7 @@ def generate_systemc(
     for i, row in tqdm(df.iterrows(), desc="Generating Embeddings"):
         if row["adoption"] == True:
             prompt = row["prompt"]
+            print(prompt)
             input = tokenizer.apply_chat_template(
                 prompt, tokenize=False, add_generation_prompt=True
             )
@@ -73,16 +75,16 @@ def response_extractor(response: str) -> str:
     pattern = r"<\|im_start\|>assistant(.*?)<\|im_end\|>"
     if re.search(pattern, response, re.DOTALL):
         matches = re.findall(pattern, response, re.DOTALL)
+        return matches[0]
     else:
         print(response)
-        raise Exception("Format Error: Missing assistant response.")
-    return matches[0]
+        warnings.warn("Warning: No response found in the output.")
+        return ""  # No response found
 
 
 def code_extractor(response: str, true_module_name) -> str:
     pattern_1 = r"```cpp(.*?)```"
     pattern_2 = r"```(.*?)```"
-    print(response)
 
     def pattern_extractor(pattern, response):
         matches = re.findall(pattern, response, re.DOTALL)
@@ -173,9 +175,9 @@ def output_dir_generator(
 
 if __name__ == "__main__":
 
-    model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"  # Qwen/Qwen2.5-Coder-7B-Instruct, Qwen/Qwen2.5-Coder-14B-Instruct, Qwen/Qwen2.5-Coder-32B-Instruct
+    model_name = "Qwen/Qwen2.5-Coder-14B-Instruct"  # Qwen/Qwen2.5-Coder-7B-Instruct, Qwen/Qwen2.5-Coder-14B-Instruct, Qwen/Qwen2.5-Coder-32B-Instruct
     dataset = "geek"
-    data = "one_shot.json"
+    data = "zero_shot.json"
     dtype = None  # float16, bfloat16, None
     epoach = 4
 
@@ -205,10 +207,10 @@ if __name__ == "__main__":
             device_map="auto",
         )
 
-    for i in range(1, epoach + 1):
+    for i in range(2, epoach + 1):
         print(f"Epoch {i} / {epoach}")
         df_output = generate_systemc(
-            os.path.join(dataset, data), model=model, tokenizer=tokenizer, batch_size=16
+            os.path.join(dataset, data), model=model, tokenizer=tokenizer, batch_size=11
         )
         output_dir_generator(
             df_output, dataset, output_data_dir=f"{model_name}/output_{i}"

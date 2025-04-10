@@ -1,0 +1,139 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! **Analysis of the Provided C++/C Code**
+
+1. **Inputs and Outputs**:
+   - **Inputs**: None explicitly defined in the code. The array `arr` is hardcoded within the `main` function.
+   - **Outputs**: The minimum and maximum values of the array, printed to the console.
+
+2. **Code Breakdown**:
+   - **Line 1-4**: Include necessary headers and use the standard namespace.
+   - **Line 6-8**: Function `getMin` that takes an array and its size, returning the minimum element using `std::min_element`.
+   - **Line 10-12**: Function `getMax` that takes an array and its size, returning the maximum element using `std::max_element`.
+   - **Line 14-23**: `main` function:
+     - Initializes an array `arr` with predefined values.
+     - Calculates the number of elements `n` in the array.
+     - Calls `getMin` and `getMax` functions to find the minimum and maximum values.
+     - Prints the results to the console.
+
+**SystemC Code Equivalent**
+
+To translate the given C++/C code into SystemC, we need to define the required signals and implement the logic within a SystemC module. The SystemC code will use the provided signals (`clk`, `start`, `done`, `min_val`, `max_val`) to integrate with the existing testbench.
+
+Here is the SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayMinMax) {
+    // Input signals
+    sc_in<bool> clk;
+    sc_in<bool> start;
+
+    // Output signals
+    sc_out<bool> done;
+    sc_out<int> min_val;
+    sc_out<int> max_val;
+
+    // Internal variables
+    int arr[5] = {12, 1234, 45, 67, 1};
+    int n = 5;
+    bool processing = false;
+
+    // Process to handle the logic
+    void process() {
+        while (true) {
+            wait(); // Wait for the clock edge
+            if (start.read() && !processing) {
+                processing = true;
+                int min_value = *std::min_element(arr, arr + n);
+                int max_value = *std::max_element(arr, arr + n);
+                min_val.write(min_value);
+                max_val.write(max_value);
+                done.write(true);
+                processing = false;
+            }
+        }
+    }
+
+    // Constructor
+    SC_CTOR(ArrayMinMax) {
+        SC_THREAD(process);
+        sensitive << clk.pos();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    ArrayMinMax minmax("minmax");
+    sc_signal<bool> clk;
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+    sc_signal<int> min_val;
+    sc_signal<int> max_val;
+
+    // Connect signals
+    minmax.clk(clk);
+    minmax.start(start);
+    minmax.done(done);
+    minmax.min_val(min_val);
+    minmax.max_val(max_val);
+
+    // Initialize signals
+    clk.write(false);
+    start.write(false);
+    done.write(false);
+
+    // Clock generation
+    sc_process_handle clk_process = sc_spawn(sc_bind(&clock_gen, &clk));
+
+    // Start signal generation
+    sc_process_handle start_process = sc_spawn(sc_bind(&start_gen, &start));
+
+    // Simulation
+    sc_start(10, SC_NS);
+
+    return 0;
+}
+
+void clock_gen(sc_signal<bool>* clk) {
+    while (true) {
+        *clk = !(*clk);
+        wait(5, SC_NS);
+    }
+}
+
+void start_gen(sc_signal<bool>* start) {
+    wait(2, SC_NS);
+    *start = true;
+    wait(10, SC_NS);
+    *start = false;
+}
+```
+
+**Explanation of the SystemC Code**:
+
+1. **Module Definition**:
+   - `ArrayMinMax` is a SystemC module that encapsulates the logic of finding the minimum and maximum values in an array.
+   - It includes input signals (`clk`, `start`) and output signals (`done`, `min_val`, `max_val`).
+
+2. **Internal Variables**:
+   - An array `arr` is defined with hardcoded values.
+   - The size of the array `n` is set to 5.
+   - A boolean variable `processing` is used to manage the state of the process.
+
+3. **Process Method**:
+   - The `process` method runs continuously, waiting for the rising edge of the clock (`clk`).
+   - When the `start` signal is asserted and the module is not already processing, it calculates the minimum and maximum values using `std::min_element` and `std::max_element`.
+   - The results are written to the `min_val` and `max_val` signals, and the `done` signal is asserted to indicate completion.
+
+4. **Constructor**:
+   - The constructor sets up the `process` thread to run sensitive to the positive edge of the clock.
+
+5. **Main Function**:
+   - The `sc_main` function initializes the module and signals, connects them, and starts the simulation.
+   - Separate processes are spawned to generate the clock and start signals.
+
+6. **Clock and Start Signal Generation**:
+   - The `clock_gen` function toggles the `clk` signal every 5 ns.
+   - The `start_gen` function asserts the `start` signal for a short duration after a delay.
+
+This SystemC code faithfully replicates the logic of the original C++/C code, using the provided signals for integration with the testbench.

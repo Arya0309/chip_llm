@@ -1,0 +1,149 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!provided C++/C code is a simple matrix multiplication program. Let's break down the code step-by-step to understand its functionality, inputs, and outputs.
+
+### Inputs and Outputs
+- **Inputs**: 
+  - Two matrices `mat1` (2x2) and `mat2` (2x3).
+- **Outputs**: 
+  - The result of multiplying `mat1` and `mat2`, which is a 2x3 matrix.
+
+### Detailed Explanation
+1. **Matrix Dimensions**:
+   ```cpp
+   #define R1 2 // number of rows in Matrix-1
+   #define C1 2 // number of columns in Matrix-1
+   #define R2 2 // number of rows in Matrix-2
+   #define C2 3 // number of columns in Matrix-2
+   ```
+   These macros define the dimensions of the matrices involved in the multiplication.
+
+2. **Function Definition**:
+   ```cpp
+   void mulMat(int mat1[][C1], int mat2[][C2])
+   ```
+   This function takes two matrices `mat1` and `mat2` as input and performs their multiplication.
+
+3. **Result Matrix Declaration**:
+   ```cpp
+   int rslt[R1][C2];
+   ```
+   A result matrix `rslt` is declared to store the product of `mat1` and `mat2`.
+
+4. **Matrix Multiplication Logic**:
+   ```cpp
+   for (int i = 0; i < R1; i++) {
+       for (int j = 0; j < C2; j++) {
+           rslt[i][j] = 0;
+           for (int k = 0; k < R2; k++) {
+               rslt[i][j] += mat1[i][k] * mat2[k][j];
+           }
+           cout << rslt[i][j] << "\t";
+       }
+       cout << endl;
+   }
+   ```
+   - The outer loop iterates over each row of `mat1`.
+   - The middle loop iterates over each column of `mat2`.
+   - The innermost loop performs the dot product of the row from `mat1` and the column from `mat2`.
+   - The result of the dot product is stored in `rslt[i][j]`.
+   - The result is printed after each element is computed.
+
+5. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int mat1[R1][C1] = { { 1, 1 }, { 2, 2 } };
+       int mat2[R2][C2] = { { 1, 1, 1 }, { 2, 2, 2 } };
+       if (C1 != R2) {
+           cout << "The number of columns in Matrix-1 must be equal to the number of rows in Matrix-2" << endl;
+           exit(EXIT_FAILURE);
+       }
+       mulMat(mat1, mat2);
+       return 0;
+   }
+   ```
+   - Initializes `mat1` and `mat2` with predefined values.
+   - Checks if the number of columns in `mat1` equals the number of rows in `mat2` (a requirement for matrix multiplication).
+   - Calls `mulMat` to perform the multiplication and print the result.
+
+### SystemC Equivalent Code
+Below is the SystemC equivalent code that performs the same matrix multiplication. It uses the provided signals for integration with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+#define SIZE_A 2
+#define SIZE_B 3
+#define SIZE_RESULT 3
+
+SC_MODULE(MatrixMultiplier) {
+    sc_in<int> A[SIZE_A];
+    sc_in<int> B[SIZE_B];
+    sc_out<int> C[SIZE_RESULT];
+
+    SC_CTOR(MatrixMultiplier) {
+        SC_METHOD(multiply);
+        sensitive << A[0] << A[1] << B[0] << B[1] << B[2] << B[3] << B[4] << B[5];
+    }
+
+    void multiply() {
+        int rslt[2][3];
+
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                rslt[i][j] = 0;
+                for (int k = 0; k < 2; k++) {
+                    rslt[i][j] += A[i*2 + k].read() * B[k*3 + j].read();
+                }
+                C[i*3 + j].write(rslt[i][j]);
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    MatrixMultiplier multiplier("multiplier");
+
+    sc_signal<int> A0, A1, A2, A3;
+    sc_signal<int> B0, B1, B2, B3, B4, B5;
+    sc_signal<int> C0, C1, C2, C3, C4, C5;
+
+    multiplier.A[0](A0);
+    multiplier.A[1](A1);
+    multiplier.A[2](A2);
+    multiplier.A[3](A3);
+    multiplier.B[0](B0);
+    multiplier.B[1](B1);
+    multiplier.B[2](B2);
+    multiplier.B[3](B3);
+    multiplier.B[4](B4);
+    multiplier.B[5](B5);
+    multiplier.C[0](C0);
+    multiplier.C[1](C1);
+    multiplier.C[2](C2);
+    multiplier.C[3](C3);
+    multiplier.C[4](C4);
+    multiplier.C[5](C5);
+
+    // Initialize input signals
+    A0.write(1); A1.write(1); A2.write(2); A3.write(2);
+    B0.write(1); B1.write(1); B2.write(1); B3.write(2); B4.write(2); B5.write(2);
+
+    // Start simulation
+    sc_start();
+
+    // Output results
+    cout << "Multiplication of given two matrices is:" << endl;
+    cout << C0.read() << "\t" << C1.read() << "\t" << C2.read() << endl;
+    cout << C3.read() << "\t" << C4.read() << "\t" << C5.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+- **Module Definition**: `MatrixMultiplier` is a SystemC module that performs matrix multiplication.
+- **Ports**: The module has input ports `A` and `B` and output ports `C`.
+- **Constructor**: Sensitive to changes in input ports.
+- **Method**: `multiply` performs the matrix multiplication and writes the results to the output ports.
+- **Simulation Setup**: The `sc_main` function initializes the module, sets up input signals, starts the simulation, and prints the results.

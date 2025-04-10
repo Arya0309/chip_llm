@@ -1,0 +1,176 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!define **Inputs** and **Outputs**:
+- **Inputs**: 
+  - A square matrix of integers (`mat`), which is a 2D array.
+  - The size of the matrix (`n`), indicating the number of rows (and columns since it's square).
+
+- **Outputs**:
+  - Sum of the principal diagonal elements of the matrix.
+  - Sum of the secondary diagonal elements of the matrix.
+
+### Detailed Line-by-Line Explanation:
+
+1. **Header and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std;
+   ```
+   - Includes all standard C++ libraries.
+   - Uses the `std` namespace to avoid prefixing standard library calls with `std::`.
+
+2. **Constant Definition**:
+   ```cpp
+   const int MAX = 100;
+   ```
+   - Defines a constant `MAX` set to 100, which is used as the maximum size of the matrix.
+
+3. **Function Definition**:
+   ```cpp
+   void printDiagonalSums(int mat[][MAX], int n)
+   ```
+   - Declares a function `printDiagonalSums` that takes a 2D integer array `mat` and an integer `n` representing the size of the matrix.
+
+4. **Variable Initialization**:
+   ```cpp
+   int principal = 0, secondary = 0;
+   ```
+   - Initializes two integer variables `principal` and `secondary` to zero. These will store the sums of the principal and secondary diagonals, respectively.
+
+5. **Nested Loops**:
+   ```cpp
+   for (int i = 0; i < n; i++) {
+       for (int j = 0; j < n; j++) {
+           // ...
+       }
+   }
+   ```
+   - Two nested loops iterate over each element of the matrix. The outer loop iterates over rows (`i`), and the inner loop iterates over columns (`j`).
+
+6. **Condition for Principal Diagonal**:
+   ```cpp
+   if (i == j)
+       principal += mat[i][j];
+   ```
+   - Checks if the current element is on the principal diagonal (where row index equals column index). If true, adds the element to `principal`.
+
+7. **Condition for Secondary Diagonal**:
+   ```cpp
+   if ((i + j) == (n - 1))
+       secondary += mat[i][j];
+   ```
+   - Checks if the current element is on the secondary diagonal (where the sum of row and column indices equals `n-1`). If true, adds the element to `secondary`.
+
+8. **Output Statements**:
+   ```cpp
+   cout << "Principal Diagonal:" << principal << endl;
+   cout << "Secondary Diagonal:" << secondary << endl;
+   ```
+   - Prints the sums of the principal and secondary diagonals.
+
+9. **Main Function**:
+   ```cpp
+   int main() {
+       int a[][MAX] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {1, 2, 3, 4}, {5, 6, 7, 8}};
+       printDiagonalSums(a, 4);
+       return 0;
+   }
+   ```
+   - Declares a 4x4 matrix `a` with predefined values.
+   - Calls `printDiagonalSums` with `a` and `4` as arguments.
+   - Returns 0 to indicate successful execution.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code snippet that replicates the functionality of the provided C++ code. It uses the specified signals for input and output.
+
+```cpp
+#include <systemc.h>
+
+template<int SIZE>
+SC_MODULE(DiagonalSum) {
+    sc_in<int> matrix[SIZE*SIZE];  // Flattened 2D array into 1D array
+    sc_out<int> principal;
+    sc_out<int> secondary;
+
+    SC_CTOR(DiagonalSum) {
+        SC_METHOD(computeDiagonalSums);
+        sensitive << matrix;  // Sensitive to changes in matrix input
+    }
+
+    void computeDiagonalSums() {
+        int principalSum = 0, secondarySum = 0;
+
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                int element = matrix[i * SIZE + j].read();  // Accessing flattened array
+
+                // Check for principal diagonal
+                if (i == j) {
+                    principalSum += element;
+                }
+
+                // Check for secondary diagonal
+                if ((i + j) == (SIZE - 1)) {
+                    secondarySum += element;
+                }
+            }
+        }
+
+        principal.write(principalSum);
+        secondary.write(secondarySum);
+    }
+};
+
+// Example usage in a testbench
+int sc_main(int argc, char* argv[]) {
+    const int SIZE = 4;
+    sc_signal<int> matrix[SIZE*SIZE];
+    sc_signal<int> principal, secondary;
+
+    DiagonalSum<SIZE> diagonalSum("diagonalSum");
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            diagonalSum.matrix[i * SIZE + j](matrix[i * SIZE + j]);
+        }
+    }
+    diagonalSum.principal(principal);
+    diagonalSum.secondary(secondary);
+
+    // Initialize matrix values
+    matrix[0].write(1); matrix[1].write(2); matrix[2].write(3); matrix[3].write(4);
+    matrix[4].write(5); matrix[5].write(6); matrix[6].write(7); matrix[7].write(8);
+    matrix[8].write(1); matrix[9].write(2); matrix[10].write(3); matrix[11].write(4);
+    matrix[12].write(5); matrix[13].write(6); matrix[14].write(7); matrix[15].write(8);
+
+    sc_start();
+
+    std::cout << "Principal Diagonal: " << principal.read() << std::endl;
+    std::cout << "Secondary Diagonal: " << secondary.read() << std::endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Definition**:
+  - `DiagonalSum` is a template module parameterized by `SIZE`, which represents the size of the matrix.
+  
+- **Signals**:
+  - `matrix`: An array of `sc_in<int>` signals representing the flattened 2D matrix.
+  - `principal` and `secondary`: Output signals for the sums of the principal and secondary diagonals, respectively.
+
+- **Constructor**:
+  - Registers `computeDiagonalSums` as a method sensitive to changes in the `matrix` inputs.
+
+- **Method `computeDiagonalSums`**:
+  - Initializes `principalSum` and `secondarySum` to zero.
+  - Iterates through the matrix elements using nested loops.
+  - Checks if an element is part of the principal or secondary diagonal and updates the respective sums.
+  - Writes the computed sums to the `principal` and `secondary` output signals.
+
+- **Testbench**:
+  - Instantiates the `DiagonalSum` module and connects the signals.
+  - Initializes the matrix with predefined values.
+  - Starts the simulation and prints the results.
+
+This SystemC code is designed to work within a high-level synthesis flow, utilizing the specified signals for seamless integration with the existing testbench.

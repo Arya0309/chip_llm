@@ -1,0 +1,161 @@
+
+!!certainly! Let's break down the provided C++ code step-by-step and then translate it into a SystemC equivalent that uses the specified signals.
+
+### C++ Code Analysis
+
+#### Inputs and Outputs
+- **Inputs**: Two complex numbers, each represented by a real and imaginary part.
+- **Outputs**: The sum of the two complex numbers, also represented by a real and imaginary part.
+
+#### Detailed Line-by-Line Explanation
+
+1. **Library Inclusion**:
+   ```cpp
+   #include<bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes a standard library that contains most of the necessary functionalities for basic I/O and other operations.
+   - `using namespace std;` allows us to use standard library functions without prefixing them with `std::`.
+
+2. **Complex Class Definition**:
+   ```cpp
+   class Complex 
+   { 
+       public: int real, imaginary;
+   ```
+   - A class named `Complex` is defined with two public integer members: `real` and `imaginary`.
+
+3. **Constructor**:
+   ```cpp
+       Complex(int tempReal = 0, int tempImaginary = 0)
+       {
+           real = tempReal;
+           imaginary = tempImaginary;
+       }
+   ```
+   - The constructor initializes the `real` and `imaginary` parts of the complex number. Default values are set to 0 if no arguments are provided.
+
+4. **Method to Add Complex Numbers**:
+   ```cpp
+       Complex addComp(Complex C1, Complex C2)
+       {
+           Complex temp;
+           temp.real = C1.real + C2.real;
+           temp.imaginary = C1.imaginary + C2.imaginary;
+           return temp;
+       }
+   ```
+   - `addComp()` is a method that takes two `Complex` objects as parameters, adds their respective real and imaginary parts, and returns a new `Complex` object containing the result.
+
+5. **Main Function**:
+   ```cpp
+   int main()
+   {
+       Complex C1(3, 2);
+       cout << "Complex number 1 : " << C1.real << " + i" << C1.imaginary << endl;
+
+       Complex C2(9, 5);
+       cout << "Complex number 2 : " << C2.real << " + i" << C2.imaginary << endl;
+
+       Complex C3;
+       C3 = C3.addComp(C1, C2);
+
+       cout << "Sum of complex number : " << C3.real << " + i" << C3.imaginary;
+   }
+   ```
+   - Two `Complex` objects `C1` and `C2` are instantiated with given values.
+   - Their values are printed.
+   - The `addComp()` method is called to add `C1` and `C2`, and the result is stored in `C3`.
+   - The sum is printed.
+
+### SystemC Equivalent Code
+
+Below is the SystemC code that replicates the functionality of the provided C++ code. It uses the specified signals for input and output.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ComplexAdder) {
+    // Input and Output Ports
+    sc_in<int> real1;
+    sc_in<int> imag1;
+    sc_in<int> real2;
+    sc_in<int> imag2;
+    sc_out<int> real_sum;
+    sc_out<int> imag_sum;
+
+    SC_CTOR(ComplexAdder) {
+        SC_METHOD(add_complex);
+        sensitive << real1 << imag1 << real2 << imag2;
+    }
+
+    void add_complex() {
+        // Reading the inputs
+        int r1 = real1.read();
+        int i1 = imag1.read();
+        int r2 = real2.read();
+        int i2 = imag2.read();
+
+        // Calculating the sum of complex numbers
+        int real_result = r1 + r2;
+        int imag_result = i1 + i2;
+
+        // Writing the results to the output ports
+        real_sum.write(real_result);
+        imag_sum.write(imag_result);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Instantiating the module
+    ComplexAdder complex_adder("complex_adder");
+
+    // Initializing signals
+    sc_signal<int> real1_sig, imag1_sig, real2_sig, imag2_sig, real_sum_sig, imag_sum_sig;
+
+    // Connecting signals to the module ports
+    complex_adder.real1(real1_sig);
+    complex_adder.imag1(imag1_sig);
+    complex_adder.real2(real2_sig);
+    complex_adder.imag2(imag2_sig);
+    complex_adder.real_sum(real_sum_sig);
+    complex_adder.imag_sum(imag_sum_sig);
+
+    // Setting initial values for the inputs
+    real1_sig = 3;
+    imag1_sig = 2;
+    real2_sig = 9;
+    imag2_sig = 5;
+
+    // Running the simulation
+    sc_start();
+
+    // Printing the results
+    cout << "Sum of complex number : " << real_sum_sig.read() << " + i" << imag_sum_sig.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**:
+   - `SC_MODULE(ComplexAdder)` defines a SystemC module named `ComplexAdder`.
+   
+2. **Port Declarations**:
+   - Six ports (`sc_in<int>` and `sc_out<int>`) are declared to handle the real and imaginary parts of the input and output complex numbers.
+
+3. **Constructor**:
+   - `SC_CTOR(ComplexAdder)` is the constructor that registers the `add_complex` method to be triggered whenever any of the input signals change (`sensitive << real1 << imag1 << real2 << imag2;`).
+
+4. **Method to Add Complex Numbers**:
+   - `void add_complex()` reads the input values from the ports, calculates the sum of the real and imaginary parts, and writes the results back to the output ports.
+
+5. **Main Function**:
+   - An instance of `ComplexAdder` is created.
+   - Signals are initialized and connected to the corresponding ports of the module.
+   - Initial values for the inputs are set.
+   - The simulation is run using `sc_start()`.
+   - The results are printed after the simulation completes.
+
+This SystemC code accurately mirrors the behavior of the original C++ code while being compatible with the provided signals for integration with an existing testbench.

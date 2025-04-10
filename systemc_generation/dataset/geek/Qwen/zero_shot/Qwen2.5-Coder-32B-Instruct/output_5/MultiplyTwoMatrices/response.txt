@@ -1,0 +1,137 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! MACRO Definitions:
+- `R1`: Number of rows in Matrix-1 (set to 2).
+- `C1`: Number of columns in Matrix-1 (set to 2).
+- `R2`: Number of rows in Matrix-2 (set to 2).
+- `C2`: Number of columns in Matrix-2 (set to 3).
+
+### Inputs and Outputs
+- **Inputs**:
+  - Two matrices: `mat1` of size `R1 x C1` and `mat2` of size `R2 x C2`.
+- **Outputs**:
+  - The product matrix `rslt` of size `R1 x C2`.
+
+### Detailed Line-by-Line Explanation
+1. **MACRO Definitions**:
+   - Define constants for the dimensions of the matrices.
+   
+2. **Function `mulMat`**:
+   - Takes two matrices `mat1` and `mat2` as input.
+   - Declares a result matrix `rslt` of size `R1 x C2`.
+   - Iterates over each element of the result matrix.
+     - For each element `rslt[i][j]`, initializes it to 0.
+     - Nested loop multiplies corresponding elements from `mat1` and `mat2` and accumulates the result in `rslt[i][j]`.
+   - Prints the resulting matrix.
+
+3. **Main Function**:
+   - Initializes two matrices `mat1` and `mat2` with predefined values.
+   - Checks if the number of columns in `mat1` is equal to the number of rows in `mat2`. If not, prints an error message and exits.
+   - Calls the `mulMat` function to perform matrix multiplication and print the result.
+
+### SystemC Code Snippet
+Below is the equivalent SystemC code that uses the provided signals for testbench integration:
+
+```cpp
+#include <systemc.h>
+
+// Define the sizes of the matrices using the provided macros
+#define SIZE_A 4
+#define SIZE_B 6
+#define SIZE_RESULT 6
+
+SC_MODULE(MatrixMultiplier) {
+    // Input ports
+    sc_in<int> A[SIZE_A];
+    sc_in<int> B[SIZE_B];
+    
+    // Output port
+    sc_out<int> C[SIZE_RESULT];
+    
+    // Internal storage for matrices
+    int mat1[2][2];
+    int mat2[2][3];
+    int rslt[2][3];
+    
+    // Constructor
+    SC_CTOR(MatrixMultiplier) {
+        SC_METHOD(multiply_matrices);
+        sensitive << A[0] << A[1] << A[2] << A[3] << B[0] << B[1] << B[2] << B[3] << B[4] << B[5];
+    }
+    
+    void multiply_matrices() {
+        // Copy input signals to internal matrices
+        mat1[0][0] = A[0].read();
+        mat1[0][1] = A[1].read();
+        mat1[1][0] = A[2].read();
+        mat1[1][1] = A[3].read();
+        
+        mat2[0][0] = B[0].read();
+        mat2[0][1] = B[1].read();
+        mat2[0][2] = B[2].read();
+        mat2[1][0] = B[3].read();
+        mat2[1][1] = B[4].read();
+        mat2[1][2] = B[5].read();
+        
+        // Matrix multiplication
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                rslt[i][j] = 0;
+                for (int k = 0; k < 2; k++) {
+                    rslt[i][j] += mat1[i][k] * mat2[k][j];
+                }
+            }
+        }
+        
+        // Write results to output ports
+        C[0].write(rslt[0][0]);
+        C[1].write(rslt[0][1]);
+        C[2].write(rslt[0][2]);
+        C[3].write(rslt[1][0]);
+        C[4].write(rslt[1][1]);
+        C[5].write(rslt[1][2]);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the module
+    MatrixMultiplier multiplier("multiplier");
+    
+    // Initialize signals (this would typically be done in a testbench)
+    sc_signal<int> A[SIZE_A];
+    sc_signal<int> B[SIZE_B];
+    sc_signal<int> C[SIZE_RESULT];
+    
+    // Connect signals to module ports
+    for (int i = 0; i < SIZE_A; ++i) {
+        multiplier.A[i](A[i]);
+    }
+    for (int i = 0; i < SIZE_B; ++i) {
+        multiplier.B[i](B[i]);
+    }
+    for (int i = 0; i < SIZE_RESULT; ++i) {
+        multiplier.C[i](C[i]);
+    }
+    
+    // Set input values (example values)
+    A[0] = 1; A[1] = 1; A[2] = 2; A[3] = 2;
+    B[0] = 1; B[1] = 1; B[2] = 1; B[3] = 2; B[4] = 2; B[5] = 2;
+    
+    // Run simulation
+    sc_start(1, SC_NS);
+    
+    // Print results
+    cout << "Multiplication of given two matrices is:\n";
+    cout << C[0].read() << "\t" << C[1].read() << "\t" << C[2].read() << endl;
+    cout << C[3].read() << "\t" << C[4].read() << "\t" << C[5].read() << endl;
+    
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+- **Module Definition**: `MatrixMultiplier` is a SystemC module that performs matrix multiplication.
+- **Input and Output Ports**: Uses `sc_in` for inputs and `sc_out` for outputs, matching the provided signal definitions.
+- **Internal Storage**: Uses arrays `mat1`, `mat2`, and `rslt` to store the matrices and the result.
+- **Constructor**: Registers the `multiply_matrices` method to be sensitive to changes in input signals.
+- **Method `multiply_matrices`**: Reads input signals into internal matrices, performs matrix multiplication, and writes the result to output signals.
+- **Main Function**: Instantiates the module, connects signals, sets input values, runs the simulation, and prints the result.

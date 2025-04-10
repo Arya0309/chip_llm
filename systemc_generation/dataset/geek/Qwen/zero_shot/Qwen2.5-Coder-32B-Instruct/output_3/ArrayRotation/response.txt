@@ -1,0 +1,137 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!clock: `clk`  
+reset: `rst`  
+input: `d` (number of positions to rotate the array)  
+input array: `in_array` (array of integers to be rotated)  
+output array: `out_array` (rotated array)
+
+### Detailed Explanation of the Provided C++/C Code
+
+1. **Function `Rotate`**:
+   - **Inputs**: 
+     - `arr[]`: Array of integers to be rotated.
+     - `d`: Number of positions to rotate the array.
+     - `n`: Length of the array.
+   - **Outputs**: Modifies `arr[]` in-place to store the rotated version.
+   - **Process**:
+     - A temporary array `temp` is created to hold the rotated version of `arr`.
+     - Elements from index `d` to `n-1` of `arr` are copied to the beginning of `temp`.
+     - Elements from index `0` to `d-1` of `arr` are then copied to the end of `temp`.
+     - Finally, `temp` is copied back to `arr`, completing the rotation.
+
+2. **Function `PrintTheArray`**:
+   - **Inputs**:
+     - `arr[]`: Array of integers to be printed.
+     - `n`: Length of the array.
+   - **Process**: Prints each element of `arr` followed by a space.
+
+3. **Main Function**:
+   - Initializes an array `arr` with values `{1, 2, 3, 4, 5, 6, 7}`.
+   - Calls `Rotate` to rotate the array by `d=2` positions.
+   - Calls `PrintTheArray` to display the rotated array.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that replicates the functionality of the provided C++/C code. This code uses the provided signals (`clk`, `rst`, `d`, `in_array`, `out_array`) for seamless integration with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Rotator) {
+    sc_in<bool> clk;
+    sc_in<bool> rst;
+    sc_in<int> d;
+    sc_in<int> in_array[7];
+    sc_out<int> out_array[7];
+
+    SC_CTOR(Rotator) {
+        SC_METHOD(rotate_array);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void rotate_array() {
+        if (rst.read()) {
+            // Reset all outputs to zero
+            for (int i = 0; i < 7; ++i) {
+                out_array[i].write(0);
+            }
+        } else {
+            // Temporary storage for rotated array
+            int temp[7];
+            
+            // Calculate the effective rotation
+            int rotation = d.read() % 7;
+            
+            // Store the n - d elements of in_array to the front of temp
+            for (int i = rotation; i < 7; i++) {
+                temp[i - rotation] = in_array[i].read();
+            }
+            
+            // Store the first d elements of in_array to the end of temp
+            for (int i = 0; i < rotation; i++) {
+                temp[7 - rotation + i] = in_array[i].read();
+            }
+            
+            // Copy the elements of temp in out_array
+            for (int i = 0; i < 7; i++) {
+                out_array[i].write(temp[i]);
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Rotator rotator("rotator");
+    
+    // Example signals
+    sc_signal<bool> clk;
+    sc_signal<bool> rst;
+    sc_signal<int> d;
+    sc_signal<int> in_array[7];
+    sc_signal<int> out_array[7];
+    
+    // Connect signals
+    rotator.clk(clk);
+    rotator.rst(rst);
+    rotator.d(d);
+    for (int i = 0; i < 7; ++i) {
+        rotator.in_array[i](in_array[i]);
+        rotator.out_array[i](out_array[i]);
+    }
+    
+    // Initialize input values
+    rst.write(true);
+    sc_start(1, SC_NS); // Apply reset
+    rst.write(false);
+    d.write(2);
+    for (int i = 0; i < 7; ++i) {
+        in_array[i].write(i + 1); // Initialize array to {1, 2, 3, 4, 5, 6, 7}
+    }
+    
+    // Simulate for some time
+    sc_start(10, SC_NS);
+    
+    // Output results
+    cout << "Rotated array: ";
+    for (int i = 0; i < 7; ++i) {
+        cout << out_array[i].read() << " ";
+    }
+    cout << endl;
+    
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **Module Definition**: The `Rotator` module is defined with input and output ports corresponding to the provided signals.
+- **Constructor**: The constructor sets up a method `rotate_array` that triggers on the rising edge of the clock signal.
+- **Method `rotate_array`**:
+  - On reset (`rst` is true), all output values are set to zero.
+  - Otherwise, the array is rotated based on the value of `d`.
+  - A temporary array `temp` is used to store the rotated version of the input array.
+  - The effective rotation is calculated using `d % 7` to handle cases where `d` is greater than the array size.
+  - The array is rotated by copying segments of the input array to appropriate positions in `temp`.
+  - Finally, `temp` is copied to `out_array`.
+- **Simulation Setup**: In `sc_main`, the module is instantiated, signals are connected, and initial values are set. The simulation runs for a specified duration, and the rotated array is printed.

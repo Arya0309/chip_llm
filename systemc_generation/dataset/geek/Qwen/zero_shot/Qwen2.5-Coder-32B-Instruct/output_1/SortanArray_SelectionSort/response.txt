@@ -1,0 +1,186 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!certainly! Let's begin by analyzing the provided C++/C code, then we'll translate it into a SystemC equivalent that uses the specified signals.
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**:
+  - An integer array `arr` and its size `n`.
+- **Outputs**:
+  - The sorted integer array `arr`.
+
+#### Detailed Line-by-Line Explanation:
+
+1. **Swap Function**:
+   ```cpp
+   void swap(int *xp, int *yp) 
+   {
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   }
+   ```
+   - This function swaps the values pointed to by `xp` and `yp`. It uses a temporary variable `temp` to hold one of the values during the swap.
+
+2. **Selection Sort Function**:
+   ```cpp
+   void selectionSort(int arr[], int n) 
+   {
+       int i, j, min_idx;
+
+       // One by one move boundary of unsorted subarray
+       for (i = 0; i < n-1; i++) 
+       { 
+           // Find the minimum element in unsorted array
+           min_idx = i;
+           for (j = i+1; j < n; j++)
+               if (arr[j] < arr[min_idx])
+                   min_idx = j;
+
+           // Swap the found minimum element with the first element
+           swap(&arr[min_idx], &arr[i]);
+       }
+   }
+   ```
+   - The function sorts the array `arr` using the selection sort algorithm.
+   - It iterates over the array, finding the smallest element in the unsorted portion and swapping it with the first unsorted element.
+   - `min_idx` keeps track of the index of the minimum element found in each pass.
+
+3. **Print Array Function**:
+   ```cpp
+   void printArray(int arr[], int size) 
+   {
+       int i;
+       for (i=0; i < size; i++)
+           cout << arr[i] << " ";
+       cout << endl;
+   }
+   ```
+   - This function prints the elements of the array `arr` to the console.
+
+4. **Main Function**:
+   ```cpp
+   int main() 
+   {
+       int arr[] = {64, 25, 12, 22, 11};
+       int n = sizeof(arr)/sizeof(arr[0]);
+       selectionSort(arr, n);
+       cout << "Sorted array: ";
+       printArray(arr, n);
+       return 0;
+   }
+   ```
+   - The main function initializes an array `arr` with some integers.
+   - It calculates the number of elements `n` in the array.
+   - It calls `selectionSort` to sort the array.
+   - It prints the sorted array using `printArray`.
+
+### SystemC Code Equivalent
+
+Below is the SystemC equivalent of the provided C++/C code. This code includes the signals `clk`, `start`, and `done` for testbench integration.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    SC_CTOR(SelectionSort) {
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        SC_METHOD(done_process);
+        sensitive << start;
+    }
+
+    void sort_process() {
+        static bool sorting = false;
+        static int i = 0, j = 0, min_idx = 0;
+        static int arr[5] = {64, 25, 12, 22, 11};
+        static int n = 5;
+
+        if (start.read()) {
+            sorting = true;
+            i = 0;
+            done.write(false);
+        }
+
+        if (sorting) {
+            if (i < n - 1) {
+                min_idx = i;
+                for (j = i + 1; j < n; j++) {
+                    if (arr[j] < arr[min_idx]) {
+                        min_idx = j;
+                    }
+                }
+                // Swap the found minimum element with the first element
+                int temp = arr[min_idx];
+                arr[min_idx] = arr[i];
+                arr[i] = temp;
+
+                i++;
+            } else {
+                sorting = false;
+                done.write(true);
+            }
+        }
+    }
+
+    void done_process() {
+        if (!start.read()) {
+            done.write(false);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_signal<bool> clk;
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    SelectionSort sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    sc_start(0, SC_NS); // Initialize simulation
+    start.write(true);
+    sc_start(10, SC_NS); // Run for a while
+    start.write(false);
+    sc_start(10, SC_NS); // Ensure done signal is set
+
+    sc_stop();
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+
+- **Module Declaration**:
+  - `SC_MODULE(SelectionSort)` defines a new SystemC module named `SelectionSort`.
+  
+- **Signals**:
+  - `sc_in<bool> clk;`, `sc_in<bool> start;`, `sc_out<bool> done;` declare the input and output signals required for the testbench.
+
+- **Constructor**:
+  - `SC_CTOR(SelectionSort)` initializes the module and sets up sensitivity lists for methods.
+  - `sensitive << clk.pos();` ensures `sort_process` runs on the rising edge of the clock.
+  - `sensitive << start;` ensures `done_process` reacts to changes in the `start` signal.
+
+- **sort_process Method**:
+  - Manages the sorting process using static variables to maintain state across clock cycles.
+  - Initializes the array and sorting parameters when `start` is true.
+  - Implements the selection sort algorithm within the method, checking the `start` signal to begin and end sorting.
+  - Writes `true` to `done` once sorting is complete.
+
+- **done_process Method**:
+  - Resets the `done` signal when `start` is false.
+
+- **sc_main Function**:
+  - Instantiates the `SelectionSort` module and connects the signals.
+  - Starts the simulation, triggers sorting by setting `start` to true, and checks the `done` signal after a few clock cycles.
+
+This SystemC code accurately represents the logic of the original C++/C selection sort implementation and is ready for use in a high-level synthesis flow with the specified signals.

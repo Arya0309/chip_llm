@@ -1,0 +1,102 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!2. **Inputs and Outputs**:
+   - **Inputs**: A square matrix of integers (`mat`), which is hardcoded in the provided C++ code.
+   - **Outputs**: Two integer values: the trace of the matrix and the normal of the matrix.
+
+3. **Detailed Explanation**:
+   - **Line 1-6**: Include necessary headers and use the standard namespace.
+   - **Line 8**: Define a constant `MAX` set to 100, representing the maximum size of the matrix.
+   - **Line 11-17**: Function `findNormal` calculates the normal (Frobenius norm) of a matrix. It iterates over all elements of the matrix, squares each element, sums them up, and then returns the square root of this sum.
+     - **Line 12**: Initialize `sum` to 0.
+     - **Line 13-15**: Nested loops iterate through each element of the matrix, adding the square of each element to `sum`.
+     - **Line 16**: Return the square root of `sum`.
+   - **Line 20-26**: Function `findTrace` calculates the trace of a matrix. It sums the diagonal elements of the matrix and returns the sum.
+     - **Line 21**: Initialize `sum` to 0.
+     - **Line 22-24**: Loop through the diagonal elements of the matrix, adding each to `sum`.
+     - **Line 25**: Return `sum`.
+   - **Line 29-38**: Main function initializes a 5x5 matrix, calls `findTrace` and `findNormal` to compute the trace and normal respectively, and prints the results.
+
+4. **SystemC Code**:
+```cpp
+#include <systemc.h>
+#include <cmath>
+
+#define SIZE 5
+
+SC_MODULE(MatrixOperations) {
+    sc_in<int> matrix[SIZE*SIZE];
+    sc_out<int> trace;
+    sc_out<int> norm;
+
+    void compute() {
+        int sum_trace = 0;
+        int sum_normal = 0;
+
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                int value = matrix[i*SIZE + j].read();
+                if (i == j) {
+                    sum_trace += value;
+                }
+                sum_normal += value * value;
+            }
+        }
+
+        trace.write(sum_trace);
+        norm.write(sqrt(sum_normal));
+    }
+
+    SC_CTOR(MatrixOperations) {
+        SC_METHOD(compute);
+        sensitive << matrix[0];
+        for (int i = 1; i < SIZE*SIZE; i++) {
+            sensitive << matrix[i];
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    MatrixOperations mo("mo");
+
+    sc_signal<int> matrix[SIZE*SIZE];
+    sc_signal<int> trace;
+    sc_signal<int> norm;
+
+    // Initialize matrix values
+    int init_matrix[SIZE][SIZE] = {{1, 1, 1, 1, 1},
+                                    {2, 2, 2, 2, 2},
+                                    {3, 3, 3, 3, 3},
+                                    {4, 4, 4, 4, 4},
+                                    {5, 5, 5, 5, 5}};
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            matrix[i*SIZE + j].write(init_matrix[i][j]);
+        }
+    }
+
+    mo.matrix(matrix);
+    mo.trace(trace);
+    mo.norm(norm);
+
+    sc_start();
+
+    cout << "Trace of Matrix = " << trace.read() << endl;
+    cout << "Normal of Matrix = " << norm.read() << endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Line 1-4**: Include necessary headers and define `SIZE` as 5.
+- **Line 6-18**: Define the `MatrixOperations` module with input and output ports.
+  - **Line 9-11**: Declare input and output ports.
+  - **Line 13-29**: `compute` method calculates the trace and normal of the matrix.
+    - **Line 14-15**: Initialize `sum_trace` and `sum_normal` to 0.
+    - **Line 16-27**: Nested loops iterate through each element of the matrix.
+      - **Line 18**: Read the current matrix element.
+      - **Line 19-20**: If the element is on the diagonal, add it to `sum_trace`.
+      - **Line 21**: Add the square of the element to `sum_normal`.
+    - **Line 28-29**: Write the computed trace and normal to the respective output ports.
+  - **Line 31-35**: Constructor sets the sensitivity to changes in any matrix element.
+- **Line 38-63**: `sc_main` function initializes the module, sets up signals, initializes the matrix, connects signals to the module, starts the simulation, and prints the results.

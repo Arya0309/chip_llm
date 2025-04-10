@@ -1,0 +1,176 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!certainly! Let's break down the provided C++ code and then translate it into a SystemC module that can be integrated with the given testbench signals.
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**: 
+  - An array `nums` of integers and its length `len`.
+- **Outputs**:
+  - The sorted array `nums` in ascending order.
+  - The program prints the array before and after sorting.
+
+#### Detailed Explanation:
+
+1. **Initialization and Declaration**:
+   ```cpp
+   int nums[] = {1, 12, 6, 8, 10};
+   int size_nums = (sizeof(nums) / sizeof(nums[0]));
+   ```
+   - An integer array `nums` is initialized with values `{1, 12, 6, 8, 10}`.
+   - The size of the array `size_nums` is calculated.
+
+2. **Printing the Array Before Sorting**:
+   ```cpp
+   cout << "Before sorting the array is: \n";
+   for (int i = 0; i < size_nums; i++)
+       cout << nums[i] << " ";
+   cout << "\n\n";
+   ```
+   - The program prints the elements of the array `nums` before sorting.
+
+3. **Sorting Function Call**:
+   ```cpp
+   sort(nums, size_nums);
+   ```
+   - The `sort` function is called to sort the array.
+
+4. **Printing the Array After Sorting**:
+   ```cpp
+   cout << "After sorting the array is: \n";
+   for (int i = 0; i < size_nums; i++)
+       cout << nums[i] << " ";
+   cout << "\n";
+   ```
+   - The program prints the elements of the array `nums` after sorting.
+
+5. **Sort Function Implementation**:
+   ```cpp
+   void sort(int num[], int len)
+   {
+       bool isSwapped;
+       for (int i = 0; i < len; i++) 
+       {
+           isSwapped = false;
+           for (int j = 1; j < len - i; j++) 
+           {
+               if (num[j] < num[j - 1]) 
+               {
+                   swapNums(num, j, (j - 1));
+                   isSwapped = true;
+               }
+           }
+           if (!isSwapped) 
+           {
+               break;
+           }
+       }
+   }
+   ```
+   - This function implements a bubble sort algorithm.
+   - It iterates over the array multiple times (`n-1` times).
+   - During each iteration, it compares adjacent elements and swaps them if they are in the wrong order.
+   - A boolean flag `isSwapped` is used to optimize the process by stopping early if no swaps are made in an iteration.
+
+6. **Swap Function Implementation**:
+   ```cpp
+   void swapNums(int nums[], int first, int second)
+   {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - This function swaps two elements in the array `nums` at indices `first` and `second`.
+
+### SystemC Code Equivalent
+
+Below is the equivalent SystemC code that uses the provided testbench signals (`clk`, `start`, `done`) and performs the same bubble sort operation:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    SC_CTOR(BubbleSort) {
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+private:
+    void sort_process() {
+        static bool isSwapped = false;
+        static int i = 0;
+        static int j = 1;
+        static int nums[5] = {1, 12, 6, 8, 10}; // Static to retain values across clock cycles
+        static int len = sizeof(nums) / sizeof(nums[0]);
+        static int temp;
+
+        if (start.read()) {
+            if (i < len) {
+                if (j < len - i) {
+                    if (nums[j] < nums[j - 1]) {
+                        temp = nums[j];
+                        nums[j] = nums[j - 1];
+                        nums[j - 1] = temp;
+                        isSwapped = true;
+                    }
+                    j++;
+                } else {
+                    if (!isSwapped) {
+                        done.write(true);
+                    } else {
+                        isSwapped = false;
+                    }
+                    i++;
+                    j = 1;
+                }
+            }
+        } else {
+            i = 0;
+            j = 1;
+            isSwapped = false;
+            done.write(false);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_signal<bool> clk;
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    BubbleSort sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Clock generation
+    sc_clock clk_gen("clk_gen", 10, SC_NS, 0.5, 0, SC_NS, true);
+
+    // Start signal
+    start.write(false);
+    sc_start(10, SC_NS); // Initial delay
+    start.write(true);
+    sc_start(100, SC_NS); // Run for some time
+    start.write(false);
+    sc_start(10, SC_NS); // Additional delay to ensure 'done' is observed
+
+    return 0;
+}
+```
+
+#### Explanation of the SystemC Code:
+- **Module Definition**: The `BubbleSort` module is defined with input signals `clk` and `start`, and an output signal `done`.
+- **Process Sensitivity**: The `sort_process` method is sensitive to the positive edge of the clock signal.
+- **Static Variables**: Static variables are used to retain their values across clock cycles, mimicking the behavior of the original C++ code.
+- **Sorting Logic**: The sorting logic is implemented within the `sort_process` method, using nested loops similar to the C++ code but adapted to work with the clock signal and control signals.
+- **Start and Done Signals**: The `start` signal triggers the sorting process, and the `done` signal indicates when the sorting is complete.
+- **Clock Generation**: A simple clock generator is included in `sc_main` to simulate the clock signal.
+- **Testbench Setup**: The `start` signal is controlled to start and stop the sorting process, and the `done` signal is observed to verify the completion of the sorting.
+
+This SystemC code can be integrated into an existing testbench and used in a high-level synthesis flow, preserving the logic of the original C++ bubble sort implementation.

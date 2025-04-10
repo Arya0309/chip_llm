@@ -1,0 +1,108 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs**:
+   - **Inputs**: 
+     - `key`: An integer value to be searched within the data array.
+     - `data`: A vector of integers representing the data array where the search is performed.
+   - **Outputs**:
+     - `index`: An integer value indicating the position of the `key` in the `data` array. If the `key` is not found, `-1` is returned.
+
+2. **Detailed Explanation**:
+   - The program starts by including the necessary headers and using the standard namespace.
+   - The function `linearSearch` is defined to perform a linear search on a vector of integers (`v`) to find a specific `key`.
+     - It iterates through each element of the vector using a for loop.
+     - Inside the loop, it checks if the current element is equal to the `key`.
+     - If a match is found, it returns the current index (`i`).
+     - If no match is found after checking all elements, it returns `-1`.
+   - The `main` function initializes a vector `v` with predefined values.
+   - It sets a `key` value to search for within the vector.
+   - It calls the `linearSearch` function with the vector and the key, storing the result in `i`.
+   - It then checks the value of `i` to determine if the key was found and prints the appropriate message.
+
+3. **SystemC Code Snippet**:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(LinearSearchModule) {
+    // Inputs
+    sc_in<int> key;
+    sc_vector< sc_in<int> > data;
+    
+    // Output
+    sc_out<int> index;
+    
+    // Internal variables
+    int size;
+    
+    // Constructor
+    SC_CTOR(LinearSearchModule) : data("data", 8) {
+        size = data.size();
+        SC_METHOD(search);
+        sensitive << key;
+        for (int i = 0; i < size; ++i) {
+            sensitive << data[i];
+        }
+    }
+    
+    // Search method
+    void search() {
+        int i;
+        for (i = 0; i < size; i++) {
+            if (data[i].read() == key.read()) {
+                index.write(i);
+                return;
+            }
+        }
+        index.write(-1); // Key not found
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    LinearSearchModule ls("ls");
+    
+    // Testbench signals
+    sc_signal<int> key_signal;
+    sc_signal<int> index_signal;
+    sc_vector<sc_signal<int>> data_signals("data_signals", 8);
+    
+    // Connect signals
+    ls.key(key_signal);
+    ls.index(index_signal);
+    for (int i = 0; i < 8; ++i) {
+        ls.data[i](data_signals[i]);
+    }
+    
+    // Initialize data
+    data_signals[0].write(1);
+    data_signals[1].write(2);
+    data_signals[2].write(3);
+    data_signals[3].write(4);
+    data_signals[4].write(5);
+    data_signals[5].write(8);
+    data_signals[6].write(9);
+    data_signals[7].write(11);
+    
+    // Set key to search
+    key_signal.write(8);
+    
+    // Run simulation
+    sc_start();
+    
+    // Output result
+    if (index_signal.read() != -1) {
+        cout << "Key " << key_signal.read() << " Found at Position: " << index_signal.read() + 1 << endl;
+    } else {
+        cout << "Key " << key_signal.read() << " NOT found." << endl;
+    }
+    
+    return 0;
+}
+```
+
+**Explanation of SystemC Code**:
+- The `LinearSearchModule` class encapsulates the logic of the linear search.
+- It has an input port `key`, an output port `index`, and a vector of input ports `data`.
+- The constructor initializes the `data` vector and sets up the sensitivity list for the `search` method.
+- The `search` method performs the linear search, similar to the C++ code, but using SystemC's signal reading and writing methods.
+- The `sc_main` function sets up the testbench, initializes the data signals, and runs the simulation.
+- The result is printed based on the value of the `index` signal.

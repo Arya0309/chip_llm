@@ -1,0 +1,91 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs**:
+   - **Input**: A vector of integers (`v`), and an integer `key` to search within the vector.
+   - **Output**: An integer `index` representing the position of the `key` in the vector if found, otherwise `-1`.
+
+2. **Line-by-Line Explanation**:
+   - **Lines 1-5**: Include necessary headers and use the standard namespace.
+   - **Line 7**: Define a function `linearSearch` that takes a vector of integers and an integer `key`.
+   - **Lines 9-11**: Initialize a loop to iterate over each element of the vector.
+   - **Line 13**: Check if the current element matches the `key`.
+   - **Line 15**: If a match is found, return the current index.
+   - **Line 18**: If no match is found after the loop, return `-1`.
+   - **Lines 21-23**: In the `main` function, initialize a vector with predefined values.
+   - **Line 25**: Define the `key` to search for.
+   - **Line 27**: Call the `linearSearch` function with the vector and key.
+   - **Lines 30-33**: Print whether the key was found and its position, or that it was not found.
+
+3. **SystemC Code**:
+   - The SystemC code will use the provided signals (`key`, `index`, `data`) to perform the same linear search operation.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(LinearSearch) {
+    sc_in<int> key;
+    sc_out<int> index;
+    sc_vector< sc_in<int> > data;
+
+    SC_CTOR(LinearSearch) : data("data", 8) {
+        SC_METHOD(search);
+        sensitive << key << data;
+    }
+
+    void search() {
+        int size = data.size();
+        bool found = false;
+        for (int i = 0; i < size; i++) {
+            if (data[i].read() == key.read()) {
+                index.write(i);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            index.write(-1);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    LinearSearch ls("ls");
+    sc_signal<int> key_signal;
+    sc_signal<int> index_signal;
+    sc_vector<sc_signal<int>> data_signals("data_signals", 8);
+
+    ls.key(key_signal);
+    ls.index(index_signal);
+    for (int i = 0; i < 8; i++) {
+        ls.data[i](data_signals[i]);
+    }
+
+    // Example initialization
+    key_signal.write(8);
+    data_signals[0].write(1);
+    data_signals[1].write(2);
+    data_signals[2].write(3);
+    data_signals[3].write(4);
+    data_signals[4].write(5);
+    data_signals[5].write(8);
+    data_signals[6].write(9);
+    data_signals[7].write(11);
+
+    sc_start();
+
+    if (index_signal.read() != -1) {
+        cout << "Key Found at Position: " << index_signal.read() + 1 << endl;
+    } else {
+        cout << "Key NOT found." << endl;
+    }
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+- **Module Definition**: The `LinearSearch` module is defined with input (`key`), output (`index`), and a vector of inputs (`data`).
+- **Constructor**: The constructor initializes the `data` vector with a size of 8 and sets up a sensitive method `search` that triggers whenever `key` or any element in `data` changes.
+- **Search Method**: This method performs the linear search similar to the C++ code. It iterates over the `data` vector, checking if any element matches the `key`. If a match is found, it writes the index to `index` and exits. If no match is found, it writes `-1`.
+- **Main Function**: Initializes the `LinearSearch` module, connects signals, and sets initial values for `key` and `data`. It then starts the simulation and prints the result based on the value of `index`.
+
+This SystemC code replicates the functionality of the original C++ code using the specified signals for integration with a testbench.

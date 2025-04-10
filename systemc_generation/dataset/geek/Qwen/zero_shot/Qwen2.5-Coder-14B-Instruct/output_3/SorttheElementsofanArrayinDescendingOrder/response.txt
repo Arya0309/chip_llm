@@ -1,0 +1,183 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - An array of integers (`nums`) to be sorted.
+  - The length of the array (`len`).
+
+- **Outputs**:
+  - The sorted array of integers.
+
+#### Detailed Explanation
+1. **Initialization**:
+   - The array `nums` is initialized with values `{1, 12, 6, 8, 10}`.
+   - The size of the array `size_nums` is calculated using `sizeof`.
+
+2. **Printing Before Sorting**:
+   - A loop iterates through the array and prints each element before sorting.
+
+3. **Sorting Function Call**:
+   - The `sort` function is called with the array `nums` and its size `size_nums`.
+
+4. **Printing After Sorting**:
+   - Another loop iterates through the array and prints each element after sorting.
+
+5. **Sort Function (`sort`)**:
+   - This function implements the bubble sort algorithm.
+   - It uses a nested loop to compare adjacent elements and swaps them if they are in the wrong order.
+   - The outer loop runs `len` times.
+   - The inner loop runs from the first to the `len-i` element, where `i` is the current iteration of the outer loop.
+   - If no elements are swapped during an iteration, the loop breaks early.
+
+6. **Swap Function (`swapNums`)**:
+   - This function swaps two elements in the array.
+   - It takes the array `nums` and two indices `first` and `second`.
+   - It temporarily stores the value at `first`, assigns the value at `second` to `first`, and then assigns the stored value to `second`.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that replicates the logic of the provided C++/C code using the specified signals (`clk`, `start`, `done`).
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    // Internal signals
+    sc_signal<int> nums[5]; // Assuming a fixed size array for simplicity
+    sc_signal<int> size_nums;
+    sc_signal<bool> isSwapped;
+    sc_signal<int> i, j;
+
+    SC_CTOR(BubbleSort) {
+        SC_THREAD(sort_thread);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        SC_THREAD(print_thread);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sort_thread() {
+        bool local_done = false;
+        while (true) {
+            wait(); // Wait for the clock edge
+            if (start.read()) {
+                // Initialize the array
+                nums[0].write(1);
+                nums[1].write(12);
+                nums[2].write(6);
+                nums[3].write(8);
+                nums[4].write(10);
+                size_nums.write(5);
+
+                // Bubble sort logic
+                for (i.write(0); i.read() < size_nums.read(); i.write(i.read() + 1)) {
+                    isSwapped.write(false);
+                    for (j.write(1); j.read() < size_nums.read() - i.read(); j.write(j.read() + 1)) {
+                        if (nums[j.read()].read() < nums[j.read() - 1].read()) {
+                            swapNums(j.read(), j.read() - 1);
+                            isSwapped.write(true);
+                        }
+                    }
+                    if (!isSwapped.read()) {
+                        break;
+                    }
+                }
+                local_done = true;
+            }
+            if (local_done) {
+                done.write(true);
+                local_done = false;
+            } else {
+                done.write(false);
+            }
+        }
+    }
+
+    void print_thread() {
+        while (true) {
+            wait(); // Wait for the clock edge
+            if (start.read()) {
+                cout << "Before sorting the array is: \n";
+                for (int k = 0; k < size_nums.read(); k++) {
+                    cout << nums[k].read() << " ";
+                }
+                cout << "\n\n";
+
+                // After sorting
+                cout << "After sorting the array is: \n";
+                for (int k = 0; k < size_nums.read(); k++) {
+                    cout << nums[k].read() << " ";
+                }
+                cout << "\n";
+            }
+        }
+    }
+
+    void swapNums(int first, int second) {
+        int temp = nums[first].read();
+        nums[first].write(nums[second].read());
+        nums[second].write(temp);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS);
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+
+    BubbleSort sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Testbench
+    start.write(false);
+    sc_start(10, SC_NS);
+    start.write(true);
+    sc_start(100, SC_NS);
+    start.write(false);
+    sc_start(10, SC_NS);
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+1. **Module Declaration**:
+   - The `BubbleSort` module is declared with `sc_in` and `sc_out` signals for clock (`clk`), start signal (`start`), and done signal (`done`).
+
+2. **Internal Signals**:
+   - `nums`: An array of signals to hold the integer values.
+   - `size_nums`: A signal to hold the size of the array.
+   - `isSwapped`: A boolean signal to indicate if any swapping occurred.
+   - `i`, `j`: Index signals for the loops.
+
+3. **Constructor**:
+   - The constructor initializes two threads: `sort_thread` and `print_thread`.
+   - These threads are sensitive to the positive edge of the clock.
+
+4. **Sorting Thread (`sort_thread`)**:
+   - Waits for the start signal.
+   - Initializes the array and size.
+   - Implements the bubble sort algorithm using nested loops.
+   - Sets the `done` signal when sorting is complete.
+
+5. **Printing Thread (`print_thread`)**:
+   - Waits for the start signal.
+   - Prints the array before and after sorting.
+
+6. **Swap Function (`swapNums`)**:
+   - Swaps two elements in the array using temporary storage.
+
+7. **Testbench**:
+   - Initializes the clock and signals.
+   - Starts the simulation and triggers the sorting process.
+
+This SystemC code replicates the functionality of the original C++/C code while integrating with the provided signals for testbench compatibility.

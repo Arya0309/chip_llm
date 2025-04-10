@@ -1,0 +1,338 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**:
+  - An array of integers (`nums`) to be sorted.
+  - The length of the array (`len`).
+- **Outputs**:
+  - The sorted array of integers.
+
+#### Line-by-Line Explanation:
+
+1. **Include Headers and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes all standard libraries and uses the `std` namespace.
+
+2. **Function Declarations**:
+   ```cpp
+   void sort(int num[], int len);
+   void swapNums(int nums[], int first, int second);
+   ```
+   - `sort`: Function to sort the array.
+   - `swapNums`: Function to swap two elements in the array.
+
+3. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int nums[] = {1, 12, 6, 8, 10};
+       int size_nums = (sizeof(nums) / sizeof(nums[0]));
+   ```
+   - Initializes an array `nums` with some values.
+   - Calculates the size of the array `size_nums`.
+
+4. **Print Unsorted Array**:
+   ```cpp
+   cout << "Before sorting the array is: \n";
+   for (int i = 0; i < size_nums; i++)
+       cout << nums[i] << " ";
+   cout << "\n\n";
+   ```
+   - Prints the unsorted array.
+
+5. **Call Sort Function**:
+   ```cpp
+   sort(nums, size_nums);
+   ```
+   - Calls the `sort` function to sort the array.
+
+6. **Print Sorted Array**:
+   ```cpp
+   cout << "After sorting the array is: \n";
+   for (int i = 0; i < size_nums; i++)
+       cout << nums[i] << " ";
+   cout << "\n";
+   ```
+   - Prints the sorted array.
+
+7. **Return Statement**:
+   ```cpp
+   return 0;
+   ```
+   - Ends the program.
+
+8. **Sort Function**:
+   ```cpp
+   void sort(int num[], int len)
+   {
+       bool isSwapped;
+       for (int i = 0; i < len; i++)
+       {
+           isSwapped = false;
+           for (int j = 1; j < len - i; j++)
+           {
+               if (num[j] < num[j - 1])
+               {
+                   swapNums(num, j, (j - 1));
+                   isSwapped = true;
+               }
+           }
+           if (!isSwapped)
+           {
+               break;
+           }
+       }
+   }
+   ```
+   - Implements the bubble sort algorithm.
+   - Uses a nested loop to compare adjacent elements and swaps them if they are in the wrong order.
+   - Stops early if no swaps are made in a pass.
+
+9. **Swap Function**:
+   ```cpp
+   void swapNums(int nums[], int first, int second)
+   {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - Swaps two elements in the array.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that captures the logic of the original C++/C code. It uses the provided signals `clk`, `start`, and `done` for integration with the testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Sorter) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    sc_signal<int> nums[5]; // Assuming fixed size array for simplicity
+    sc_signal<int> size_nums;
+    sc_signal<bool> isSwapped;
+    sc_signal<int> i, j;
+
+    SC_CTOR(Sorter) {
+        SC_THREAD(sort_thread);
+        sensitive << clk.pos();
+        sensitive << start;
+
+        SC_THREAD(print_thread);
+        sensitive << clk.pos();
+        sensitive << done;
+    }
+
+    void sort_thread() {
+        while (true) {
+            wait(); // Wait for rising edge of clk
+            if (start.read()) {
+                // Initialize array and size
+                nums[0].write(1);
+                nums[1].write(12);
+                nums[2].write(6);
+                nums[3].write(8);
+                nums[4].write(10);
+                size_nums.write(5);
+
+                // Print unsorted array
+                cout << "Before sorting the array is: \n";
+                for (int k = 0; k < size_nums.read(); k++) {
+                    cout << nums[k].read() << " ";
+                }
+                cout << "\n\n";
+
+                // Bubble sort
+                for (i.write(0); i.read() < size_nums.read(); i.write(i.read() + 1)) {
+                    isSwapped.write(false);
+                    for (j.write(1); j.read() < size_nums.read() - i.read(); j.write(j.read() + 1)) {
+                        if (nums[j.read()].read() < nums[j.read() - 1].read()) {
+                            swapNums(j.read(), j.read() - 1);
+                            isSwapped.write(true);
+                        }
+                    }
+                    if (!isSwapped.read()) {
+                        break;
+                    }
+                }
+
+                // Print sorted array
+                cout << "After sorting the array is: \n";
+                for (int k = 0; k < size_nums.read(); k++) {
+                    cout << nums[k].read() << " ";
+                }
+                cout << "\n";
+
+                done.write(true);
+            }
+        }
+    }
+
+    void print_thread() {
+        while (true) {
+            wait(); // Wait for rising edge of clk
+            if (done.read()) {
+                done.write(false); // Reset done signal
+            }
+        }
+    }
+
+    void swapNums(int first, int second) {
+        int curr = nums[first].read();
+        nums[first].write(nums[second].read());
+        nums[second].write(curr);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Sorter sorter("sorter");
+    sc_clock clk("clk", 10, SC_NS);
+    sc_signal<bool> start, done;
+
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    sc_start(100, SC_NS); // Start simulation for 100 ns
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code:
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(Sorter) {
+   ```
+   - Defines a SystemC module named `Sorter`.
+
+2. **Signals Declaration**:
+   ```cpp
+   sc_in<bool> clk;
+   sc_in<bool> start;
+   sc_out<bool> done;
+   sc_signal<int> nums[5];
+   sc_signal<int> size_nums;
+   sc_signal<bool> isSwapped;
+   sc_signal<int> i, j;
+   ```
+   - Declares input/output signals and internal signals.
+
+3. **Constructor**:
+   ```cpp
+   SC_CTOR(Sorter) {
+       SC_THREAD(sort_thread);
+       sensitive << clk.pos();
+       sensitive << start;
+
+       SC_THREAD(print_thread);
+       sensitive << clk.pos();
+       sensitive << done;
+   }
+   ```
+   - Registers threads `sort_thread` and `print_thread` with sensitivity to clock edges and `start`/`done` signals.
+
+4. **Sort Thread**:
+   ```cpp
+   void sort_thread() {
+       while (true) {
+           wait(); // Wait for rising edge of clk
+           if (start.read()) {
+               // Initialize array and size
+               nums[0].write(1);
+               nums[1].write(12);
+               nums[2].write(6);
+               nums[3].write(8);
+               nums[4].write(10);
+               size_nums.write(5);
+
+               // Print unsorted array
+               cout << "Before sorting the array is: \n";
+               for (int k = 0; k < size_nums.read(); k++) {
+                   cout << nums[k].read() << " ";
+               }
+               cout << "\n\n";
+
+               // Bubble sort
+               for (i.write(0); i.read() < size_nums.read(); i.write(i.read() + 1)) {
+                   isSwapped.write(false);
+                   for (j.write(1); j.read() < size_nums.read() - i.read(); j.write(j.read() + 1)) {
+                       if (nums[j.read()].read() < nums[j.read() - 1].read()) {
+                           swapNums(j.read(), j.read() - 1);
+                           isSwapped.write(true);
+                       }
+                   }
+                   if (!isSwapped.read()) {
+                       break;
+                   }
+               }
+
+               // Print sorted array
+               cout << "After sorting the array is: \n";
+               for (int k = 0; k < size_nums.read(); k++) {
+                   cout << nums[k].read() << " ";
+               }
+               cout << "\n";
+
+               done.write(true);
+           }
+       }
+   }
+   ```
+   - Implements the sorting logic within a thread.
+   - Waits for the `start` signal to begin sorting.
+   - Initializes the array and prints it before sorting.
+   - Implements the bubble sort algorithm.
+   - Prints the sorted array and sets the `done` signal.
+
+5. **Print Thread**:
+   ```cpp
+   void print_thread() {
+       while (true) {
+           wait(); // Wait for rising edge of clk
+           if (done.read()) {
+               done.write(false); // Reset done signal
+           }
+       }
+   }
+   ```
+   - Resets the `done` signal after sorting is complete.
+
+6. **Swap Function**:
+   ```cpp
+   void swapNums(int first, int second) {
+       int curr = nums[first].read();
+       nums[first].write(nums[second].read());
+       nums[second].write(curr);
+   }
+   ```
+   - Swaps two elements in the array.
+
+7. **Main Function**:
+   ```cpp
+   int sc_main(int argc, char* argv[]) {
+       Sorter sorter("sorter");
+       sc_clock clk("clk", 10, SC_NS);
+       sc_signal<bool> start, done;
+
+       sorter.clk(clk);
+       sorter.start(start);
+       sorter.done(done);
+
+       sc_start(100, SC_NS); // Start simulation for 100 ns
+
+       return 0;
+   }
+   ```
+   - Instantiates the `Sorter` module and connects it to the clock and signals.
+   - Starts the simulation for 100 nanoseconds.
+
+This SystemC code mirrors the functionality of the original C++/C code, incorporating the specified signals for integration with a testbench.

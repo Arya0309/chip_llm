@@ -1,0 +1,90 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!4. **Inputs and Outputs**:
+   - **Input**: A 2D array `m` of size `n x n` (in this case, `4 x 4`), which is initialized in the `main` function.
+   - **Output**: The modified 2D array after swapping the elements of the first and last rows.
+
+5. **Line-by-Line Explanation**:
+   - `#include <iostream>`: Includes the iostream library for input and output operations.
+   - `using namespace std;`: Uses the standard namespace.
+   - `#define n 4`: Defines a macro `n` with the value `4`, representing the size of the square matrix.
+   - `void interchangeFirstLast(int m[][n])`: Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n` as an argument.
+     - `int rows = n;`: Assigns the value of `n` to `rows`.
+     - `for (int i = 0; i < n; i++)`: Loops through each column of the first and last rows.
+       - `int t = m[0][i];`: Stores the value of the element in the first row at column `i` in a temporary variable `t`.
+       - `m[0][i] = m[rows - 1][i];`: Assigns the value of the element in the last row at column `i` to the first row at column `i`.
+       - `m[rows - 1][i] = t;`: Assigns the stored value from `t` to the last row at column `i`.
+   - `int main()`: The main function where the program execution begins.
+     - `int m[n][n] = {{8, 9, 7, 6}, {4, 7, 6, 5}, {3, 2, 1, 8}, {9, 9, 7, 7}};`: Initializes a 4x4 matrix `m` with specified values.
+     - `interchangeFirstLast(m);`: Calls the `interchangeFirstLast` function to swap the first and last rows of the matrix.
+     - Nested `for` loops: Iterate through each element of the matrix and print it to the console, displaying the modified matrix.
+
+6. **SystemC Code Snippet**:
+```
+#include <systemc.h>
+
+#define SIZE 4
+
+SC_MODULE(MatrixSwapper) {
+    sc_in<int> in[SIZE][SIZE];
+    sc_out<int> out[SIZE][SIZE];
+
+    void process() {
+        int temp[SIZE][SIZE];
+        
+        // Copy input to a local buffer
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                temp[i][j] = in[i][j].read();
+            }
+        }
+
+        // Swap the first and last rows
+        for (int i = 0; i < SIZE; i++) {
+            int t = temp[0][i];
+            temp[0][i] = temp[SIZE - 1][i];
+            temp[SIZE - 1][i] = t;
+        }
+
+        // Write the modified matrix to the output
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                out[i][j].write(temp[i][j]);
+            }
+        }
+    }
+
+    SC_CTOR(MatrixSwapper) {
+        SC_METHOD(process);
+        sensitive << in[0][0] << in[0][1] << in[0][2] << in[0][3]
+                  << in[1][0] << in[1][1] << in[1][2] << in[1][3]
+                  << in[2][0] << in[2][1] << in[2][2] << in[2][3]
+                  << in[3][0] << in[3][1] << in[3][2] << in[3][3];
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    MatrixSwapper swapper("swapper");
+
+    // Example input initialization
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            swapper.in[i][j].write(i * SIZE + j + 1);
+        }
+    }
+
+    // Simulation loop
+    sc_start(10, SC_NS);
+
+    // Output the results
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            cout << swapper.out[i][j].read() << " ";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+```
+
+This SystemC code defines a module `MatrixSwapper` that swaps the first and last rows of a 4x4 matrix. The `process` method handles the matrix swapping logic, and the `sc_main` function sets up the simulation environment, initializes the input, runs the simulation, and prints the output. The module uses `sc_in` and `sc_out` arrays to interface with the testbench.

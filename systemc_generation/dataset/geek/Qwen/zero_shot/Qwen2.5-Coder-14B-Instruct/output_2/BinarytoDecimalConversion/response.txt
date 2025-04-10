@@ -1,0 +1,78 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs**:
+   - Input: An integer representing a binary number (`n`).
+   - Output: An integer representing the decimal equivalent of the binary number.
+
+2. **Line-by-Line Summary**:
+   - `#include <iostream>`: Includes the standard input-output stream library.
+   - `using namespace std;`: Uses the standard namespace to avoid prefixing standard library names with `std::`.
+   - `int binaryToDecimal(int n)`: Defines a function `binaryToDecimal` that takes an integer `n` as input and returns an integer.
+     - `int num = n;`: Copies the input `n` into `num`.
+     - `int dec_value = 0;`: Initializes `dec_value` to 0, which will store the final decimal value.
+     - `int base = 1;`: Initializes `base` to 1, representing 2^0.
+     - `int temp = num;`: Copies `num` into `temp` to use in the loop.
+     - `while (temp)`: Loops until `temp` becomes 0.
+       - `int last_digit = temp % 10;`: Extracts the last digit of `temp`.
+       - `temp = temp / 10;`: Removes the last digit from `temp`.
+       - `dec_value += last_digit * base;`: Adds the contribution of the current digit to `dec_value`.
+       - `base = base * 2;`: Doubles the base for the next iteration.
+     - `return dec_value;`: Returns the computed decimal value.
+   - `int main()`: Defines the main function.
+     - `int num = 10101001;`: Initializes `num` with the binary number 10101001.
+     - `cout << binaryToDecimal(num) << endl;`: Calls `binaryToDecimal` with `num` and prints the result.
+
+3. **SystemC Code Snippet**:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinaryToDecimalConverter) {
+    sc_in<int> binary_in; // Input binary number
+    sc_out<int> decimal_out; // Output decimal number
+
+    void conversion_process() {
+        int num = binary_in.read();
+        int dec_value = 0;
+        int base = 1;
+        int temp = num;
+
+        while (temp) {
+            int last_digit = temp % 10;
+            temp = temp / 10;
+            dec_value += last_digit * base;
+            base = base * 2;
+        }
+
+        decimal_out.write(dec_value);
+    }
+
+    SC_CTOR(BinaryToDecimalConverter) {
+        SC_METHOD(conversion_process);
+        sensitive << binary_in;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    BinaryToDecimalConverter converter("converter");
+    sc_signal<int> binary_input;
+    sc_signal<int> decimal_output;
+
+    converter.binary_in(binary_input);
+    converter.decimal_out(decimal_output);
+
+    // Example input
+    binary_input.write(10101001);
+    sc_start();
+
+    cout << "Decimal Output: " << decimal_output.read() << endl;
+
+    return 0;
+}
+```
+
+**Explanation of the SystemC Code**:
+- **Module Definition**: `BinaryToDecimalConverter` is a SystemC module that encapsulates the binary-to-decimal conversion logic.
+- **Signals**: `binary_in` and `decimal_out` are SystemC signals used for input and output.
+- **Conversion Process**: The `conversion_process` method replicates the logic from the original C++ function, converting the binary input to a decimal value and writing it to `decimal_out`.
+- **Constructor**: The constructor sets up the process sensitivity to changes in `binary_in`, ensuring the conversion is triggered whenever the input changes.
+- **Main Function**: Sets up the module, connects signals, and provides an example input to demonstrate the conversion process.

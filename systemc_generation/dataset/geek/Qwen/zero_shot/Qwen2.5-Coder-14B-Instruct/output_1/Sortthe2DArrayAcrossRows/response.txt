@@ -1,0 +1,105 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs**:
+   - **Inputs**: A 2D matrix `m` with dimensions `r` (rows) and `c` (columns), which is hardcoded in the provided code as a 4x4 matrix.
+   - **Outputs**: The sorted 2D matrix printed row-wise. Since this is a console application, the output is not directly returned but printed to the console.
+
+2. **Detailed Analysis**:
+   - The code defines a function `swap` to swap two integers.
+   - The function `sortRowWise` takes a 2D matrix `m`, number of rows `r`, and number of columns `c` as arguments.
+   - It sorts each row of the matrix using a simple bubble sort algorithm.
+   - After sorting, it prints the sorted matrix.
+   - The `main` function initializes a 4x4 matrix and calls `sortRowWise` to sort and print it.
+
+3. **Line-by-Line Explanation**:
+   - `#include<bits/stdc++.h>`: Includes all standard libraries.
+   - `using namespace std;`: Uses the standard namespace.
+   - `void swap(int *xp, int *yp)`: Function to swap two integers pointed to by `xp` and `yp`.
+   - `void sortRowWise(int m[][4], int r, int c)`: Function to sort each row of the matrix.
+     - Outer loop iterates over each row.
+     - Middle loop iterates over each column.
+     - Innermost loop compares adjacent elements and swaps them if they are out of order.
+   - `for (int i = 0; i < r; i++)`: Loop to iterate over rows.
+     - Nested loop to iterate over columns and print each element.
+   - `int main()`: Main function.
+     - Initializes a 4x4 matrix.
+     - Calls `sortRowWise` to sort and print the matrix.
+
+4. **SystemC Code**:
+   - The SystemC code below reflects the same logic, incorporating the provided signals for testbench integration.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    void sortProcess() {
+        int m[4][4] = {{9, 8, 7, 1},
+                        {7, 3, 0, 2},
+                        {9, 5, 3, 2},
+                        {6, 3, 1, 2}};
+        int r = 4;
+        int c = 4;
+
+        wait(start.posedge_event()); // Wait for start signal
+
+        // Bubble sort each row
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                for (int k = 0; k < c - j - 1; k++) {
+                    if (m[i][k] > m[i][k + 1]) {
+                        int temp = m[i][k];
+                        m[i][k] = m[i][k + 1];
+                        m[i][k + 1] = temp;
+                    }
+                }
+            }
+        }
+
+        // Output the sorted matrix
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                cout << m[i][j] << " ";
+            }
+            cout << endl;
+        }
+
+        done.write(true); // Signal done after processing
+    }
+
+    SC_CTOR(MatrixSorter) {
+        SC_THREAD(sortProcess);
+        sensitive << clk.pos();
+        async_reset_signal_is(clk, false);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS); // 10 ns clock period
+    sc_signal<bool> start, done;
+
+    MatrixSorter sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Testbench
+    start.write(false);
+    sc_start(10, SC_NS); // Wait for 10 ns
+    start.write(true);
+    sc_start(100, SC_NS); // Run for 100 ns while sorting
+    start.write(false);
+    sc_start(); // Finish simulation
+
+    return 0;
+}
+```
+
+**Explanation of SystemC Code**:
+- **Module Definition**: `MatrixSorter` module encapsulates the sorting logic.
+- **Signals**: `clk`, `start`, and `done` are defined as signals for integration with the testbench.
+- **sortProcess Method**: Implements the sorting logic similar to the C++ code, using SystemC constructs.
+- **Constructor**: Sets up the thread and sensitivity to the clock.
+- **sc_main**: Sets up the clock, signals, and module instances, and runs the simulation with a testbench that triggers the sorting process.

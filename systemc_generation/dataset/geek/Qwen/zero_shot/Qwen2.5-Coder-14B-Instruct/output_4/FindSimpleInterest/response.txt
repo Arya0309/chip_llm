@@ -1,0 +1,89 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1. **Inputs and Outputs**:
+   - **Inputs**: The code takes three floating-point numbers as inputs: `P` (Principal amount), `R` (Rate of interest), and `T` (Time period).
+   - **Output**: The code calculates and outputs the Simple Interest (`SI`).
+
+2. **Line-by-Line Explanation**:
+   - `#include<iostream>`: This line includes the iostream library, which is necessary for input and output operations.
+   - `using namespace std;`: This line allows us to use standard library functions without prefixing them with `std::`.
+   - `int main() { ... }`: This is the main function where the execution of the program begins.
+   - `float P = 1, R = 1, T = 1;`: Here, three float variables are declared and initialized with values 1. These represent the principal amount, rate of interest, and time period respectively.
+   - `float SI = (P * T * R) / 100;`: This line calculates the simple interest using the formula \( SI = \frac{P \times T \times R}{100} \).
+   - `cout << "Simple Interest = " << SI;`: This line prints the calculated simple interest to the console.
+   - `return 0;`: This statement indicates that the program ended successfully.
+
+3. **SystemC Code**:
+   Below is the equivalent SystemC code snippet that uses the provided signals and performs the same logic:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SimpleInterestCalculator) {
+    // Input signals
+    sc_in<float> P; // Principal amount
+    sc_in<float> R; // Rate of interest
+    sc_in<float> T; // Time period
+
+    // Output signal
+    sc_out<float> SI; // Simple Interest
+
+    // Constructor
+    SC_CTOR(SimpleInterestCalculator) {
+        SC_METHOD(calculateSI);
+        sensitive << P << R << T; // Sensitive to changes in P, R, and T
+    }
+
+    // Method to calculate simple interest
+    void calculateSI() {
+        float si = (P.read() * T.read() * R.read()) / 100;
+        SI.write(si);
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    // Signals
+    sc_signal<float> P, R, T;
+    sc_signal<float> SI;
+
+    // Instance of the SimpleInterestCalculator
+    SimpleInterestCalculator sic;
+
+    // Constructor
+    SC_CTOR(Testbench) : sic("sic") {
+        sic.P(P);
+        sic.R(R);
+        sic.T(T);
+        sic.SI(SI);
+
+        // Initialize signals
+        P.write(1.0);
+        R.write(1.0);
+        T.write(1.0);
+
+        // Simulation process
+        SC_THREAD(simulation_process);
+    }
+
+    // Simulation process
+    void simulation_process() {
+        wait(10, SC_NS); // Wait for 10 ns
+        cout << "Simple Interest = " << SI.read() << endl;
+        sc_stop(); // Stop the simulation
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+- **Module Declaration**: The `SimpleInterestCalculator` module encapsulates the logic for calculating simple interest.
+- **Signals**: The input signals `P`, `R`, and `T` are connected to the module, along with the output signal `SI`.
+- **Constructor**: The constructor sets up a method `calculateSI` that is sensitive to changes in `P`, `R`, and `T`.
+- **Method `calculateSI`**: This method reads the input signals, calculates the simple interest, and writes the result to the output signal `SI`.
+- **Testbench Module**: The `Testbench` module initializes the signals, connects them to the `SimpleInterestCalculator`, and runs a simulation process to verify the output.
+- **Simulation Process**: The process waits for 10 nanoseconds, reads the calculated simple interest from the `SI` signal, prints it, and stops the simulation.

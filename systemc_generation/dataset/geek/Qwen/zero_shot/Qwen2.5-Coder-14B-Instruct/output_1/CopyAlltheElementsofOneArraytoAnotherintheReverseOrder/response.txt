@@ -1,0 +1,125 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! **Inputs and Outputs**:
+- **Inputs**: None explicitly defined in the code. However, if we consider the array `original_arr` as an input, then the length of this array is implicitly used.
+- **Outputs**: The program prints two arrays:
+  1. The original array.
+  2. The reversed copy of the original array.
+
+ **Line-by-Line Explanation**:
+1. **Include Statement**: `#include <stdio.h>` - This includes the standard input-output library for printing functions.
+2. **Function Declaration**: `void printArray(int arr[], int len)` - This function is declared to print the elements of an array.
+3. **Main Function**: `int main()` - The entry point of the program.
+4. **Array Initialization**: `int original_arr[] = {1, 2, 3, 4, 5};` - Initializes an array with values `{1, 2, 3, 4, 5}`.
+5. **Length Calculation**: `int len = sizeof(original_arr)/sizeof(original_arr[0]);` - Calculates the number of elements in the array.
+6. **Copied Array Declaration**: `int copied_arr[len];` - Declares an array to hold the reversed copy of `original_arr`.
+7. **Loop to Copy in Reverse Order**:
+   ```c
+   for (i = 0; i < len; i++) { 
+       copied_arr[i] = original_arr[len - i - 1]; 
+   }
+   ```
+   - This loop iterates over each element of `original_arr` and assigns it to the corresponding position in `copied_arr` in reverse order.
+8. **Print Original Array**: `printf(" Original array: ");` - Prints the label "Original array:".
+9. **Call to Print Function**: `printArray(original_arr, len);` - Calls the `printArray` function to print the elements of `original_arr`.
+10. **Print Copied Array**: `printf(" Resultant array: ");` - Prints the label "Resultant array:".
+11. **Call to Print Function**: `printArray(copied_arr, len);` - Calls the `printArray` function to print the elements of `copied_arr`.
+12. **Return Statement**: `return 0;` - Indicates successful execution of the program.
+
+ **SystemC Code Snippet**:
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayCopy) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    int original_arr[5] = {1, 2, 3, 4, 5};
+    int copied_arr[5];
+    int len = 5;
+    bool processing_done = false;
+
+    SC_CTOR(ArrayCopy) : clk("clk"), start("start"), done("done") {
+        SC_THREAD(process);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void process() {
+        while (true) {
+            wait(); // Wait for the clock edge
+            if (start.read()) {
+                for (int i = 0; i < len; i++) {
+                    copied_arr[i] = original_arr[len - i - 1];
+                }
+                processing_done = true;
+            }
+            if (processing_done) {
+                done.write(true);
+                processing_done = false;
+            } else {
+                done.write(false);
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    ArrayCopy array_copy("array_copy");
+    sc_signal<bool> clk, start, done;
+
+    array_copy.clk(clk);
+    array_copy.start(start);
+    array_copy.done(done);
+
+    // Simple clock generation
+    sc_process_handle clk_gen = sc_spawn(sc_bind(&clock_gen, clk));
+
+    // Start signal generation
+    sc_process_handle start_gen = sc_spawn(sc_bind(&start_gen, start));
+
+    sc_start(10, SC_NS); // Run simulation for 10 ns
+
+    return 0;
+}
+
+void clock_gen(sc_signal<bool>& clk) {
+    while (true) {
+        clk.write(true);
+        wait(5, SC_NS);
+        clk.write(false);
+        wait(5, SC_NS);
+    }
+}
+
+void start_gen(sc_signal<bool>& start) {
+    wait(1, SC_NS);
+    start.write(true);
+    wait(1, SC_NS);
+    start.write(false);
+}
+```
+
+**Explanation of SystemC Code**:
+1. **Module Definition**: `SC_MODULE(ArrayCopy)` - Defines a SystemC module named `ArrayCopy`.
+2. **Signals**: `sc_in<bool> clk;`, `sc_in<bool> start;`, `sc_out<bool> done;` - Declares input and output signals.
+3. **Arrays and Length**: `int original_arr[5] = {1, 2, 3, 4, 5};`, `int copied_arr[5];`, `int len = 5;` - Declares and initializes the arrays and their length.
+4. **Processing Done Flag**: `bool processing_done = false;` - A flag to indicate when processing is complete.
+5. **Constructor**: `SC_CTOR(ArrayCopy)` - Constructor for the module.
+6. **Thread Declaration**: `SC_THREAD(process);` - Declares a thread for processing.
+7. **Sensitivity List**: `sensitive << clk.pos();` - Sensitivity to the positive edge of the clock.
+8. **Process Function**: `void process()` - The main processing function.
+9. **While Loop**: `while (true)` - Infinite loop to keep the process running.
+10. **Wait for Clock Edge**: `wait();` - Waits for the next clock edge.
+11. **Start Condition Check**: `if (start.read())` - Checks if the start signal is high.
+12. **Copy Loop**: `for (int i = 0; i < len; i++)` - Copies elements from `original_arr` to `copied_arr` in reverse order.
+13. **Set Processing Done Flag**: `processing_done = true;` - Sets the flag indicating processing is done.
+14. **Done Signal Update**: `if (processing_done)` - Updates the done signal based on the processing done flag.
+15. **Main Function**: `int sc_main(int argc, char* argv[])` - The entry point of the SystemC simulation.
+16. **Module Instantiation**: `ArrayCopy array_copy("array_copy");` - Instantiates the `ArrayCopy` module.
+17. **Signal Binding**: Binds the signals to the module ports.
+18. **Clock Generation**: `sc_process_handle clk_gen = sc_spawn(sc_bind(&clock_gen, clk));` - Spawns a process to generate the clock signal.
+19. **Start Signal Generation**: `sc_process_handle start_gen = sc_spawn(sc_bind(&start_gen, start));` - Spawns a process to generate the start signal.
+20. **Simulation Start**: `sc_start(10, SC_NS);` - Starts the simulation for 10 nanoseconds.
+21. **Clock Generator Function**: `void clock_gen(sc_signal<bool>& clk)` - Generates the clock signal.
+22. **Start Signal Generator Function**: `void start_gen(sc_signal<bool>& start)` - Generates the start signal.

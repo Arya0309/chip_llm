@@ -1,0 +1,239 @@
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - `m` and `n`: Dimensions of the matrix.
+  - `mat[R][C]`: The matrix to be rotated.
+- **Outputs**:
+  - The rotated matrix printed to the console.
+
+#### Detailed Explanation
+1. **Function Declaration**:
+   ```cpp
+   void rotatematrix(int m, int n, int mat[R][C])
+   ```
+   - This function takes the dimensions of the matrix (`m` and `n`) and the matrix itself (`mat`) as inputs.
+
+2. **Initialization**:
+   ```cpp
+   int row = 0, col = 0;
+   int prev, curr;
+   ```
+   - `row` and `col` are initialized to 0, representing the starting indices of the matrix.
+   - `prev` and `curr` are used to store temporary values during the rotation process.
+
+3. **Outer While Loop**:
+   ```cpp
+   while (row < m && col < n)
+   ```
+   - This loop continues until all layers of the matrix have been rotated.
+
+4. **Break Condition**:
+   ```cpp
+   if (row + 1 == m || col + 1 == n)
+       break;
+   ```
+   - If the remaining rows or columns are less than or equal to 1, the loop breaks.
+
+5. **Rotate First Row**:
+   ```cpp
+   prev = mat[row + 1][col];
+   for (int i = col; i < n; i++)
+   {
+       curr = mat[row][i];
+       mat[row][i] = prev;
+       prev = curr;
+   }
+   row++;
+   ```
+   - The first element of the next row is stored in `prev`.
+   - Elements of the first row are moved to the right, with the first element being replaced by `prev`.
+   - `row` is incremented to move to the next row.
+
+6. **Rotate Last Column**:
+   ```cpp
+   for (int i = row; i < m; i++)
+   {
+       curr = mat[i][n-1];
+       mat[i][n-1] = prev;
+       prev = curr;
+   }
+   n--;
+   ```
+   - Elements of the last column are moved downwards, with the last element being replaced by `prev`.
+   - `n` is decremented to exclude the last column from future iterations.
+
+7. **Rotate Last Row**:
+   ```cpp
+   if (row < m)
+   {
+       for (int i = n-1; i >= col; i--)
+       {
+           curr = mat[m-1][i];
+           mat[m-1][i] = prev;
+           prev = curr;
+       }
+   }
+   m--;
+   ```
+   - Elements of the last row are moved to the left, with the last element being replaced by `prev`.
+   - `m` is decremented to exclude the last row from future iterations.
+
+8. **Rotate First Column**:
+   ```cpp
+   if (col < n)
+   {
+       for (int i = m-1; i >= row; i--)
+       {
+           curr = mat[i][col];
+           mat[i][col] = prev;
+           prev = curr;
+       }
+   }
+   col++;
+   ```
+   - Elements of the first column are moved upwards, with the first element being replaced by `prev`.
+   - `col` is incremented to move to the next column.
+
+9. **Print Rotated Matrix**:
+   ```cpp
+   for (int i=0; i<R; i++)
+   {
+       for (int j=0; j<C; j++)
+       cout << mat[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - The rotated matrix is printed to the console.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that replicates the functionality of the provided C++/C code:
+
+```cpp
+#include <systemc.h>
+
+#define SIZE 4
+
+SC_MODULE(MatrixRotator) {
+    sc_in<int> in[SIZE][SIZE];
+    sc_out<int> out[SIZE][SIZE];
+
+    SC_CTOR(MatrixRotator) {
+        SC_THREAD(rotate_matrix);
+    }
+
+    void rotate_matrix() {
+        int mat[SIZE][SIZE];
+        int m = SIZE, n = SIZE;
+        int row = 0, col = 0;
+        int prev, curr;
+
+        // Copy input to local matrix
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                mat[i][j] = in[i][j].read();
+            }
+        }
+
+        while (row < m && col < n) {
+            if (row + 1 == m || col + 1 == n)
+                break;
+
+            prev = mat[row + 1][col];
+            for (int i = col; i < n; i++) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            for (int i = row; i < m; i++) {
+                curr = mat[i][n - 1];
+                mat[i][n - 1] = prev;
+                prev = curr;
+            }
+            n--;
+
+            if (row < m) {
+                for (int i = n - 1; i >= col; i--) {
+                    curr = mat[m - 1][i];
+                    mat[m - 1][i] = prev;
+                    prev = curr;
+                }
+            }
+            m--;
+
+            if (col < n) {
+                for (int i = m - 1; i >= row; i--) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        // Copy rotated matrix to output
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                out[i][j].write(mat[i][j]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(MatrixRotator) {
+   ```
+   - Defines a SystemC module named `MatrixRotator`.
+
+2. **Port Declarations**:
+   ```cpp
+   sc_in<int> in[SIZE][SIZE];
+   sc_out<int> out[SIZE][SIZE];
+   ```
+   - Declares input and output ports for the matrix.
+
+3. **Constructor**:
+   ```cpp
+   SC_CTOR(MatrixRotator) {
+       SC_THREAD(rotate_matrix);
+   }
+   ```
+   - Initializes the module and starts the `rotate_matrix` thread.
+
+4. **Thread Function**:
+   ```cpp
+   void rotate_matrix() {
+   ```
+   - Contains the logic to rotate the matrix.
+
+5. **Copy Input to Local Matrix**:
+   ```cpp
+   for (int i = 0; i < SIZE; i++) {
+       for (int j = 0; j < SIZE; j++) {
+           mat[i][j] = in[i][j].read();
+       }
+   }
+   ```
+   - Reads the input matrix into a local array `mat`.
+
+6. **Rotation Logic**:
+   - Similar to the C++ code, the matrix is rotated layer by layer.
+
+7. **Copy Rotated Matrix to Output**:
+   ```cpp
+   for (int i = 0; i < SIZE; i++) {
+       for (int j = 0; j < SIZE; j++) {
+           out[i][j].write(mat[i][j]);
+       }
+   }
+   ```
+   - Writes the rotated matrix to the output ports.
+
+This SystemC code preserves the logic of the original C++/C code and can be integrated seamlessly with an existing testbench using the provided input and output signals.

@@ -1,0 +1,109 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!2. **Inputs and Outputs of the Code**:
+   - **Inputs**: None (The array is hardcoded within the `main` function).
+   - **Outputs**: Minimum and Maximum elements of the array.
+
+3. **Line-by-Line Explanation**:
+   - `#include <bits/stdc++.h>`: Includes all standard C++ libraries.
+   - `using namespace std;`: Uses the standard namespace.
+   - `int getMin(int arr[], int n)`: Function to find the minimum element in an array.
+     - `return *min_element(arr, arr + n);`: Returns the minimum element using the `min_element` function from the `<algorithm>` library.
+   - `int getMax(int arr[], int n)`: Function to find the maximum element in an array.
+     - `return *max_element(arr, arr + n);`: Returns the maximum element using the `max_element` function from the `<algorithm>` library.
+   - `int main()`: Main function where the program execution starts.
+     - `int arr[] = { 12, 1234, 45, 67, 1 };`: Declares and initializes an integer array.
+     - `int n = sizeof(arr) / sizeof(arr[0]);`: Calculates the number of elements in the array.
+     - `cout << "Minimum element of array: " << getMin(arr, n) << " ";`: Prints the minimum element of the array.
+     - `cout << "Maximum element of array: " << getMax(arr, n);`: Prints the maximum element of the array.
+     - `return 0;`: Returns 0 to indicate successful execution.
+
+4. **SystemC Code Snippet**:
+```cpp
+#include <systemc.h>
+#include <algorithm>
+
+SC_MODULE(ArrayMinMax) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+    sc_out<int> min_val;
+    sc_out<int> max_val;
+
+    void find_min_max() {
+        int arr[] = { 12, 1234, 45, 67, 1 };
+        int n = sizeof(arr) / sizeof(arr[0]);
+        
+        while (true) {
+            wait(); // Wait for the clock edge
+            if (start.read()) {
+                int min_value = *std::min_element(arr, arr + n);
+                int max_value = *std::max_element(arr, arr + n);
+                
+                min_val.write(min_value);
+                max_val.write(max_value);
+                done.write(true);
+                
+                wait(); // Wait for the next clock edge before resetting done
+                done.write(false);
+            }
+        }
+    }
+
+    SC_CTOR(ArrayMinMax) {
+        SC_THREAD(find_min_max);
+        sensitive << clk.pos();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    ArrayMinMax min_max("min_max");
+    
+    sc_signal<bool> clk;
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+    sc_signal<int> min_val;
+    sc_signal<int> max_val;
+
+    min_max.clk(clk);
+    min_max.start(start);
+    min_max.done(done);
+    min_max.min_val(min_val);
+    min_max.max_val(max_val);
+
+    // Simple clock generator
+    sc_process_handle clk_gen;
+    clk_gen = sc_spawn(sc_bind(&clock_generator, clk));
+
+    // Start signal generator
+    sc_process_handle start_gen;
+    start_gen = sc_spawn(sc_bind(&start_signal_generator, start));
+
+    sc_start(100, SC_NS); // Run simulation for 100 ns
+
+    return 0;
+}
+
+void clock_generator(sc_signal<bool>& clk) {
+    while (true) {
+        clk.write(false);
+        wait(5, SC_NS);
+        clk.write(true);
+        wait(5, SC_NS);
+    }
+}
+
+void start_signal_generator(sc_signal<bool>& start) {
+    wait(10, SC_NS);
+    start.write(true);
+    wait(10, SC_NS);
+    start.write(false);
+}
+```
+
+### Explanation of the SystemC Code:
+- **Module Declaration**: `ArrayMinMax` is the SystemC module that encapsulates the logic for finding the minimum and maximum values in an array.
+- **Signals**: The module uses the provided signals (`clk`, `start`, `done`, `min_val`, `max_val`) to interact with the testbench.
+- **Thread Function**: `find_min_max` is a thread function that runs continuously and waits for the `start` signal. When `start` is high, it calculates the minimum and maximum values of the array and writes them to `min_val` and `max_val` respectively. It then sets `done` to true and waits for the next clock edge before resetting `done` to false.
+- **Constructor**: The constructor binds the `find_min_max` thread to the positive edge of the clock.
+- **Main Function**: Sets up the module and signals, and starts the simulation for 100 ns.
+- **Clock and Start Signal Generators**: These functions generate clock and start signals for the simulation environment.

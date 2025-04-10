@@ -1,0 +1,242 @@
+
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs:
+- **Inputs**:
+  - `m` and `n`: Dimensions of the matrix.
+  - `mat[R][C]`: A 2D array representing the matrix to be rotated.
+- **Outputs**:
+  - The function `rotatematrix` modifies the input matrix `mat` in-place to be rotated by 90 degrees clockwise.
+  - The modified matrix is printed to the console.
+
+#### Line-by-Line Explanation:
+
+1. **Matrix Rotation Function Definition**:
+   ```cpp
+   void rotatematrix(int m, int n, int mat[R][C])
+   ```
+   - This function takes the dimensions of the matrix (`m` and `n`) and the matrix itself (`mat`) as arguments.
+
+2. **Initialization**:
+   ```cpp
+   int row = 0, col = 0;
+   int prev, curr;
+   ```
+   - Initialize variables to keep track of the current starting row (`row`) and column (`col`).
+   - `prev` and `curr` are used to store values temporarily during the rotation process.
+
+3. **Outer Loop**:
+   ```cpp
+   while (row < m && col < n)
+   ```
+   - This loop continues until all layers of the matrix have been rotated.
+
+4. **Early Termination Condition**:
+   ```cpp
+   if (row + 1 == m || col + 1 == n) break;
+   ```
+   - If there's only one row or one column left, terminate the loop as no further rotation is needed.
+
+5. **Store First Element of Next Row**:
+   ```cpp
+   prev = mat[row + 1][col];
+   ```
+   - Store the first element of the next row, which will be used to replace the first element of the current row.
+
+6. **Rotate Top Row**:
+   ```cpp
+   for (int i = col; i < n; i++)
+   {
+       curr = mat[row][i];
+       mat[row][i] = prev;
+       prev = curr;
+   }
+   row++;
+   ```
+   - Rotate the top row from left to right, updating each element with the previous value stored in `prev`.
+   - Increment `row` to move to the next layer.
+
+7. **Rotate Right Column**:
+   ```cpp
+   for (int i = row; i < m; i++)
+   {
+       curr = mat[i][n-1];
+       mat[i][n-1] = prev;
+       prev = curr;
+   }
+   n--;
+   ```
+   - Rotate the rightmost column from top to bottom.
+   - Decrement `n` to move to the next inner layer.
+
+8. **Rotate Bottom Row**:
+   ```cpp
+   if (row < m)
+   {
+       for (int i = n-1; i >= col; i--)
+       {
+           curr = mat[m-1][i];
+           mat[m-1][i] = prev;
+           prev = curr;
+       }
+   }
+   m--;
+   ```
+   - Rotate the bottom row from right to left if there are still rows remaining.
+   - Decrement `m` to move to the next inner layer.
+
+9. **Rotate Left Column**:
+   ```cpp
+   if (col < n)
+   {
+       for (int i = m-1; i >= row; i--)
+       {
+           curr = mat[i][col];
+           mat[i][col] = prev;
+           prev = curr;
+       }
+   }
+   col++;
+   ```
+   - Rotate the leftmost column from bottom to top if there are still columns remaining.
+   - Increment `col` to move to the next inner layer.
+
+10. **Print Rotated Matrix**:
+    ```cpp
+    for (int i=0; i<R; i++)
+    {
+        for (int j=0; j<C; j++)
+        cout << mat[i][j] << " ";
+        cout << endl;
+    }
+    ```
+    - After rotation, print the modified matrix to the console.
+
+### Equivalent SystemC Code Snippet
+
+Below is the SystemC code that replicates the behavior of the provided C++/C code. It uses the `sc_in` and `sc_out` signals for input and output, making it compatible with the provided testbench.
+
+```cpp
+#include <systemc.h>
+
+#define SIZE 4
+
+SC_MODULE(MatrixRotator) {
+    sc_in<int> in[SIZE][SIZE];
+    sc_out<int> out[SIZE][SIZE];
+
+    SC_CTOR(MatrixRotator) {
+        SC_METHOD(rotate_matrix);
+        sensitive << in;
+    }
+
+    void rotate_matrix() {
+        int mat[SIZE][SIZE];
+        int result[SIZE][SIZE];
+        
+        // Copy input to local matrix
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                mat[i][j] = in[i][j].read();
+            }
+        }
+
+        int row = 0, col = 0;
+        int prev, curr;
+
+        while (row < SIZE && col < SIZE) {
+            if (row + 1 == SIZE || col + 1 == SIZE) break;
+
+            prev = mat[row + 1][col];
+
+            for (int i = col; i < SIZE; i++) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            for (int i = row; i < SIZE; i++) {
+                curr = mat[i][SIZE-1];
+                mat[i][SIZE-1] = prev;
+                prev = curr;
+            }
+            SIZE--;
+
+            if (row < SIZE) {
+                for (int i = SIZE-1; i >= col; i--) {
+                    curr = mat[SIZE-1][i];
+                    mat[SIZE-1][i] = prev;
+                    prev = curr;
+                }
+            }
+            SIZE--;
+
+            if (col < SIZE) {
+                for (int i = SIZE-1; i >= row; i--) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        // Copy rotated matrix to output
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                out[i][j].write(mat[i][j]);
+            }
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    MatrixRotator rotator("rotator");
+
+    // Example initialization (not part of the module, just for testing)
+    sc_signal<int> in_signals[SIZE][SIZE];
+    sc_signal<int> out_signals[SIZE][SIZE];
+
+    // Connect signals to module
+    for (int i = 0; i < SIZE; ++i) {
+        for (int j = 0; j < SIZE; ++j) {
+            rotator.in[i][j](in_signals[i][j]);
+            rotator.out[i][j](out_signals[i][j]);
+        }
+    }
+
+    // Initialize input signals (example input matrix)
+    int init_matrix[SIZE][SIZE] = {
+        {1, 2, 3, 4},
+        {5, 6, 7, 8},
+        {9, 10, 11, 12},
+        {13, 14, 15, 16}
+    };
+
+    for (int i = 0; i < SIZE; ++i) {
+        for (int j = 0; j < SIZE; ++j) {
+            in_signals[i][j].write(init_matrix[i][j]);
+        }
+    }
+
+    // Start simulation
+    sc_start();
+
+    // Output the rotated matrix
+    for (int i = 0; i < SIZE; ++i) {
+        for (int j = 0; j < SIZE; ++j) {
+            cout << out_signals[i][j].read() << " ";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+```
+
+### Notes:
+- The SystemC code initializes a `MatrixRotator` module that rotates a 4x4 matrix.
+- The `sc_in` and `sc_out` signals are used for input and output, respectively.
+- The `rotate_matrix` method performs the same operations as the original C++ function, rotating the matrix in-place.
+- The `sc_main` function sets up the testbench, initializes the input matrix, and prints the rotated matrix after simulation.

@@ -1,0 +1,146 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!process the provided C++/C code and transform it into a SystemC module while maintaining the same functionality.
+
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Input**: An integer `n` which represents an octal number.
+- **Output**: An integer representing the decimal equivalent of the octal number.
+
+#### Detailed Line-by-Line Explanation
+1. **Function Definition**:
+   ```cpp
+   int octalToDecimal(int n)
+   ```
+   - This function takes an integer `n` as input, which is expected to be an octal number.
+
+2. **Variable Declarations**:
+   ```cpp
+   int num = n;
+   int dec_value = 0;
+   ```
+   - `num` is initialized to the input value `n`.
+   - `dec_value` is initialized to `0`. This variable will store the resulting decimal value.
+
+3. **Base Initialization**:
+   ```cpp
+   int base = 1;
+   ```
+   - `base` is initialized to `1`, which corresponds to \(8^0\).
+
+4. **Temporary Variable**:
+   ```cpp
+   int temp = num;
+   ```
+   - `temp` is initialized to the value of `num` for processing within the loop.
+
+5. **Loop to Convert Octal to Decimal**:
+   ```cpp
+   while (temp) 
+   {
+       int last_digit = temp % 10;
+       temp = temp / 10;
+       dec_value += last_digit * base;
+       base = base * 8;
+   }
+   ```
+   - The loop continues until `temp` becomes `0`.
+   - Inside the loop, the last digit of `temp` is extracted using `temp % 10`.
+   - `temp` is then updated by removing the last digit (`temp = temp / 10`).
+   - The extracted digit is multiplied by the current `base` value and added to `dec_value`.
+   - The `base` is updated to the next power of 8 (`base = base * 8`).
+
+6. **Return Statement**:
+   ```cpp
+   return dec_value;
+   ```
+   - The function returns the computed decimal value.
+
+7. **Driver Code**:
+   ```cpp
+   int main()
+   {
+       int num = 67;
+       cout << octalToDecimal(num) << endl;
+   }
+   ```
+   - The `main` function initializes `num` to `67`.
+   - It calls `octalToDecimal(num)` and prints the result.
+
+### Equivalent SystemC Code
+
+Below is the SystemC code that performs the same conversion from octal to decimal, using the provided `sc_in` and `sc_out` signals.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(OctalToDecimalConverter) {
+    sc_in<int> octal_input;          // Input signal for octal number
+    sc_out<int> decimal_output;     // Output signal for decimal number
+
+    SC_CTOR(OctalToDecimalConverter) {
+        SC_METHOD(convert);
+        sensitive << octal_input;
+    }
+
+    void convert() {
+        int num = octal_input.read();
+        int dec_value = 0;
+        int base = 1;
+        int temp = num;
+
+        while (temp) {
+            int last_digit = temp % 10;
+            temp = temp / 10;
+            dec_value += last_digit * base;
+            base = base * 8;
+        }
+
+        decimal_output.write(dec_value);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    OctalToDecimalConverter converter("converter");
+    sc_signal<int> octal_in;
+    sc_signal<int> decimal_out;
+
+    converter.octal_input(octal_in);
+    converter.decimal_output(decimal_out);
+
+    // Test the converter
+    octal_in.write(67);
+    sc_start();
+
+    std::cout << "Octal: 67 -> Decimal: " << decimal_out.read() << std::endl;
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+- **Module Declaration**:
+  - `SC_MODULE(OctalToDecimalConverter)` defines a SystemC module named `OctalToDecimalConverter`.
+  
+- **Port Declarations**:
+  - `sc_in<int> octal_input`: Input port to receive the octal number.
+  - `sc_out<int> decimal_output`: Output port to send the decimal number.
+
+- **Constructor**:
+  - `SC_CTOR(OctalToDecimalConverter)`: Constructor for the module.
+  - `SC_METHOD(convert)`: Registers the `convert` method to be triggered by changes on the `octal_input` port.
+  - `sensitive << octal_input;`: Specifies that the `convert` method should be called whenever `octal_input` changes.
+
+- **Conversion Method**:
+  - `void convert()`: This method performs the conversion from octal to decimal.
+  - Reads the input value using `octal_input.read()`.
+  - Uses the same logic as the original C++ code to compute the decimal value.
+  - Writes the result to the `decimal_output` port using `decimal_output.write(dec_value)`.
+
+- **Main Function**:
+  - Instantiates the `OctalToDecimalConverter` module.
+  - Connects the module's ports to signals.
+  - Writes a test value (`67`) to the input signal.
+  - Starts the simulation and prints the result.
+
+This SystemC code faithfully replicates the behavior of the original C++/C code while being suitable for integration with a SystemC-based testbench.

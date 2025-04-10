@@ -1,0 +1,130 @@
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ```cpp
+// C++ program for implementation of 
+// selection sort 
+
+#include <bits/stdc++.h> 
+using namespace std; 
+
+//Swap function 
+void swap(int *xp, int *yp) 
+{ 
+	int temp = *xp; 
+	*xp = *yp; 
+	*yp = temp; 
+} 
+
+void selectionSort(int arr[], int n) 
+{ 
+	int i, j, min_idx; 
+
+	// One by one move boundary of 
+	// unsorted subarray 
+	for (i = 0; i < n-1; i++) 
+	{ 
+		
+		// Find the minimum element in 
+		// unsorted array 
+		min_idx = i; 
+		for (j = i+1; j < n; j++) 
+		if (arr[j] < arr[min_idx]) 
+			min_idx = j; 
+
+		// Swap the found minimum element 
+		// with the first element 
+		swap(&arr[min_idx], &arr[i]); 
+	} 
+} 
+
+//Function to print an array 
+void printArray(int arr[], int size) 
+{ 
+	int i; 
+	for (i=0; i < size; i++) 
+		cout << arr[i] << " "; 
+	cout << endl; 
+} 
+
+// Driver program to test above functions 
+int main() 
+{ 
+	int arr[] = {64, 25, 12, 22, 11}; 
+	int n = sizeof(arr)/sizeof(arr[0]); 
+	selectionSort(arr, n); 
+	cout << "Sorted array: "; 
+	printArray(arr, n); 
+	return 0; 
+} 
+```
+
+### Inputs and Outputs
+- **Inputs**: None explicitly mentioned in the code. However, the array `arr` is implicitly used as input.
+- **Outputs**: The sorted array printed to the console.
+
+### Line-by-Line Explanation
+1. **Include and Namespace**: The code includes standard library headers and uses the `std` namespace.
+2. **Swap Function**: A function to swap two integers.
+3. **Selection Sort Function**: 
+   - Initializes variables `i`, `j`, and `min_idx`.
+   - Iterates over the array to find the minimum element in the unsorted portion and swaps it with the first element of the unsorted portion.
+4. **Print Array Function**: Prints the elements of an array.
+5. **Main Function**: 
+   - Declares and initializes an array `arr`.
+   - Calls `selectionSort` to sort the array.
+   - Calls `printArray` to print the sorted array.
+
+### SystemC Code Equivalent
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    sc_vector<sc_signal<int>> arr;
+    sc_signal<int> n;
+    sc_signal<int> i, j, min_idx;
+    sc_signal<bool> running;
+
+    void selection_sort_process() {
+        while (true) {
+            wait();
+            if (start.read()) {
+                running.write(true);
+                for (i.write(0); i.read() < n.read() - 1; i.write(i.read() + 1)) {
+                    min_idx.write(i.read());
+                    for (j.write(i.read() + 1); j.read() < n.read(); j.write(j.read() + 1)) {
+                        if (arr[j.read()].read() < arr[min_idx.read()].read()) {
+                            min_idx.write(j.read());
+                        }
+                    }
+                    // Swap the found minimum element with the first element
+                    int temp = arr[min_idx.read()].read();
+                    arr[min_idx.read()].write(arr[i.read()].read());
+                    arr[i.read()].write(temp);
+                }
+                running.write(false);
+                done.write(true);
+            } else if (!running.read()) {
+                done.write(false);
+            }
+        }
+    }
+
+    SC_CTOR(SelectionSort) : arr("arr", 5) {
+        SC_THREAD(selection_sort_process);
+        sensitive << clk.pos();
+    }
+};
+```
+
+### Explanation of SystemC Code
+1. **Module Declaration**: Defines a SystemC module named `SelectionSort`.
+2. **Signals**: Declares input/output signals and internal signals for array elements, size, indices, and control flags.
+3. **Process**: A process `selection_sort_process` that runs continuously.
+   - Waits for the clock edge.
+   - If `start` is high, it starts sorting the array.
+   - Uses nested loops to find the minimum element and swap it with the first element of the unsorted portion.
+   - Sets `done` high when sorting is complete.
+4. **Constructor**: Initializes the array and binds the process to the positive edge of the clock.
