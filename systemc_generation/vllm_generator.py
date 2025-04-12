@@ -4,16 +4,11 @@ import warnings
 import subprocess
 import pandas as pd
 from tqdm import tqdm
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from vllm import LLM, SamplingParams
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from SystemCDataset import SystemCDataset, collate_fn
 from torch.utils.data import DataLoader
-
-
-from dataclasses import dataclass, field
-import os
-from vllm import SamplingParams
 
 
 @dataclass
@@ -30,9 +25,7 @@ class ModelConfig:
     batch_size: int = 16
 
     # ---------- Save related ----------
-    current_dir: str = field(
-        default_factory=lambda: os.path.dirname(os.path.realpath(__file__))
-    )
+    current_dir: str = os.path.dirname(os.path.realpath(__file__))
     save_name: str = "dataset"
     obj_dataset: str = "geek"
     output_dir_name: str = "output"  # <-- 改這個會影響 output_dir
