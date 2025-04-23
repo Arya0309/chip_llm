@@ -53,6 +53,8 @@ class ModelConfig:
         )
     )
     batch_size: int = 2
+    tensor_parallel_size: int = 1
+    gpu_memory_utilization: float = 0.9
 
     # ---------- Save related ----------
     current_dir: str = os.path.dirname(os.path.realpath(__file__))  # Working directory
@@ -78,7 +80,7 @@ def load_model(config: ModelConfig = ModelConfig()):
     If the model is not found in the cache directory, it will be downloaded.
 
     Args:
-        config  (ModelConfig):  Only use the model_name and cache_dir from the config.
+        config  (ModelConfig):  Configuration object for the model and dataset.
 
     Returns:
         llm (LLM): The loaded LLM model.
@@ -99,7 +101,11 @@ def load_model(config: ModelConfig = ModelConfig()):
         download_model(config.model_name, model_dir)
 
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
-    llm = LLM(model=model_dir)
+    llm = LLM(
+        model=model_dir,
+        tensor_parallel_size=config.tensor_parallel_size,
+        gpu_memory_utilization=config.gpu_memory_utilization,
+    )
 
     return llm, tokenizer
 
