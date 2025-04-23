@@ -40,7 +40,7 @@ class ModelConfig:
     """
 
     # ---------- Model related ----------
-    model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+    model_name: str = "Qwen/Qwen2.5-Coder-7B-Instruct"
     input_dir: str = (
         "./systemc_generation/dataset/geek/one_shot_sp.json"  # Pre-processed dataset
     )
@@ -52,7 +52,7 @@ class ModelConfig:
             max_tokens=4096,
         )
     )
-    batch_size: int = 64
+    batch_size: int = 2
 
     # ---------- Save related ----------
     current_dir: str = os.path.dirname(os.path.realpath(__file__))  # Working directory
@@ -89,16 +89,14 @@ def load_model(config: ModelConfig = ModelConfig()):
         llm, tokenizer = load_model(config)
     """
 
-    def download_model():
-        AutoTokenizer.from_pretrained(config.model_name).save_pretrained(model_dir)
-        AutoModelForCausalLM.from_pretrained(config.model_name).save_pretrained(
-            model_dir
-        )
+    def download_model(model_name, model_dir):
+        AutoTokenizer.from_pretrained(model_name).save_pretrained(model_dir)
+        AutoModelForCausalLM.from_pretrained(model_name).save_pretrained(model_dir)
 
     model_dir = os.path.join(cache_dir, config.model_name)
 
     if not os.path.exists(model_dir):
-        download_model(config.model_name, cache_dir)
+        download_model(config.model_name, model_dir)
 
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
     llm = LLM(model=model_dir)
