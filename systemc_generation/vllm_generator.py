@@ -10,38 +10,84 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from SystemCDataset import SystemCDataset, collate_fn
 from torch.utils.data import DataLoader
 
+cache_dir: str = "/workspace/models"  # Directory to save the model and reuse it
+
 
 @dataclass
 class ModelConfig:
+    """Configuration class for the model and dataset.
+
+    Args:
+        model_name  (str):  Name of the model to be used.
+        input_dir   (str):  Path to the pre-processed dataset.
+
+        params      (SamplingParams):   Parameters for sampling.
+        batch_size  (int):              Batch size for the dataloader. <-- Design a new dataclass to save the parameters
+
+        current_dir     (str): Current working directory.
+        root_name       (str): Name of the root directory for saving outputs.
+        obj_dataset     (str): Name of the objective dataset.
+        output_dir_name (str): Name of the output directory.
+
+    Methods:
+        root_dir (str):  Returns the root directory for saving outputs.
+        output_dir (str): Returns the output directory for saving outputs.
+
+    Example:
+        config = ModelConfig()
+        print(config.model_name)  # Output: "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+        print(config.input_dir)   # Output: "./dataset/geek/one_shot_sp.json"
+    """
+
     # ---------- Model related ----------
     model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
-    cache_dir: str = "/workspace/models"
     input_dir: str = (
-        "/home/S113062615/chip_llm/systemc_generation/dataset/geek/one_shot_sp.json"
+        "./systemc_generation/dataset/geek/one_shot_sp.json"  # Pre-processed dataset
     )
+
+    # ---------- Model parameters ----------
+    # Used for vllm
     params: SamplingParams = field(
-        default_factory=lambda: SamplingParams(max_tokens=4096)
+        default_factory=lambda: SamplingParams(
+            max_tokens=4096,
+        )
     )
-    batch_size: int = 16
+    batch_size: int = 64
 
     # ---------- Save related ----------
-    current_dir: str = os.path.dirname(os.path.realpath(__file__))
-    save_name: str = "dataset"
-    obj_dataset: str = "geek"
-    output_dir_name: str = "output"  # <-- 改這個會影響 output_dir
+    current_dir: str = os.path.dirname(os.path.realpath(__file__))  # Working directory
+    root_name: str = "dataset"  # The name of root directory for saving the outputs
+    obj_dataset: str = "geek"  # The name of the objective dataset
+    output_dir_name: str = "output"  # The name of the output directory
 
     @property
-    def save_dir(self) -> str:
-        return os.path.join(self.current_dir, self.save_name)
+    # Root directory of saving the generated outputs
+    def root_dir(self) -> str:
+        return os.path.join(self.current_dir, self.root_name)
 
     @property
+    # Output directory of saving the generated outputs
     def output_dir(self) -> str:
         return os.path.join(
-            self.save_dir, self.obj_dataset, self.model_name, self.output_dir_name
+            self.root_dir, self.obj_dataset, self.model_name, self.output_dir_name
         )
 
 
 def load_model(config: ModelConfig = ModelConfig()):
+    """Load the model and tokenizer from the cache directory.
+    If the model is not found in the cache directory, it will be downloaded.
+
+    Args:
+        config  (ModelConfig):  Only use the model_name and cache_dir from the config.
+
+    Returns:
+        llm (LLM): The loaded LLM model.
+        tokenizer (AutoTokenizer): The loaded tokenizer.
+
+    Example:
+        config = ModelConfig()
+        llm, tokenizer = load_model(config)
+    """
 
     def download_model():
         AutoTokenizer.from_pretrained(config.model_name).save_pretrained(model_dir)
@@ -49,10 +95,10 @@ def load_model(config: ModelConfig = ModelConfig()):
             model_dir
         )
 
-    model_dir = os.path.join(config.cache_dir, config.model_name)
+    model_dir = os.path.join(cache_dir, config.model_name)
 
     if not os.path.exists(model_dir):
-        download_model(config.model_name, config.cache_dir)
+        download_model(config.model_name, cache_dir)
 
     tokenizer = AutoTokenizer.from_pretrained(model_dir)
     llm = LLM(model=model_dir)
@@ -61,6 +107,25 @@ def load_model(config: ModelConfig = ModelConfig()):
 
 
 class SystemCGenerator:
+    """SystemC code generator using VLLM.
+
+    Args:
+        config  (ModelConfig):  Configuration object for the model and dataset.
+
+    Methods:
+        generate_systemc(model, tokenizer): Generates SystemC code using the model and tokenizer.
+        save_systemc(df, config): Saves the generated SystemC code to files.
+        check_results(): Checks the results of the generated SystemC code.
+
+    Example:
+        config = ModelConfig()
+        sc_generator = SystemCGenerator(config)
+        llm, tokenizer = load_model(config)
+        outputs = sc_generator.generate_systemc(llm, tokenizer)
+        sc_generator.save_systemc(outputs, config)
+        sc_generator.check_results()
+    """
+
     def __init__(self, config: ModelConfig = ModelConfig()):
         self.config = config
 
@@ -91,7 +156,22 @@ class SystemCGenerator:
         return pd.DataFrame(results)
 
     def generate_systemc(self, model, tokenizer):
-        dataset = SystemCDataset(self.config.input_dir, tokenizer)
+        """Generates SystemC code using the model and tokenizer.
+
+        Args:
+            model (LLM): The loaded LLM model.
+            tokenizer (AutoTokenizer): The loaded tokenizer.
+
+        Returns:
+            outputs (pd.DataFrame): A DataFrame containing the generated SystemC code and other information.
+
+        Example:
+            config = ModelConfig()
+            llm, tokenizer = load_model(config)
+            sc_generator = SystemCGenerator(config)
+            outputs = sc_generator.generate_systemc(llm, tokenizer)
+        """
+        dataset = SystemCDataset(self.config.input_dir, tokenizer)  # Load the dataset
         dataloader = DataLoader(
             dataset,
             batch_size=self.config.batch_size,
@@ -184,43 +264,52 @@ class SystemCGenerator:
                 # print(response)
                 return ""  # No code snippet found
 
+    def save_systemc(self, df: pd.DataFrame):
+        """Saves the generated SystemC code to files.
 
-def output_dir_generator(df: pd.DataFrame, config: ModelConfig = ModelConfig()):
-    for i, row in tqdm(df.iterrows(), desc="Writing output files"):
-        filename = row["module_name"]
-        file_dir = os.path.join(config.output_dir, filename)
-        if not os.path.exists(file_dir):
-            os.makedirs(file_dir)
+        Args:
+            df (pd.DataFrame): A DataFrame containing the generated SystemC code and other information.
 
-        with open(os.path.join(file_dir, "main.cpp"), "w") as f:
-            f.write(row["output_code"])
-        with open(os.path.join(file_dir, "response.txt"), "w") as f:
-            f.write(row["response"])
+        Example:
+            config = ModelConfig()
+            sc_generator = SystemCGenerator(config)
+            outputs = sc_generator.generate_systemc(llm, tokenizer)
+            sc_generator.save_systemc(outputs)
+        """
+        for i, row in tqdm(df.iterrows(), desc="Writing output files"):
+            filename = row["module_name"]
+            file_dir = os.path.join(config.output_dir, filename)
+            if not os.path.exists(file_dir):
+                os.makedirs(file_dir)
 
+            with open(os.path.join(file_dir, "main.cpp"), "w") as f:
+                f.write(row["output_code"])
+            with open(os.path.join(file_dir, "response.txt"), "w") as f:
+                f.write(row["response"])
 
-def check_results(file_dir):
-    subprocess.run(
-        [
-            "python3",
-            "systemc_generation/check.py",
-            "--file_dir",
-            file_dir,
-            "--log_dir",
-            f"{file_dir}/..",
-        ]
-    )
+    def check_results(self):
+        subprocess.run(
+            [
+                "python3",
+                "systemc_generation/check.py",
+                "--file_dir",
+                config.output_dir,
+                "--log_dir",
+                f"{config.output_dir}/..",
+            ]
+        )
 
 
 if __name__ == "__main__":
-    epoches = 2
+    epoches = 200
     config = ModelConfig()
     llm, tokenizer = load_model(config)
 
+    sc_generator = SystemCGenerator(config)
     for i in range(epoches):
         print(f"Epoch {i + 1}/{epoches}")
-        config.output_dir_name = f"output_{i}"
+        sc_generator.config.output_dir_name = f"output_{i}"
 
-        sc_generator = SystemCGenerator(config)
         outputs = sc_generator.generate_systemc(llm, tokenizer)
-        output_dir_generator(outputs, config)
-        check_results(config.output_dir)
+        sc_generator.save_systemc(outputs)
+        sc_generator.check_results()
