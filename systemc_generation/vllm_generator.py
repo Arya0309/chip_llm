@@ -40,7 +40,7 @@ class ModelConfig:
     """
 
     # ---------- Model related ----------
-    model_name: str = "Qwen/Qwen2.5-Coder-7B-Instruct"
+    model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
     input_dir: str = (
         "./systemc_generation/dataset/geek/one_shot_sp.json"  # Pre-processed dataset
     )
@@ -49,10 +49,14 @@ class ModelConfig:
     # Used for vllm
     params: SamplingParams = field(
         default_factory=lambda: SamplingParams(
+            temperature=0.7,
+            top_p=0.8,
+            top_k=20,
+            repetition_penalty=1.1,
             max_tokens=4096,
         )
     )
-    batch_size: int = 2
+    batch_size: int = 64
     tensor_parallel_size: int = 1
     gpu_memory_utilization: float = 0.9
 
@@ -139,18 +143,20 @@ class SystemCGenerator:
         for batch in dataloader:
             inputs = batch["input"]
             task_ids = batch["task_id"]
+            tasks = batch["task"]
             module_names = batch["module_name"]
             testbenches = batch["testbench"]
 
             outputs = model.generate(inputs, params)
 
-            for task_id, testbench, module_name, result in zip(
-                task_ids, testbenches, module_names, outputs
+            for task_id, task, testbench, module_name, result in zip(
+                task_ids, tasks, testbenches, module_names, outputs
             ):
                 response = result.outputs[0].text
                 results.append(
                     {
                         "task_id": task_id,
+                        "task": task,
                         "testbench": testbench,
                         "module_name": module_name,
                         "response": response,
@@ -281,7 +287,7 @@ class SystemCGenerator:
             sc_generator.save_systemc(outputs)
         """
         for i, row in tqdm(df.iterrows(), desc="Writing output files"):
-            filename = row["module_name"]
+            filename = row["task"]
             file_dir = os.path.join(config.output_dir, filename)
             if not os.path.exists(file_dir):
                 os.makedirs(file_dir)
@@ -305,7 +311,7 @@ class SystemCGenerator:
 
 
 if __name__ == "__main__":
-    epoches = 200
+    epoches = 2
     config = ModelConfig()
     llm, tokenizer = load_model(config)
 
