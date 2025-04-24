@@ -4,8 +4,7 @@ import warnings
 import subprocess
 import pandas as pd
 from tqdm import tqdm
-from dataclasses import dataclass, field
-from vllm import LLM, SamplingParams
+from vllm import LLM
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from SystemCDataset import SystemCDataset, collate_fn
 from torch.utils.data import DataLoader
