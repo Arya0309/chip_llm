@@ -138,6 +138,8 @@ class SystemCGenerator:
         pattern_1 = r"```cpp(.*?)```"
         pattern_2 = r"```(.*?)```"
 
+        "TODO: If use 'pattern_2', delete anything before the first '#include <systemc.h>' and '```'"
+
         def pattern_extractor(pattern, response):
             matches = re.findall(pattern, response, re.DOTALL)
             matches = [m for m in matches if "#include <systemc.h>" in m]
@@ -146,8 +148,11 @@ class SystemCGenerator:
                 warnings.warn("Warning: No SystemC code snippet found in the response.")
                 # print(response)
                 return ""
-            # Extract the match that is longest in length
-            code_snippet = max(matches, key=len)
+            elif len(matches) != 1:
+                code_snippet = matches[-1]
+            else:
+                code_snippet = matches[0]
+
             modules = re.split(r"(SC_MODULE|int sc_main)", code_snippet)
             if len(modules) <= 1:
                 warnings.warn(
