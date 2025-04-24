@@ -9,77 +9,12 @@ from vllm import LLM, SamplingParams
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from SystemCDataset import SystemCDataset, collate_fn
 from torch.utils.data import DataLoader
+from config import ModelConfig, build_config
 
 cache_dir: str = "/workspace/models"  # Directory to save the model and reuse it
 
 
-@dataclass
-class ModelConfig:
-    """Configuration class for the model and dataset.
-
-    Args:
-        model_name  (str):  Name of the model to be used.
-        input_dir   (str):  Path to the pre-processed dataset.
-
-        params      (SamplingParams):   Parameters for sampling.
-        batch_size  (int):              Batch size for the dataloader. <-- Design a new dataclass to save the parameters
-
-        current_dir     (str): Current working directory.
-        root_name       (str): Name of the root directory for saving outputs.
-        obj_dataset     (str): Name of the objective dataset.
-        output_dir_name (str): Name of the output directory.
-
-    Methods:
-        root_dir (str):  Returns the root directory for saving outputs.
-        output_dir (str): Returns the output directory for saving outputs.
-
-    Example:
-        config = ModelConfig()
-        print(config.model_name)  # Output: "Qwen/Qwen2.5-Coder-1.5B-Instruct"
-        print(config.input_dir)   # Output: "./dataset/geek/one_shot_sp.json"
-    """
-
-    # ---------- Model related ----------
-    model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
-    input_dir: str = (
-        "./systemc_generation/dataset/geek/one_shot_sp.json"  # Pre-processed dataset
-    )
-
-    # ---------- Model parameters ----------
-    # Used for vllm
-    params: SamplingParams = field(
-        default_factory=lambda: SamplingParams(
-            temperature=0.7,
-            top_p=0.8,
-            top_k=20,
-            repetition_penalty=1.1,
-            max_tokens=4096,
-        )
-    )
-    batch_size: int = 64
-    tensor_parallel_size: int = 1
-    gpu_memory_utilization: float = 0.9
-
-    # ---------- Save related ----------
-    current_dir: str = os.path.dirname(os.path.realpath(__file__))  # Working directory
-    root_name: str = "dataset"  # The name of root directory for saving the outputs
-    obj_dataset: str = "geek"  # The name of the objective dataset
-    output_dir_name: str = "output"  # The name of the output directory
-
-    @property
-    # Root directory of saving the generated outputs
-    def root_dir(self) -> str:
-        return os.path.join(self.current_dir, self.root_name)
-
-    @property
-    # Output directory of saving the generated outputs
-    def output_dir(self) -> str:
-        return os.path.join(
-            self.root_dir, self.obj_dataset, self.model_name, self.output_dir_name
-        )
-
-
-def load_model(config: ModelConfig = ModelConfig()):
+def load_model(config: ModelConfig):
     """Load the model and tokenizer from the cache directory.
     If the model is not found in the cache directory, it will be downloaded.
 
@@ -109,6 +44,7 @@ def load_model(config: ModelConfig = ModelConfig()):
         model=model_dir,
         tensor_parallel_size=config.tensor_parallel_size,
         gpu_memory_utilization=config.gpu_memory_utilization,
+        dtype=config.dtype,
     )
 
     return llm, tokenizer
@@ -134,7 +70,7 @@ class SystemCGenerator:
         sc_generator.check_results()
     """
 
-    def __init__(self, config: ModelConfig = ModelConfig()):
+    def __init__(self, config: ModelConfig):
         self.config = config
 
     def _generate(self, model, dataloader, params):
@@ -311,13 +247,12 @@ class SystemCGenerator:
 
 
 if __name__ == "__main__":
-    epoches = 2
-    config = ModelConfig()
+    config = build_config()
     llm, tokenizer = load_model(config)
 
     sc_generator = SystemCGenerator(config)
-    for i in range(epoches):
-        print(f"Epoch {i + 1}/{epoches}")
+    for i in range(config.epoches):
+        print(f"Epoch {i + 1}/{config.epoches}")
         sc_generator.config.output_dir_name = f"output_{i}"
 
         outputs = sc_generator.generate_systemc(llm, tokenizer)
