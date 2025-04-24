@@ -1,0 +1,141 @@
+  **C++/C Code Analysis**
+
+The provided C++/C code is a simple program that converts an octal number to its equivalent decimal number. The code is structured as a C++ program with a driver function that calls a specific function, `octalToDecimal`, to achieve the desired result.
+
+**Inputs and Outputs**
+
+The inputs to the code are:
+
+* `n`: an octal number to be converted to its decimal equivalent.
+
+The outputs of the code are:
+
+* `decimal_value`: the decimal equivalent of the input `n`.
+
+**Line-by-Line Analysis**
+
+Here is a line-by-line natural language summary of the code:
+
+1. The code includes the necessary headers (i.e., `iostream` and `std`) to support input and output operations.
+
+2. The code also includes a `using namespace std;` statement to simplify access to the standard library.
+
+3. The `octalToDecimal` function is defined. This function takes an integer `n` as an input and returns the decimal equivalent of `n`.
+
+4. The function initialization is performed by declaring two local variables: `num` and `dec_value`.
+
+5. The base value is initialized to 1, which corresponds to the power of 8.
+
+6. The temporary variable, `temp`, is initialized to `num`.
+
+7. The loop begins, and the last digit of `num` is extracted by using the modulo operator (`%`) and the division operator (`/`).
+
+8. The `temp` variable is reassigned to its previous value, with the last digit removed.
+
+9. The `base` variable is updated by multiplying it by 8 to prepare for the next iteration of the loop.
+
+10. The `dec_value` variable is updated by adding the product of the last digit and the base value.
+
+11. The loop continues as long as `temp` is non-zero. Once the loop exits, the function returns the `dec_value` variable.
+
+12. The `main` function is defined. This function is the entry point of the program and displays the output of the `octalToDecimal` function.
+
+**Block-by-Block Analysis**
+
+Here is a block-by-block natural language summary of the code:
+
+1. The code includes necessary headers and uses the `using namespace std;` statement.
+2. The user enters an octal number through the console.
+3. The `octalToDecimal` function is applied to the entered number to convert it to its decimal equivalent.
+4. The resulting decimal value is outputted to the console.
+
+**SystemC Code**
+
+The provided SystemC code is a simple module that takes in two integer ports, `a` and `b`, and outputs the sum of these two numbers. The `Adder` module is defined as follows:
+```scss
+#include <systemc>
+
+SC_MODULE(Adder) {
+    sc_in<int> a;  // Input port for the first number
+    sc_in<int> b;  // Input port for the second number
+    sc_out<int> sum; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(Adder) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << a << b;
+    }
+
+    // Method to add the two numbers
+    void add() {
+        sum.write(a.read() + b.read());
+    }
+};
+```
+To convert the C++/C code to SystemC code, we can replicate the logic of the original program while incorporating the necessary input and output ports. Here is the SystemC code corresponding to the original C++/C code:
+```scss
+#include <systemc.h>
+
+// Module that converts octal to decimal
+SC_MODULE(Octal_To_Decimal) {
+    sc_in<int> octal_input;  // Input port for the octal number
+    sc_out<int> decimal_output; // Output port for the decimal number
+
+    // Constructor
+    SC_CTOR(Octal_To_Decimal) {
+        // Process to convert octal to decimal
+        SC_METHOD(convert);
+        sensitive << octal_input;
+    }
+
+    // Method to convert octal to decimal
+    void convert() {
+        int num = octal_input.read();
+        int base = 1;
+        int temp = num;
+        int dec_value = 0;
+
+        while (temp) {
+            int last_digit = temp % 10;
+            temp = temp / 10;
+            dec_value += last_digit * base;
+            base = base * 8;
+        }
+
+        decimal_output.write(dec_value);
+    }
+};
+```
+In the SystemC code above, the `Octal_To_Decimal` module is defined with two input ports, `octal_input` and `decimal_output`. The `convert` method is executed when the module is instantiated, and it reads the `octal_input` port and calculates the equivalent decimal value and writes it to the `decimal_output` port.
+
+To integrate this SystemC code with our existing testbench that utilizes the `octal_input` and `decimal_output` signals, we can update the testbench as follows:
+```scss
+// Testbench for Octal_To_Decimal module
+SC_MODULE(Octal_To_Decimal_Test) {
+    sc_in<int> octal_input;
+    sc_out<int> decimal_output;
+
+    Octal_To_Decimal dut;
+
+    SC_CTOR(Octal_To_Decimal_Test) {
+        dut.octal_input(octal_input);
+        dut.decimal_output(decimal_output);
+    }
+
+    void run() {
+        int input_octal = 67;
+        int expected_decimal = 55;
+
+        // Drive inputs
+        octal_input.write(input_octal);
+
+        // Wait for outputs to stabilize
+        wait(SC_ZERO_TIME);
+
+        // Assert outputs
+        EXPECT(decimal_output.read() == expected_decimal);
+    }
+};
+```
+In the testbench above, the `Octal_To_Decimal` module is instantiated and connected to the input and output signals. The `run` method drives an input octal value (`67` in this example) and waits for the output decimal value to stabilize before asserting that the output value matches the expected value (`55` in this example). The testbench utilizes the `EXPECT` statement from the SystemC++ library to perform the assertion.

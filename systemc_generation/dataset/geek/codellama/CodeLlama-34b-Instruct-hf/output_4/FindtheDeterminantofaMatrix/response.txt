@@ -1,0 +1,109 @@
+  **Inputs and Outputs**
+
+Inputs:
+
+* `matrix`: a 2D array of doubles representing a matrix with a maximum size of 105x105.
+* `n`: the size of the matrix, which must be less than or equal to 105.
+
+Outputs:
+
+* `det`: the determinant of the matrix, represented as a double.
+
+**Line-by-Line Explanation**
+
+The provided C++/C code calculates the determinant of a square matrix using a recursive method. The method iteratively computes the determinant of smaller submatrices and combines the results to obtain the overall determinant.
+
+The code first declares several variables and arrays:
+
+* `a`: a 2D array of doubles with a size of `MAXN` x `MAXN`.
+* `det`: a double variable to store the determinant of the matrix.
+* `n`: an integer variable to store the size of the matrix.
+* `pivot`: an integer variable to store the row index of the pivot element.
+* `factor`: a double variable to store the factor by which a submatrix is divided.
+
+The main function first initializes the matrix `matrix` and sets `n` to the size of the matrix. It then calls the `determinant` function to calculate the determinant of the matrix.
+
+The `determinant` function starts by initializing `det` to 1.0 and setting `pivot` to 0. It then iterates over the rows of the matrix using a for loop that goes from 0 to `n-1`.
+
+Inside the for loop, the code checks if the pivot element is 0. If it is, the function returns 0 immediately, indicating that the matrix is singular and has no determinant. Otherwise, the code computes the pivot element by finding the maximum absolute value of the elements in the pivot column, and storing the row index of this element in `pivot`.
+
+The code then checks if `pivot` is equal to `i`. If it is not, the function swaps the rows of the matrix and updates `det` by multiplying it by -1. This is done because the determinant is invariant under row swaps.
+
+Next, the code calculates the determinant of a smaller submatrix by dividing the pivot element by the determinant of a smaller submatrix, and multiplying it by the appropriate factor. This is done recursively, with the smaller submatrix being obtained by dropping the pivot row and column from the original matrix.
+
+The function then updates `det` by multiplying it by the determinant of the smaller submatrix, and dividing it by the pivot element. This is done because the determinant of a matrix can be written as a product of the determinants of its submatrices.
+
+Finally, the function returns `det`, which now contains the determinant of the original matrix.
+
+**SystemC Code**
+
+Here is a SystemC code snippet that reflects the same behavior as the original C++/C code:
+```c++
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    sc_in<double[MAXN][MAXN]> matrix;
+    sc_in<int> n;
+    sc_out<double> det;
+
+    // Constructor
+    SC_CTOR(Determinant) {
+        // Process to calculate the determinant
+        SC_METHOD(calcDeterminant);
+        sensitive << matrix << n;
+    }
+
+    // Method to calculate the determinant
+    void calcDeterminant() {
+        double det = 1.0;
+        int pivot = 0;
+        double factor = 1.0;
+
+        for (int i = 0; i < n.read(); i++) {
+            pivot = i;
+            for (int j = i + 1; j < n.read(); j++) {
+                if (::abs(matrix.read()[j][i]) > ::abs(matrix.read()[pivot][i])) {
+                    pivot = j;
+                }
+            }
+
+            if (pivot != i) {
+                matrix.read()[i].swap(matrix.read()[pivot]);
+                det *= -1;
+            }
+
+            if (::abs(matrix.read()[i][i]) < 1e-6) {
+                det = 0.0;
+                break;
+            }
+
+            det *= matrix.read()[i][i];
+
+            for (int j = i + 1; j < n.read(); j++) {
+                factor = matrix.read()[j][i] / matrix.read()[i][i];
+                for (int k = i + 1; k < n.read(); k++) {
+                    matrix.read()[j][k] -= factor * matrix.read()[i][k];
+                }
+            }
+        }
+        det.write(det);
+    }
+};
+```
+In this code, we have defined a `Determinant` module with three ports: `matrix`, `n`, and `det`. The `matrix` port is an input port that takes a 2D array of doubles, representing the matrix whose determinant will be calculated. The `n` port is an input port that takes an integer representing the size of the matrix. The `det` port is an output port that returns the determinant of the matrix, represented as a double.
+
+The `Determinant` module has a single method, `calcDeterminant`, which calculates the determinant of the matrix. The method first initializes `det` to 1.0 and sets `pivot` to 0. It then iterates over the rows of the matrix using a for loop that goes from 0 to `n-1`.
+
+Inside the for loop, the code checks if the pivot element is 0. If it is, the method sets `det` to 0.0 and breaks out of the loop. Otherwise, the code computes the pivot element by finding the maximum absolute value of the elements in the pivot column, and storing the row index of this element in `pivot`.
+
+The method then checks if `pivot` is equal to `i`. If it is not, the method swaps the rows of the matrix and updates `det` by multiplying it by -1. This is done because the determinant is invariant under row swaps.
+
+Next, the method checks if the pivot element is less than 1e-6. If it is, the method sets `det` to 0.0 and breaks out of the loop.
+
+Finally, the method calculates the determinant of a smaller submatrix by dividing the pivot element by the determinant of a smaller submatrix, and multiplying it by the appropriate factor. This is done recursively, with the smaller submatrix being obtained by dropping the pivot row and column from the original matrix.
+
+The method then updates `det` by multiplying it by the determinant of the smaller submatrix, and dividing it by the pivot element. This is done because the determinant of a matrix can be written as a product of the determinants of its submatrices.
+
+Finally, the method writes the determinant to the `det` port.
+
+Note that this code uses the `::abs` function to compute the absolute value of a double. This is because the `abs` function defined in the standard `std` namespace is not overloaded for doubles, so we need to use the `::abs` function from the `cmath` header file.

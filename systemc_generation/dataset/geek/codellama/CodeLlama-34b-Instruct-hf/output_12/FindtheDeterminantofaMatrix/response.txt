@@ -1,0 +1,66 @@
+  Inputs:
+
+* `n`: the size of the matrix (integer)
+* `matrix[][]`: the matrix to find the determinant of (array of doubles)
+
+Output:
+
+* `det`: the determinant of the input matrix (double)
+
+Explanation:
+The provided code defines a function `determinant(n)` that takes an integer `n` and a two-dimensional array `matrix[][]` as input, and returns a double `det` as output. The function calculates the determinant of the matrix using the Gaussian elimination method.
+
+The function first initializes the determinant `det` to 1.0, and then loops through each row of the matrix. For each row, it finds the pivot element (the element with the largest absolute value) and swaps it with the current element if necessary. If the pivot element is equal to 0.0, the function returns 0.0, indicating that the matrix is singular. Otherwise, the function calculates the determinant of the matrix by multiplying the pivot element with the determinant of the submatrix obtained by removing the current row and column.
+
+In the main function, the function is called with `matrix[4][4]` as input and the resulting determinant `det` is printed to the console.
+
+Conversion to SystemC:
+To convert the C++/C code to SystemC, we need to replace the array syntax `matrix[][]` with SystemC port arrays, and the integer and double data types with the SystemC port data types. We also need to use SystemC methods to perform the necessary operations.
+
+Here is an equivalent SystemC code snippet that preserves the logic of the original C++/C source:
+```scss
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    sc_in<int> size;  // Input port for the matrix size
+    sc_in<double> matrix[][];  // Input port for the matrix
+    sc_out<double> det;  // Output port for the determinant
+
+    // Constructor
+    SC_CTOR(Determinant) {
+        // Method to calculate the determinant
+        SC_METHOD(determinant);
+        sensitive << size << matrix;
+    }
+
+    // Method to calculate the determinant
+    void determinant() {
+        double det = 1.0;
+        for (int i = 0; i < size; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < size; j++) {
+                if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(matrix[i], matrix[pivot]);
+                det *= -1;
+            }
+            if (matrix[i][i] == 0.0) {
+                det = 0.0;
+                break;
+            }
+            det *= matrix[i][i];
+            for (int j = i + 1; j < size; j++) {
+                double factor = matrix[j][i] / matrix[i][i];
+                for (int k = i + 1; k < size; k++) {
+                    matrix[j][k] -= factor * matrix[i][k];
+                }
+            }
+        }
+        det_writeread(det);
+    }
+};
+```
+Note that the `size` input port is used to pass the size of the matrix to the `determinant` method, and the `matrix[][]` input port is used to pass the matrix elements to the `determinant` method. The `det` output port is used to return the calculated determinant.

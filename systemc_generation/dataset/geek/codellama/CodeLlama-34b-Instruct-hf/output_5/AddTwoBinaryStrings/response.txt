@@ -1,0 +1,112 @@
+  Inputs:
+
+* `A`: A string representing a binary number.
+* `B`: A string representing a binary number.
+
+Outputs:
+
+* `sum`: A string representing the sum of `A` and `B`.
+
+Line-by-Line Explanation:
+
+1. The code includes the `stdc++` header file, which provides common data types and functions for C++.
+2. The `using namespace std` statement allows the code to use the `std` namespace without explicitly specifying it.
+3. The `addBinary` function takes two string parameters `A` and `B` and returns the sum of the two binary strings as a string.
+4. The function checks if the length of `A` is greater than the length of `B`. If so, it swaps the strings and calls the function again to ensure that the shorter string is processed first.
+5. The function calculates the difference in length between `A` and `B` and stores it in the `diff` variable.
+6. The function initializes the `padding` variable with the number of zeroes to be added to `A` to make it the same length as `B`.
+7. The function adds the `padding` to `A` and stores the result in `A`.
+8. The function initializes the `res` variable to store the sum of `A` and `B` and the `carry` variable to store the carry bit (if any).
+9. The function loops through each digit of `A` and `B` starting from the end and performs the following operations based on the values of `A[i]`, `B[i]`, and `carry`:
+	* If `A[i]` and `B[i]` are both `'1'`, it adds the digits and sets the `carry` bit to `1`.
+	* If `A[i]` and `B[i]` are both `'0'`, it adds the digits and sets the `carry` bit to `0`.
+	* If `A[i]` and `B[i]` are different, it adds the digits and sets the `carry` bit to the opposite of the previous value.
+10. The function checks if there is a carry bit at the end of the addition and adds it to the `res` variable if necessary.
+11. The function reverses the `res` variable and removes any leading zeroes.
+12. The function returns the `res` variable as the sum of `A` and `B`.
+
+Equivalent SystemC Code:
+```
+#include <systemc.h>
+
+SC_MODULE(AddBinary) {
+    // Input signals
+    sc_in< std::string > A;
+    sc_in< std::string > B;
+
+    // Output signal
+    sc_out< std::string > sum;
+
+    // Constructor
+    SC_CTOR(AddBinary) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to add the two strings
+    void add() {
+        // Swap the strings if necessary
+        if (A.length() > B.length()) {
+            std::swap(A, B);
+        }
+
+        // Calculate the difference in length
+        int diff = B.length() - A.length();
+
+        // Initialize the padding
+        std::string padding;
+        for (int i = 0; i < diff; i++) {
+            padding.push_back('0');
+        }
+
+        // Pad A with zeros
+        A = padding + A;
+
+        // Initialize the result and carry
+        std::string res;
+        char carry = '0';
+
+        // Loop through each digit
+        for (int i = A.length() - 1; i >= 0; i--) {
+            // If both digits are '1', add and set carry bit
+            if (A[i] == '1' && B[i] == '1') {
+                res.push_back('1');
+                carry = '1';
+            }
+
+            // If both digits are '0', add and set carry bit
+            else if (A[i] == '0' && B[i] == '0') {
+                res.push_back('0');
+                carry = '1';
+            }
+
+            // If both digits are different, add and set carry bit
+            else if (A[i] != B[i]) {
+                if (carry == '1') {
+                    res.push_back('0');
+                    carry = '0';
+                } else {
+                    res.push_back('1');
+                    carry = '1';
+                }
+            }
+        }
+
+        // Add carry digit if necessary
+        if (carry == '1') {
+            res.push_back(carry);
+        }
+
+        // Reverse result and remove leading zeroes
+        std::reverse(res.begin(), res.end());
+        res.erase(res.begin(), std::find_if(res.begin(), res.end(), [](char c) { return c != '0'; }));
+
+        // Assign result to output signal
+        sum.write(res);
+    }
+};
+```
+In this code, we use the `std::string` type to represent binary numbers and use the `sc_in` and `sc_out` types to declare input and output signals, respectively. We also use the `SC_METHOD` macro to define a process that is triggered by changes to the input signals. The `add` method performs the addition of the two binary strings and assigns the result to the output signal `sum`. The code also includes the necessary logic to handle leading zeroes and padding.
+
+Note that this code assumes that the input strings are binary numbers and uses ASCII characters '0' and '1' to represent the digits. If the input strings are not binary numbers, the code will need to be modified to handle other data types and encoding schemes.

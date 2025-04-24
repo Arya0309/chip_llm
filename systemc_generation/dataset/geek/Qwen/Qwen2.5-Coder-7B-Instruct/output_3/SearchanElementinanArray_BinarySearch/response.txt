@@ -1,0 +1,117 @@
+### Analysis of the C++ Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - `vector<int>& v`: A reference to a vector of integers.
+  - `int target`: An integer representing the target value to search for within the vector.
+- **Outputs**:
+  - The function returns a boolean value indicating whether the target was found (`true`) or not (`false`).
+
+#### Detailed Explanation
+
+1. **Function Declaration and Initialization**
+   ```cpp
+   bool binarySearch(vector<int>& v, int target) {
+       int low = 0, high = v.size() - 1;
+   ```
+   - The function `binarySearch` takes a vector `v` and an integer `target` as inputs.
+   - It initializes two pointers, `low` and `high`, to the start and end of the vector, respectively.
+
+2. **Binary Search Loop**
+   ```cpp
+   while (low <= high) {
+       int mid = ((high - low) / 2) + low;
+       if (v[mid] == target) {
+           return true;
+       }
+       if (v[mid] > target)
+           high = mid - 1;
+       else
+           low = mid + 1;
+   }
+   ```
+   - The loop continues as long as `low` is less than or equal to `high`.
+   - It calculates the middle index `mid`.
+   - If the middle element `v[mid]` is equal to the target, the function returns `true`.
+   - If `v[mid]` is greater than the target, it updates `high` to `mid - 1`, narrowing down the search to the left half.
+   - If `v[mid]` is less than the target, it updates `low` to `mid + 1`, narrowing down the search to the right half.
+
+3. **Target Not Found**
+   ```cpp
+   return false;
+   ```
+   - If the loop exits without finding the target, the function returns `false`.
+
+4. **Main Function**
+   ```cpp
+   int main() {
+       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+       int target = 8;
+       if (binarySearch(v, target)) {
+           cout << target << " found.";
+       } else {
+           cout << target << " NOT found.";
+       }
+       return 0;
+   }
+   ```
+   - The `main` function initializes a vector `v` and a target value `target`.
+   - It calls `binarySearch` and prints the result.
+
+### Equivalent SystemC Code
+
+Here is the equivalent SystemC code that integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinarySearch) {
+    sc_in<int> target;  // Input port for the target value
+    sc_out<bool> found; // Output port indicating if the target is found
+    sc_vector<sc_in<int>> v; // Input port for the vector elements
+
+    SC_CTOR(BinarySearch) {
+        // Process to perform binary search
+        SC_METHOD(search);
+        sensitive << target << v;
+    }
+
+    void search() {
+        int low = 0;
+        int high = v.size() - 1;
+
+        while (low <= high) {
+            int mid = ((high - low) / 2) + low;
+            if (v[mid].read() == target.read()) {
+                found.write(true);
+                return;
+            }
+            if (v[mid].read() > target.read())
+                high = mid - 1;
+            else
+                low = mid + 1;
+        }
+
+        found.write(false);
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Inputs and Outputs**:
+  - `target`: Input signal for the target value to search for.
+  - `found`: Output signal indicating whether the target was found.
+  - `v`: Input vector containing the elements to search through.
+
+- **Process**:
+  - The `search` method is sensitive to changes in `target` and `v`.
+  - It initializes `low` and `high` pointers similar to the C++ code.
+  - It enters a loop that continues until `low` exceeds `high`.
+  - Inside the loop, it calculates the middle index `mid` and compares the middle element with the target.
+  - If the middle element equals the target, it sets `found` to `true` and exits the method.
+  - If the middle element is greater than the target, it updates `high` to `mid - 1`.
+  - If the middle element is less than the target, it updates `low` to `mid + 1`.
+  - If the loop exits without finding the target, it sets `found` to `false`.
+
+This SystemC code accurately captures the logic of the original C++ binary search algorithm and can be integrated into a high-level synthesis flow.

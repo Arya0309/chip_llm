@@ -1,0 +1,125 @@
+  **Summary**
+
+The provided C++/C code is an implementation of a program that calculates whether a given integer is an Armstrong number or not. The code takes in a single input, an integer `n`, and outputs a boolean value indicating whether `n` is an Armstrong number or not.
+
+**Inputs and Outputs**
+
+The input to the program is an integer `n`, and the output is a boolean value indicating whether `n` is an Armstrong number or not.
+
+**Major Blocks of Code**
+
+The code consists of three main blocks:
+
+1. The `main` function: This is the entry point of the program. It takes in an integer `n` as the command line argument and calculates whether `n` is an Armstrong number or not.
+2. The `while` loop: This loop calculates the sum of the cubes of the digits in `n`. It calculates the remainder `rem` of `n` divided by 10 for each iteration, and then updates `n` to be the result of `n / 10` and adds the cube of `rem` to `p`. The loop terminates when `n` is 0.
+3. The `if` statement: This statement checks whether the sum of the cubes of the digits in `n` is equal to `n`. If it is, then `n` is an Armstrong number. Otherwise, it is not an Armstrong number.
+
+**Equivalent SystemC Code**
+
+Here is an SystemC code snippet that replicates the behavior of the given C++/C code:
+```scss
+#include <systemc.h>
+
+// Module for the Armstrong number checker
+SC_MODULE(ArmstrongNumberChecker)
+{
+    // Input port for the number
+    sc_in<int> num_in;
+
+    // Output port for the check result
+    sc_out<bool> is_armstrong;
+
+    // Constructor
+    SC_CTOR(ArmstrongNumberChecker)
+    {
+        // Create the ports
+        sc_init_signals(&num_in, &is_armstrong);
+
+        // Process for calculating Armstrong number
+        SC_METHOD(calculate_armstrong_number);
+        sensitive << num_in;
+    }
+
+    // Method for calculating Armstrong number
+    void calculate_armstrong_number()
+    {
+        int n = num_in.read();
+        int temp = n;
+        int p = 0;
+
+        // Calculate the sum of the cubes of the digits
+        while (n > 0)
+        {
+            int rem = n % 10;
+            p += rem * rem * rem;
+            n /= 10;
+        }
+
+        // Condition for checking Armstrong number
+        if (temp == p)
+        {
+            is_armstrong.write(true);
+        }
+        else
+        {
+            is_armstrong.write(false);
+        }
+    }
+};
+```
+The `ArmstrongNumberChecker` module takes in an integer `num_in` as its input, which is the number to be checked for Armstrong number, and an output `is_armstrong` which indicates whether the input number is an Armstrong number or not.
+
+The `calculate_armstrong_number` method performs the following steps:
+
+1. It takes in the input `n` and stores it in a temporary variable `temp`.
+2. It initializes the variable `p` to 0.
+3. It calculates the sum of the cubes of the digits in `n` using a `while` loop, where the remainder `rem` of `n` divided by 10 is calculated and added to `p` for each iteration.
+4. The loop terminates when `n` is 0.
+5. It checks if the sum of the cubes of the digits in `n` is equal to `n`. If it is, then `n` is an Armstrong number, and `is_armstrong` is set to `true`. Otherwise, it is not an Armstrong number, and `is_armstrong` is set to `false`.
+
+**Integration with SystemC Testbench**
+
+To integrate this SystemC code with a SystemC testbench, we need to provide input and check the output for a range of inputs. Here's an example of how we can do this:
+```scss
+// Testbench for ArmstrongNumberChecker
+SC_MODULE(ArmstrongNumber_TestBench)
+{
+    // Instantiate the Armstrong number checker
+    ArmstrongNumberChecker checker;
+
+    // Test inputs and expected output
+    int inputs[] = {153, 125, 1000, 729};
+    bool expected_outputs[] = {true, false, false, true};
+
+    // Main test method
+    void test()
+    {
+        // Loop over the test inputs
+        for (int i = 0; i < sizeof(inputs) / sizeof(inputs[0]); i++)
+        {
+            // Set the input
+            checker.num_in.write(inputs[i]);
+
+            // Run the check
+            checker.calculate_armstrong_number();
+
+            // Check the output against the expected output
+            if (checker.is_armstrong.read() != expected_outputs[i])
+            {
+                std::cout << "Error: Output for input " << inputs[i]
+                    << " is not the expected value: ";
+                if (checker.is_armstrong.read())
+                {
+                    std::cout << "Armstrong number";
+                }
+                else
+                {
+                    std::cout << "not an Armstrong number";
+                }
+                std::cout << std::endl;
+            }
+        }
+    }
+};
+```
+This testbench loops over a set of test inputs, sets the input port `num_in` to the corresponding input, and checks the output of the `is_armstrong` output port against the expected output for each input. If the output does not match the expected output, the test fails.

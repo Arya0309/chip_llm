@@ -1,0 +1,134 @@
+### C++/C Code Analysis
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - `key` (int): The value to search within the vector.
+  - `data` (vector<int>): The vector of integers in which the search is performed.
+- **Outputs**:
+  - `index` (int): The position of the key in the vector if found; otherwise, `-1`.
+
+#### Detailed Explanation
+
+1. **Header and Namespace Declaration**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes the standard library and uses the `std` namespace for convenience.
+
+2. **Function: linearSearch**
+   ```cpp
+   int linearSearch(vector<int> v, int key) {
+       for (int i = 0; i < v.size(); i++) {
+           if (v[i] == key) {
+               return i;
+           }
+       }
+       return -1;
+   }
+   ```
+   - **Parameters**:
+     - `v` (vector<int>): The vector to search through.
+     - `key` (int): The value to find in the vector.
+   - **Logic**:
+     - Iterates through each element of the vector `v`.
+     - Checks if the current element `v[i]` is equal to the `key`.
+     - If found, returns the index `i`.
+     - If not found after iterating through all elements, returns `-1`.
+
+3. **Main Function**
+   ```cpp
+   int main() {
+       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+       int key = 8;
+       int i = linearSearch(v, key);
+       if (i != -1)
+           cout << key << " Found at Position: " << i + 1;
+       else
+           cout << key << " NOT found.";
+       return 0;
+   }
+   ```
+   - **Logic**:
+     - Initializes a vector `v` with values `{1, 2, 3, 4, 5, 8, 9, 11}`.
+     - Sets the search `key` to `8`.
+     - Calls `linearSearch` with `v` and `key`, storing the result in `i`.
+     - Prints the result based on whether the key was found (`i != -1`) or not (`i == -1`).
+
+### SystemC Code Generation
+
+To integrate this logic into a SystemC module, we need to define a SystemC module that takes in the `key` and `data` signals and outputs the `index` signal. Here's how you can do it:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(LineaerSearch) {
+    sc_in<int> key;      // Input port for the key to search
+    sc_vector<sc_in<int>> data;  // Input vector of data
+    sc_out<int> index;    // Output port for the index
+
+    SC_CTOR(LineaerSearch) {
+        // Process to perform linear search
+        SC_METHOD(search);
+        sensitive << key;
+        for (unsigned int i = 0; i < data.size(); ++i) {
+            sensitive << data[i];
+        }
+    }
+
+    void search() {
+        int idx = -1;
+        for (unsigned int i = 0; i < data.size(); ++i) {
+            if (data[i].read() == key.read()) {
+                idx = i;
+                break;
+            }
+        }
+        index.write(idx);
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Definition**
+   ```cpp
+   SC_MODULE(LineaerSearch) {
+       sc_in<int> key;
+       sc_vector<sc_in<int>> data;
+       sc_out<int> index;
+
+       SC_CTOR(LineaerSearch) {
+           SC_METHOD(search);
+           sensitive << key;
+           for (unsigned int i = 0; i < data.size(); ++i) {
+               sensitive << data[i];
+           }
+       }
+
+       void search() {
+           int idx = -1;
+           for (unsigned int i = 0; i < data.size(); ++i) {
+               if (data[i].read() == key.read()) {
+                   idx = i;
+                   break;
+               }
+           }
+           index.write(idx);
+       }
+   };
+   ```
+   - **Inputs and Outputs**:
+     - `key`: The input signal representing the value to search.
+     - `data`: The input vector of integer signals representing the data to search through.
+     - `index`: The output signal representing the index of the found key or `-1` if not found.
+   - **Constructor**:
+     - Registers the `search` method as a SystemC process.
+     - Sensitive to changes in `key` and all elements of `data`.
+   - **Method: search**
+     - Iterates through each element of `data`.
+     - Checks if the current element is equal to `key`.
+     - If found, sets `idx` to the current index and breaks out of the loop.
+     - Writes the result to the `index` output signal.
+
+This SystemC module faithfully captures the logic of the original C++/C code and can be integrated with an existing testbench that provides the `key` and `data` signals.

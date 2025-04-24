@@ -1,0 +1,80 @@
+  **Input(s) and Output(s):**
+
+* The provided C++/C code takes in an unsorted array of integers as input and sorts it in ascending order using the bubble sort algorithm.
+* The output is the sorted array of integers.
+
+**Line-by-line Explanation:**
+
+1. The first section of the code includes necessary headers and defines a function for sorting an array of integers (`sort`).
+2. The `main` function initializes an array of integers (`nums`) with random values and calculates the size of the array (`size_nums`). The size is calculated by dividing the total memory used by the array (in bytes) by the size of one array element (in bytes).
+3. The `main` function then calls the `sort` function and passes the `nums` array and its size as arguments.
+4. The `sort` function first declares two local variables: `isSwapped` (a boolean value) and `i` (a counter variable).
+5. The `sort` function then enters a for loop that runs `len` times, where `len` is the length of the input array.
+6. In each iteration of the loop, the `sort` function enters another for loop that runs `len - i` times. In this inner loop, the function checks if the `j+1`th element of the array is less than the `j`th element. If it is, the function calls the `swapNums` function to swap the two elements.
+7. After the inner loop finishes, the `sort` function checks if the `isSwapped` variable is still `false`. If it is, it exits the outer loop. Otherwise, it continues to the next iteration of the outer loop.
+8. The `swapNums` function takes two integers and an array as input. It swaps the two integers in the array.
+
+**SystemC Code:**
+
+Here is a SystemC code snippet that implements the same logic as the original C++/C code:
+```scss
+#include <systemc.h>
+
+SC_MODULE(Sort)
+{
+    sc_in<int> nums[];  // Input port for the array
+    sc_out<int> sorted_nums[];  // Output port for the sorted array
+    sc_in<int> len;  // Input port for the length of the array
+    sc_out<bool> done;  // Output port for the sorted array
+    sc_in<bool> clk;  // Input port for the clock signal
+    sc_in<bool> start;  // Input port for the start signal
+
+    // Constructor
+    SC_CTOR(Sort)
+    {
+        // Process to perform sorting
+        SC_METHOD(sort);
+        sensitive << nums << len << clk << start;
+    }
+
+    // Method to sort the array
+    void sort()
+    {
+        int i = 0;
+        int j = 1;
+        bool isSwapped = false;
+        int temp;
+        int size = len;
+
+        // Loop until the length of the array is 1
+        while (size > 1)
+        {
+            // Loop through the array and swap elements
+            for (i = 0; i < size - 1; i++, j++)
+            {
+                if (nums[j] < nums[j - 1])
+                {
+                    temp = nums[j];
+                    nums[j] = nums[j - 1];
+                    nums[j - 1] = temp;
+                    isSwapped = true;
+                }
+            }
+
+            // If no swap occurred, the array is sorted
+            if (!isSwapped)
+            {
+                done.write(true);
+                break;
+            }
+
+            size = size - 1;
+        }
+
+        sorted_nums.write(nums);
+    }
+};
+```
+In this SystemC code, the `Sort` module takes in an array of integers (`nums`), its length (`len`), clock (`clk`), start (`start`), and done (`done`) signals as inputs. The module outputs a sorted array of integers (`sorted_nums`) and the done signal.
+
+The `sort` method sorts the input array using the bubble sort algorithm. It swaps elements in the array using a nested loop. If no swap occurs during an iteration of the outer loop, the array is sorted. The `sort` method writes the sorted array and the done signal to the output ports.

@@ -1,0 +1,112 @@
+  **C++/C Code Summary**:
+This code is a C++ program that takes two binary strings as input and adds them together, returning the result as a third string. The input strings are represented as std::strings, and the output is also a std::string.
+
+The program first checks to make sure that the length of the first input string (A) is not greater than the length of the second input string (B), in which case the strings are swapped so that the first input string is always shorter or equal to the second. The program then calculates the difference in length (diff) between the two strings and initializes a string (padding) with zeros of this length.
+
+The program then adds the padding to the shorter string (A) and initializes two other strings, res (the result) and carry (to store the carryover from one iteration to the next). The program then iterates through each digit of the two strings in reverse order and performs the following operations:
+
+* If both digits are '1', the program adds '1' to res and sets carry to '1'.
+* If both digits are '0', the program adds '0' to res and sets carry to '0'.
+* If the digits are different, the program adds carry to res and flips the carry bit.
+* If the result has a leading zero, the program skips that zero and starts the next iteration.
+
+Finally, the program reverses the result and removes any leading zeros before returning the result.
+
+**SystemC Code Snippet**:
+Here's a SystemC code snippet that preserves the logic of the C++/C code and uses the provided signals:
+```
+#include <systemc.h>
+
+// Module that adds two binary strings
+SC_MODULE(AddBinary) {
+    sc_in<std::string> A;  // Input port for the first string
+    sc_in<std::string> B;  // Input port for the second string
+    sc_out<std::string> sum;  // Output port for the sum
+
+    // Constructor
+    SC_CTOR(AddBinary) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to add the two binary strings
+    void add() {
+        // Swap the strings if necessary
+        if (A.read().length() > B.read().length()) {
+            sc_in<std::string> temp = A;
+            A = B;
+            B = temp;
+        }
+
+        // Calculate the difference in length
+        int diff = B.read().length() - A.read().length();
+
+        // Initialize the padding string
+        std::string padding;
+        for (int i = 0; i < diff; i++) {
+            padding.push_back('0');
+        }
+
+        // Add the padding to the shorter string
+        A.write(padding + A.read());
+
+        // Initialize the result and carry strings
+        std::string res, carry;
+        carry.push_back('0');
+
+        // Iterate through each digit in reverse order
+        for (int i = A.read().length() - 1; i >= 0; i--) {
+            // If both digits are '1', add '1' to res and set carry to '1'
+            if (A.read()[i] == '1' && B.read()[i] == '1') {
+                res.push_back('1');
+                carry.push_back('1');
+            }
+
+            // If both digits are '0', add '0' to res and set carry to '0'
+            if (A.read()[i] == '0' && B.read()[i] == '0') {
+                res.push_back('0');
+                carry.push_back('0');
+            }
+
+            // If the digits are different, add carry to res and flip the carry bit
+            if (A.read()[i] != B.read()[i]) {
+                res.push_back(carry[i]);
+                carry.push_back(carry[i] == '1' ? '0' : '1');
+            }
+        }
+
+        // If the result has a leading zero, skip it and continue
+        int j = 0;
+        while (j < res.length() && res[j] == '0') {
+            j++;
+        }
+        if (j > 0) {
+            res.erase(j - 1, 1);
+        }
+
+        // Reverse the result and remove any leading zeros
+        std::reverse(res.begin(), res.end());
+        j = 0;
+        while (j < res.length() && res[j] == '0') {
+            j++;
+        }
+        if (j > 0) {
+            res.erase(j - 1, j);
+        }
+
+        // Output the sum
+        sum.write(res);
+    }
+};
+```
+In this SystemC code, the AddBinary module takes two input signals (A and B) and one output signal (sum). The add method performs the addition of the two input strings and outputs the result to the sum signal. The method first checks to make sure that the length of the first input string (A) is not greater than the length of the second input string (B), in which case the strings are swapped so that the first input string is always shorter or equal to the second. The method then calculates the difference in length (diff) between the two strings and initializes a std::string (padding) with zeros of this length.
+
+The method then adds the padding to the shorter string (A) and initializes two other std::strings (res and carry) to perform the addition. The method then iterates through each digit of the two strings in reverse order and performs the following operations:
+
+* If both digits are '1', the method adds '1' to res and sets carry to '1'.
+* If both digits are '0', the method adds '0' to res and sets carry to '0'.
+* If the digits are different, the method adds carry to res and flips the carry bit.
+* If the result has a leading zero, the method skips that zero and starts the next iteration.
+
+Finally, the method reverses the result and removes any leading zeros before outputting the sum to the sum signal.

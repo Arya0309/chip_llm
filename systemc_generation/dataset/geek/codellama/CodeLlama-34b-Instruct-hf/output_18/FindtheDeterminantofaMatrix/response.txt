@@ -1,0 +1,65 @@
+  **Inputs:**
+
+* `matrix`: A 2D array of size `SIZE` x `SIZE` representing a matrix.
+
+**Outputs:**
+
+* `det`: The determinant of the input matrix.
+
+**Line-by-Line Explanation:**
+
+1. The first block of code includes the necessary header files and defines the constant variable `MAXN` for the maximum size of the matrix.
+2. The second block of code defines the function `determinant` that takes an integer `n` as input, which represents the size of the matrix.
+3. The function `determinant` first initializes a variable `det` to 1.0 and then enters a loop that runs for `n` iterations.
+4. In each iteration, the function checks if the absolute value of the element at position `(i, i)` in the matrix is greater than the absolute value of the element at position `(pivot, i)`. If it is, the function swaps the rows `i` and `pivot` and multiplies `det` by -1.
+5. If the element at position `(i, i)` is zero, the function returns 0.
+6. Otherwise, the function multiplies `det` by the element at position `(i, i)`, and then enters another loop that runs for `n-i` iterations.
+7. In each iteration of the inner loop, the function calculates the factor `a[j][i] / a[i][i]` and uses it to update the elements in the `j`-th row of the matrix.
+8. The function then returns the value of `det`.
+9. The code in `main` creates a 4x4 matrix `matrix`, copies its elements to the `a` matrix, and calls the `determinant` function with `n=4`.
+10. The function returns the determinant of the matrix, which is printed to the console.
+
+**Equivalent SystemC Code:**
+```scss
+#include <systemc.h>
+
+SC_MODULE( Determinant ) {
+  sc_in<double> matrix[SIZE][SIZE];
+  sc_out<double> det;
+
+  SC_CTOR( Determinant ) {
+    // Constructor
+    SC_METHOD(determinant);
+    sensitive << matrix;
+  }
+
+  void determinant() {
+    double det = 1.0;
+    for (int i = 0; i < SIZE; i++) {
+      int pivot = i;
+      for (int j = i + 1; j < SIZE; j++) {
+        if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+          pivot = j;
+        }
+      }
+      if (pivot != i) {
+        swap(matrix[i], matrix[pivot]);
+        det *= -1;
+      }
+      if (matrix[i][i] == 0) {
+        det = 0;
+        break;
+      }
+      det *= matrix[i][i];
+      for (int j = i + 1; j < SIZE; j++) {
+        double factor = matrix[j][i] / matrix[i][i];
+        for (int k = i + 1; k < SIZE; k++) {
+          matrix[j][k] -= factor * matrix[i][k];
+        }
+      }
+    }
+    det.write(det);
+  }
+};
+```
+In this SystemC code, we define a module `Determinant` that has a 2D array of input ports `matrix` and a single output port `det`. The module also contains a method `determinant` that computes the determinant of the input matrix using the same logic as the original C++/C code. The method uses the `sensitive` statement to specify that it is sensitive to changes in the input matrix. The `det` output port is written with the result of the `determinant` method using the `write` function.

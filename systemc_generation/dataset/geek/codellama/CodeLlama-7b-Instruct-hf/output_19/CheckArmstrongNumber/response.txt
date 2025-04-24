@@ -1,0 +1,82 @@
+  **C++/C CodeAnalysis and Transformation into SystemC**
+
+The provided code is a C++ program that calculates whether a given integer is an Armstrong number or not. An Armstrong number is a number that is equal to the sum of the cubes of its digits. For example, 153 is an Armstrong number because (1+125+27)3) = 153.
+
+Inputs: An integer n provided as an input to the program.
+
+Outputs: A boolean value indicating whether n is an Armstrong number or not.
+
+**Analysis and Transformation**
+
+The code consists of a single function, and the execution flow can be summarized as follows:
+
+1. The user inputs an integer n.
+2. The program calculates the sum of the cubes of the digits of n using a while loop, starting from the last digit (represented by an integer p) and going back to the first one.
+3. The program then checks if the result of this summation equals n, which determines whether n is an Armstrong number or not.
+4. The program outputs the result of this check.
+
+To convert this C++ program into SystemC code, we can follow these steps:
+
+1. Declare the necessary signals: In our case, we need an input signal (sc_in<int> num_in) to receive the user input, and an output signal (sc_out<bool> is_armstrong) to return the result of the check.
+2. Define the module: We can define a SystemC module that represents the Armstrong number checker. This module should have an input signal (num_in), an output signal (is_armstrong), and a process (summation) to calculate the sum of the cubes of the digits of the input number n.
+3. Implement the process: The process (summation) should iterate over the individual digits of the input number n, calculate the sum of the cubes of these digits, and store the result in a temporary variable (p). Finally, the process should compare the temporary variable (p) with the input number n, determining whether n is an Armstrong number or not.
+
+Here is an example of the SystemC code:
+
+#include <systemc.h>
+
+// Armstrong number checker
+SC_MODULE(ArmstrongNumberChecker) {
+    sc_in<int> num_in;       const sc_out<bool> is_armstrong; // Input and output signals
+
+    // Process to calculate the sum of
+    // the cubes of the digits of a number
+    void summation() {
+        int n = num_in; // Initialize the number to be checked
+        int p = 0;      // Initialize the result of the summation
+
+        // Iterate over the individual digits of the number
+        while (n > 0) {
+            int rem = n % 10;   // Get the current digit
+            p = (p) + (rem * rem * rem);  // Calculate the cube of the digit and add it to the result
+            n = n / 10; // Shift the number one digit to the right
+        }
+
+        // Compare the result of the summation with the input number
+        if (p == num_in) {
+            // The number is an Armstrong number
+            is_armstrong.write(true);
+        } else {
+            // The number is not an Armstrong number
+            is_armstrong.write(false);
+        }
+    }
+};
+
+int sc_main() {
+    // Instantiate the module
+    ArmstrongNumberChecker armstrongNumberChecker;
+    sc_in<int> num_in("num_in"); // Input port for the number to be checked
+    sc_out<bool> is_armstrong("is_armstrong");    // Output port for the result of the check
+
+    armstrongNumberChecker.num_in(num_in); // Connect the input port
+    armstrongNumberChecker.is_armstrong(is_armstrong); // Connect the output port
+
+    // Schedule the process
+    sc_spawn(armstrongNumberChecker.summation);
+
+    // Run the simulation
+    sc_start(10, SC_NS);
+
+    return 0;
+}
+
+
+In this SystemC code, we have:
+
+1. Declared the necessary input and output signals num_in and is_armstrong.
+2. Defined the ArmstrongNumberChecker module and its process summation.
+3. Implemented the process summation using the SystemC syntax.
+4. Instantiated the module and connected its input and output signals to the corresponding ports.
+5. Scheduled the process using sc_spawn.
+6. Ran the simulation for 10 system clock cycles using sc_start.

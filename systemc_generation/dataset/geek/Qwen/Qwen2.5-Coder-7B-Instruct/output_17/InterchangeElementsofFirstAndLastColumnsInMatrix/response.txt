@@ -1,0 +1,152 @@
+### Input and Output Analysis
+
+#### Inputs:
+- A 2D array `m` of size `n x n`, where `n` is defined as 4 in this case. The array is initialized with the following values:
+  ```
+  {{8, 9, 7, 6}, 
+   {4, 7, 6, 5}, 
+   {3, 2, 1, 8}, 
+   {9, 9, 7, 7}}
+  ```
+
+#### Outputs:
+- The modified 2D array after swapping the first and last rows.
+
+### Detailed Line-by-Line Explanation
+
+1. **Header Inclusion and Namespace Declaration:**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - Includes the input-output stream library and uses the standard namespace.
+
+2. **Macro Definition:**
+   ```cpp
+   #define n 4 
+   ```
+   - Defines a macro `n` with the value 4, representing the size of the array.
+
+3. **Function Declaration:**
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n` as input.
+
+4. **Variable Declaration:**
+   ```cpp
+   int rows = n; 
+   ```
+   - Declares a variable `rows` and assigns it the value of `n`.
+
+5. **Loop to Swap Elements:**
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[0][i]; 
+       m[0][i] = m[rows - 1][i]; 
+       m[rows - 1][i] = t; 
+   } 
+   ```
+   - Iterates over each column index `i` from 0 to `n-1`.
+   - Swaps the element at position `(0, i)` with the element at position `(n-1, i)`.
+
+6. **Driver Code:**
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                    {4, 7, 6, 5}, 
+                    {3, 2, 1, 8}, 
+                    {9, 9, 7, 7}}; 
+       interchangeFirstLast(m); 
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - Initializes a 2D array `m` with the specified values.
+   - Calls the `interchangeFirstLast` function to swap the first and last rows.
+   - Prints the modified array.
+
+### Equivalent SystemC Code
+
+To integrate this functionality into a SystemC design, we need to create a module that takes a 2D array as input and outputs the modified array. We'll use the provided signals `in` and `out`.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SwapRows) {
+    sc_in<sc_vector<sc_vector<int>> > in;  // Input port for the 2D array
+    sc_out<sc_vector<sc_vector<int>> > out; // Output port for the modified 2D array
+
+    // Constructor
+    SC_CTOR(SwapRows) {
+        // Process to perform the row swap
+        SC_METHOD(swap_rows);
+        sensitive << in;
+    }
+
+    // Method to swap the first and last rows of the input matrix
+    void swap_rows() {
+        int n = in.size();
+        sc_vector<sc_vector<int>> temp = in;
+
+        // Swap the first and last rows
+        for (int i = 0; i < n; i++) {
+            int t = temp[0][i];
+            temp[0][i] = temp[n-1][i];
+            temp[n-1][i] = t;
+        }
+
+        // Write the modified matrix to the output port
+        out.write(temp);
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(SwapRows) {
+   ```
+   - Declares a SystemC module named `SwapRows`.
+
+2. **Input and Output Ports:**
+   ```cpp
+   sc_in<sc_vector<sc_vector<int>> > in;  
+   sc_out<sc_vector<sc_vector<int>> > out; 
+   ```
+   - Defines input and output ports for the 2D array.
+
+3. **Constructor:**
+   ```cpp
+   SC_CTOR(SwapRows) {
+       SC_METHOD(swap_rows);
+       sensitive << in;
+   }
+   ```
+   - Registers the `swap_rows` method to be called whenever the input changes.
+
+4. **Row Swap Method:**
+   ```cpp
+   void swap_rows() {
+       int n = in.size();
+       sc_vector<sc_vector<int>> temp = in;
+
+       for (int i = 0; i < n; i++) {
+           int t = temp[0][i];
+           temp[0][i] = temp[n-1][i];
+           temp[n-1][i] = t;
+       }
+
+       out.write(temp);
+   }
+   ```
+   - Swaps the first and last rows of the input matrix and writes the modified matrix to the output port.
+
+This SystemC code integrates seamlessly with the provided testbench signals and faithfully captures the logic of the original C++/C code.

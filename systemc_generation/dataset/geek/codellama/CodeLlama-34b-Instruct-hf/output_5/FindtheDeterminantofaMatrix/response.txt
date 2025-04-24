@@ -1,0 +1,72 @@
+  **Inputs:**
+
+* `matrix`: a 2D array of size `SIZE` (in this case, `SIZE` is 105) containing the elements of the matrix.
+* `SIZE`: the size of the matrix.
+
+**Outputs:**
+
+* `det`: the determinant of the matrix.
+
+**Line-by-line or block-by-block summary:**
+
+1. The code includes the necessary libraries and declares the `const` variable `MAXN` which is the maximum size of the matrix. It also declares the 2D array `a` and the function `determinant`.
+2. The function `determinant` takes an integer argument `n` and returns the determinant of the `n x n` matrix represented by the 2D array `a`.
+3. The function first sets the determinant to 1.0 and then iterates over the rows of the matrix.
+4. For each row, it finds the largest absolute value in the column and uses it as the pivot element.
+5. If the pivot element is not in the current row, the function swaps the current row with the row containing the pivot element and multiply the determinant by -1.
+6. If the pivot element is 0, the function returns 0, which represents a singular matrix.
+7. The function then scales the current row by the determinant and subtracts it from the remaining rows.
+8. The function repeats steps 4-7 for each row until the last row, which is the determinant of the matrix.
+9. The `main` function initializes the matrix `matrix` and calls the `determinant` function with the size of the matrix (`4` in this case) and assigns the result to the `det` variable.
+10. The `det` variable is then printed to the console.
+
+**SystemC code:**
+```
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    sc_in<double> matrix[SIZE];
+    sc_out<double> det;
+
+    SC_CTOR(Determinant) {
+        SC_METHOD(determinant);
+        sensitive << matrix.write();
+    }
+
+    void determinant() {
+        int n = matrix.size();
+        double determinant = 1.0;
+        for (int i = 0; i < n; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < n; j++) {
+                if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(matrix[i], matrix[pivot]);
+                determinant *= -1;
+            }
+            if (matrix[i][i] == 0) {
+                det.write(0.0);
+                return;
+            }
+            determinant *= matrix[i][i];
+            for (int j = i + 1; j < n; j++) {
+                double factor = matrix[j][i] / matrix[i][i];
+                for (int k = i + 1; k < n; k++) {
+                    matrix[j][k] -= factor * matrix[i][k];
+                }
+            }
+        }
+        det.write(determinant);
+    }
+};
+```
+In this SystemC code, we have defined a module `Determinant` that takes in a 2D array `matrix` of doubles and an output `det` for the determinant. The `SC_CTOR` constructor initializes the module and declares the `SC_METHOD` `determinant` sensitive to the input `matrix`.
+
+The `determinant` method iterates over the rows of the matrix, finds the pivot element in each row, and scales the current row by the determinant. If the pivot element is 0, the function returns 0, which represents a singular matrix, and exits the function.
+
+The method then repeats this process for each row until the last row, which is the determinant of the matrix. The determinant is then written to the output `det`.
+
+In the `main` function, we create an instance of the `Determinant` module and call the `determinant` method with the input `matrix` and assign the result to the output `det`. The `det` variable is then printed to the console.

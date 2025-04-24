@@ -1,0 +1,156 @@
+### Input and Output Analysis
+
+**Inputs:**
+- The input to the code is a single integer `n`, which represents the decimal number to be converted to binary.
+
+**Outputs:**
+- The output of the code is the binary representation of the input decimal number, printed to the console.
+
+### Detailed Explanation
+
+1. **Include Header and Namespace Declaration:**
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - This includes the input-output stream library and sets the standard namespace to `std`.
+
+2. **Function Declaration:**
+   ```cpp
+   void decToBinary(int n)
+   ```
+   - This function takes an integer `n` as input and converts it to its binary representation.
+
+3. **Array Declaration for Binary Representation:**
+   ```cpp
+   int binaryNum[32];
+   ```
+   - An array `binaryNum` of size 32 is declared to store the binary digits. The size is chosen to accommodate any possible 32-bit integer.
+
+4. **Counter Initialization:**
+   ```cpp
+   int i = 0;
+   ```
+   - A counter `i` is initialized to 0 to keep track of the current position in the `binaryNum` array.
+
+5. **Loop to Convert Decimal to Binary:**
+   ```cpp
+   while (n > 0) {
+       binaryNum[i] = n % 2;
+       n = n / 2;
+       i++;
+   }
+   ```
+   - This loop continues until `n` becomes 0.
+   - In each iteration, the remainder of `n` divided by 2 (`n % 2`) gives the least significant bit of `n`, which is stored in the `binaryNum` array at position `i`.
+   - The value of `n` is then updated to `n / 2` to process the next bit.
+   - The counter `i` is incremented to move to the next position in the `binaryNum` array.
+
+6. **Loop to Print Binary Representation:**
+   ```cpp
+   for (int j = i - 1; j >= 0; j--)
+       cout << binaryNum[j];
+   ```
+   - This loop starts from the last filled position of the `binaryNum` array and prints each binary digit in reverse order to get the correct binary representation.
+
+7. **Driver Code:**
+   ```cpp
+   int main()
+   {
+       int n = 10;
+       decToBinary(n);
+       return 0;
+   }
+   ```
+   - The `main` function initializes `n` to 10 and calls the `decToBinary` function to convert and print the binary representation of 10.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that integrates with the provided signals and maintains the same functionality:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinaryConverter) {
+    sc_in<int> dec_in;  // Input port for the decimal number
+    sc_out<int> binary_out;  // Output port for the binary representation
+
+    // Constructor
+    SC_CTOR(BinaryConverter) {
+        // Process to convert decimal to binary
+        SC_METHOD(dec_to_binary);
+        sensitive << dec_in;
+    }
+
+    // Method to convert decimal to binary
+    void dec_to_binary() {
+        int n = dec_in.read();
+        int binaryNum[32];
+        int i = 0;
+
+        while (n > 0) {
+            binaryNum[i] = n % 2;
+            n = n / 2;
+            i++;
+        }
+
+        int result = 0;
+        for (int j = i - 1; j >= 0; j--) {
+            result = result * 10 + binaryNum[j];
+        }
+
+        binary_out.write(result);
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(BinaryConverter) {
+   ```
+   - This declares a SystemC module named `BinaryConverter`.
+
+2. **Input and Output Ports:**
+   ```cpp
+   sc_in<int> dec_in;  // Input port for the decimal number
+   sc_out<int> binary_out;  // Output port for the binary representation
+   ```
+   - The module has an input port `dec_in` for the decimal number and an output port `binary_out` for the binary representation.
+
+3. **Constructor:**
+   ```cpp
+   SC_CTOR(BinaryConverter) {
+       SC_METHOD(dec_to_binary);
+       sensitive << dec_in;
+   }
+   ```
+   - The constructor sets up the method `dec_to_binary` to be sensitive to changes on the `dec_in` port.
+
+4. **Method to Convert Decimal to Binary:**
+   ```cpp
+   void dec_to_binary() {
+       int n = dec_in.read();
+       int binaryNum[32];
+       int i = 0;
+
+       while (n > 0) {
+           binaryNum[i] = n % 2;
+           n = n / 2;
+           i++;
+       }
+
+       int result = 0;
+       for (int j = i - 1; j >= 0; j--) {
+           result = result * 10 + binaryNum[j];
+       }
+
+       binary_out.write(result);
+   }
+   ```
+   - This method reads the decimal number from the `dec_in` port.
+   - It converts the decimal number to binary and stores the binary digits in the `binaryNum` array.
+   - It then constructs the binary number from the array and writes the result to the `binary_out` port.
+
+This SystemC code accurately replicates the functionality of the original C++ code, converting a decimal number to its binary representation and providing the result through a SystemC output port.

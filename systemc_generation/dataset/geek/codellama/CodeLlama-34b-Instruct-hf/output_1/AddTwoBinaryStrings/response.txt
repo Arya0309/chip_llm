@@ -1,0 +1,108 @@
+  Inputs:
+
+* `A`: A string representing a binary number
+* `B`: A string representing a binary number
+
+Outputs:
+
+* `sum`: A string representing the sum of `A` and `B`
+
+**Line-by-line or block-by-block Natural Language Summary:**
+
+The code snippet provided is a C++ program that takes two binary strings, `A` and `B`, as input and returns their sum as a string. The program first checks if the length of `A` is greater than the length of `B`. If so, it swaps the two strings and recursively calls the same function to ensure that the shorter string is processed first.
+
+The program then calculates the difference in the length of the two strings (`diff`) and initializes a string `padding` that will be used to store zeroes that need to be added as prefix to the shorter string. The program then adds `padding` to `A` and initializes a string `res` to store the result. The program then computes the sum of `A` and `B` using a carry mechanism that takes into account the possibility of overflow. The `carry` variable keeps track of whether there has been a carry or not.
+
+The program then checks if the sum has a carry by checking if `carry` is equal to '1'. If there is a carry, it appends a '1' to the `res` string and sets `carry` to '1'. If there is no carry, it appends a '0' to the `res` string and sets `carry` to '0'. The program then reverses the `res` string and removes any leading zeroes. Finally, the program returns the resulting string.
+
+**SystemC Code:**
+```
+#include <systemc.h>
+
+// Module that adds two binary strings
+SC_MODULE(BinaryAdder) {
+    sc_in<std::string> A; // Input port for the first binary string
+    sc_in<std::string> B; // Input port for the second binary string
+    sc_out<std::string> sum; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(BinaryAdder) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to add the two binary strings
+    void add() {
+        // Initialize the result string
+        std::string res;
+
+        // Check if the length of A is greater than the length of B
+        if (A.length() > B.length()) {
+            // Swap the strings
+            std::string temp = A;
+            A = B;
+            B = temp;
+        }
+
+        // Calculate the difference in length
+        int diff = B.length() - A.length();
+
+        // Initialize the padding string
+        std::string padding;
+        for (int i = 0; i < diff; i++) {
+            padding.push_back('0');
+        }
+
+        // Add the padding to the shorter string
+        A = padding + A;
+
+        // Initialize the carry variable
+        char carry = '0';
+
+        // Perform the addition
+        for (int i = A.length() - 1; i >= 0; i--) {
+            // If the two strings have the same digit
+            if (A[i] == B[i]) {
+                // If there is a carry, append a 1 to the result
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '1';
+                } else {
+                    res.push_back('0');
+                    carry = '0';
+                }
+            } else {
+                // If the two strings have different digits
+                if (carry == '1') {
+                    // If the two strings have different digits and there is a carry, append a 1 to the result
+                    res.push_back('1');
+                    carry = '0';
+                } else {
+                    // If the two strings have different digits and there is no carry, append a 0 to the result
+                    res.push_back('0');
+                    carry = '1';
+                }
+            }
+        }
+
+        // If there is a carry, append a 1 to the result
+        if (carry == '1') {
+            res.push_back('1');
+        }
+
+        // Reverse the result
+        std::reverse(res.begin(), res.end());
+
+        // Remove any leading zeroes
+        int index = 0;
+        while (index + 1 < res.length() && res[index] == '0') {
+            index++;
+        }
+
+        // Update the output port
+        sum.write(res.substr(index));
+    }
+};
+```
+In this SystemC code, the `BinaryAdder` module takes two input ports (`A` and `B`) and an output port (`sum`), which are used to perform the addition of the two binary strings. The `add` method performs the actual addition and updates the `sum` output port with the result. The `add` method first checks if the length of `A` is greater than the length of `B`, and if so, it swaps the two strings. It then calculates the difference in length and initializes a `padding` string with the appropriate number of zeroes. The `padding` string is then added to `A`. The `add` method then initializes a `carry` variable and performs the addition using a carry mechanism that takes into account the possibility of overflow. The `carry` variable is updated appropriately based on whether there has been a carry or not. The `add` method then reverses the result string and removes any leading zeroes. Finally, the `sum` output port is updated with the resulting string.

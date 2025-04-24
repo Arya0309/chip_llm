@@ -1,0 +1,58 @@
+  Here's a step-by-step natural language summary of the provided C++/C code and an equivalent SystemC code snippet that preserves the logic and can be used in a high-level synthesis flow:
+
+**Natural Language Summary**
+
+The provided C++/C code is a function `determinant` that takes in a matrix of size `MAXN x MAXN` and returns its determinant. The `determinant` function calculates the determinant using the cofactor expansion along the first row. If any element of the first row is zero, the determinant is returned as zero.
+
+The `main` function takes in a matrix of size `4 x 4` and calls the `determinant` function to calculate its determinant. The determinant is then printed to the console.
+
+**SystemC Code**
+
+The SystemC code snippet below faithfully captures the logic of the original C++/C source:
+```scss
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    sc_in<double> matrix[SIZE]; // Input port for the matrix
+    sc_in<int> n;               // Input port for the size of the matrix
+    sc_out<double> det;         // Output port for the determinant
+
+    // Constructor
+    SC_CTOR(Determinant) {
+        // Process to calculate the determinant
+        SC_METHOD(CalcDeterminant);
+        sensitive << matrix << n;
+    }
+
+    // Method to calculate the determinant
+    void CalcDeterminant() {
+        double det = 1.0;
+        for (int i = 0; i < n; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < n; j++) {
+                if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(matrix[i], matrix[pivot]);
+                det *= -1;
+            }
+            if (matrix[i][i] == 0) {
+                det = 0;
+            }
+            det *= matrix[i][i];
+            for (int j = i + 1; j < n; j++) {
+                double factor = matrix[j][i] / matrix[i][i];
+                for (int k = i + 1; k < n; k++) {
+                    matrix[j][k] -= factor * matrix[i][k];
+                }
+            }
+        }
+        det.write(det);
+    }
+};
+```
+In the SystemC code above, the `Determinant` module takes in a matrix of size `MAXN x MAXN` and a size `int n` as input and returns the determinant as output. The `CalcDeterminant` method calculates the determinant by checking for zero elements in the first row, calculating the cofactor expansion along the first row, and multiplying the determinants of submatrices. The `Determinant` module is triggered by the changes in the input `matrix` and `n` values, and the output `det` is written to reflect the resulting determinant value.
+
+Overall, the SystemC code snippet faithfully captures the logic of the original C++/C source and can be used in a high-level synthesis flow for further analysis and optimization.

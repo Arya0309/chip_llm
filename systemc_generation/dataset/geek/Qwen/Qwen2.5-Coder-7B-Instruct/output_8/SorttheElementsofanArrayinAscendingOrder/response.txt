@@ -1,0 +1,183 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - `nums[]`: An integer array to be sorted.
+  - `size_nums`: The size of the array.
+- **Outputs**:
+  - The sorted array printed to the console.
+
+#### Detailed Explanation
+
+1. **Initialization**:
+   ```cpp
+   int nums[] = {1, 12, 6, 8, 10};
+   int size_nums = (sizeof(nums) / sizeof(nums[0]));
+   ```
+   - `nums` is initialized with the given array of integers.
+   - `size_nums` calculates the size of the array by dividing the total size of the array by the size of one element.
+
+2. **Displaying the Unsorted Array**:
+   ```cpp
+   cout << "Before sorting the array is: \n";
+   for (int i = 0; i < size_nums; i++)
+       cout << nums[i] << " ";
+   cout << "\n\n";
+   ```
+   - This loop prints the unsorted array to the console.
+
+3. **Sorting the Array**:
+   ```cpp
+   sort(nums, size_nums);
+   ```
+   - Calls the `sort` function to sort the array.
+
+4. **Displaying the Sorted Array**:
+   ```cpp
+   cout << "After sorting the array is: \n";
+   for (int i = 0; i < size_nums; i++)
+       cout << nums[i] << " ";
+   cout << "\n";
+   ```
+   - This loop prints the sorted array to the console.
+
+5. **Sorting Function (`sort`)**:
+   ```cpp
+   void sort(int num[], int len)
+   {
+       bool isSwapped;
+       for (int i = 0; i < len; i++) 
+       {
+           isSwapped = false;
+           for (int j = 1; j < len - i; j++) 
+           {
+               if (num[j] < num[j - 1]) 
+               {
+                   swapNums(num, j, (j - 1));
+                   isSwapped = true;
+               }
+           }
+           if (!isSwapped) 
+           {
+               break;
+           }
+       }
+   }
+   ```
+   - The `sort` function uses the Bubble Sort algorithm to sort the array.
+   - It iterates through the array multiple times, comparing adjacent elements and swapping them if they are in the wrong order.
+   - If no swaps occur in a pass, the array is already sorted, and the loop breaks early.
+
+6. **Swap Function (`swapNums`)**:
+   ```cpp
+   void swapNums(int nums[], int first, int second)
+   {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - The `swapNums` function swaps two elements in the array.
+
+### Equivalent SystemC Code
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Sorter) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_inout<int*> nums;  // Input/Output port for the array
+    sc_out<int> size_nums;  // Output port for the size of the array
+
+    // Constructor
+    SC_CTOR(Sorter) {
+        // Process to handle sorting
+        SC_METHOD(sort);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    // Method to sort the array
+    void sort() {
+        if (start.read()) {
+            int len = size_nums.read();
+            bool isSwapped;
+            for (int i = 0; i < len; i++) {
+                isSwapped = false;
+                for (int j = 1; j < len - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        int temp = nums[j];
+                        nums[j] = nums[j - 1];
+                        nums[j - 1] = temp;
+                        isSwapped = true;
+                    }
+                }
+                if (!isSwapped) {
+                    break;
+                }
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(Sorter) {
+       sc_in<bool> clk;  // Clock signal
+       sc_in<bool> start;  // Start signal
+       sc_out<bool> done;  // Done signal
+       sc_inout<int*> nums;  // Input/Output port for the array
+       sc_out<int> size_nums;  // Output port for the size of the array
+   ```
+   - The `Sorter` module has the required input and output ports.
+
+2. **Constructor**:
+   ```cpp
+   SC_CTOR(Sorter) {
+       SC_METHOD(sort);
+       sensitive << clk.pos();
+       dont_initialize();
+   }
+   ```
+   - The constructor initializes the `sort` method to be sensitive to positive clock edges.
+
+3. **Sorting Method (`sort`)**:
+   ```cpp
+   void sort() {
+       if (start.read()) {
+           int len = size_nums.read();
+           bool isSwapped;
+           for (int i = 0; i < len; i++) {
+               isSwapped = false;
+               for (int j = 1; j < len - i; j++) {
+                   if (nums[j] < nums[j - 1]) {
+                       int temp = nums[j];
+                       nums[j] = nums[j - 1];
+                       nums[j - 1] = temp;
+                       isSwapped = true;
+                   }
+               }
+               if (!isSwapped) {
+                   break;
+               }
+           }
+           done.write(true);
+       } else {
+           done.write(false);
+       }
+   }
+   ```
+   - The `sort` method checks if the `start` signal is high.
+   - If it is, it reads the size of the array and performs the sorting using the Bubble Sort algorithm.
+   - Once the sorting is complete, it sets the `done` signal to high.
+   - If the `start` signal is low, it sets the `done` signal to low.
+
+This SystemC code faithfully captures the logic of the original C++/C source and can be integrated into a high-level synthesis flow.

@@ -1,0 +1,112 @@
+### C++/C Code Analysis
+
+**Inputs and Outputs**:
+- **Inputs**: An integer array `nums` and its length `len`.
+- **Outputs**: The sorted array `nums`.
+
+**Explanation**:
+1. **Initialization**:
+   - The array `nums` is initialized with values `{1, 12, 6, 8, 10}`.
+   - The size of the array `size_nums` is calculated using `sizeof(nums) / sizeof(nums[0])`.
+
+2. **Display Before Sorting**:
+   - The array before sorting is printed.
+
+3. **Sorting Function (`sort`)**:
+   - This function sorts the array using the Bubble Sort algorithm.
+   - It iterates through the array multiple times, comparing adjacent elements and swapping them if they are in the wrong order.
+   - The inner loop ensures that the largest unsorted element bubbles up to its correct position in each iteration.
+   - If no swaps are made in a particular pass, the array is already sorted, and the loop breaks early.
+
+4. **Swap Function (`swapNums`)**:
+   - This function swaps two elements in the array.
+   - It uses a temporary variable `curr` to hold the value of the first element during the swap.
+
+5. **Display After Sorting**:
+   - The array after sorting is printed.
+
+### SystemC Code Snippet
+
+To integrate this logic into a SystemC environment, we need to create a module that takes the array and its length as inputs and outputs the sorted array. We will use the provided signals `clk`, `start`, and `done`.
+
+Here is the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArraySorter) {
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;    // Done signal
+    sc_inout<int*> nums;    // Pointer to the input array
+    sc_in<int> len;         // Length of the array
+
+    bool isSwapped;
+
+    // Constructor
+    SC_CTOR(ArraySorter) {
+        SC_METHOD(sortArray);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        SC_METHOD(checkDone);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    // Method to perform the sorting
+    void sortArray() {
+        if (start.read()) {
+            for (int i = 0; i < len.read(); i++) {
+                isSwapped = false;
+                for (int j = 1; j < len.read() - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        swapNums(j, j - 1);
+                        isSwapped = true;
+                    }
+                }
+                if (!isSwapped) {
+                    break;
+                }
+            }
+            done.write(true);
+        }
+    }
+
+    // Method to swap two elements in the array
+    void swapNums(int first, int second) {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
+
+    // Method to check if sorting is done
+    void checkDone() {
+        if (done.read()) {
+            cout << "After sorting the array is: \n";
+            for (int i = 0; i < len.read(); i++) {
+                cout << nums[i] << " ";
+            }
+            cout << "\n";
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code:
+1. **Module Declaration**:
+   - `ArraySorter` is a SystemC module that includes the necessary signals and ports.
+
+2. **Signals and Ports**:
+   - `clk`: Clock signal for synchronous operation.
+   - `start`: Start signal to initiate the sorting process.
+   - `done`: Done signal to indicate the completion of the sorting process.
+   - `nums`: Pointer to the input array.
+   - `len`: Length of the array.
+
+3. **Methods**:
+   - `sortArray`: This method performs the sorting using the Bubble Sort algorithm. It is triggered on the rising edge of the clock when the `start` signal is high.
+   - `swapNums`: This method swaps two elements in the array.
+   - `checkDone`: This method checks if the sorting is done and prints the sorted array. It is also triggered on the rising edge of the clock when the `done` signal is high.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C source code and can be integrated into a high-level synthesis flow.

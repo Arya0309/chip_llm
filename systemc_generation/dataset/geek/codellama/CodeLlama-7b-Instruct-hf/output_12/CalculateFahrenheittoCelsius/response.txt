@@ -1,0 +1,69 @@
+  There are several questions that come up when trying to convert C++ code to SystemC. Firstly, you could ask yourself "Is there a SystemC code snippet that supports the same process... And secondly, is converting C++ code to SystemC efficient and straightforward?" 
+
+After analyzing the provided C++ code, we can identify the two important functions: Conversion and Driver code.
+
+Based on the given C++ code, we can identify the inputs and outputs of the code. Assuming that the above code is used for calculating temperature conversion, we have outputs of both Fahrenheit and Celsius, based on input.
+
+The function Conversion(n) takes in a floating-point number 'n' and calculates the temperature conversion to the Celsius scale.
+
+The Driver code generates input for the target temperature 'n', where 'n' is a user-determined input. 
+
+Based on this, the conversion of the code to SystemC goes as follows:
+
+1. Create a new SystemC module that contains the SystemC inputs, such as the sc_in<float> type fahrenheit.
+
+```
+
+// Module that converts Fahrenheit to Celsius
+class TempConversion :public sc_module {
+  public:
+    sc_in<float> fahrenheit;   // Input port for temperature in Fahrenheit
+    sc_out<float> celsius;  // Output port for converted temperature in Celcius
+    // Constructor
+    SC_CTOR(TempConversion) {
+      // Process to convert Fahrenheit to Celius
+      SC_METHOD(convertFahrenheit);
+      sensitive<<fahrenheit;
+     }
+```
+
+2. Based on the C++ function Conversion, we will convert the temperature from Fahrenheit to Celsius. We can do this by dividing the difference between the temperature and 32.0 by 1.8, an easy conversion ratio for temperature conversion. Here's how this can be incorporated into the SystemC program:
+
+```
+    method void convertFahrenheit() {
+        double convertedValue = (fahrenheit.read() - 32) / 1.8
+         cout<<convertedValue<<endl;
+    }
+```
+
+3. However, the SystemC program does not include the input, where a float value is generated naming n. As a result, we can add this line to the class TempConversion.
+
+```
+    sc_in<float> n;   // Input port for temperature value
+```
+
+Lastly, once the conversion has been made, we must assign the converted output to a SystemC output signal. Therefore, we will change the last line of the convertFahrenheit() function to the following:
+
+```
+   celsius.write(convertedValue); 
+```
+
+
+Finally, to test the SystemC code, you will need to declare an instance of the TempConversion module and hook up the C++ signal defined earlier, which you called fahrenheit, to the Celsius input in the SystemC code (i.e., fahrenheit.write() ).
+
+Here is an included snippet:
+
+```
+
+#include <systemc.h>
+
+int scmain(int argc, char* argv[])
+{
+    // Create an instance of the TempConversion module
+    TempConversion tempConversion;
+    // Connect the fahrenheit input to the fahrenheit output
+    tempConversion.fahrenheit(fahrenheit.read());
+    // Start the process and run for 100 time steps
+    sc_start(100, SC_NS);
+}
+```

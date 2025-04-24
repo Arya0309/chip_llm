@@ -1,0 +1,101 @@
+  Inputs:
+
+* `arr`: an array of integers
+* `d`: an integer representing the number of positions to rotate the array
+* `N`: the number of elements in the array
+
+Outputs:
+
+* The rotated array
+
+The function `Rotate` rotates an array of integers `arr` by `d` positions to the left. The function first initializes a temporary array `temp` of the same size as `arr`, and then copies the following elements to the corresponding positions in `temp`:
+
+* The elements `d` to `n-1` from `arr` to the beginning of `temp` (where `n` is the number of elements in `arr`)
+* The elements `0` to `d-1` from `arr` to the end of `temp`
+
+The function then copies the elements of `temp` back to `arr`.
+
+The function `PrintTheArray` prints the elements of an array `arr` of integers.
+
+The driver code initializes an array `arr` and calls `Rotate` with `d=2` and `N=7`. The function rotates the array and then prints the rotated array using `PrintTheArray`.
+
+SystemC version:
+```
+#include <systemc.h>
+
+SC_MODULE(Rotate) {
+    sc_in<int> arr[7]; // Input array
+    sc_in<int> d;      // Rotation distance
+    sc_in<int> n;      // Number of elements in the array
+
+    sc_out<int> rotated_arr[7]; // Output array
+
+    // Constructor
+    SC_CTOR(Rotate) {
+        SC_THREAD(Rotate);
+        sensitive << arr << d << n;
+    }
+
+    // Rotation function
+    void Rotate() {
+        int temp[7];
+        int i, j;
+
+        // Initialize temp
+        for (i = 0; i < 7; i++) {
+            temp[i] = arr[i + d];
+        }
+
+        // Rotate and copy
+        for (j = 0; j < 7; j++) {
+            rotated_arr[j] = temp[i];
+            i++;
+        }
+
+        // Copy the remaining elements
+        for (; j < 7 - d; j++) {
+            rotated_arr[j] = arr[j - d];
+        }
+    }
+};
+
+// Driver code
+int sc_main(int argc, char* argv[]) {
+    sc_signal<int> arr[7];
+    sc_signal<int> d;
+    sc_signal<int> n;
+    sc_signal<int> rotated_arr[7];
+
+    Rotate rotator("rotator");
+
+    arr[0] = 1;
+    arr[1] = 2;
+    arr[2] = 3;
+    arr[3] = 4;
+    arr[4] = 5;
+    arr[5] = 6;
+    arr[6] = 7;
+    d = 2;
+    n = 7;
+
+    rotator.arr = arr;
+    rotator.d = d;
+    rotator.n = n;
+    rotator.run();
+
+    for (int i = 0; i < 7; i++) {
+        printf("%d ", rotated_arr[i]);
+    }
+
+    return 0;
+}
+```
+In this SystemC code, we define a module `Rotate` that takes an input array `arr`, a rotation distance `d`, and the number of elements in the array `n` as inputs. The module has an output array `rotated_arr`.
+
+In the constructor of the module, we define the thread that performs the rotation using a SystemC process. The process senses the input array `arr`, the rotation distance `d`, and the number of elements in the array `n`.
+
+The thread function `Rotate` first initializes a temporary array `temp` of the same size as `arr`. It then copies the elements of `arr` to `temp` by shifting `d` positions to the left, and then copies the remaining elements from `arr` to `temp`. Finally, it copies the elements of `temp` back to `rotated_arr`.
+
+In the driver code, we create an instance of the `Rotate` module and connect the input signals to the corresponding ports. We set the input array `arr` and the rotation distance `d` to the desired values, and run the module. We then print the rotated array using a loop.
+
+Note that the SystemC code uses a process to perform the rotation, which allows it to be incorporated into a high-level synthesis flow that supports concurrent programming.

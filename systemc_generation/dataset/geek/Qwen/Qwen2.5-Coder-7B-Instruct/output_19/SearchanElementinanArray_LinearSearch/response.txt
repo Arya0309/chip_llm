@@ -1,0 +1,144 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - A `vector<int>` named `v` containing the elements to search through.
+  - An integer `key` representing the value to search for in the vector.
+- **Outputs**: 
+  - An integer `index` indicating the position of the key in the vector if found, or `-1` if the key is not found.
+
+#### Detailed Explanation of the Code
+
+1. **Include Statements and Namespace Declaration**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes the standard library and uses the standard namespace.
+
+2. **Function Definition: `linearSearch`**
+   ```cpp
+   int linearSearch(vector<int> v, int key) {
+   ```
+   - Declares a function `linearSearch` that takes a vector of integers `v` and an integer `key`.
+
+3. **Loop Through the Vector**
+   ```cpp
+   for (int i = 0; i < v.size(); i++) {
+   ```
+   - Initializes a loop that iterates over each element in the vector `v`.
+
+4. **Check if Key is Found**
+   ```cpp
+   if (v[i] == key) {
+       return i;
+   }
+   ```
+   - Checks if the current element `v[i]` is equal to the `key`.
+   - If found, returns the index `i`.
+
+5. **Return -1 if Key Not Found**
+   ```cpp
+   return -1;
+   ```
+   - Returns `-1` if the key is not found after the loop completes.
+
+6. **Main Function**
+   ```cpp
+   int main() {
+       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+       int key = 8;
+       int i = linearSearch(v, key);
+       if (i != -1)
+           cout << key << " Found at Position: " << i + 1;
+       else
+           cout << key << " NOT found.";
+       return 0;
+   }
+   ```
+   - Defines a vector `v` and a key `key`.
+   - Calls the `linearSearch` function and prints whether the key is found and at what position.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that incorporates the provided signals and replicates the logic of the original C++/C code.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(LinearSearch) {
+    sc_in<int> key;  // Input port for the key to search
+    sc_out<int> index; // Output port for the index where the key is found or -1 if not found
+
+    sc_vector<sc_in<int>> data; // Input vector of data
+
+    SC_CTOR(LinearSearch) {
+        // Process to perform linear search
+        SC_METHOD(search);
+        sensitive << key;
+        for (int i = 0; i < data.size(); i++) {
+            sensitive << data[i];
+        }
+    }
+
+    void search() {
+        int key_val = key.read();
+        int found_index = -1;
+        for (int i = 0; i < data.size(); i++) {
+            if (data[i].read() == key_val) {
+                found_index = i;
+                break;
+            }
+        }
+        index.write(found_index);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_signal<int> key;
+    sc_signal<int> index;
+    sc_vector<sc_signal<int>> data(8); // Assuming the data vector has 8 elements
+
+    LinearSearch ls("linear_search");
+    ls.key(key);
+    ls.index(index);
+    ls.data(data);
+
+    // Testbench code
+    data[0] = 1;
+    data[1] = 2;
+    data[2] = 3;
+    data[3] = 4;
+    data[4] = 5;
+    data[5] = 8;
+    data[6] = 9;
+    data[7] = 11;
+
+    key = 8;
+    wait(10, SC_NS);
+
+    cout << "Key " << key.read() << " found at position " << index.read() + 1 << endl;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Definition: `LinearSearch`**
+   - Defines a module `LinearSearch` with input `key`, output `index`, and input vector `data`.
+
+2. **Constructor: `SC_CTOR(LinearSearch)`**
+   - Initializes the module and sets up sensitivity to changes in `key` and each element of `data`.
+
+3. **Method: `search`**
+   - Reads the `key` and initializes `found_index` to `-1`.
+   - Iterates over the `data` vector to find the `key`.
+   - Writes the found index to the `index` output port.
+
+4. **Main Function: `sc_main`**
+   - Sets up the signals and modules.
+   - Initializes the `data` vector and the `key`.
+   - Runs the simulation and prints the result.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

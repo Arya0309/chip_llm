@@ -1,0 +1,203 @@
+### Input and Output Analysis
+
+**Inputs**:
+1. `in[SIZE]`: An array of integers representing the matrix to be rotated. The size of the array is determined by `SIZE`.
+
+**Outputs**:
+1. `out[SIZE]`: An array of integers representing the rotated matrix. The size of the array is also determined by `SIZE`.
+
+### Detailed Explanation
+
+The provided C++ code rotates a given matrix by 90 degrees clockwise. Here’s a line-by-line breakdown:
+
+1. **Header Files and Definitions**:
+   ```cpp
+   #include <iostream>
+   #define R 4
+   #define C 4
+   using namespace std;
+   ```
+   - The code includes the `<iostream>` header for input/output operations.
+   - `R` and `C` are macros defined to represent the number of rows and columns in the matrix, respectively.
+   - The `using namespace std;` directive allows the use of standard library names without prefixing them with `std::`.
+
+2. **Function Declaration**:
+   ```cpp
+   void rotatematrix(int m, int n, int mat[R][C])
+   ```
+   - This function takes three parameters:
+     - `m`: Number of rows in the matrix.
+     - `n`: Number of columns in the matrix.
+     - `mat[R][C]`: The matrix to be rotated.
+
+3. **Initialization**:
+   ```cpp
+   int row = 0, col = 0;
+   int prev, curr;
+   ```
+   - `row` and `col` are initialized to 0, representing the starting indices of the matrix.
+   - `prev` and `curr` are used to store intermediate values during the rotation process.
+
+4. **While Loop for Rotation**:
+   ```cpp
+   while (row < m && col < n) {
+       if (row + 1 == m || col + 1 == n)
+           break;
+
+       prev = mat[row + 1][col];
+
+       for (int i = col; i < n; i++) {
+           curr = mat[row][i];
+           mat[row][i] = prev;
+           prev = curr;
+       }
+       row++;
+
+       for (int i = row; i < m; i++) {
+           curr = mat[i][n-1];
+           mat[i][n-1] = prev;
+           prev = curr;
+       }
+       n--;
+
+       if (row < m) {
+           for (int i = n-1; i >= col; i--) {
+               curr = mat[m-1][i];
+               mat[m-1][i] = prev;
+               prev = curr;
+           }
+       }
+       m--;
+
+       if (col < n) {
+           for (int i = m-1; i >= row; i--) {
+               curr = mat[i][col];
+               mat[i][col] = prev;
+               prev = curr;
+           }
+       }
+       col++;
+   }
+   ```
+   - This loop continues until all rows and columns have been processed.
+   - Inside the loop, the matrix is rotated layer by layer. The outermost layer is rotated first, followed by the inner layers.
+   - The `prev` variable stores the value of the element that will be replaced in each iteration, and `curr` temporarily holds the current element.
+   - The elements are shifted in a circular manner to achieve the rotation.
+
+5. **Printing the Rotated Matrix**:
+   ```cpp
+   for (int i=0; i<R; i++) {
+       for (int j=0; j<C; j++)
+           cout << mat[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - This nested loop prints the rotated matrix to the console.
+
+6. **Main Function**:
+   ```cpp
+   int main() {
+       int a[R][C] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 16}};
+       rotatematrix(R, C, a);
+       return 0;
+   }
+   ```
+   - The `main` function initializes a sample matrix and calls the `rotatematrix` function to rotate it.
+
+### Equivalent SystemC Code
+
+Here is the equivalent SystemC code that uses the provided signals (`in` and `out`) and incorporates the logic of the original C++ code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixRotator) {
+    sc_in<int> in[SIZE];  // Input port for the matrix elements
+    sc_out<int> out[SIZE]; // Output port for the rotated matrix elements
+
+    // Constructor
+    SC_CTOR(MatrixRotator) {
+        // Process to perform matrix rotation
+        SC_METHOD(rotate_matrix);
+        sensitive << in;
+    }
+
+    // Method to rotate the matrix
+    void rotate_matrix() {
+        int m = SIZE;  // Number of rows
+        int n = SIZE;  // Number of columns
+        int mat[SIZE][SIZE];
+        int row = 0, col = 0;
+        int prev, curr;
+
+        // Copy input values to the matrix
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                mat[i][j] = in[i * n + j].read();
+            }
+        }
+
+        // Rotate the matrix
+        while (row < m && col < n) {
+            if (row + 1 == m || col + 1 == n)
+                break;
+
+            prev = mat[row + 1][col];
+
+            for (int i = col; i < n; i++) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            for (int i = row; i < m; i++) {
+                curr = mat[i][n-1];
+                mat[i][n-1] = prev;
+                prev = curr;
+            }
+            n--;
+
+            if (row < m) {
+                for (int i = n-1; i >= col; i--) {
+                    curr = mat[m-1][i];
+                    mat[m-1][i] = prev;
+                    prev = curr;
+                }
+            }
+            m--;
+
+            if (col < n) {
+                for (int i = m-1; i >= row; i--) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        // Copy rotated matrix values to the output
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                out[i * n + j].write(mat[i][j]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   - `MatrixRotator` is declared as a SystemC module with `in` and `out` ports.
+
+2. **Constructor**:
+   - The constructor initializes the `rotate_matrix` method to be sensitive to changes in the `in` ports.
+
+3. **rotate_matrix Method**:
+   - The method reads the input matrix elements into a local array `mat`.
+   - It then performs the matrix rotation using the same logic as the original C++ code.
+   - Finally, it writes the rotated matrix elements back to the `out` ports.
+
+This SystemC code should be compilable and can be integrated with an existing testbench that provides the `in` signals and expects the `out` signals.

@@ -1,0 +1,96 @@
+  The code in the provided C++/C program finds the minimum and maximum elements in an array. The input for the code is a variable `arr` of type `int` and a variable `n` of type `int` representing the size of `arr`. The code uses the C++ standard library function `min_element` and `max_element` to find the minimum and maximum elements, respectively. The output of the code is a variable `min_val` of type `int` containing the minimum element and a variable `max_val` of type `int` containing the maximum element.
+
+The code's behavior can be described in natural language as follows:
+1. The function `getMin` takes an array `arr` of integers and its size `n` as input and returns the minimum element of the array. This is accomplished by using the `min_element` function from the C++ standard library to find the minimum element in the array.
+2. The function `getMax` takes an array `arr` of integers and its size `n` as input and returns the maximum element of the array. This is accomplished by using the `max_element` function from the C++ standard library to find the maximum element in the array.
+3. In `main`, the `getMin` and `getMax` functions are called on the array `arr` with size `n` to obtain the minimum and maximum elements, respectively. The output of `main` is a statement printing the minimum and maximum elements to the console.
+
+To retain the logic of the original C++/C source in SystemC, we can recreate the above behavior in the following SystemC code:
+
+```scss
+#include <systemc.h>
+
+// SystemC implementation of getMin
+SC_MODULE(getMin) {
+    sc_in<int>* arr; // Input port for the array of integers
+    sc_in<int> n; // Input port for the size of the array
+    sc_out<int> min_val; // Output port for the minimum element
+
+    // Constructor for the getMin module
+    SC_CTOR(getMin) {
+       // Process to find the minimum element
+       SC_METHOD(find_min);
+       sensitive << arr << n;
+    }
+
+    // Method to find the minimum element
+    void find_min() {
+        // Use the min_element function from the C++ standard library to find the minimum element
+        int min_element = std::min_element(arr, arr + n);
+        min_val.write(min_element);
+    }
+};
+
+// SystemC implementation of getMax
+SC_MODULE(getMax) {
+    sc_in<int>* arr; // Input port for the array of integers
+    sc_in<int> n; // Input port for the size of the array
+    sc_out<int> max_val; // Output port for the maximum element
+
+    // Constructor for the getMax module
+    SC_CTOR(getMax) {
+       // Process to find the maximum element
+       SC_METHOD(find_max);
+       sensitive << arr << n;
+    }
+
+    // Method to find the maximum element
+    void find_max() {
+        // Use the max_element function from the C++ standard library to find the maximum element
+        int max_element = std::max_element(arr, arr + n);
+        max_val.write(max_element);
+    }
+};
+
+// SystemC implementation of main
+SC_MODULE(main) {
+    sc_in<bool> clk; // Input port for the clock signal
+    sc_in<bool> start; // Input port for the start signal
+    sc_out<bool> done; // Output port for the done signal
+    sc_out<int> min_val; // Output port for the minimum element
+    sc_out<int> max_val; // Output port for the maximum element
+    sc_in<int>* arr; // Input port for the array of integers
+    sc_in<int> n; // Input port for the size of the array
+    int min_element; // Temporary variable to store the minimum element
+    int max_element; // Temporary variable to store the maximum element
+
+    // Constructor for the main module
+    SC_CTOR(main) {
+       // Initialize the inputs and outputs
+       SC_CTHREAD(find_min_max, clk);
+    }
+
+    // Process to find the minimum and maximum elements
+    void find_min_max() {
+        // Create instances of the getMin and getMax modules
+        getMin min_helper(*this);
+        getMax max_helper(*this);
+	// Connect the input ports to the helper modules
+	min_helper.arr(arr);
+	min_helper.n(n);
+	max_helper.arr(arr);
+	max_helper.n(n);
+	// Connect the output ports to the helper modules
+	min_val(min_helper.min_val);
+	max_val(max_helper.max_val);
+	// Start the helper modules
+	min_helper.start(start);
+	max_helper.start(start);
+	// Wait until both modules have completed
+	wait(min_helper.done && max_helper.done);
+	// Set done to true
+	done = true;
+    }
+};
+```
+This implements the `getMin` and `getMax` helper modules in SystemC to perform the functionality of the C++/C code's functions, and then utilizes these modules in the `main` module to obtain and print the minimum and maximum elements in the array.

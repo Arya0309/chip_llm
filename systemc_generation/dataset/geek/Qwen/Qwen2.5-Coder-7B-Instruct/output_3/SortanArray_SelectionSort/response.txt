@@ -1,0 +1,134 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: None (the array is hardcoded within the `main` function)
+- **Outputs**: Sorted array printed to the console
+
+#### Detailed Explanation
+
+1. **Include Header and Namespace Declaration**
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std; 
+   ```
+   - This includes the standard library and uses the standard namespace.
+
+2. **Swap Function**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - This function swaps the values of two integers pointed to by `xp` and `yp`.
+
+3. **Selection Sort Function**
+   ```cpp
+   void selectionSort(int arr[], int n) 
+   { 
+       int i, j, min_idx; 
+
+       for (i = 0; i < n-1; i++) 
+       { 
+           min_idx = i; 
+           for (j = i+1; j < n; j++) 
+           if (arr[j] < arr[min_idx]) 
+               min_idx = j; 
+
+           swap(&arr[min_idx], &arr[i]); 
+       } 
+   } 
+   ```
+   - This function sorts an array using the selection sort algorithm.
+   - It iterates through the array, finding the minimum element in the unsorted part and swapping it with the first element of the unsorted part.
+
+4. **Print Array Function**
+   ```cpp
+   void printArray(int arr[], int size) 
+   { 
+       int i; 
+       for (i=0; i < size; i++) 
+           cout << arr[i] << " "; 
+       cout << endl; 
+   } 
+   ```
+   - This function prints the elements of an array.
+
+5. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int arr[] = {64, 25, 12, 22, 11}; 
+       int n = sizeof(arr)/sizeof(arr[0]); 
+       selectionSort(arr, n); 
+       cout << "Sorted array: "; 
+       printArray(arr, n); 
+       return 0; 
+   } 
+   ```
+   - This is the entry point of the program.
+   - It initializes an array, calculates its size, sorts the array using `selectionSort`, and prints the sorted array.
+
+### Equivalent SystemC Code
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
+    sc_out<bool> done;    // Done signal
+    sc_out<int> sorted_arr[5];  // Output array
+
+    int arr[5] = {64, 25, 12, 22, 11};  // Input array
+    int n = 5;  // Size of the array
+    int i, j, min_idx;
+
+    // Process to perform selection sort
+    SC_METHOD(selection_sort);
+    sensitive << clk.pos();
+
+    void selection_sort() {
+        while (!start.read()) {
+            wait();
+        }
+
+        for (i = 0; i < n-1; i++) {
+            min_idx = i;
+            for (j = i+1; j < n; j++) {
+                if (arr[j] < arr[min_idx]) {
+                    min_idx = j;
+                }
+            }
+            swap(&arr[min_idx], &arr[i]);
+        }
+
+        for (i = 0; i < n; i++) {
+            sorted_arr[i].write(arr[i]);
+        }
+
+        done.write(true);
+    }
+
+    // Helper function to swap elements
+    void swap(int *xp, int *yp) {
+        int temp = *xp;
+        *xp = *yp;
+        *yp = temp;
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Module Declaration**: The `SelectionSort` module is declared with inputs `clk`, `start`, and `done`, and an output array `sorted_arr`.
+- **Initialization**: The input array `arr` and its size `n` are initialized.
+- **Process Declaration**: The `selection_sort` process is declared to be sensitive to the positive edge of the clock signal.
+- **Start Signal Handling**: The process waits until the `start` signal is high.
+- **Selection Sort Algorithm**: The selection sort algorithm is implemented within a loop. The minimum element is found and swapped with the first element of the unsorted part.
+- **Output Assignment**: After sorting, the sorted array is assigned to the `sorted_arr` output array.
+- **Done Signal**: The `done` signal is set to true once the sorting is complete.
+
+This SystemC code captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

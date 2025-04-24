@@ -1,0 +1,106 @@
+  Inputs:
+
+* `m[][]`: a two-dimensional matrix of integers
+* `r`: the number of rows in the matrix
+* `c`: the number of columns in the matrix
+
+Outputs:
+
+* The sorted matrix, with rows sorted in non-decreasing order
+
+Line-by-line natural language summary:
+
+* The code includes the standard library `iostream` and defines two functions: `swap` and `sortRowWise`.
+* `swap` function takes two pointers to integers as input and swaps their values.
+* `sortRowWise` function takes a two-dimensional integer matrix, the number of rows, and the number of columns as input.
+* The function first loops through each row of the matrix and then sorts each row by swapping elements.
+* After sorting each row, the function prints the sorted matrix.
+* In the main function, a 2D matrix is declared and initialized with some values. The size of the matrix is obtained using the `sizeof` operator. The function `sortRowWise` is called with the matrix, the number of rows, and the number of columns as input.
+
+SystemC code:
+```scss
+#include <systemc.h>
+
+// Define the module
+SC_MODULE(Sort2DMatrix) {
+    sc_in<int> m[MAX_ROWS][MAX_COLS];  // Input port for the matrix
+    sc_in<int> r;  // Input port for the number of rows
+    sc_in<int> c;  // Input port for the number of columns
+    sc_out<int> sorted_matrix[MAX_ROWS][MAX_COLS];  // Output port for the sorted matrix
+
+    // Constructor
+    SC_CTOR(Sort2DMatrix) {
+        // Process to perform sorting
+        SC_METHOD(sort);
+        sensitive << m << r << c;
+    }
+
+    // Method to sort the rows of the matrix
+    void sort() {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c - 1; j++) {
+                if (m[i][j] > m[i][j + 1]) {
+                    // Swap the elements
+                    int temp = m[i][j];
+                    m[i][j] = m[i][j + 1];
+                    m[i][j + 1] = temp;
+                }
+            }
+        }
+        // Print the sorted matrix
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                sorted_matrix[i][j] = m[i][j];
+            }
+        }
+    }
+};
+
+// Top-level module
+SC_MODULE(Top) {
+    // Input and output signals
+    sc_in_clk clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    // Define the adder module
+    Sort2DMatrix sort_module;
+
+    // Constructor
+    SC_CTOR(Top) {
+        sort_module(*this);
+    }
+
+    // Function to initialize the variables
+    void initialize() {
+        int m[MAX_ROWS][MAX_COLS] = {
+            {9, 8, 7, 1},
+            {7, 3, 0, 2},
+            {9, 5, 3, 2},
+            {6, 3, 1, 2}
+        };
+        int r = sizeof(m) / sizeof(m[0]);
+        int c = sizeof(m[0]) / sizeof(m[0][0]);
+        sort_module.m = m;
+        sort_module.r = r;
+        sort_module.c = c;
+    }
+
+    // Function to start the simulation
+    void start_simulation() {
+        initialize();
+        sc_start();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Create the top-level module
+    Top top("top");
+    // Initialize the variables
+    top.initialize();
+    // Start the simulation
+    top.start_simulation();
+    return 0;
+}
+```
+Note that the `MAX_ROWS` and `MAX_COLS` constants are used to define the maximum size of the matrix. You will need to define these constants in your SystemC code.

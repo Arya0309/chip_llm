@@ -1,0 +1,66 @@
+  **Inputs and Outputs**:
+
+* The C++/C code takes in a 2D matrix of size `n x n` and calculates its determinant. The input matrix is stored in the global variable `a`, which is a 2D array of `double` values. The size of the matrix is defined by the constant `MAXN`.
+* The output of the code is a single `double` value representing the determinant of the input matrix.
+
+**Summary**:
+
+The code starts by defining the input and output signals and constants. The input matrix is stored in the global variable `a`, and the output determinant is stored in the local variable `det`. The size of the matrix is defined by the constant `MAXN`.
+
+The `determinant` function takes in the size of the matrix `n` as an argument and calculates its determinant. It does this by performing row operations to transform the matrix into upper triangular form, and then the determinant is obtained by multiplying the diagonal elements.
+
+The function starts by initializing the determinant to 1.0 and iterates over each row of the matrix. For each row, it finds the maximum value in that row and swaps it with the current row if necessary. If the maximum value is 0, the function returns 0 as the determinant. Otherwise, it multiplies the determinant by the diagonal element of the row.
+
+The function then applies row operations to the matrix to transform it into upper triangular form. This involves subtracting the product of the non-diagonal elements of the row and the non-diagonal elements of the pivot row. After all the row operations are complete, the determinant is obtained by multiplying the diagonal elements.
+
+**SystemC Code**:
+```
+#include <systemc.h>
+
+const int MAXN = 105;
+double a[MAXN][MAXN];
+
+void determinant(int n) {
+    sc_in<double> matrix[SIZE];
+    sc_out<double> det;
+
+    double det = 1.0;
+    for (int i = 0; i < n; i++) {
+        int pivot = i;
+        for (int j = i + 1; j < n; j++) {
+            if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+                pivot = j;
+            }
+        }
+        if (pivot != i) {
+            swap(matrix[i], matrix[pivot]);
+            det *= -1;
+        }
+        if (matrix[i][i] == 0) {
+            det = 0;
+        }
+        det *= matrix[i][i];
+        for (int j = i + 1; j < n; j++) {
+            double factor = matrix[j][i] / matrix[i][i];
+            for (int k = i + 1; k < n; k++) {
+                matrix[j][k] -= factor * matrix[i][k];
+            }
+        }
+    }
+    det_out.write(det);
+}
+
+int main() {
+    sc_in<int> n;
+    sc_in<int> matrix[SIZE];
+    sc_out<int> det;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            matrix[i][j] = matrix[i][j];
+        }
+    }
+    determinant(n);
+    return 0;
+}
+```

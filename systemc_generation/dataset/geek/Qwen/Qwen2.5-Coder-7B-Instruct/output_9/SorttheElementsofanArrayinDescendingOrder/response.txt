@@ -1,0 +1,234 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: None (the array is hardcoded within the `main` function).
+- **Outputs**: 
+  - Before sorting: The unsorted array elements.
+  - After sorting: The sorted array elements.
+
+#### Detailed Explanation
+
+1. **Header and Namespace**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes the standard C++ library and uses the standard namespace.
+
+2. **Function Declarations**
+   ```cpp
+   void sort(int num[], int len);
+   void swapNums(int nums[], int first, int second);
+   ```
+   - These declare functions for sorting the array and swapping elements.
+
+3. **Main Function**
+   ```cpp
+   int main()
+   {
+       int nums[] = {1, 12, 6, 8, 10};
+       int size_nums = (sizeof(nums) / sizeof(nums[0]));
+
+       cout << "Before sorting the array is: \n";
+       for (int i = 0; i < size_nums; i++)
+           cout << nums[i] << " ";
+       cout << "\n\n";
+
+       sort(nums, size_nums);
+
+       cout << "After sorting the array is: \n";
+
+       for (int i = 0; i < size_nums; i++)
+           cout << nums[i] << " ";
+       cout << "\n";
+       return 0;
+   }
+   ```
+   - Initializes the array and calculates its size.
+   - Prints the unsorted array.
+   - Calls the `sort` function to sort the array.
+   - Prints the sorted array.
+
+4. **Sort Function**
+   ```cpp
+   void sort(int num[], int len)
+   {
+       bool isSwapped;
+
+       for (int i = 0; i < len; i++) 
+       {
+           isSwapped = false;
+           for (int j = 1; j < len - i; j++) 
+           {
+               if (num[j] < num[j - 1]) 
+               {
+                   swapNums(num, j, (j - 1));
+                   isSwapped = true;
+               }
+           }
+           if (!isSwapped) 
+           {
+               break;
+           }
+       }
+   }
+   ```
+   - Uses a bubble sort algorithm to sort the array.
+   - Iterates through the array, comparing adjacent elements and swapping them if they are in the wrong order.
+   - If no swaps are made in a pass, the array is already sorted and the loop breaks early.
+
+5. **Swap Function**
+   ```cpp
+   void swapNums(int nums[], int first, int second)
+   {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - Swaps two elements in the array.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that captures the logic of the original C++/C code and integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArraySorter) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_out<int> sorted_array[5];  // Output port for the sorted array
+
+    int nums[5] = {1, 12, 6, 8, 10};  // Hardcoded array
+    bool isSwapped;
+
+    SC_CTOR(ArraySorter) {
+        // Process to handle sorting
+        SC_METHOD(sortArray);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to handle start signal
+        SC_METHOD(handleStart);
+        sensitive << start;
+        dont_initialize();
+    }
+
+    void sortArray() {
+        if (start.read()) {
+            for (int i = 0; i < 5; i++) {
+                isSwapped = false;
+                for (int j = 1; j < 5 - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        swapNums(j, j - 1);
+                        isSwapped = true;
+                    }
+                }
+                if (!isSwapped) {
+                    break;
+                }
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+
+    void swapNums(int first, int second) {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
+
+    void handleStart() {
+        if (start.read()) {
+            for (int i = 0; i < 5; i++) {
+                sorted_array[i].write(nums[i]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(ArraySorter) {
+       sc_in<bool> clk;  // Clock signal
+       sc_in<bool> start;  // Start signal
+       sc_out<bool> done;  // Done signal
+       sc_out<int> sorted_array[5];  // Output port for the sorted array
+   ```
+   - Defines a SystemC module with the required signals and output ports.
+
+2. **Initialization and Arrays**
+   ```cpp
+   int nums[5] = {1, 12, 6, 8, 10};  // Hardcoded array
+   bool isSwapped;
+   ```
+   - Initializes the array and a boolean flag for swapping.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(ArraySorter) {
+       SC_METHOD(sortArray);
+       sensitive << clk.pos();
+       dont_initialize();
+
+       SC_METHOD(handleStart);
+       sensitive << start;
+       dont_initialize();
+   }
+   ```
+   - Registers methods to be called on clock edges and start signal changes.
+
+4. **Sorting Logic**
+   ```cpp
+   void sortArray() {
+       if (start.read()) {
+           for (int i = 0; i < 5; i++) {
+               isSwapped = false;
+               for (int j = 1; j < 5 - i; j++) {
+                   if (nums[j] < nums[j - 1]) {
+                       swapNums(j, j - 1);
+                       isSwapped = true;
+                   }
+               }
+               if (!isSwapped) {
+                   break;
+               }
+           }
+           done.write(true);
+       } else {
+           done.write(false);
+       }
+   }
+   ```
+   - Sorts the array when the `start` signal is high and sets the `done` signal once sorting is complete.
+
+5. **Swap Function**
+   ```cpp
+   void swapNums(int first, int second) {
+       int curr = nums[first];
+       nums[first] = nums[second];
+       nums[second] = curr;
+   }
+   ```
+   - Swaps two elements in the array.
+
+6. **Handling Start Signal**
+   ```cpp
+   void handleStart() {
+       if (start.read()) {
+           for (int i = 0; i < 5; i++) {
+               sorted_array[i].write(nums[i]);
+           }
+       }
+   }
+   ```
+   - Writes the sorted array to the output ports when the `start` signal is high.
+
+This SystemC code should integrate seamlessly with the provided testbench and capture the logic of the original C++/C code.

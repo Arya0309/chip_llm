@@ -1,0 +1,59 @@
+  **Inputs**:
+
+* `matrix`: a 2D array of doubles representing the input matrix
+* `SIZE`: a constant integer representing the size of the matrix (i.e., the number of rows and columns)
+
+**Outputs**:
+
+* `det`: a double representing the determinant of the input matrix
+
+**Summary**:
+The provided code is a C++ implementation of finding the determinant of a square matrix. The `determinant()` function takes in an integer `n` representing the size of the matrix and returns a double `det`. The function first initializes the determinant to 1.0. Then, it iterates through the rows of the matrix using a nested loop. For each row, it finds the largest element in the row and swaps it with the current diagonal element. If the largest element is 0, the function returns 0.
+
+The function then multiplies the determinant by the diagonal element and subtracts the product of the largest element and the determinant of the resulting submatrix from the diagonal element. The function repeats this step until the entire matrix has been processed, at which point it returns the final value of the determinant.
+
+**SystemC Implementation**:
+```
+SC_MODULE(Determinant) {
+    sc_in<sc_fixed<32, 32>> matrix;  // Input matrix
+    sc_out<sc_fixed<64, 64>> det;  // Output determinant
+
+    // Constructor
+    SC_CTOR(Determinant) {
+        // Process to find determinant
+        SC_METHOD(find_det);
+        sensitive << matrix;
+    }
+
+    void find_det() {
+        sc_fixed<64, 64> det_val = 1.0;
+        sc_fixed<32, 32> matrix_val;
+
+        // Iterate through rows of matrix
+        for (int i = 0; i < matrix.get_size(); i++) {
+            // Find largest element in row
+            sc_fixed<32, 32> max_val = 0.0;
+            for (int j = 0; j < matrix.get_size(); j++) {
+                matrix_val = matrix.get_value(i, j);
+                if (matrix_val.get_abs() > max_val.get_abs()) {
+                    max_val = matrix_val;
+                }
+            }
+
+            // Swap largest element with diagonal element
+            if (max_val.get_abs() != 0.0) {
+                sc_fixed<32, 32> diag_val = matrix.get_value(i, i);
+                matrix.set_value(i, i, max_val);
+                matrix.set_value(i + 1, i + 1, diag_val);
+                det_val *= max_val;
+            } else {
+                det_val *= diag_val;
+            }
+        }
+
+        // Return final determinant value
+        det = det_val;
+    }
+};
+```
+Note that this SystemC implementation utilizes the `sc_fixed` type to represent the matrix elements and the determinant, allowing for the precision and range to be specified. The `sensitive` macro is used to ensure that the `find_det()` method is triggered whenever the input matrix changes.

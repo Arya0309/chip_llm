@@ -1,0 +1,80 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - Two 2D integer arrays `mat1` and `mat2`.
+- **Outputs**:
+  - The result of multiplying `mat1` and `mat2`, which is stored in `rslt`.
+
+#### Detailed Explanation
+
+1. **Macro Definitions**:
+   - `R1` and `C1` define the dimensions of `mat1`.
+   - `R2` and `C2` define the dimensions of `mat2`.
+
+2. **Function `mulMat`**:
+   - This function takes two 2D arrays `mat1` and `mat2` as input.
+   - It initializes a 2D array `rslt` to store the result of the multiplication.
+   - It uses nested loops to compute the element at position `[i][j]` in `rslt` by iterating over the elements of `mat1` and `mat2`.
+
+3. **Driver Code**:
+   - Defines two 2D arrays `mat1` and `mat2` with specific values.
+   - Checks if the number of columns in `mat1` is equal to the number of rows in `mat2`. If not, it prints an error message and exits.
+   - Calls the `mulMat` function with `mat1` and `mat2` as arguments.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code snippet that integrates with the provided signals and preserves the logic of the original C++/C code.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixMultiplier) {
+    sc_in<int> A[2][2];  // Input ports for matrix A
+    sc_in<int> B[2][3];  // Input ports for matrix B
+    sc_out<int> C[2][3]; // Output ports for the result matrix
+
+    // Constructor
+    SC_CTOR(MatrixMultiplier) {
+        // Process to perform matrix multiplication
+        SC_METHOD(mulMat);
+        sensitive << A << B;
+    }
+
+    // Method to multiply the matrices
+    void mulMat() {
+        int rslt[2][3] = { {0, 0, 0}, {0, 0, 0} };
+
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                rslt[i][j] = 0;
+                for (int k = 0; k < 2; k++) {
+                    rslt[i][j] += A[i][k] * B[k][j];
+                }
+            }
+        }
+
+        // Write the result to the output ports
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                C[i][j].write(rslt[i][j]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**:
+   - `MatrixMultiplier` is declared as a SystemC module with input ports `A` and `B`, and output ports `C`.
+
+2. **Constructor**:
+   - The constructor initializes the `mulMat` method to be sensitive to changes in `A` and `B`.
+
+3. **Method `mulMat`**:
+   - Initializes a 2D array `rslt` to store the result of the multiplication.
+   - Uses nested loops to compute each element of `rslt` by iterating over the elements of `A` and `B`.
+   - Writes the computed result to the output ports `C`.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

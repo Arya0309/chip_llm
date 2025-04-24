@@ -1,0 +1,196 @@
+### Input and Output Analysis
+
+#### Inputs:
+- `in[SIZE]`: An array of integers representing the input matrix.
+- `SIZE`: The size of the matrix (both rows and columns).
+
+#### Outputs:
+- `out[SIZE]`: An array of integers representing the rotated matrix.
+- The rotated matrix is printed to the console.
+
+### Detailed Explanation
+
+The provided C++ program rotates a given square matrix by 90 degrees clockwise. Here's a line-by-line breakdown of the code:
+
+1. **Constants and Function Declaration:**
+   ```cpp
+   #define R 4 
+   #define C 4 
+   using namespace std; 
+
+   void rotatematrix(int m, int n, int mat[R][C]);
+   ```
+   - `R` and `C` are defined as 4, indicating the size of the matrix.
+   - The `rotatematrix` function takes three parameters: the dimensions of the matrix (`m` and `n`) and the matrix itself (`mat`).
+
+2. **Function Definition:**
+   ```cpp
+   void rotatematrix(int m, int n, int mat[R][C]) {
+       int row = 0, col = 0; 
+       int prev, curr; 
+   ```
+   - Initialize variables `row` and `col` to 0, which represent the starting indices of the matrix.
+   - `prev` and `curr` are used to store intermediate values during the rotation process.
+
+3. **While Loop to Rotate the Matrix:**
+   ```cpp
+   while (row < m && col < n) { 
+       if (row + 1 == m || col + 1 == n) 
+           break; 
+   ```
+   - The loop continues until all layers of the matrix are processed.
+   - If `row + 1 == m` or `col + 1 == n`, it means we have reached the boundary of the current layer, and we break out of the loop.
+
+4. **Store the First Element of Next Row:**
+   ```cpp
+   prev = mat[row + 1][col]; 
+   ```
+   - Store the first element of the next row in `prev`.
+
+5. **Move Elements of First Row:**
+   ```cpp
+   for (int i = col; i < n; i++) { 
+       curr = mat[row][i]; 
+       mat[row][i] = prev; 
+       prev = curr; 
+   } 
+   row++; 
+   ```
+   - Move elements of the first row one position to the right.
+   - Update `row` to move to the next row.
+
+6. **Move Elements of Last Column:**
+   ```cpp
+   for (int i = row; i < m; i++) { 
+       curr = mat[i][n-1]; 
+       mat[i][n-1] = prev; 
+       prev = curr; 
+   } 
+   n--; 
+   ```
+   - Move elements of the last column one position up.
+   - Decrease `n` to move to the previous column.
+
+7. **Move Elements of Last Row:**
+   ```cpp
+   if (row < m) { 
+       for (int i = n-1; i >= col; i--) { 
+           curr = mat[m-1][i]; 
+           mat[m-1][i] = prev; 
+           prev = curr; 
+       } 
+   } 
+   m--; 
+   ```
+   - Move elements of the last row one position to the left.
+   - Decrease `m` to move to the previous row.
+
+8. **Move Elements of First Column:**
+   ```cpp
+   if (col < n) { 
+       for (int i = m-1; i >= row; i--) { 
+           curr = mat[i][col]; 
+           mat[i][col] = prev; 
+           prev = curr; 
+       } 
+   } 
+   col++; 
+   ```
+   - Move elements of the first column one position down.
+   - Increase `col` to move to the next column.
+
+9. **Print the Rotated Matrix:**
+   ```cpp
+   for (int i=0; i<R; i++) { 
+       for (int j=0; j<C; j++) 
+           cout << mat[i][j] << " "; 
+       cout << endl; 
+   } 
+   ```
+   - Print the rotated matrix to the console.
+
+10. **Driver Code:**
+    ```cpp
+    int main() { 
+        int a[R][C] = {{1, 2, 3, 4}, 
+                    {5, 6, 7, 8}, 
+                    {9, 10, 11, 12}, 
+                    {13, 14, 15, 16}}; 
+        rotatematrix(R, C, a); 
+        return 0; 
+    } 
+    ```
+    - Define a sample matrix and call the `rotatematrix` function to rotate it.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that incorporates the provided signals (`in` and `out`) and replicates the logic of the original C++ program:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixRotator) {
+    sc_in<int> in[4][4];  // Input ports for the matrix
+    sc_out<int> out[4][4]; // Output ports for the rotated matrix
+
+    SC_CTOR(MatrixRotator) {
+        // Process to rotate the matrix
+        SC_METHOD(rotate);
+        sensitive << in;
+    }
+
+    void rotate() {
+        int m = 4, n = 4;
+        int row = 0, col = 0;
+        int prev, curr;
+
+        while (row < m && col < n) {
+            if (row + 1 == m || col + 1 == n)
+                break;
+
+            prev = in[row + 1][col];
+
+            for (int i = col; i < n; i++) {
+                curr = in[row][i];
+                in[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            for (int i = row; i < m; i++) {
+                curr = in[i][n-1];
+                in[i][n-1] = prev;
+                prev = curr;
+            }
+            n--;
+
+            if (row < m) {
+                for (int i = n-1; i >= col; i--) {
+                    curr = in[m-1][i];
+                    in[m-1][i] = prev;
+                    prev = curr;
+                }
+            }
+            m--;
+
+            if (col < n) {
+                for (int i = m-1; i >= row; i--) {
+                    curr = in[i][col];
+                    in[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        // Assign the rotated matrix to the output ports
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                out[i][j] = in[i][j];
+            }
+        }
+    }
+};
+```
+
+This SystemC code defines a module `MatrixRotator` with input and output ports for a 4x4 matrix. The `rotate` method replicates the logic of the original C++ program to rotate the matrix by 90 degrees clockwise. The rotated matrix is then assigned to the output ports.

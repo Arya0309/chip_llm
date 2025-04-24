@@ -1,0 +1,89 @@
+  **Inputs and Outputs:**
+
+* Inputs:
+	+ `nums`: an array of integers to be sorted.
+	+ `len`: the length of the `nums` array.
+* Outputs:
+	+ `sorted_nums`: the sorted version of the input `nums` array.
+
+**Code Explanation:**
+The code is a C++ implementation of the bubble sort algorithm, which is a simple sorting algorithm that repeatedly iterates through the list to be sorted, compares adjacent elements, and swaps them if they are in the wrong order.
+
+The `main()` function is the entry point of the program. It declares an array of 5 integers, `nums`, and its length, `size_nums`. It then calls the `sort()` function to sort the array.
+
+The `sort()` function is the core of the program. It uses the bubble sort algorithm to sort the input array. It starts by initializing a boolean flag, `isSwapped`, to indicate whether any swaps occurred in the previous iteration. It then iterates through the array, starting from the first index and ending at the last index minus the current iteration index. For each iteration, it checks if the current index is smaller than the previous index. If it is, it swaps the two elements and sets `isSwapped` to true. After the iteration is complete, it checks if `isSwapped` is false. If it is, it means that no swaps occurred in the current iteration, so the array is already sorted, and the function can return. If `isSwapped` is true, it means that swaps occurred, so the function needs to continue iterating through the array until it is sorted.
+
+The `swapNums()` function is a helper function that swaps two elements in the array. It takes the two elements' indices as input and swaps them.
+
+**SystemC Code:**
+
+The following SystemC code snippet reflects the behavior of the C++ code:
+```c++
+#include <systemc.h>
+
+// Module that sorts an array of integers using the bubble sort algorithm
+SC_MODULE(BubbleSort) {
+    sc_in<int> nums[5]; // Input port for the array to be sorted
+    sc_in<int> len; // Input port for the length of the array
+    sc_out<int> sorted_nums[5]; // Output port for the sorted array
+
+    // Miscellaneous ports
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+
+    // Constructor
+    SC_CTOR(BubbleSort) {
+        // Process to sort the input array
+        SC_THREAD(sort);
+        sensitive << clk.pos(); // Clock signal
+        do_initialize(); // Initialize the module
+    }
+
+    // Method to sort the input array
+    void sort() {
+        int nums_cpy[5]; // Temporary array to store a copy of the input array
+        int curr; // Current element
+        int next; // Next element
+        bool isSwapped; // Flag to indicate whether any swaps occurred in this iteration
+
+        // Initialize the temporary array with the input array
+        for (int i = 0; i < 5; i++) {
+            nums_cpy[i] = nums[i].read();
+        }
+
+        // Iterate through the array, starting from the first index and ending at the last index minus the current iteration index
+        for (int i = 0; i < len.read(); i++) {
+            isSwapped = false;
+            for (int j = 1; j < len.read() - i; j++) {
+                // Check if the current element is smaller than the previous element
+                if (nums_cpy[j] < nums_cpy[j - 1]) {
+                    // Swap the two elements
+                    curr = nums_cpy[j];
+                    next = nums_cpy[j - 1];
+                    nums_cpy[j] = next;
+                    nums_cpy[j - 1] = curr;
+                    isSwapped = true;
+                }
+            }
+            // Check if any swaps occurred in this iteration
+            if (!isSwapped) {
+                // No swaps occurred, so the array is already sorted
+                break;
+            }
+        }
+
+        // Write the sorted array to the output port
+        for (int i = 0; i < 5; i++) {
+            sorted_nums[i].write(nums_cpy[i]);
+        }
+    }
+
+    // Method to initialize the module
+    void do_initialize() {
+        // Reset the done flag
+        done.write(false);
+    }
+};
+```
+Note that the SystemC code defines more input and output ports than the original C++ code. This is because SystemC needs to support different types of inputs and outputs, such as clock signal, reset signal, and enable signal. The `clk`, `start`, and `done` signals defined in the SystemC code are used to synchronize the module with the rest of the design and to indicate when the sorting is complete.

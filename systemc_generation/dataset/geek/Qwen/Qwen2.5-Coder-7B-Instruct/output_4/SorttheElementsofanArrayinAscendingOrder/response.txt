@@ -1,0 +1,153 @@
+### Inputs and Outputs
+
+**Inputs**:
+1. `start`: A boolean signal indicating when the sorting process should begin.
+
+**Outputs**:
+1. `done`: A boolean signal indicating when the sorting process has completed.
+
+### Detailed Line-by-Line Explanation
+
+#### 1. Header and Namespace Declaration
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+```
+- **Explanation**: This includes the standard C++ library and uses the standard namespace.
+
+#### 2. Function to Swap Numbers
+```cpp
+void swapNums(int nums[], int first, int second) {
+    int curr = nums[first];
+    nums[first] = nums[second];
+    nums[second] = curr;
+}
+```
+- **Explanation**: This function swaps the elements at indices `first` and `second` in the array `nums`.
+
+#### 3. Function to Sort Array Using Bubble Sort
+```cpp
+void sort(int num[], int len) {
+    bool isSwapped;
+    for (int i = 0; i < len; i++) {
+        isSwapped = false;
+        for (int j = 1; j < len - i; j++) {
+            if (num[j] < num[j - 1]) {
+                swapNums(num, j, (j - 1));
+                isSwapped = true;
+            }
+        }
+        if (!isSwapped) {
+            break;
+        }
+    }
+}
+```
+- **Explanation**: This function sorts the array `num` of length `len` using the bubble sort algorithm. It repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. The pass through the list is repeated until no more swaps are needed, which indicates that the list is sorted.
+
+#### 4. Main Function
+```cpp
+int main() {
+    int nums[] = {1, 12, 6, 8, 10};
+    int size_nums = (sizeof(nums) / sizeof(nums[0]));
+
+    cout << "Before sorting the array is: \n";
+    for (int i = 0; i < size_nums; i++)
+        cout << nums[i] << " ";
+    cout << "\n\n";
+
+    sort(nums, size_nums);
+
+    cout << "After sorting the array is: \n";
+    for (int i = 0; i < size_nums; i++)
+        cout << nums[i] << " ";
+    cout << "\n";
+    return 0;
+}
+```
+- **Explanation**: This is the driver code that initializes the array, prints the array before sorting, calls the `sort` function to sort the array, and then prints the array after sorting.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that integrates with the provided signals (`clk`, `start`, `done`).
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArraySorter) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+
+    int nums[5] = {1, 12, 6, 8, 10};  // Array to be sorted
+    int size_nums = 5;  // Size of the array
+
+    bool isSwapped;
+    bool sortingComplete;
+
+    SC_CTOR(ArraySorter) {
+        // Process to handle sorting
+        SC_METHOD(sortArray);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to handle start and done signals
+        SC_METHOD(handleStartDone);
+        sensitive << start;
+        dont_initialize();
+    }
+
+    void sortArray() {
+        if (sortingComplete) {
+            return;
+        }
+
+        for (int i = 0; i < size_nums; i++) {
+            isSwapped = false;
+            for (int j = 1; j < size_nums - i; j++) {
+                if (nums[j] < nums[j - 1]) {
+                    swapNums(j, j - 1);
+                    isSwapped = true;
+                }
+            }
+            if (!isSwapped) {
+                sortingComplete = true;
+                break;
+            }
+        }
+    }
+
+    void handleStartDone() {
+        if (start.read()) {
+            sortingComplete = false;
+        } else {
+            done.write(sortingComplete);
+        }
+    }
+
+    void swapNums(int first, int second) {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+    - `ArraySorter` module is declared with `clk`, `start`, and `done` signals.
+
+2. **Array Initialization**:
+    - The array `nums` and its size `size_nums` are initialized.
+
+3. **Sorting Logic**:
+    - The `sortArray` method contains the sorting logic similar to the original C++ code. It runs during every positive edge of the clock (`clk.pos()`).
+
+4. **Start and Done Signal Handling**:
+    - The `handleStartDone` method updates the `sortingComplete` flag based on the `start` signal. When `start` is high, sorting begins, and `sortingComplete` is reset. When `start` is low, the `done` signal is updated based on whether sorting is complete.
+
+5. **Swap Function**:
+    - The `swapNums` method is implemented similarly to the original C++ code.
+
+This SystemC code integrates seamlessly with the provided signals and maintains the logic of the original C++ program.

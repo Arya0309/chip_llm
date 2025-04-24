@@ -1,0 +1,128 @@
+### Analysis of the C++ Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - `m`: A 2D matrix (2D array) of integers.
+  - `r`: Number of rows in the matrix.
+  - `c`: Number of columns in the matrix.
+  
+- **Outputs**:
+  - The sorted 2D matrix printed to the console.
+
+#### Detailed Explanation
+
+1. **Swap Function (`swap`)**:
+   - This function swaps the values of two integer pointers `xp` and `yp`.
+   - It uses a temporary variable `temp` to hold the value of `*xp`, then assigns the value of `*yp` to `*xp`, and finally assigns the value of `temp` to `*yp`.
+
+2. **Sort Row-wise Function (`sortRowWise`)**:
+   - This function sorts each row of the given 2D matrix `m` in ascending order.
+   - It iterates over each row using the outer loop `for (int i = 0; i < r; i++)`.
+   - For each row, it iterates over each element using the inner loop `for (int j = 0; j < c; j++)`.
+   - Inside the inner loop, it performs a bubble sort using another loop `for (int k = 0; k < c - j - 1; k++)`. If the current element is greater than the next element, it calls the `swap` function to swap them.
+
+3. **Printing the Sorted Matrix**:
+   - After sorting all rows, the function iterates over the matrix again to print each element. It prints each row followed by a newline character.
+
+4. **Driver Code (`main`)**:
+   - Defines a 2D matrix `m` with 4 rows and 4 columns.
+   - Calculates the number of rows (`r`) and columns (`c`) using the size of the matrix.
+   - Calls the `sortRowWise` function to sort the matrix.
+   - The sorted matrix is printed to the console.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that incorporates the provided signals and preserves the logic of the original C++ code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Sort2DMatrix) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+
+    int m[4][4] = {{9, 8, 7, 1},
+                  {7, 3, 0, 2},
+                  {9, 5, 3, 2},
+                  {6, 3, 1, 2}};
+    int r = 4;  // Number of rows
+    int c = 4;  // Number of columns
+    bool sorting_done = false;
+
+    SC_CTOR(Sort2DMatrix) {
+        SC_THREAD(sortRows);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sortRows() {
+        while (true) {
+            wait();  // Wait for the clock edge
+            if (start.read()) {
+                sorting_done = false;
+                sortRowWise(m, r, c);
+                sorting_done = true;
+            }
+        }
+    }
+
+    void sortRowWise(int m[][4], int r, int c) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                for (int k = 0; k < c - j - 1; k++) {
+                    if (m[i][k] > m[i][k + 1]) {
+                        swap(m[i][k], m[i][k + 1]);
+                    }
+                }
+            }
+        }
+    }
+
+    void swap(int &xp, int &yp) {
+        int temp = xp;
+        xp = yp;
+        yp = temp;
+    }
+
+    void printMatrix() {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                cout << m[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Signals**:
+  - `clk`: Clock signal.
+  - `start`: Start signal to initiate the sorting process.
+  - `done`: Done signal to indicate that the sorting is complete.
+
+- **Variables**:
+  - `m`: 2D matrix initialized with the same values as in the C++ code.
+  - `r`: Number of rows.
+  - `c`: Number of columns.
+  - `sorting_done`: Boolean flag to indicate when sorting is complete.
+
+- **Constructor**:
+  - Initializes the module and starts the `sortRows` thread.
+
+- **sortRows Method**:
+  - Waits for the clock edge and checks if the `start` signal is high.
+  - If `start` is high, it sets `sorting_done` to false, calls `sortRowWise` to sort the matrix, and then sets `sorting_done` to true.
+
+- **sortRowWise Method**:
+  - Sorts each row of the matrix using the same logic as the original C++ code.
+
+- **swap Method**:
+  - Swaps the values of two integer references, similar to the C++ code.
+
+- **printMatrix Method**:
+  - Prints the sorted matrix to the console (not used in the SystemC code but included for completeness).
+
+This SystemC code integrates the provided signals and captures the logic of the original C++ code, making it suitable for high-level synthesis and testbench integration.

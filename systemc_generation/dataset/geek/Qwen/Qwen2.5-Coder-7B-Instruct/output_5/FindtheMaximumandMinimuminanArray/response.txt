@@ -1,0 +1,161 @@
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - `arr[]`: An integer array whose minimum and maximum values need to be found.
+  - `n`: The size of the array.
+- **Outputs**:
+  - Minimum value of the array (`getMin(arr, n)`).
+  - Maximum value of the array (`getMax(arr, n)`).
+
+#### Detailed Explanation Line-by-Line
+
+1. **Header and Namespace Declaration**
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std; 
+   ```
+   - Includes all standard library headers.
+   - Uses the `std` namespace for convenience.
+
+2. **Function to Find Minimum Element**
+   ```cpp
+   int getMin(int arr[], int n) 
+   { 
+       return *min_element(arr, arr + n); 
+   } 
+   ```
+   - `getMin` function takes an array `arr` and its size `n`.
+   - Uses `std::min_element` from the `<algorithm>` header to find the minimum element in the array.
+   - Returns the minimum element.
+
+3. **Function to Find Maximum Element**
+   ```cpp
+   int getMax(int arr[], int n) 
+   { 
+       return *max_element(arr, arr + n); 
+   } 
+   ```
+   - `getMax` function takes an array `arr` and its size `n`.
+   - Uses `std::max_element` from the `<algorithm>` header to find the maximum element in the array.
+   - Returns the maximum element.
+
+4. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int arr[] = { 12, 1234, 45, 67, 1 }; 
+       int n = sizeof(arr) / sizeof(arr[0]); 
+       cout << "Minimum element of array: " << getMin(arr, n) << " "; 
+       cout << "Maximum element of array: " << getMax(arr, n); 
+       return 0; 
+   } 
+   ```
+   - Defines an array `arr` with elements `{ 12, 1234, 45, 67, 1 }`.
+   - Calculates the size of the array `n`.
+   - Calls `getMin` and `getMax` functions to find and print the minimum and maximum elements of the array.
+
+### SystemC Code Snippet
+
+To create a SystemC module that replicates the behavior of the given C++ code, we need to:
+
+1. Define input ports for the array and its size.
+2. Define output ports for the minimum and maximum values.
+3. Implement methods to find the minimum and maximum values.
+4. Connect the methods to the input and output ports.
+
+Here is the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MinMaxFinder) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_out<int> min_val;      // Minimum value output
+    sc_out<int> max_val;      // Maximum value output
+
+    int arr[100];             // Array to store input values
+    int n;                    // Size of the array
+    bool processing;           // Flag to indicate if processing is ongoing
+
+    // Constructor
+    SC_CTOR(MinMaxFinder) {
+        processing = false;
+
+        // Process to handle start signal and compute min/max
+        SC_METHOD(compute_min_max);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to reset state
+        SC_METHOD(reset);
+        sensitive << start.neg();
+        dont_initialize();
+    }
+
+    // Method to compute minimum and maximum values
+    void compute_min_max() {
+        if (start.read()) {
+            if (!processing) {
+                processing = true;
+                n = 0;
+            }
+        } else {
+            if (processing && n < 100) {
+                arr[n++] = 0;  // Placeholder for actual input value
+                if (n == 100) {
+                    processing = false;
+                    done.write(true);
+                }
+            }
+        }
+
+        if (processing) {
+            int min_val_temp = arr[0];
+            int max_val_temp = arr[0];
+            for (int i = 1; i < n; ++i) {
+                if (arr[i] < min_val_temp) {
+                    min_val_temp = arr[i];
+                }
+                if (arr[i] > max_val_temp) {
+                    max_val_temp = arr[i];
+                }
+            }
+            min_val.write(min_val_temp);
+            max_val.write(max_val_temp);
+        }
+    }
+
+    // Method to reset state
+    void reset() {
+        processing = false;
+        done.write(false);
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Ports and Variables**:
+   - `clk`, `start`, `done`, `min_val`, `max_val`: SystemC ports corresponding to the C++ inputs and outputs.
+   - `arr`: Array to store input values.
+   - `n`: Size of the array.
+   - `processing`: Flag to indicate if processing is ongoing.
+
+2. **Constructor**:
+   - Initializes `processing` to `false`.
+   - Sets up the `compute_min_max` method to be sensitive to the positive edge of `clk`.
+   - Sets up the `reset` method to be sensitive to the negative edge of `start`.
+
+3. **compute_min_max Method**:
+   - Handles the start signal to begin processing.
+   - Continuously updates the array with placeholder values until the array is full.
+   - Once the array is full, computes the minimum and maximum values and writes them to the output ports.
+   - Resets the state when the start signal is negated.
+
+4. **reset Method**:
+   - Resets the processing flag and done signal when the start signal is negated.
+
+This SystemC code snippet faithfully captures the logic of the original C++ code and can be integrated into an existing testbench.

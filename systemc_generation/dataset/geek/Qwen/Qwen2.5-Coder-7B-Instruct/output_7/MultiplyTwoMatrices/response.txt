@@ -1,0 +1,196 @@
+### Input and Output Analysis
+
+**Inputs:**
+- Two 2D integer arrays `mat1` and `mat2`, where `mat1` is of dimensions `R1 x C1` and `mat2` is of dimensions `R2 x C2`.
+
+**Outputs:**
+- The product of the two matrices, stored in a new 2D array `rslt` of dimensions `R1 x C2`.
+
+### Detailed Explanation
+
+1. **Header Files and Namespace:**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - The `<bits/stdc++.h>` header file includes all standard library headers.
+   - `using namespace std;` allows us to use standard library functions without prefixing them with `std::`.
+
+2. **Macro Definitions:**
+   ```cpp
+   #define R1 2 // number of rows in Matrix-1
+   #define C1 2 // number of columns in Matrix-1
+   #define R2 2 // number of rows in Matrix-2
+   #define C2 3 // number of columns in Matrix-2
+   ```
+   - These macros define the dimensions of the matrices.
+
+3. **Function to Multiply Matrices:**
+   ```cpp
+   void mulMat(int mat1[][C1], int mat2[][C2])
+   ```
+   - This function takes two matrices `mat1` and `mat2` as input and multiplies them.
+
+4. **Resultant Matrix Declaration:**
+   ```cpp
+   int rslt[R1][C2];
+   ```
+   - An array `rslt` of dimensions `R1 x C2` is declared to store the result of the multiplication.
+
+5. **Output Message:**
+   ```cpp
+   cout << "Multiplication of given two matrices is:\n";
+   ```
+   - Prints a message indicating the start of the output.
+
+6. **Nested Loops for Matrix Multiplication:**
+   ```cpp
+   for (int i = 0; i < R1; i++) {
+       for (int j = 0; j < C2; j++) {
+           rslt[i][j] = 0;
+
+           for (int k = 0; k < R2; k++) {
+               rslt[i][j] += mat1[i][k] * mat2[k][j];
+           }
+
+           cout << rslt[i][j] << "\t";
+       }
+
+       cout << endl;
+   }
+   ```
+   - The outer loop iterates over each row of `mat1`.
+   - The middle loop iterates over each column of `mat2`.
+   - The inner loop performs the dot product of the current row of `mat1` and the current column of `mat2`, storing the result in `rslt[i][j]`.
+   - The intermediate results are printed in a tab-separated format.
+
+7. **Driver Code:**
+   ```cpp
+   int main()
+   {
+       int mat1[R1][C1] = { { 1, 1 }, { 2, 2 } };
+       int mat2[R2][C2] = { { 1, 1, 1 }, { 2, 2, 2 } };
+
+       if (C1 != R2) {
+           cout << "The number of columns in Matrix-1 must "
+                    "be equal to the number of rows in "
+                    "Matrix-2"
+                << endl;
+           cout << "Please update MACROs according to your "
+                    "array dimension in #define section"
+                << endl;
+
+           exit(EXIT_FAILURE);
+       }
+
+       mulMat(mat1, mat2);
+
+       return 0;
+   }
+   ```
+   - Initializes two matrices `mat1` and `mat2`.
+   - Checks if the number of columns in `mat1` is equal to the number of rows in `mat2`. If not, it prints an error message and exits.
+   - Calls the `mulMat` function to perform the multiplication and prints the result.
+
+### SystemC Code Snippet
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixMultiplier) {
+    sc_in<int> A[SIZE_A];  // Input ports for the first matrix
+    sc_in<int> B[SIZE_B];  // Input ports for the second matrix
+    sc_out<int> C[SIZE_RESULT]; // Output ports for the result matrix
+
+    int R1, C1, R2, C2; // Dimensions of the matrices
+
+    // Constructor
+    SC_CTOR(MatrixMultiplier) {
+        R1 = SIZE_A / C1;
+        R2 = SIZE_B / C2;
+        C1 = SIZE_A % C1;
+        C2 = SIZE_B % C2;
+
+        // Process to perform matrix multiplication
+        SC_THREAD(mulMat);
+        sensitive << A << B;
+    }
+
+    // Thread to multiply the two matrices
+    void mulMat() {
+        int rslt[R1][C2];
+
+        for (int i = 0; i < R1; i++) {
+            for (int j = 0; j < C2; j++) {
+                rslt[i][j] = 0;
+
+                for (int k = 0; k < R2; k++) {
+                    rslt[i][j] += A[i * C1 + k] * B[k * C2 + j];
+                }
+
+                C[i * C2 + j].write(rslt[i][j]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(MatrixMultiplier) {
+   ```
+   - Defines a SystemC module named `MatrixMultiplier`.
+
+2. **Input and Output Ports:**
+   ```cpp
+   sc_in<int> A[SIZE_A];
+   sc_in<int> B[SIZE_B];
+   sc_out<int> C[SIZE_RESULT];
+   ```
+   - Declares input ports `A` and `B` for the matrices and an output port `C` for the result.
+
+3. **Matrix Dimensions:**
+   ```cpp
+   int R1, C1, R2, C2;
+   ```
+   - Variables to store the dimensions of the matrices.
+
+4. **Constructor:**
+   ```cpp
+   SC_CTOR(MatrixMultiplier) {
+       R1 = SIZE_A / C1;
+       R2 = SIZE_B / C2;
+       C1 = SIZE_A % C1;
+       C2 = SIZE_B % C2;
+
+       SC_THREAD(mulMat);
+       sensitive << A << B;
+   }
+   ```
+   - Initializes the matrix dimensions based on the provided sizes.
+   - Starts a thread `mulMat` to perform the multiplication when inputs `A` and `B` change.
+
+5. **Thread for Matrix Multiplication:**
+   ```cpp
+   void mulMat() {
+       int rslt[R1][C2];
+
+       for (int i = 0; i < R1; i++) {
+           for (int j = 0; j < C2; j++) {
+               rslt[i][j] = 0;
+
+               for (int k = 0; k < R2; k++) {
+                   rslt[i][j] += A[i * C1 + k] * B[k * C2 + j];
+               }
+
+               C[i * C2 + j].write(rslt[i][j]);
+           }
+       }
+   }
+   ```
+   - Performs the matrix multiplication using nested loops.
+   - Writes the result to the output port `C`.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C source code and can be used in a high-level synthesis flow.

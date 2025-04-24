@@ -1,0 +1,80 @@
+  Inputs:
+
+* `n`: the number of rows and columns in the matrix
+* `a`: the matrix itself, represented as a two-dimensional array of doubles
+
+Outputs:
+
+* `det`: the determinant of the matrix
+
+Line-by-line explanation:
+
+1. The first block includes the necessary headers and defines the constant `MAXN`, which is used to determine the maximum size of the matrix.
+2. The `determinant` function takes an integer `n` as input, representing the number of rows and columns in the matrix. It also declares a local variable `det` to store the determinant value.
+3. The next two blocks are the main loop where the determinant is calculated. The logic iterates over each row and column of the matrix, starting from the top-left corner.
+4. The `pivot` variable is used to store the index of the largest element in each column. If the pivot element is not in the current row, the rows are swapped, and the `det` variable is multiplied by -1. This is done because swapping the rows changes the sign of the determinant.
+5. If the pivot element is 0, the determinant is 0, and the function returns immediately.
+6. The `det` variable is multiplied by the pivot element, which is the first element of the row after swapping. This is done because the first element of the row is the coefficient of the first term in the expansion of the determinant.
+7. The next inner loop subtracts the lower triangular part of the matrix from the upper triangular part. This is done by dividing each element of the row by the pivot element and subtracting it from the corresponding element of the column.
+8. The second inner loop updates the matrix with the new values after each iteration.
+9. The `det` variable is returned as the determinant of the matrix.
+
+SystemC code:
+```scss
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    // Input ports for the matrix and its dimensions
+    sc_in<double> matrix[SIZE];
+    sc_in<int> n;
+
+    // Output port for the determinant
+    sc_out<double> det;
+
+    // Constructor
+    SC_CTOR(Determinant) {
+        // Process to calculate the determinant
+        SC_METHOD(calcDet);
+        sensitive << matrix << n;
+    }
+
+    // Method to calculate the determinant
+    void calcDet() {
+        // Local variables for the pivot and determinant
+        double det = 1.0;
+        int pivot;
+
+        // Loop over each row and column
+        for (int i = 0; i < n; i++) {
+            pivot = i;
+            for (int j = i + 1; j < n; j++) {
+                // Find the largest element in each column
+                if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            // Swap rows if necessary and update determinant
+            if (pivot != i) {
+                swap(matrix[i], matrix[pivot]);
+                det *= -1;
+            }
+            // Check for zero pivot
+            if (matrix[i][i] == 0) {
+                det = 0;
+                break;
+            }
+            // Update determinant
+            det *= matrix[i][i];
+            // Update lower triangular part of the matrix
+            for (int j = i + 1; j < n; j++) {
+                for (int k = i + 1; k < n; k++) {
+                    matrix[j][k] -= matrix[i][k] * matrix[j][i] / matrix[i][i];
+                }
+            }
+        }
+        // Return determinant
+        det.write(det);
+    }
+};
+```
+Note that the SystemC code assumes that the input matrix is stored in a 2D array of size `n` by `n`, and that the `n` input port is used to specify the size of the matrix. The `matrix` input port is also assumed to be a 2D array of size `n` by `n`. The `det` output port is used to return the determinant of the matrix.

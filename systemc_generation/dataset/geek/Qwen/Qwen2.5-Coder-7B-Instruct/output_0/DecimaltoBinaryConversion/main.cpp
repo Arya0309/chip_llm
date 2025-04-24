@@ -1,0 +1,99 @@
+
+#include <systemc.h>
+
+
+SC_MODULE(DecToBinary) {
+    sc_in<int> dec_in;  // Input port for the decimal number
+    sc_out<int> binary_out; // Output port for the binary representation
+
+    // Constructor
+    SC_CTOR(DecToBinary) {
+        // Process to convert decimal to binary
+        SC_METHOD(convert);
+        sensitive << dec_in;
+    }
+
+    // Method to convert decimal to binary and output it
+    void convert() {
+        int n = dec_in.read();
+        int binaryNum[32];
+        int i = 0;
+
+        while (n > 0) {
+            binaryNum[i] = n % 2;
+            n = n / 2;
+            i++;
+        }
+
+        int j = i - 1;
+        string binaryStr = "";
+        while (j >= 0) {
+            binaryStr += to_string(binaryNum[j]);
+            j--;
+        }
+
+        // Print the binary string (this would typically go to a file or another process)
+        cout << "Binary Representation: " << binaryStr << endl;
+
+        // For demonstration, we can write the binary string to the output port
+        // Note: SystemC does not have direct support for printing to stdout in simulation
+        // binary_out.write(stoi(binaryStr));
+    }
+};
+
+
+SC_MODULE(Testbench) {
+    sc_signal<int> dec_sig;    // Signal for the decimal input
+    sc_signal<int> bin_sig;    // Signal for the binary output
+
+    DecToBinary* dec_to_binary_inst;  // Instance of the conversion module
+
+    SC_CTOR(Testbench) {
+        // Instantiate the DecToBinary module and connect signals
+        dec_to_binary_inst = new DecToBinary("DecToBinary");
+        dec_to_binary_inst->dec_in(dec_sig);
+        dec_to_binary_inst->binary_out(bin_sig);
+
+        SC_THREAD(run_tests);   // Launch test cases in a thread
+    }
+
+    void run_tests() {
+        // Test Case: Input n = 10 should result in binary 1010
+        dec_sig.write(10);
+        wait(1, SC_NS);  // Wait for the process to trigger
+
+        int result = bin_sig.read();
+        std::cout << "Input: 10, Binary Output: " << result << std::endl;
+        assert(result == 1010);
+
+        // Test Case: Input n = 0 should result in binary 0
+        dec_sig.write(0);
+        wait(1, SC_NS);  // Wait for the process to trigger
+
+        int result2 = bin_sig.read();
+        std::cout << "Input: 0, Binary Output: " << result2 << std::endl;
+        assert(result2 == 0);
+
+        // Test Case: Input n = 1000 should result in binary 1111101000
+        dec_sig.write(1000);
+        wait(1, SC_NS);  // Wait for the process to trigger
+        int result3 = bin_sig.read();
+        std::cout << "Input: 1000, Binary Output: " << result3 << std::endl;
+        assert(result3 == 1111101000);
+
+        // Print success message and stop simulation
+        std::cout << "Test passed successfully." << std::endl;
+        sc_stop();
+    }
+
+    // Destructor to free allocated memory
+    ~Testbench() {
+        delete dec_to_binary_inst;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");  // Create an instance of the Testbench module
+    sc_start();          // Start the simulation
+    return 0;
+}

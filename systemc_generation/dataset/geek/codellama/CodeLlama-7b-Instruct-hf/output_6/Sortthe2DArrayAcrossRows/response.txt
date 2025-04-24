@@ -1,0 +1,114 @@
+  Based on the provided C++/C code, we can identify the following inputs and outputs:
+
+**Inputs:**
+
+* `m`: a 2D array representing the matrix to be sorted
+* `r`: the number of rows in the matrix
+* `c`: the number of columns in the matrix
+
+**Outputs:**
+
+* `done`: a boolean signal indicating that the sort operation is complete
+
+The C++/C code implements the following functionality:
+
+1. Declares the `swap` function, which swaps two integers.
+2. Declares the `sortRowWise` function, which takes in a 2D array `m`, the number of rows `r`, and the number of columns `c`.
+3. Loops through each row of the matrix, and within each row, loops through each column.
+4. Within the inner-most loop, loops through each cell within the row, comparing each cell to its neighbor and swapping if necessary.
+5. After sorting each row, prints the sorted matrix.
+
+To preserve the logic of the original C++/C code in SystemC, we can generate the following SystemC code that uses the provided signals `clk`, `start`, and `done`:
+```scss
+// SystemC code to sort a 2D matrix row-wise
+
+// Declare inputs
+sc_in<bool> clk;
+sc_in<bool> start;
+sc_in<int> m[4][4];
+sc_in<int> r;
+sc_in<int> c;
+
+// Declare output
+sc_out<bool> done;
+
+// Clock generation
+void clock_gen() {
+  clk = 0;
+  wait(1);
+  while (true) {
+    clk = !clk;
+    wait(1);
+  }
+}
+
+// Sorting logic
+void sorting() {
+  int m_temp[4][4];
+
+  // Copy matrix m to m_temp
+  for (int i = 0; i < r; i++) {
+    for (int j = 0; j < c; j++) {
+      m_temp[i][j] = m[i][j];
+    }
+  }
+
+  // Sort matrix m_temp row-wise
+  for (int i = 0; i < r; i++) {
+    for (int j = 0; j < c; j++) {
+      for (int k = 0; k < c - j - 1; k++) {
+        if (m_temp[i][k] > m_temp[i][k + 1]) {
+          swap(m_temp[i][k], m_temp[i][k + 1]);
+        }
+      }
+    }
+  }
+
+  // Copy sorted matrix m_temp back to m
+  for (int i = 0; i < r; i++) {
+    for (int j = 0; j < c; j++) {
+      m[i][j] = m_temp[i][j];
+    }
+  }
+
+  // Set done signal
+  done = 1;
+}
+
+// Clock and sorting logic co-simulation
+void top() {
+  // Launch asynchronous threads
+  sc_spawn_init(clock_gen, nullptr, "clock_gen");
+  sc_spawn_init(sorting, nullptr, "sorting");
+
+  // Wait for startup
+  wait(200);
+
+  // Signal start
+  start = 1;
+
+  // Wait for done
+  wait(done);
+
+  // Stop simulation
+  stop();
+}
+
+// Module instantiation
+int sc_main(int argc, char* args[]) {
+  // Instantiate top module
+  top top("top");
+
+  // Configure simulation
+  systemc::sc_report_handler::set_actions(SC_ERROR, systemc::SC_DISPLAY);
+  sc_core::sc_set_stack_size(1024*1024);
+  sc_stop();
+
+  return 0;
+}
+```
+In this SystemC code, we first declare the `clk` input, `start` input, and `done` output. We then define the `clock_gen` and `sorting` functions, which perform the clock generation and the sorting logic, respectively.
+
+We use `sc_spawn_init` to launch asynchronous threads for `clock_gen` and `sorting`. We then wait for startup, signal `start`, and wait for `done` to be set.
+
+Finally, we instantiate the `top` module and configure the simulation to display errors using `systemc::sc_report_handler::set_actions` and set the stack size using `systemc::sc_set_stack_size`.

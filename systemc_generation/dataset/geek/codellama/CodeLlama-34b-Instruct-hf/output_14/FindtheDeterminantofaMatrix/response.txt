@@ -1,0 +1,98 @@
+  **Inputs:**
+
+* `int matrix[SIZE]`: an array of integers representing a matrix of size `SIZE x SIZE` to calculate the determinant for
+* `int n`: the number of rows and columns in the matrix
+
+**Outputs:**
+
+* `double det`: the determinant of the input matrix
+
+**Summary:**
+
+The provided code implements a function to calculate the determinant of a square matrix. The function takes the matrix as an input and returns the determinant as an output.
+
+The function first declares two variables: `int pivot` and `int factor`. The `pivot` variable is used to store the row number of the pivot element in the current column, and the `factor` variable is used to store the multiplier for the current row.
+
+The function then enters a loop that iterates over each column of the matrix. In each iteration, the function checks if the absolute value of the element in the current column and the current row is greater than the absolute value of the pivot element. If it is, the function swaps the current row with the pivot row and updates the `det` variable to account for the change in the determinant.
+
+The function then checks if the pivot element is zero. If it is, the function returns zero as the determinant, as the matrix is not invertible.
+
+The function then calculates the determinant of the upper triangular matrix obtained from the current column of the original matrix. This is done by recursively calling the `determinant` function with the submatrix obtained by removing the current column and row.
+
+The function then updates the `det` variable to account for the current column of the matrix.
+
+Finally, the function returns the final value of the `det` variable as the determinant of the input matrix.
+
+**SystemC Code:**
+
+Here is the equivalent SystemC code for the `determinant` function:
+```
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    sc_in<double> matrix[SIZE];
+    sc_in<int> n;
+    sc_out<double> det;
+
+    // Method to calculate the determinant
+    void calculate_determinant() {
+        int pivot;
+        double factor;
+
+        // Loop over each column of the matrix
+        for (int i = 0; i < n; i++) {
+            // Find the pivot element in the current column
+            pivot = i;
+            for (int j = i + 1; j < n; j++) {
+                if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+                    pivot = j;
+                }
+            }
+
+            // Swap the current row with the pivot row if necessary
+            if (pivot != i) {
+                swap(matrix[i], matrix[pivot]);
+            }
+
+            // Check if the pivot element is zero
+            if (matrix[i][i] == 0) {
+                det.write(0.0);
+                return;
+            }
+
+            // Calculate the determinant of the upper triangular matrix
+            double det_tmp = determinant(matrix, n - 1);
+
+            // Update the determinant
+            det.write(det.read() + (1.0 / matrix[i][i]) * det_tmp);
+        }
+    }
+
+    // Constructor
+    SC_CTOR(Determinant) {
+        // Create the ports
+        matrix.init(matrix);
+        n.init(n);
+        det.init(det);
+
+        // Process to calculate the determinant
+        SC_METHOD(calculate_determinant);
+        sensitive << matrix << n;
+    }
+};
+```
+In this code, we define a SystemC module called `Determinant` that takes in the matrix and the number of rows and columns as inputs, and outputs the determinant of the matrix. The module contains a method called `calculate_determinant` that implements the logic of the `determinant` function.
+
+The `calculate_determinant` method first declares two variables: `pivot` and `factor`. The `pivot` variable is used to store the row number of the pivot element in the current column, and the `factor` variable is used to store the multiplier for the current row.
+
+The method then enters a loop that iterates over each column of the matrix. In each iteration, the method checks if the absolute value of the element in the current column and the current row is greater than the absolute value of the pivot element. If it is, the method swaps the current row with the pivot row and updates the `det` variable to account for the change in the determinant.
+
+The method then checks if the pivot element is zero. If it is, the method returns zero as the determinant, as the matrix is not invertible.
+
+The method then calculates the determinant of the upper triangular matrix obtained from the current column of the original matrix. This is done by recursively calling the `determinant` function with the submatrix obtained by removing the current column and row.
+
+The method then updates the `det` variable to account for the current column of the matrix.
+
+Finally, the method returns the final value of the `det` variable as the determinant of the input matrix.
+
+Note that in the SystemC code, we have used the `sc_in` and `sc_out` types to define the input and output ports of the module, and the `sc_write` and `sc_read` methods to read and write the values of these ports. We have also used the `init` method to initialize the ports to their default values.

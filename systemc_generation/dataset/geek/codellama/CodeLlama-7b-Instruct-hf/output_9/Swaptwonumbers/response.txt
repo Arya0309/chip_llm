@@ -1,0 +1,105 @@
+  Task 1: Reading and Analyzing the Provided C++/C Code
+------------------------------------------------------------------------
+
+The provided C++/C code is a simple program that swaps two variables using a third variable. The code is clearly organized into a `main` function that drives the process.
+
+The input to the program is two `int` variables, `a` and `b`, which are assigned the values 2 and 3 respectively. These variables are used in an algorithm to swap the values of `a` and `b`.
+
+The output of the program is two more `int` variables, `out_a` and `out_b`, which are set to the values of `a` and `b`, respectively, after the swap has been performed.
+
+Task 2: Identifying Inputs and Outputs
+------------------------------------
+
+The inputs to the program are the `int` variables `a` and `b`. The outputs are the `int` variables `out_a` and `out_b`.
+
+Task 3: Natural Language Summary
+--------------------------------
+
+The C++/C program takes two `int` variables, `a` and `b`, as input, and swaps their values using a third variable. The output of the program is two `int` variables, `out_a` and `out_b`, which contain the swapped values of `a` and `b`.
+
+Task 4: Generating SystemC Code
+------------------------------
+
+Here is the SystemC code that captures the same logic as the original C++/C program:
+```scss
+#include <systemc.h>
+
+// Module that swaps two variables
+SC_MODULE(Swap) {
+    sc_in<int> a;  // Input port for the first variable
+    sc_in<int> b;  // Input port for the second variable
+    sc_out<int> out_a; // Output port for the first variable
+    sc_out<int> out_b; // Output port for the second variable
+
+    // Constructor
+    SC_CTOR(Swap) {
+        // Process to perform the swapping
+        SC_METHOD(swap);
+        sensitive << a << b;
+    }
+
+    // Method to do the swapping
+    void swap() {
+        // Initialize temporary variable
+        int temp = a.read();
+        // Swap values
+        a.write(b.read());
+        b.write(temp);
+        // Write swapped values to output ports
+        out_a.write(a.read());
+        out_b.write(b.read());
+    }
+};
+```
+In this SystemC code, we define a module called `Swap` that takes two `int` inputs and two `int` outputs. The constructor initializes a method called `swap` that performs the swapping logic. The `swap()` method reads the values of `a` and `b`, swaps their values using a temporary variable, and writes the swapped values to the output ports `out_a` and `out_b`.
+
+To integrate this SystemC snippet with our existing testbench, we need to define three additional signals:
+```scss
+// Input signals
+sc_in<int> a;
+sc_in<int> b;
+
+// Output signals
+sc_out<int> out_a;
+sc_out<int> out_b;
+```
+These signals will be used to connect the `a`, `b`, `out_a`, and `out_b` ports of the `Swap` module, respectively. Here is the updated testbench code:
+```scss
+#include <systemc.h>
+
+// Testbench for the Swap module
+SC_MODULE(SwapTest) {
+    // Instantiate Swap module
+    Swap swap;
+
+    // Signals to connect inputs to outputs
+    sc_signal<int> a;
+    sc_signal<int> b;
+    sc_signal<int> out_a;
+    sc_signal<int> out_b;
+
+    // Constructor
+    SC_CTOR(SwapTest) {
+        // Define connections
+        swap.a(a);
+        swap.b(b);
+        swap.out_a(out_a);
+        swap.out_b(out_b);
+    }
+
+    // Method to test the swapping algorithm
+    void test() {
+        // Drive inputs
+        a.write(5);
+        b.write(3);
+
+        // Wait for the swapping process to complete
+        wait(SC_ZERO_TIME);
+
+        // Check outputs
+        EXPECT_EQ(out_a.read(), 3);
+        EXPECT_EQ(out_b.read(), 5);
+    }
+};
+```
+In this testbench, we instantiate the `Swap` module and define three signals to connect the `a`, `b`, and `out_a` and `out_b` ports of the `Swap` module. The constructor defines the connections between the input and output signals of the `Swap` module and defines a method `test()` that performs the swapping algorithm and checks the output values.

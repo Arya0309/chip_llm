@@ -1,0 +1,116 @@
+c
+#include <systemc.h>
+
+
+SC_MODULE(RowWiseSorter) {
+    sc_in<int> matrix[4];  // Input matrix with size 4x4
+    sc_out<int> out[4];  // Output matrix with size 4x4
+
+    // Constructor
+    SC_CTOR(RowWiseSorter) {
+        // Process to perform sorting
+        SC_METHOD(sort);
+        sensitive << matrix;
+    }
+
+    // Method to sort the matrix row-wise
+    void sort() {
+        // Loop through each row of the matrix
+        for (int i = 0; i < 4; i++) {
+            // Loop through each column of the current row
+            for (int j = 0; j < 4; j++) {
+                // Loop for comparison and swapping of elements
+                for (int k = 0; k < 4 - j - 1; k++) {
+                    if (matrix[i][k] > matrix[i][k + 1]) {
+                        // Swap the elements
+                        int temp = matrix[i][k];
+                        matrix[i][k] = matrix[i][k + 1];
+                        matrix[i][k + 1] = temp;
+                    }
+                }
+            }
+        }
+
+        // Print the sorted matrix
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                std::cout << matrix[i][j] << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+};
+
+
+SC_MODULE(Testbench) {
+    sc_clock clk;          // Clock signal for synchronization
+    sc_signal<bool> start; // Signal to trigger sorting
+    sc_signal<bool> done;  // Signal indicating sorting completion
+
+    // Instance of the RowWiseSorter module
+    RowWiseSorter* sorter;
+
+    SC_CTOR(Testbench) : clk("clk", 1, SC_NS) {
+        sorter = new RowWiseSorter("RowWiseSorter");
+        sorter->clk(clk);
+        sorter->start(start);
+        sorter->done(done);
+
+        SC_THREAD(run_tests);
+    }
+
+    // Process: Run the test, compare sorted matrix with expected output
+    void run_tests() {
+        // Define the unsorted input matrix (same as the C++ code)
+        int matrix_in[4][4] = {
+            {9, 8, 7, 1},
+            {7, 3, 0, 2},
+            {9, 5, 3, 2},
+            {6, 3, 1, 2}
+        };
+
+        // Expected sorted matrix
+        int expected[4][4] = {
+            {1, 7, 8, 9},
+            {0, 2, 3, 7},
+            {2, 3, 5, 9},
+            {1, 2, 3, 6}
+        };
+
+        // Load the input matrix into the sorter
+        sorter->load_matrix(matrix_in);
+
+        // Trigger the sorting process
+        start.write(true);
+        wait(1, SC_NS);
+        start.write(false);
+
+        // Wait until the sorter indicates that sorting is done
+        while (done.read() != true) {
+            wait(1, SC_NS);
+        }
+
+        // Retrieve the sorted matrix
+        int matrix_out[4][4];
+        sorter->read_matrix(matrix_out);
+
+        // Assert that each element of the sorted matrix is as expected
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                assert(matrix_out[i][j] == expected[i][j]);
+                std::cout << "Row " << i << ", Col " << j 
+                          << " sorted value: " << matrix_out[i][j] << std::endl;
+            }
+        }
+        std::cout << "All tests passed successfully." << std::endl;
+
+        sc_stop(); // End simulation
+    }
+};
+
+// sc_main: Entry point for the SystemC simulation
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("Testbench"); // Instantiate the testbench
+    sc_start();                // Start the simulation
+    return 0;
+}

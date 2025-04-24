@@ -1,0 +1,75 @@
+  The provided C++/C code is a program that rotates a square matrix of size R x C by 90 degrees. The code defines a function `rotatematrix` that takes three input parameters: an integer `m` representing the number of rows in the matrix, an integer `n` representing the number of columns in the matrix, and a two-dimensional array `mat[R][C]` representing the matrix.
+
+The `rotatematrix` function works by a series of nested loops that move elements of the matrix to their proper positions in the rotated matrix. Each loop iterates over either the rows or the columns of the matrix, and performs the following actions:
+
+1. If the current row or column is equal to the ending row or column index, stop the loop and move on to the next loop.
+2. Store the first element of the next row in a temporary variable, since it will replace the first element of the current row in the rotated matrix.
+3. For each element in the current row, move the element to the previous element in the rotated matrix (i.e., one column to the left).
+4. If the current row is the last row, repeat steps 3 and 4 for each element in the last column of the matrix.
+5. If the current column is the last column, repeat steps 3 and 4 for each element in the last row of the matrix.
+6. Move the first element of the rotated matrix to its proper position in the original matrix.
+
+After all the rotations are complete, the function prints the rotated matrix to the console.
+
+The main function also includes two test cases: the first test case uses a 4 x 4 matrix, and the second test case uses a 3 x 3 matrix.
+
+The outputs of the code are the rotated matrices, which are serialized and printed to the console. The inputs to the code are the original matrices, which are defined as global variables in the source code.
+
+To generate SystemC code that preserves the logic of the original C++/C source, we can create a new SystemC module that takes the same inputs and produces the same outputs. The inputs and outputs of the module can be defined using sc_in and sc_out signals, which are equivalent to the global variables in the C++/C code.
+
+Here is an example of SystemC code that reflects the behavior of the C++/C code:
+```scss
+// File: rotator.h
+
+#include <systemc.h>
+
+// Define the fixed size of the matrices
+#define R 4
+#define C 4
+
+// Define the inputs and outputs of the module
+sc_in<int> in[R][C];
+sc_out<int> out[R][C];
+
+// Define the module itself
+SC_MODULE(Rotator) {
+    // Constructor
+    SC_CTOR(Rotator) {
+        // Process to rotate the matrix
+        SC_METHOD(rotate);
+        sensitive << in;
+    }
+
+    // Method to rotate the matrix
+    void rotate() {
+        // Temporary variables to swap elements
+        int temp1, temp2;
+
+        // Iterate over each row and column
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                // Store the first element of the next row
+                temp1 = in[i][j];
+
+                // Move each element to its proper position in the rotated matrix
+                for (int k = j; k < C; k++) {
+                    temp2 = in[i][k];
+                    in[i][k] = out[i][j];
+                    out[i][j] = temp2;
+                }
+            }
+        }
+
+        // Print the rotated matrix to the console
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                cout << out[i][j] << " ";
+            }
+            cout << endl;
+        }
+    }
+};
+```
+In this example, the `Rotator` module takes in a 2D array `in[R][C]` and outputs a 2D array `out[R][C]`. The `rotate` method is sensitized to the change in the `in` signal and performs the same logic as the C++/C code, moving elements of the matrix to their proper positions in the rotated matrix. The `rotate` method also prints the rotated matrix to the console.
+
+Note that the SystemC code assumes that the `in` and `out` signals are arrays of fixed size `R` x `C`, as defined in the C++/C code. This may not be the case in all scenarios, and it is important to ensure that the SystemC code can handle different sizes of matrices.

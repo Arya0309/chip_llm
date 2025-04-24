@@ -1,0 +1,102 @@
+  The C++/C code provided adds two binary strings and returns the result as a third string. The input signals are `A` and `B`, which are both `std::string` objects representing binary strings. The output signal is `sum`, which is also a `std::string` object representing the sum of `A` and `B`.
+
+Upon closer analysis, the provided C++/C code likely serves as a recursive solution to the problem of adding binary strings. Here's a breakdown of the code block by block:
+
+1. `if (A.length() > B.length()) return addBinary(B, A);` - This line checks the length of the two input strings `A` and `B`. If the length of `A` is greater than the length of `B`, the function recursively calls `addBinary(B, A)`, swapping the roles of `A` and `B`. This line is the base case for the recursion, where the shorter string is padded with zeroes to match the length of the longer string.
+2. `int diff = B.length() - A.length();` - This line calculates the difference between the lengths of the two input strings `A` and `B`. This value is used to determine the number of zeroes to pad the shorter string.
+3. `string padding;` - This line declares a new `std::string` object called `padding`.
+4. `for (int i = 0; i < diff; i++) padding.push_back('0');` - This loop pads the shorter input string `A` with zeroes using the `padding` string constructed in line 4.
+5. `A = padding + A;` - This line concatenates the padded `A` string with the original `A` string, ensuring that the two are now of equal length.
+6. `string res;` - This line declares a new `std::string` object called `res`.
+7. `char carry = '0';` - This line declares a new character variable `carry` with the value `'0'`. This corresponds to a false value that indicates whether there has been no carry over from the previous addition.
+8. `for (int i = A.length() - 1; i >= 0; i--) {` - This block of code iterates through the elements of the shorter input string `A`. The elements are accessed using the index operator `[]`.
+9. `if (A[i] == '1' && B[i] == '1')` - If the current element of the shorter input string is equal to 1, and the corresponding element of the longer input string is also equal to 1, then the carryover is set to 1, and a 1 is appended to the `res` string.
+10. `else if (A[i] == '0' && B[i] == '0') carry = '0';` - If the current element of the shorter input string is equal to 0, and the corresponding element of the longer input string is also equal to 0, then the carryover is set to 0, and a 0 is appended to the `res` string.
+11. `else if (A[i] != B[i]) carry = '1';` - If the current element of the shorter input string is not equal to the corresponding element of the longer input string, then the carryover is set to 1, and a 1 is appended to the `res` string.
+12. `} // end for loop` - End of the iteration of the shorter input string. The above logic appends the elements of the `A` and `B` strings to the `res` string, keeping track of the carryover.
+13. `if (carry == '1') res.push_back(carry);` - If there was a carryover from the previous addition, then a 1 is appended to the `res` string.
+14. `reverse(res.begin(), res.end());` - The `res` string is reversed to match the expected order of the sum.
+15. `int index = 0;` - This line declares an integer `index` set to 0.
+16. `while (index + 1 < res.length() && res[index] == '0') index++;` - This line iterates through the elements of the reversed `res` string, looking for the first non-zero element. If such an element is found, then the `index` variable is incremented to the index of the first non-zero element. The loop continues until the end of the string is reached.
+17. `return (res.substr(index));` - The function returns the substring of the `res` string starting from the position of the first non-zero element, and extending to the end of the string.
+
+On a high-level, this function appears to take two binary strings as input, pad the shorter string with zeroes to match the length of the longer string, add the elements of the two strings, reverse the result, and return the sum as a binary string.
+
+To implement this algorithm using SystemC, we can use the following code:
+```scss
+#include <systemc.h>
+
+// Module to add two binary strings and return the sum
+SC_MODULE(BinaryAdder) {
+    sc_in<string> A;  // Input port for the first binary string
+    sc_in<string> B;  // Input port for the second binary string
+    sc_out<string> sum; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(BinaryAdder) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to add the two binary strings
+    void add() {
+        // Declare variables for padding and carryover
+        string padding;
+        char carry = '0';
+
+        // Calculate the difference between the lengths of the two strings
+        int diff = B.length() - A.length();
+
+        // If the length of the first string is greater, pad the second string
+        if (A.length() > B.length()) {
+            padding = string(diff, '0');
+            B = padding + B;
+        }
+
+        // Add the elements of the two strings, keeping track of carryover
+        string res;
+        for (int i = A.length() - 1; i >= 0; i--) {
+            if (A[i] == '1' && B[i] == '1') {
+                if (carry == '1') {
+                    res.push_back('0');
+                    carry = '1';
+                } else {
+                    res.push_back('1');
+                    carry = '0';
+                }
+            } else if (A[i] == '0' && B[i] == '0') {
+                if (carry == '1') {
+                    res.push_back('0');
+                    carry = '0';
+                } else {
+                    res.push_back('1');
+                    carry = '1';
+                }
+            } else if (A[i] != B[i]) {
+                if (carry == '1') {
+                    res.push_back('0');
+                    carry = '0';
+                } else {
+                    res.push_back('1');
+                    carry = '1';
+                }
+            }
+        }
+
+        // If there was a carryover, add it to the result
+        if (carry == '1') {
+            res.push_back('1');
+        }
+
+        // Reverse the result and remove leading zeroes
+        string reversed_res(res.rbegin(), res.rend());
+        int index = 0;
+        while (index + 1 < reversed_res.length() && reversed_res[index] == '0') {
+            index++;
+        }
+        sum.write(reversed_res.substr(index));
+    }
+};
+```
+In our SystemC implementation, we follow the same protocol as in the C++/C code, converting the binary strings to integers using the `string::to_int` method and adding the results. The carryover from the previous addition is calculated during each iteration of the loop, and the appropriate action is taken (append 1 or 0) based on the carryover and the current element of the shorter input string. The result is then stored in the `res` string, which is reversed and any leading zeroes are removed before being written to the `sum` output. The `sum` output is a `std::string` object, which acts as a carrier for the binary string representing the sum.

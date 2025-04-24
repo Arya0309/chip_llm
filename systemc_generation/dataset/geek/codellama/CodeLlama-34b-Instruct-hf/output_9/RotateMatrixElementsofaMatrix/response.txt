@@ -1,0 +1,100 @@
+  **Inputs:**
+
+* `a`: A 2D array of size `R x C` (rows x columns) of integers
+* `R`, `C`: Positive integers representing the number of rows and columns in the matrix, respectively
+
+**Outputs:**
+
+* `mat`: The rotated matrix
+
+**Summary:**
+The program defines a function `rotateMatrix` that takes an input matrix `a` of size `R x C` (rows x columns) and rotates it by 90 degrees clockwise. The function first declares the size of the matrix and initializes the row and column indices to 0. It then declares three variables, `prev`, `curr`, and `m`, used for temporary storage and control of the rotation algorithm.
+
+The main logic of the function is performed in a `while` loop that iterates through the rows and columns of the matrix. The loop is controlled by two conditions: `row < R` and `col < C`. The loop first checks whether the first element of the next row or column is equal to the last element of the current row or column, and if so, it breaks the loop.
+
+The loop then performs the following operations:
+
+1. Stores the first element of the next row (tempvar) and replaces it with the first element of the current row.
+2. Moves the elements of the first row from the remaining rows.
+3. Moves the elements of the last column from the remaining columns.
+4. Moves the elements of the last row from the remaining rows.
+5. Moves the elements of the first column from the remaining rows.
+
+The loop terminates when the index of either the row or column is out of bounds.
+
+After the loop terminates, the function prints the rotated matrix using a nested `for` loop.
+
+**SystemC Code:**
+
+Here is the equivalent SystemC code for the C++/C program:
+```scss
+#define R 4
+#define C 4
+int a[R][C];
+int m = R;
+int n = C;
+
+SC_MODULE(RotateMatrix) {
+  sc_in<int> a_in[R][C];
+  sc_out<int> mat[R][C];
+
+  void rotate_matrix() {
+    int row = 0, col = 0;
+    int prev, curr;
+
+    while (row < m && col < n) {
+      if (row + 1 == m || col + 1 == n) {
+        break;
+      }
+
+      prev = a_in[row + 1][col];
+
+      for (int i = col; i < n; i++) {
+        curr = a_in[row][i];
+        a_in[row][i] = prev;
+        prev = curr;
+      }
+      row++;
+
+      for (int i = row; i < m; i++) {
+        curr = a_in[i][n - 1];
+        a_in[i][n - 1] = prev;
+        prev = curr;
+      }
+      n--;
+
+      for (int i = m - 1; i >= row; i--) {
+        curr = a_in[i][col];
+        a_in[i][col] = prev;
+        prev = curr;
+      }
+      m--;
+    }
+
+    for (int i = 0; i < R; i++) {
+      for (int j = 0; j < C; j++) {
+        mat[i][j].write(a_in[i][j]);
+      }
+    }
+  }
+
+  SC_CTOR(RotateMatrix) {
+    for (int i = 0; i < R; i++) {
+      for (int j = 0; j < C; j++) {
+        a_in[i][j].write(a[i][j]);
+      }
+    }
+  }
+};
+
+int main() {
+  RotateMatrix test;
+  test.rotate_matrix();
+  return 0;
+}
+```
+In this SystemC code, we define a module `RotateMatrix` that takes an input matrix `a` and an output matrix `mat`. The module has two input ports, `a_in`, and two output ports, `mat`. The `rotate_matrix` function is responsible for rotating the input matrix by 90 degrees clockwise and storing the result in the output matrix. The function is triggered by the `sc_method` annotation on the `rotate_matrix` function.
+
+The main function is responsible for instantiating the `RotateMatrix` module and calling the `rotate_matrix` function. The main function is triggered by the `sc_thread` annotation on the `main` function.
+
+The SystemC code is similar to the original C++/C code, but it uses the input and output ports to simulate the behavior of the C++/C code in a synchronous, data-driven environment.

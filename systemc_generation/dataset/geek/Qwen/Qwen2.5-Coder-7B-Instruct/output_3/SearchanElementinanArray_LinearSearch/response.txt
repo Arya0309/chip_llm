@@ -1,0 +1,138 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - `key`: An integer value to be searched within a vector.
+  - `data`: A vector of integers where the search will be performed.
+- **Outputs**:
+  - `index`: An integer indicating the position of the `key` in the `data` vector, or `-1` if the `key` is not found.
+
+#### Detailed Explanation of the Code
+
+1. **Header Files and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - The code includes the standard library headers and uses the `std` namespace for convenience.
+
+2. **Function Declaration**:
+   ```cpp
+   int linearSearch(vector<int> v, int key) {
+   ```
+   - The function `linearSearch` takes a vector `v` and an integer `key` as inputs and returns an integer.
+
+3. **Loop Through Vector**:
+   ```cpp
+   for (int i = 0; i < v.size(); i++) {
+       if (v[i] == key) {
+           return i;
+       }
+   }
+   ```
+   - A loop iterates over each element of the vector `v`.
+   - If the current element matches the `key`, the function returns the index `i`.
+
+4. **Return Value for Not Found**:
+   ```cpp
+   return -1;
+   ```
+   - If the loop completes without finding the `key`, the function returns `-1`.
+
+5. **Main Function**:
+   ```cpp
+   int main() {
+       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+       int key = 8;
+       int i = linearSearch(v, key);
+       if (i != -1)
+           cout << key << " Found at Position: " << i + 1;
+       else
+           cout << key << " NOT found.";
+       return 0;
+   }
+   ```
+   - The `main` function initializes a vector `v` and a key `8`.
+   - It calls `linearSearch` with `v` and `key`, and stores the result in `i`.
+   - Depending on whether `i` is `-1` or not, it prints whether the key was found and at what position.
+
+### Equivalent SystemC Code
+
+To convert the provided C++/C code into SystemC, we need to define a module that encapsulates the functionality. The SystemC code should use the provided signals (`key`, `index`, and `data`).
+
+Here is the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(LineaSearch) {
+    sc_in<int> key;  // Input port for the key to search
+    sc_out<int> index; // Output port for the index of the key, or -1 if not found
+    sc_vector<sc_in<int>> data; // Input vector of data to search through
+
+    // Constructor
+    SC_CTOR(LineaSearch) {
+        // Process to perform linear search
+        SC_METHOD(search);
+        sensitive << key << data;
+    }
+
+    // Method to perform linear search
+    void search() {
+        int foundIndex = -1;
+        for (int i = 0; i < data.size(); i++) {
+            if (data[i].read() == key.read()) {
+                foundIndex = i;
+                break;
+            }
+        }
+        index.write(foundIndex);
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Definition**:
+   ```cpp
+   SC_MODULE(LineaSearch) {
+   ```
+   - Defines a SystemC module named `LineaSearch`.
+
+2. **Input and Output Ports**:
+   ```cpp
+   sc_in<int> key;
+   sc_out<int> index;
+   sc_vector<sc_in<int>> data;
+   ```
+   - `key`: Input port for the key to search.
+   - `index`: Output port for the index of the key, or `-1` if not found.
+   - `data`: Input vector of data to search through.
+
+3. **Constructor**:
+   ```cpp
+   SC_CTOR(LineaSearch) {
+       SC_METHOD(search);
+       sensitive << key << data;
+   }
+   ```
+   - Constructs the module and binds the `search` method to the `key` and `data` signals.
+
+4. **Search Method**:
+   ```cpp
+   void search() {
+       int foundIndex = -1;
+       for (int i = 0; i < data.size(); i++) {
+           if (data[i].read() == key.read()) {
+               foundIndex = i;
+               break;
+           }
+       }
+       index.write(foundIndex);
+   }
+   ```
+   - Iterates over each element of the `data` vector.
+   - If the current element matches the `key`, it sets `foundIndex` to the current index and breaks out of the loop.
+   - Writes the `foundIndex` to the `index` output port.
+
+This SystemC code faithfully captures the logic of the original C++/C source and can be integrated into a high-level synthesis flow.

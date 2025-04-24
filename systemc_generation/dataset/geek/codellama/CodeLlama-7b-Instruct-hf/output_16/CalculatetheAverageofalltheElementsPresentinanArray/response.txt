@@ -1,0 +1,86 @@
+  The provided C++/C code is a simple function that calculates the average of an array of integers. The function takes an array of integers and its size as input, and returns the average as output. The function uses a `for` loop to iterate over the elements of the array, calculates the sum of the elements, and then returns the average by dividing the sum by the size of the array.
+
+The input of the code are the array of integers and its size, which are passed as arguments to the function. The output of the code is the average of the array of integers, which is returned by the function.
+
+To generate SystemC code that preserves the logic of the C++/C code, we can create a SystemC module that has the same inputs and outputs as the C++/C function. Here is an example of how we can do this:
+```c
+#include <systemc.h>
+
+// Module that calculates the average of an array of integers
+SC_MODULE(Average) {
+    sc_in<int> a[];  // Input port for the array of integers
+    sc_in<int> n;  // Input port for the size of the array
+    sc_out<int> average;  // Output port for the average
+
+    // Constructor
+    SC_CTOR(Average) {
+        // Process to calculate the average
+        SC_METHOD(calculateAverage);
+        sensitive << n;
+    }
+
+    // Method to calculate the average of the array
+    void calculateAverage() {
+        // Initialize the sum to 0
+        int sum = 0;
+
+        // Iterate over the array elements
+        for (int i = 0; i < n.read(); i++) {
+            sum += a[i].read();
+        }
+
+        // Calculate the average
+        average.write(sum / n.read());
+    }
+};
+```
+In this SystemC code, we have defined a module called `Average` with three input ports `a`, `n`, and one output port `average`. The module creates a `for` loop to iterate over the elements of the array, and calculates the sum of the elements using the `+=` operator. Finally, the average is calculated by dividing the sum by the size of the array.
+
+The inputs of the SystemC code are the array of integers and its size, which are passed as arguments to the module's constructor. The output of the code is the average of the array of integers, which is saved in the `average` output port.
+
+To use this SystemC code in a high-level synthesis flow, we need to create a testbench that feeds the input stimulus and monitors the output of the module. The testbench can be implemented using the `sc_clock` and `sc_main` macros provided by SystemC. Here is an example of how to do this:
+```c
+#include <systemc.h>
+
+// Testbench for the Average module
+class AverageTest : public sc_module {
+    SC_CTOR(AverageTest) {
+        // Create the Average module
+        avg = new Average;
+
+        // Add the input ports
+        avg->a = new sc_in<int>();
+        avg->n = new sc_in<int>();
+
+        // Add the output port
+        avg->average = new sc_out<int>();
+    }
+
+    // Test the Average module
+    void test() {
+        // Create the input stimulus
+        int nums[] = { 10, 2, 3, 4, 5, 6, 7, 8, 9 };
+        int n = sizeof(nums) / sizeof(nums[0]);
+
+        // Feed the input stimulus to the module
+        avg->a = std::vector<sc_in<int>>(nums, nums + sizeof(nums));
+        avg->n = n;
+
+        // Wait for the output of the module
+        sc_start(100, SC_NS);
+
+        // Check the output of the module
+        if (avg->average == 5.5) {
+            cout << "Test passed" << endl;
+        } else {
+            cout << "Test failed" << endl;
+        }
+    }
+
+    // The Average module
+    Average *avg;
+};
+```
+In this testbench, we create an `Average` module instance and add the input and output ports to the `sc_module` subclass. We then create a `test` method that creates the input stimulus, feeds it to the module, waits for the output of the module, and checks the output against a expected value.
+
+Note that in order to use this SystemC code in a high-level synthesis flow, we need to compile it using a SystemC compiler, and then link the code with the testbench in a synthesis flow. The resulting design can then be compiled and placed on a FPGA, where it can be executed and measured.

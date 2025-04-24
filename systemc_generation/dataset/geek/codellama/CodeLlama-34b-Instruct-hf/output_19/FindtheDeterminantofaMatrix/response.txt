@@ -1,0 +1,80 @@
+  **Inputs:**
+
+* `matrix`: A 2D array of doubles representing a matrix of size `n x n`.
+* `n`: An integer representing the size of the matrix.
+
+**Outputs:**
+
+* `det`: A double representing the determinant of the input matrix.
+
+**Summary:**
+
+The provided C++/C code is a function called `determinant` that takes an integer `n` and a 2D array of doubles `a` as input, and returns a double `det`. The function calculates the determinant of the input matrix using the Gauss-Jordan elimination method.
+
+Here is a line-by-line explanation of the code:
+
+1. `double determinant(int n) {` : The function declaration.
+2. `double det = 1.0;`: Initialize the determinant as 1.0.
+3. `for (int i = 0; i < n; i++) {`: Start the outer loop for row `i`.
+4. `int pivot = i;`: Initialize the pivot as the element at index `i, i`.
+5. `for (int j = i + 1; j < n; j++) {`: Start the inner loop for column `j`.
+6. `if (abs(a[j][i]) > abs(a[pivot][i])) {`: Check if the absolute value of the element at index `j, i` is greater than the absolute value of the element at the pivot.
+7. `pivot = j;`: If the condition is true, update the pivot to the index of the element at `j, i`.
+8. `det *= -1;`: If the pivot was updated, flip the sign of the determinant.
+9. `if (a[i][i] == 0) {`: Check if the element at the pivot is zero.
+10. `return 0;`: If the element at the pivot is zero, return 0 as the determinant.
+11. `det *= a[i][i];`: Otherwise, multiply the determinant by the element at the pivot.
+12. `for (int j = i + 1; j < n; j++) {`: Start the inner loop for column `j`.
+13. `double factor = a[j][i] / a[i][i];`: Calculate the scale factor as the element at index `j, i` divided by the element at the pivot.
+14. `for (int k = i + 1; k < n; k++) {`: Start the inner-inner loop for column `k`.
+15. `a[j][k] -= factor * a[i][k];`: Subtract the product of the scale factor and the element at index `i, k` from element at index `j, k`.
+16. `}`: End the inner-inner loop.
+17. `}`: End the inner loop.
+18. `}`: End the outer loop.
+19. `return det;`: Return the determinant.
+
+**SystemC Code:**
+```
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    sc_in<double> matrix[SIZE]; // Input port for the matrix
+    sc_in<int> n; // Input port for the size of the matrix
+    sc_out<double> det; // Output port for the determinant
+    
+    // Function to calculate the determinant
+    void determinant() {
+        double det = 1.0;
+        for (int i = 0; i < n; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < n; j++) {
+                if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                sc_swap(matrix[i], matrix[pivot]);
+                det *= -1;
+            }
+            if (matrix[i][i] == 0) {
+                det = 0;
+            }
+            det *= matrix[i][i];
+            for (int j = i + 1; j < n; j++) {
+                double factor = matrix[j][i] / matrix[i][i];
+                for (int k = i + 1; k < n; k++) {
+                    matrix[j][k] -= factor * matrix[i][k];
+                }
+            }
+        }
+        det.write(det);
+    }
+    
+    // Constructor
+    SC_CTOR(Determinant) {
+        SC_METHOD(determinant);
+        sensitive << matrix << n;
+    }
+};
+```
+Note: This SystemC code assumes that the input matrix is stored in a 2D array, so the input port `matrix` is declared as a 2D array of doubles.

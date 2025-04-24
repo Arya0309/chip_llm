@@ -1,0 +1,125 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: The C++/C code takes a 2D array `mat` of size `n x n` as input.
+- **Outputs**: The code calculates and outputs two values:
+  - The trace of the matrix, which is the sum of the diagonal elements (`mat[i][i]` for `i` from 0 to `n-1`).
+  - The normal of the matrix, which is the square root of the sum of the squares of all elements in the matrix (`sqrt(sum(mat[i][j]^2))`).
+
+#### Detailed Explanation
+
+1. **Constants and Function Declarations**
+   ```cpp
+   const int MAX = 100; 
+   ```
+   - Defines the maximum size of the matrix.
+
+2. **Function: `findNormal`**
+   ```cpp
+   int findNormal(int mat[][MAX], int n) 
+   { 
+       int sum = 0; 
+       for (int i = 0; i < n; i++) 
+           for (int j = 0; j < n; j++) 
+               sum += mat[i][j] * mat[i][j]; 
+       return sqrt(sum); 
+   } 
+   ```
+   - Calculates the sum of the squares of all elements in the matrix.
+   - Returns the square root of this sum, which is the normal of the matrix.
+
+3. **Function: `findTrace`**
+   ```cpp
+   int findTrace(int mat[][MAX], int n) 
+   { 
+       int sum = 0; 
+       for (int i = 0; i < n; i++) 
+           sum += mat[i][i]; 
+       return sum; 
+   } 
+   ```
+   - Calculates the sum of the diagonal elements of the matrix.
+   - Returns this sum, which is the trace of the matrix.
+
+4. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int mat[][MAX] = {{1, 1, 1, 1, 1}, 
+           {2, 2, 2, 2, 2}, 
+           {3, 3, 3, 3, 3}, 
+           {4, 4, 4, 4, 4}, 
+           {5, 5, 5, 5, 5}}; 
+       cout << "Trace of Matrix = " << 
+               findTrace(mat, 5) << endl; 
+       cout << "Normal of Matrix = " << 
+               findNormal(mat, 5) << endl; 
+       return 0; 
+   } 
+   ```
+   - Initializes a 5x5 matrix.
+   - Calls `findTrace` and `findNormal` functions with this matrix.
+   - Prints the results.
+
+### Equivalent SystemC Code
+
+To integrate this logic into a SystemC design, we need to create a module that takes a 2D matrix as input and produces the trace and normal as outputs. Here’s how you can do it:
+
+```cpp
+#include <systemc.h>
+
+#define SIZE 5
+
+SC_MODULE(MatrixAnalyzer) {
+    sc_in<int> matrix[SIZE][SIZE];  // Input port for the matrix
+    sc_out<int> trace;              // Output port for the trace
+    sc_out<int> norm;               // Output port for the normal
+
+    SC_CTOR(MatrixAnalyzer) {
+        SC_THREAD(calculate);
+        sensitive << matrix;
+    }
+
+    void calculate() {
+        int trace_val = 0;
+        int norm_val = 0;
+
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (i == j) {
+                    trace_val += matrix[i][j];
+                }
+                norm_val += matrix[i][j] * matrix[i][j];
+            }
+        }
+
+        norm.write(sqrt(norm_val));
+        trace.write(trace_val);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    MatrixAnalyzer analyzer("analyzer");
+
+    // Example input matrix
+    analyzer.matrix[0][0] = 1; analyzer.matrix[0][1] = 1; analyzer.matrix[0][2] = 1; analyzer.matrix[0][3] = 1; analyzer.matrix[0][4] = 1;
+    analyzer.matrix[1][0] = 2; analyzer.matrix[1][1] = 2; analyzer.matrix[1][2] = 2; analyzer.matrix[1][3] = 2; analyzer.matrix[1][4] = 2;
+    analyzer.matrix[2][0] = 3; analyzer.matrix[2][1] = 3; analyzer.matrix[2][2] = 3; analyzer.matrix[2][3] = 3; analyzer.matrix[2][4] = 3;
+    analyzer.matrix[3][0] = 4; analyzer.matrix[3][1] = 4; analyzer.matrix[3][2] = 4; analyzer.matrix[3][3] = 4; analyzer.matrix[3][4] = 4;
+    analyzer.matrix[4][0] = 5; analyzer.matrix[4][1] = 5; analyzer.matrix[4][2] = 5; analyzer.matrix[4][3] = 5; analyzer.matrix[4][4] = 5;
+
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **Module Declaration**: `MatrixAnalyzer` is a SystemC module that takes a 2D matrix and produces the trace and normal.
+- **Input and Output Ports**: `matrix`, `trace`, and `norm` are declared as ports to allow integration with other parts of a SystemC design.
+- **Constructor**: The constructor initializes a SystemC thread `calculate` that is sensitive to changes in the `matrix`.
+- **Calculate Method**: This method iterates over the matrix to compute the trace and normal, then writes the results to the `trace` and `norm` ports.
+- **Testbench**: The `sc_main` function initializes the matrix and starts the simulation.
+
+This SystemC code captures the logic of the original C++/C code and can be integrated into a larger SystemC design.

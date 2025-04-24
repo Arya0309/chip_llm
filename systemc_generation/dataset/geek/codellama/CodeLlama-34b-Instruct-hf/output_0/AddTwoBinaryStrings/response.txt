@@ -1,0 +1,107 @@
+  **Inputs and Outputs:**
+
+* Inputs:
+	+ A: A binary string representing a number.
+	+ B: A binary string representing a number.
+* Output:
+	+ sum: A binary string representing the sum of A and B.
+
+**Line-by-Line Summary:**
+
+The provided C++/C code defines a function `addBinary` that takes two binary strings `A` and `B` as input and returns their sum as a string `res`. The function follows these steps:
+
+1. **Length Check**: If the length of `A` is greater than the length of `B`, the function swaps the strings by calling itself with the strings `B` and `A` switched. This ensures that the length of `A` is always less than or equal to the length of `B`.
+2. **Padding**: If the length of `A` is less than the length of `B`, the function adds leading zeroes to `A` to make its length equal to that of `B`. This is done by creating a string `padding` and appending it to `A`.
+3. **Carry Logic**: The function calculates the sum of `A` and `B` by iterating over the characters of `A` and `B` from right to left. It uses a carry logic that keeps track of the carry bit and adds it to the current sum if necessary.
+4. **Reverse and Remove Leading Zeros**: After all the characters have been summed, the function reverses the string `res` and removes any leading zeroes.
+5. **Return Result**: Finally, the function returns the result as a string.
+
+**Equivalent SystemC Code:**
+```scss
+#include <systemc.h>
+
+// Module that adds two binary strings
+SC_MODULE(BinaryAdder) {
+    sc_in<std::string> A;  // Input port for the first binary string
+    sc_in<std::string> B;  // Input port for the second binary string
+    sc_out<std::string> sum; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(BinaryAdder) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to add the two binary strings
+    void add() {
+        // Check if A is longer than B
+        if (A.length() > B.length()) {
+            // Swap A and B
+            std::string temp = A;
+            A = B;
+            B = temp;
+        }
+
+        // Pad A with leading zeroes if necessary
+        if (A.length() < B.length()) {
+            std::string padding(B.length() - A.length(), '0');
+            A = padding + A;
+        }
+
+        // Initialize carry flag
+        bool carry = false;
+
+        // Iterate over characters of A and B from right to left
+        std::string res;
+        for (int i = A.length() - 1; i >= 0; i--) {
+            char a = A[i];
+            char b = B[i];
+
+            // Calculate the sum of the current characters
+            if (a == '1' && b == '1') {
+                if (carry) {
+                    res.push_back('1');
+                    carry = true;
+                } else {
+                    res.push_back('0');
+                    carry = false;
+                }
+            } else if (a == '0' && b == '0') {
+                if (carry) {
+                    res.push_back('1');
+                    carry = false;
+                } else {
+                    res.push_back('0');
+                    carry = false;
+                }
+            } else if (a != b) {
+                if (carry) {
+                    res.push_back('0');
+                    carry = true;
+                } else {
+                    res.push_back('1');
+                    carry = false;
+                }
+            }
+        }
+
+        // If there is a carry at the end, add it to the result
+        if (carry) {
+            res.push_back('1');
+        }
+
+        // Reverse and remove leading zeroes
+        std::reverse(res.begin(), res.end());
+        int index = 0;
+        while (index < res.length() && res[index] == '0') {
+            index++;
+        }
+        res = res.substr(index);
+
+        // Assign the result to the output port
+        sum.write(res);
+    }
+};
+```
+In this SystemC code, we define a module `BinaryAdder` that takes two input ports `A` and `B` for the two binary strings to be added, and an output port `sum` for the sum of the two strings. The module contains a `SC_METHOD` process that performs the addition when the input ports change. The process first checks if `A` is longer than `B` and swaps the strings if necessary. It then pads `A` with leading zeroes if necessary, initializes the carry flag to `false`, and iterates over the characters of `A` and `B` from right to left to calculate their sum with a carry logic. If there is a carry at the end, it is added to the result. Finally, it reverses and removes leading zeroes from the result and assigns it to the output port `sum`.

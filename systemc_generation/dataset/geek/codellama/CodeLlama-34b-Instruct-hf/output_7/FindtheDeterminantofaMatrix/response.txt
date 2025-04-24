@@ -1,0 +1,73 @@
+  **Inputs and Outputs:**
+
+The C++/C code takes an integer matrix as input and returns its determinant as output. The matrix is represented as a two-dimensional array of size `n` x `n`, where `n` is the number of rows and columns. The input matrix is stored in the `a` array and is accessed using the `n` for loops. The output determinant is stored in the `det` variable and is calculated using the `determinant()` function.
+
+**Summary:**
+
+The provided C++/C code computes the determinant of a given square matrix. The input matrix is represented as a two-dimensional array of size `n` x `n`, where `n` is the number of rows and columns. The code first declares the `matrix` array and initializes it with the input values. The `determinant()` function is then called with the `n` parameter, which computes the determinant using the usual determinant formula, i.e., the sum of the products of the elements in each row, where each element is multiplied by the cofactor of that element. The `cofactor()` function is used to compute the cofactor of each element. The `swap()` function is used to switch the rows of the matrix when necessary.
+
+The `determinant()` function first checks if the matrix is a 1x1 matrix, and if so, it returns the only element. Otherwise, it sets the `det` variable to 1.0. Then, it initializes two variables `pivot` and `temp` to the first element of the first column and a zero, respectively. The `for` loop searches for the largest element in the first column and swaps it with the first element of the first column if necessary. The `if` statement checks if the largest element is zero and returns 0.0 if it is. Otherwise, it multiplies the `det` variable by the first element of the first column and updates the matrix by subtracting the first row from all other rows, multiplying by the ratio between the pivot element and the first element of the first column.
+
+The `for` loop then iterates `i` from 1 to `n-1`, and the inner loop iterates `j` from `i+1` to `n-1`. The `if` statement checks if the absolute value of the pivot element is greater than the absolute value of the element at position `i,j`. If it is, the pivot element is set to the element at position `i,j`. The `break` statement is used to exit the inner loop early when the pivot element is zero.
+
+After the inner loop, the `det` variable is updated by multiplying it by the pivot element. The outer loop then iterates `j` from `i+1` to `n-1`, and the inner loop iterates `k` from `i+1` to `n-1`. The `if` statement checks if the element at position `k,i` is zero. If it is, the `for` loop is exited early. Otherwise, the `for` loop iterates `l` from `k+1` to `n-1`. The `if` statement checks if the element at position `l,k` is zero. If it is, the `for` loop is exited early. Otherwise, the `if` statement checks if the element at position `k,i` is equal to the element at position `l,k`. If it is, the `for` loop is exited early.
+
+The `determinant()` function then returns the `det` variable. The `main()` function calls the `determinant()` function with the `n` parameter and prints the result.
+
+**SystemC Code:**
+
+Here is a SystemC code snippet that reflects the same functionality:
+```c++
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    sc_in<double> input_matrix[SIZE][SIZE];
+    sc_out<double> output_det;
+
+    // Declare the input and output signals
+    void Determinant() {
+        // Declare the local variables
+        int n;
+        double a[SIZE][SIZE];
+        double det;
+
+        // Get the input matrix from the input signal
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                a[i][j] = input_matrix[i][j].read();
+            }
+        }
+
+        // Compute the determinant using the usual formula
+        det = 1.0;
+        for (int i = 0; i < SIZE; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < SIZE; j++) {
+                if (abs(a[j][i]) > abs(a[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(a[i], a[pivot]);
+                det *= -1.0;
+            }
+            if (a[i][i] == 0.0) {
+                return 0.0;
+            }
+            det *= a[i][i];
+            for (int j = i + 1; j < SIZE; j++) {
+                double factor = a[j][i] / a[i][i];
+                for (int k = i + 1; k < SIZE; k++) {
+                    a[j][k] -= factor * a[i][k];
+                }
+            }
+        }
+
+        // Set the output signal
+        output_det.write(det);
+    }
+};
+```
+In this code, we have declared the input and output signals using the `sc_in` and `sc_out` classes, respectively. We have also declared the local variables `n`, `a`, and `det`, and initialized them accordingly. The `Determinant` function computes the determinant using the usual formula and stores it in the `det` variable. Finally, it sets the output signal using the `write()` method.
+
+Note that we have used the `SIZE` constant to represent the size of the matrix, which is assumed to be a square matrix. We have also used the `abs()` function from the `cmath` header to compute the absolute value of the elements in the matrix.

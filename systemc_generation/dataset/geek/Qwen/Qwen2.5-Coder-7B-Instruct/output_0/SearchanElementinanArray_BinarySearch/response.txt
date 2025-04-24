@@ -1,0 +1,183 @@
+### Input and Output Summary
+
+**Inputs:**
+1. `target` - An integer value representing the element to be searched within the vector.
+2. `v` - A vector of integers containing the sorted list in which the target element is to be searched.
+
+**Outputs:**
+1. `found` - A boolean signal indicating whether the target element was found in the vector (`true`) or not (`false`).
+
+### Detailed Explanation of the C++ Code
+
+#### Line-by-Line Explanation
+
+1. **Header Inclusion**
+   ```cpp
+   #include <bits/stdc++.h>
+   ```
+   This line includes all standard library headers, providing access to various utilities such as vectors and input/output streams.
+
+2. **Namespace Declaration**
+   ```cpp
+   using namespace std;
+   ```
+   This line sets the standard namespace to avoid prefixing standard library functions with `std::`.
+
+3. **Function Definition: `binarySearch`**
+   ```cpp
+   bool binarySearch(vector<int>& v, int target) {
+   ```
+   This function takes a reference to a vector of integers and an integer target as inputs and returns a boolean indicating whether the target is found in the vector.
+
+4. **Initialization of Search Range**
+   ```cpp
+   int low = 0, high = v.size() - 1;
+   ```
+   These lines initialize the lower and upper bounds of the search range within the vector.
+
+5. **While Loop for Binary Search**
+   ```cpp
+   while (low <= high) {
+   ```
+   This loop continues as long as the lower bound is less than or equal to the upper bound, ensuring that the search range is valid.
+
+6. **Finding Midpoint**
+   ```cpp
+   int mid = ((high - low) / 2) + low;
+   ```
+   This line calculates the midpoint of the current search range.
+
+7. **Checking Midpoint Value**
+   ```cpp
+   if (v[mid] == target) {
+       return true;
+   }
+   ```
+   If the midpoint value matches the target, the function returns `true`.
+
+8. **Adjusting Search Range Based on Midpoint Value**
+   ```cpp
+   if (v[mid] > target)
+       high = mid - 1;
+   else
+       low = mid + 1;
+   ```
+   If the midpoint value is greater than the target, the search range is adjusted to the left half. If it is smaller, the search range is adjusted to the right half.
+
+9. **Return False if Target Not Found**
+   ```cpp
+   return false;
+   ```
+   If the loop completes without finding the target, the function returns `false`.
+
+10. **Main Function**
+    ```cpp
+    int main() {
+        vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+        int target = 8;
+        if (binarySearch(v, target)) {
+            cout << target << " found.";
+        } else {
+            cout << target << " NOT found.";
+        }
+        return 0;
+    }
+    ```
+    The `main` function initializes a vector and a target value, calls the `binarySearch` function, and prints the result.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that captures the logic of the original C++ code and utilizes the provided signals.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinarySearch) {
+    sc_in<int> target;  // Input port for the target value
+    sc_out<bool> found; // Output port indicating if the target is found
+    sc_vector<sc_in<int>> v; // Input port for the vector elements
+
+    SC_CTOR(BinarySearch) {
+        // Process to perform binary search
+        SC_METHOD(search);
+        sensitive << target;
+        for (unsigned i = 0; i < v.size(); ++i) {
+            sensitive << v[i];
+        }
+    }
+
+    void search() {
+        int low = 0;
+        int high = v.size() - 1;
+        found.write(false); // Initialize found to false
+
+        while (low <= high) {
+            int mid = ((high - low) / 2) + low;
+            if (v[mid].read() == target.read()) {
+                found.write(true);
+                return;
+            } else if (v[mid].read() > target.read()) {
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(BinarySearch) {
+   ```
+   This declares a SystemC module named `BinarySearch`.
+
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<int> target;
+   sc_out<bool> found;
+   sc_vector<sc_in<int>> v;
+   ```
+   These lines define the input and output ports for the module.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(BinarySearch) {
+   ```
+   This constructor initializes the module and sets up the sensitivity list.
+
+4. **Sensitivity List**
+   ```cpp
+   SC_METHOD(search);
+   sensitive << target;
+   for (unsigned i = 0; i < v.size(); ++i) {
+       sensitive << v[i];
+   }
+   ```
+   This sets up the method `search` to be triggered when either the `target` or any element in the vector `v` changes.
+
+5. **Method Implementation**
+   ```cpp
+   void search() {
+       int low = 0;
+       int high = v.size() - 1;
+       found.write(false);
+
+       while (low <= high) {
+           int mid = ((high - low) / 2) + low;
+           if (v[mid].read() == target.read()) {
+               found.write(true);
+               return;
+           } else if (v[mid].read() > target.read()) {
+               high = mid - 1;
+           } else {
+               low = mid + 1;
+           }
+       }
+   }
+   ```
+   This method implements the binary search logic. It initializes the search range, checks each midpoint, and adjusts the range accordingly until the target is found or the range is exhausted.
+
+This SystemC code faithfully captures the logic of the original C++ code and can be integrated into a high-level synthesis flow.

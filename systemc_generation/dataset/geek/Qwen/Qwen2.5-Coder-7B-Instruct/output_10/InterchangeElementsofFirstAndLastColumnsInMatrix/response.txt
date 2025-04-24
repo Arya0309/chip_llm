@@ -1,0 +1,122 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: A 2D array `m` of size `n x n`.
+- **Outputs**: The modified 2D array `m` where the first and last rows have been swapped.
+
+#### Detailed Explanation
+
+1. **Include Statements and Namespace**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - These lines include the input-output stream library and use the standard namespace.
+
+2. **Define the Size of the Matrix**
+   ```cpp
+   #define n 4 
+   ```
+   - Defines the size of the matrix to be 4x4.
+
+3. **Function to Interchange First and Last Rows**
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   { 
+       int rows = n; 
+       for (int i = 0; i < n; i++) 
+       { 
+           int t = m[0][i]; 
+           m[0][i] = m[rows - 1][i]; 
+           m[rows - 1][i] = t; 
+       } 
+   } 
+   ```
+   - This function takes a 2D array `m` as input.
+   - It iterates over each column index `i` from 0 to `n-1`.
+   - For each column, it swaps the elements in the first row (`m[0][i]`) with those in the last row (`m[rows - 1][i]`).
+
+4. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                       {4, 7, 6, 5}, 
+                       {3, 2, 1, 8}, 
+                       {9, 9, 7, 7}}; 
+       interchangeFirstLast(m); 
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - Initializes a 4x4 matrix `m` with given values.
+   - Calls the `interchangeFirstLast` function to swap the first and last rows.
+   - Prints the modified matrix to the console.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSwap) {
+    sc_in<int> in[4][4];  // Input ports for the matrix elements
+    sc_out<int> out[4][4]; // Output ports for the matrix elements
+
+    SC_CTOR(MatrixSwap) {
+        // Process to perform the row swapping
+        SC_METHOD(interchangeRows);
+        sensitive << in;
+    }
+
+    void interchangeRows() {
+        int temp;
+        for (int i = 0; i < 4; i++) {
+            temp = in[0][i].read();
+            out[0][i].write(in[3][i].read());
+            out[3][i].write(temp);
+        }
+    }
+};
+```
+
+#### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(MatrixSwap) {
+       sc_in<int> in[4][4];  // Input ports for the matrix elements
+       sc_out<int> out[4][4]; // Output ports for the matrix elements
+   ```
+   - Declares a SystemC module named `MatrixSwap` with 4x4 input and output ports.
+
+2. **Constructor**
+   ```cpp
+   SC_CTOR(MatrixSwap) {
+       SC_METHOD(interchangeRows);
+       sensitive << in;
+   }
+   ```
+   - Registers the `interchangeRows` method to be called whenever any of the input ports change.
+
+3. **Method to Swap Rows**
+   ```cpp
+   void interchangeRows() {
+       int temp;
+       for (int i = 0; i < 4; i++) {
+           temp = in[0][i].read();
+           out[0][i].write(in[3][i].read());
+           out[3][i].write(temp);
+       }
+   }
+   ```
+   - Reads the elements from the first row and stores them in a temporary variable.
+   - Writes the elements from the last row into the first row.
+   - Writes the stored temporary values into the last row.
+
+This SystemC code faithfully captures the logic of the original C++/C code, allowing it to be integrated into a high-level synthesis flow.

@@ -1,0 +1,167 @@
+### Analysis of the C++/C Code
+
+**Inputs and Outputs**:
+- **Inputs**: None (The code does not take any external inputs from the user or other modules.)
+- **Outputs**: 
+  - `Original array`: The original array `{1, 2, 3, 4, 5}` is printed.
+  - `Resultant array`: The copied array in reverse order `{5, 4, 3, 2, 1}` is printed.
+
+**Line-by-Line Explanation**:
+
+1. **Include Header**:
+   ```c
+   #include <stdio.h>
+   ```
+   - This line includes the standard I/O library which is necessary for printing to the console.
+
+2. **Function to Print Array**:
+   ```c
+   void printArray(int arr[], int len) 
+   { 
+       int i; 
+       for (i = 0; i < len; i++) { 
+           printf("%d ", arr[i]); 
+       } 
+   }
+   ```
+   - This function takes an array `arr` and its length `len` as inputs.
+   - It iterates through the array and prints each element followed by a space.
+
+3. **Main Function**:
+   ```c
+   int main() 
+   { 
+       int original_arr[] = {1, 2, 3, 4, 5}; 
+       int len = sizeof(original_arr)/sizeof(original_arr[0]); 
+   ```
+   - The `main` function initializes an array `original_arr` with the values `{1, 2, 3, 4, 5}`.
+   - It calculates the length of the array using `sizeof`.
+
+4. **Declare Variables for Copied Array**:
+   ```c
+       int copied_arr[len], i, j; 
+   ```
+   - An array `copied_arr` of the same length as `original_arr` is declared.
+   - Two loop variables `i` and `j` are also declared.
+
+5. **Copy Elements in Reverse Order**:
+   ```c
+       for (i = 0; i < len; i++) { 
+           copied_arr[i] = original_arr[len - i - 1]; 
+       } 
+   ```
+   - A loop runs from `0` to `len-1`.
+   - For each iteration, the corresponding element from the end of `original_arr` is copied to `copied_arr`.
+
+6. **Print Original Array**:
+   ```c
+       printf(" Original array: "); 
+       printArray(original_arr, len); 
+   ```
+   - Prints the label "Original array:".
+   - Calls `printArray` to print the elements of `original_arr`.
+
+7. **Print Copied Array**:
+   ```c
+       printf(" Resultant array: "); 
+       printArray(copied_arr, len); 
+   ```
+   - Prints the label "Resultant array:".
+   - Calls `printArray` to print the elements of `copied_arr`.
+
+8. **Return Statement**:
+   ```c
+       return 0; 
+   }
+   ```
+   - The `main` function returns `0`, indicating successful execution.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that preserves the logic of the original C++/C code. The SystemC code incorporates the provided signals (`clk`, `start`, `done`) and utilizes them to control the execution flow.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayReverser) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+
+    int original_arr[5] = {1, 2, 3, 4, 5};
+    int len = sizeof(original_arr) / sizeof(original_arr[0]);
+    int copied_arr[len];
+    bool running;
+
+    SC_CTOR(ArrayReverser) {
+        SC_METHOD(run);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void run() {
+        if (start.read()) {
+            running = true;
+            for (int i = 0; i < len; i++) {
+                copied_arr[i] = original_arr[len - i - 1];
+            }
+            running = false;
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(ArrayReverser) {
+       sc_in<bool> clk;          // Clock signal
+       sc_in<bool> start;        // Start signal
+       sc_out<bool> done;        // Done signal
+   ```
+   - The `ArrayReverser` module is declared with the required signals.
+
+2. **Array Declarations**:
+   ```cpp
+       int original_arr[5] = {1, 2, 3, 4, 5};
+       int len = sizeof(original_arr) / sizeof(original_arr[0]);
+       int copied_arr[len];
+       bool running;
+   ```
+   - The original array, its length, the copied array, and a boolean flag `running` are declared.
+
+3. **Constructor**:
+   ```cpp
+       SC_CTOR(ArrayReverser) {
+           SC_METHOD(run);
+           sensitive << clk.pos();
+           dont_initialize();
+       }
+   ```
+   - The constructor initializes the `run` method to be sensitive to the positive edge of the clock signal and sets up the module.
+
+4. **Run Method**:
+   ```cpp
+       void run() {
+           if (start.read()) {
+               running = true;
+               for (int i = 0; i < len; i++) {
+                   copied_arr[i] = original_arr[len - i - 1];
+               }
+               running = false;
+               done.write(true);
+           } else {
+               done.write(false);
+           }
+       }
+   ```
+   - The `run` method checks if the `start` signal is high.
+   - If `start` is high, it copies the elements of `original_arr` to `copied_arr` in reverse order.
+   - It then sets `done` to high to indicate completion.
+   - If `start` is low, it sets `done` to low.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

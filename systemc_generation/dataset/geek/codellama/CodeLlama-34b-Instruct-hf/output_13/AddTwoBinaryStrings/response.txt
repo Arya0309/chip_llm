@@ -1,0 +1,84 @@
+  **Inputs:**
+
+* `A`: A string representing a binary number.
+* `B`: A string representing a binary number.
+
+**Outputs:**
+
+* `sum`: A string representing the sum of `A` and `B`.
+
+**Explanation:**
+
+The provided C++/C code is a function that takes two binary strings `A` and `B` as input and returns their sum as a binary string. The function first checks if `A` is longer than `B`, and if so, it swaps the two strings. This is done to ensure that `A` is the shorter string, as the function adds `B` to `A` and `A` might be larger than `B`.
+
+The function then calculates the difference in length between `A` and `B` and pads `A` with leading zeros to make it as long as `B`. This is done to ensure that both strings are of the same length, as the function performs bitwise addition on both strings.
+
+The function then iterates over each digit of the two padded strings, starting from the least significant bit (LSB), and performs the following operations:
+
+* If both digits are `1`, it sets the carry flag to `1` and adds the result to the sum.
+* If both digits are `0`, it sets the carry flag to `0` and adds the result to the sum.
+* If the digits are different, it sets the carry flag to `1` and adds the result to the sum.
+
+After all the digits have been processed, the function checks if there is a carry flag still set. If there is, it adds it to the sum. Finally, the function reverses the sum string to get the correct representation of the sum.
+
+**Equivalent SystemC Code:**
+```scss
+#include <systemc.h>
+
+SC_MODULE(BinaryAdder) {
+    sc_in<std::string> A; // Input port for string A
+    sc_in<std::string> B; // Input port for string B
+    sc_out<std::string> sum; // Output port for sum
+
+    // Constructor
+    SC_CTOR(BinaryAdder) {
+        // Addition process
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to perform addition
+    void add() {
+        int diff = B.length() - A.length(); // Calculate difference in length
+        std::string padding; // String to store padding zeros
+        for (int i = 0; i < diff; i++) {
+            padding.push_back('0'); // Add padding zeros to string A
+        }
+        A = padding + A; // Prepend padding zeros to string A
+
+        int carry = 0; // Carry flag
+        std::string res; // String to store result
+        for (int i = A.length() - 1; i >= 0; i--) {
+            if (A[i] == '1' && B[i] == '1') {
+                if (carry == 1) {
+                    res.push_back('1');
+                    carry = 1;
+                } else {
+                    res.push_back('0');
+                    carry = 1;
+                }
+            } else if (A[i] == '0' && B[i] == '0') {
+                if (carry == 1) {
+                    res.push_back('1');
+                    carry = 0;
+                } else {
+                    res.push_back('0');
+                    carry = 0;
+                }
+            } else if (A[i] != B[i]) {
+                if (carry == 1) {
+                    res.push_back('0');
+                    carry = 1;
+                } else {
+                    res.push_back('1');
+                    carry = 0;
+                }
+            }
+        }
+        if (carry == 1) {
+            res.push_back('1');
+        }
+        sum.write(res); // Write result to output port
+    }
+};
+```

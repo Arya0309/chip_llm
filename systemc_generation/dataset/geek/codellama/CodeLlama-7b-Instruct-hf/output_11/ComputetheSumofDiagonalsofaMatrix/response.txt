@@ -1,0 +1,104 @@
+  Based on the provided C++/C code, the input to the code is a 2D matrix "mat" with a fixed size of MAX x MAX, and it takes an integer value n as its input. The output of the code is two integers, principal and secondary, which are the sums of the principal and secondary diagonals of the given matrix, respectively.
+
+Here's a line-by-line natural language explanation of the code:
+
+* The C++/C code includes the "bits/stdc++.h" header file and uses the "using namespace std" directive to import the standard library.
+* The piece of code initializes the constant MAX to 100.
+* The printDiagonalSums function is defined, which takes a 2D matrix of ints as an input and an integer n as input.
+* The function initializes two local variables, principal and secondary, which will store the sums of the principal and secondary diagonals, respectively.
+* The loop begins with i = 0 and j = 0. The inner loop with i and j as the iterator variables will iterate until i and j are less than n, but the loop body contains two conditions that must be checked:
+	+ If the value of i equals j, then the function adds the current element in the matrix at position (i, j) to the principal sum.
+	+ If the value of i plus j is equal to n minus one, then the function adds the current element in the matrix at position (i, j) to the secondary sum.
+* The outer loop with i as the iterator variable will iterate until the value of i is equal to n.
+* Once the outer loop has completed, the function prints the principal and secondary sums to the console.
+* The driver code called main is defined to test the logic of the printDiagonalSums function. It initializes a 4 x 4 2D matrix "a" with values (1, 2, 3, 4), (5, 6, 7, 8), (1, 2, 3, 4), and (5, 6, 7, 8), and calls the printDiagonalSums function with "a" and "MAX" as inputs, respectively. The return value is discarded.
+
+Based on the provided C++/C code, here's an equivalent SystemC code snippet that preserves the logic and can be used in a high-level synthesis flow:
+
+
+#include <systemc.h>
+
+#define MAX 100
+
+// Module that computes the diagonals of a 2D matrix
+SC_MODULE(DiagonalComputer) {
+    sc_in<int> matrix[MAX][MAX]; // Input matrix
+    sc_in<int> n; // Size of the matrix
+    sc_out<int> principal_sum; // Sum of the principal diagonal
+    sc_out<int> secondary_sum; // Sum of the secondary diagonal
+
+    // Constructor
+    SC_CTOR(DiagonalComputer) {
+        // Process to compute the diagonals
+        SC_METHOD(compute_diagonals);
+        sensitive << matrix << n;
+    }
+
+    // Method to compute the diagonals
+    void compute_diagonals() {
+        int principal_sum = 0, secondary_sum = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (i == j) {
+                    principal_sum += matrix[i][j];
+                }
+                if ((i + j) == (n - 1)) {
+                    secondary_sum += matrix[i][j];
+                }
+            }
+        }
+        principal_sum_out.write(principal_sum);
+        secondary_sum_out.write(secondary_sum);
+    }
+};
+
+// Module that initializes a 2D matrix
+SC_MODULE(MatrixInitializer) {
+    sc_in<int> matrix[MAX][MAX]; // Input matrix
+    sc_in<int> n; // Size of the matrix
+    sc_in<int> values[MAX][MAX]; // Values to initialize the matrix
+
+    // Constructor
+    SC_CTOR( MatrixInitializer ) {
+        // Process to initialize the matrix
+        SC_METHOD(initialize_matrix);
+        sensitive << matrix << n << values;
+    }
+
+    // Method to iterate over the matrix and initialize the values
+    void initialize_matrix() {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                matrix[i][j].write(values[i][j]);
+            }
+        }
+    }
+};
+
+// Module that tests the logic of the DiagonalComputer
+SC_MODULE(DiagonalSumsTestbench) {
+    // Declare the 2D matrix and the size of the matrix
+    sc_in<int> matrix[MAX][MAX];
+    sc_in<int> n;
+
+    // Declare the output signals for the principal and secondary sums
+    sc_out<int> principal_sum;
+    sc_out<int> secondary_sum;
+
+    // Instantiate the DiagonalComputer and the MatrixInitializer modules
+    DiagonalComputer diagonal_computer_0;
+    MatrixInitializer matrix_initializer_0;
+
+    // Copy the values from the matrix to the principal and secondary outputs
+    //diagonal_computer_0.principal_sum_out -> principal_sum;
+    //diagonal_computer_0.secondary_sum_out -> secondary_sum;
+
+    // Constructor
+    SC_CTOR(DiagonalSumsTestbench) {
+        // Bind the output ports of the modules
+        diagonal_computer_0.principal_sum_out(principal_sum);
+        diagonal_computer_0.secondary_sum_out(secondary_sum);
+    }
+};
+
+In this code snippet, we define three modules: the DiagonalComputer, the MatrixInitializer, and the DiagonalSumsTestbench. The DiagonalComputer module computes the sums of the principal and secondary diagonals of a 2D matrix. The MatrixInitializer module takes a 2D matrix and a size, and initializes the matrix with the given values. The DiagonalSumsTestbench module instantiates the DiagonalComputer and the MatrixInitializer modules, and binds their output ports to the principal and secondary outputs. The testbench also includes the MatrixInitializer module's method to initialize the values of the matrix. Finally, we define three testbench inputs: a 4 x 4 2D matrix, an integer that represents the size of the matrix, and an array of values to initialize the matrix with. We then run the simulation to test whether the principal and secondary sums are computed correctly.

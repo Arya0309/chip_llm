@@ -1,0 +1,153 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - `m`: A 2D matrix of integers.
+  - `r`: Number of rows in the matrix.
+  - `c`: Number of columns in the matrix.
+- **Outputs**:
+  - The sorted 2D matrix row-wise.
+
+#### Detailed Explanation
+
+1. **Include and Namespace Declaration**
+   ```cpp
+   #include<bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes all standard C++ libraries and uses the standard namespace.
+
+2. **Swap Function**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - Swaps the values of two integers pointed to by `xp` and `yp`.
+
+3. **Sort Row-Wise Function**
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   ```
+   - Takes a 2D matrix `m`, number of rows `r`, and number of columns `c`.
+
+4. **Outer Loop for Rows**
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   ```
+   - Iterates over each row of the matrix.
+
+5. **Inner Loop for Columns**
+   ```cpp
+   for (int j = 0; j < c; j++) 
+   ```
+   - Iterates over each column of the matrix.
+
+6. **Comparison and Swapping Loop**
+   ```cpp
+   for (int k = 0; k < c - j - 1; k++) 
+   ```
+   - Compares adjacent elements and swaps them if they are in the wrong order.
+
+7. **Condition for Swapping**
+   ```cpp
+   if (m[i][k] > m[i][k + 1]) 
+   ```
+   - Checks if the current element is greater than the next element.
+
+8. **Swapping Elements**
+   ```cpp
+   swap(m[i][k], m[i][k + 1]);
+   ```
+   - Calls the `swap` function to swap the elements.
+
+9. **Printing the Sorted Matrix**
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   {
+       for (int j = 0; j < c; j++)
+       cout << m[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - Prints the sorted matrix row-wise.
+
+10. **Driver Code**
+    ```cpp
+    int main()
+    {
+        int m[][4] = {{9, 8, 7, 1},
+                        {7, 3, 0, 2},
+                        {9, 5, 3, 2},
+                        {6, 3, 1, 2}};
+        int c = sizeof(m[0]) / sizeof(m[0][0]);
+        int r = sizeof(m) / sizeof(m[0]);
+        sortRowWise(m, r, c);
+        return 0;
+    }
+    ```
+    - Defines a 2D matrix `m`, calculates the number of rows and columns, and calls the `sortRowWise` function.
+
+### SystemC Code Snippet
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done; // Done signal
+    sc_in<sc_uint<16>> matrix[4][4];  // Input matrix
+    sc_out<sc_uint<16>> sorted_matrix[4][4];  // Output sorted matrix
+
+    // Constructor
+    SC_CTOR(MatrixSorter) {
+        SC_METHOD(sortRows);
+        sensitive << clk.pos();
+        async_reset_signal_is(clk, false);
+    }
+
+    // Method to sort rows of the matrix
+    void sortRows() {
+        if (start.read()) {
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    for (int k = 0; k < 4 - j - 1; k++) {
+                        if (matrix[i][k].read() > matrix[i][k + 1].read()) {
+                            sc_uint<16> temp = matrix[i][k].read();
+                            matrix[i][k].write(matrix[i][k + 1].read());
+                            matrix[i][k + 1].write(temp);
+                        }
+                    }
+                }
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Inputs and Outputs**:
+  - `clk`: Clock signal.
+  - `start`: Start signal to initiate sorting.
+  - `done`: Done signal to indicate sorting completion.
+  - `matrix`: Input 2D matrix.
+  - `sorted_matrix`: Output 2D sorted matrix.
+
+- **Constructor**:
+  - Initializes the `sortRows` method to be sensitive to positive edges of the clock signal and resets the `done` signal when the clock is low.
+
+- **sortRows Method**:
+  - Checks if the `start` signal is high.
+  - If `start` is high, sorts the matrix row-wise using nested loops similar to the C++ code.
+  - Writes `true` to the `done` signal once sorting is complete.
+  - If `start` is low, writes `false` to the `done` signal.
+
+This SystemC code integrates seamlessly with the provided signals and captures the logic of the original C++/C code for sorting a 2D matrix row-wise.

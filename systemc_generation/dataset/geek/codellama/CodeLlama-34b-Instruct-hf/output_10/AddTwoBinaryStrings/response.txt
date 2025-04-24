@@ -1,0 +1,91 @@
+  **Inputs:**
+
+* `A`: A binary string representing the first input number.
+* `B`: A binary string representing the second input number.
+
+**Outputs:**
+
+* `sum`: A binary string representing the sum of the two input numbers.
+
+**Code Summary:**
+
+The code provides an implementation of a function in C++ to add two binary strings `A` and `B` and return the result as a third string `sum`. The function takes `A` and `B` as input and returns `sum`.
+
+The function first checks the length of `A` and `B` and swaps them if `A` is longer than `B`. It then calculates the difference in length between the two strings and initializes a padding string to store zeroes that should be added as prefix to the shorter string.
+
+The function then initializes an empty result string `res` and a carry variable `carry` to store the carry generated during the addition operation. It then iterates through each bit of the two strings, starting from the least significant bit (LSB), and performs the following operations:
+
+* If both `A[i]` and `B[i]` are `1`, it stores a `1` in `res` if there is a carry, otherwise it stores a `0` in `res`.
+* If `A[i]` and `B[i]` are both `0`, it stores a `0` in `res` if there is a carry, otherwise it stores a `1` in `res`.
+* If `A[i]` and `B[i]` are not equal, it stores a `0` in `res` if there is no carry, otherwise it stores a `1` in `res`.
+
+After the loop, the function checks if there is a carry at the end and stores it in the result string if necessary. Finally, it removes any leading zeroes from the result string and returns it.
+
+**SystemC Implementation:**
+
+Here is a possible SystemC implementation of the function:
+```
+#include <systemc.h>
+
+SC_MODULE(BinaryAdder) {
+  sc_in<std::string> A;  // Input port for the first number
+  sc_in<std::string> B;  // Input port for the second number
+  sc_out<std::string> sum; // Output port for the sum
+
+  // Constructor
+  SC_CTOR(BinaryAdder) {
+    // Process to perform addition
+    SC_METHOD(add);
+    sensitive << A << B;
+  }
+
+  // Method to add the two numbers
+  void add() {
+    std::string res;
+    bool carry = false;
+    int len = A.length();
+    if (len > B.length()) {
+      // Swap A and B if A is longer
+      std::string tmp = A;
+      A = B;
+      B = tmp;
+    }
+    int diff = B.length() - A.length();
+    for (int i = 0; i < diff; i++) {
+      res.push_back('0');
+    }
+    for (int i = A.length() - 1; i >= 0; i--) {
+      if (A[i] == '1' && B[i] == '1') {
+        if (carry) {
+          res.push_back('1');
+          carry = false;
+        } else {
+          res.push_back('0');
+          carry = true;
+        }
+      } else if (A[i] == '0' && B[i] == '0') {
+        if (carry) {
+          res.push_back('1');
+          carry = false;
+        } else {
+          res.push_back('0');
+          carry = false;
+        }
+      } else {
+        if (carry) {
+          res.push_back('0');
+          carry = false;
+        } else {
+          res.push_back('1');
+          carry = true;
+        }
+      }
+    }
+    if (carry) {
+      res.push_back('1');
+    }
+    sum.write(res);
+  }
+};
+```
+In this implementation, we define a SystemC module `BinaryAdder` that has input ports `A` and `B` and output port `sum`. The module is constructed with a process that performs the adding operation when `A` or `B` changes. The process first checks the length of `A` and `B` and swaps them if necessary. It then initializes a result string `res` and a carry variable `carry` to `false`. It then iterates through each bit of the two strings and updates `carry` and `res` accordingly. Finally, it writes the result to the output port `sum`.

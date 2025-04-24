@@ -1,0 +1,156 @@
+  The provided C++/C code calculates the average of an array of integers. The code can be summarized as follows:
+
+1. The main function takes an array of integers and its size as input.
+2. The `average` function is called to compute the average of the array.
+3. The `average` function takes an array of integers and its size as input, and returns the average as an double value.
+4. The `average` function uses a `for` loop to iterate over the array, and a variable to keep track of the sum of all the array elements.
+5. The `sum` variable is calculated by adding the values of all array elements.
+6. The `average` function then returns the result of dividing the sum by the array size.
+
+To generate a SystemC code snippet that captures the same logic, we can use the following code:
+```
+#include <systemc.h>
+
+// Module that calculates average of an array of integers
+SC_MODULE(Average) {
+    sc_in<int> data_in;  // Input port for the array
+    sc_in<int> n;  // Input port for the array size
+    sc_out<int> average_out;  // Output port for the average
+
+    // Constructor
+    SC_CTOR(Average) {
+        // Process to calculate average
+        SC_METHOD(calculate_average);
+        sensitive << data_in << n;
+    }
+
+    // Method to calculate the average
+    void calculate_average() {
+        // Variable to keep track of the sum
+        int sum = 0;
+
+        // Iterate over the array and sum up all elements
+        for (int i = 0; i < n.read(); i++) {
+            sum += data_in[i].read();
+        }
+
+        // Calculate the average by dividing the sum by the array size
+        average_out.write((double)sum / n.read());
+    }
+};
+```
+In this SystemC code, we have defined an `Average` module that takes two input ports for the array and its size, and one output port for the average. The `calculate_average` method is the main method that performs the calculations and writes the result to the `average_out` output port.
+
+To make the integration with the testbench seamless, we need to provide the same input and output signals as in the C++/C code. Therefore, we can use the `data_in` and `n` input ports as the `data_in` and `n` variables in the `calculate_average` method, and the `average_out` output port to compute and return the average.
+
+The final SystemC code snippet is below:
+```
+#include <systemc.h>
+
+// Module that calculates average of an array of integers
+SC_MODULE(Average) {
+    sc_in<int> data_in;  // Input port for the array
+    sc_in<int> n;  // Input port for the array size
+    sc_out<int> average_out;  // Output port for the average
+
+    // Constructor
+    SC_CTOR(Average) {
+        // Process to calculate average
+        SC_METHOD(calculate_average);
+        sensitive << data_in << n;
+    }
+
+    // Method to calculate the average
+    void calculate_average() {
+        // Variable to keep track of the sum
+        int sum = 0;
+
+        // Iterate over the array and sum up all elements
+        for (int i = 0; i < n.read(); i++) {
+            sum += data_in[i].read();
+        }
+
+        // Calculate the average by dividing the sum by the array size
+        average_out.write((double)sum / n.read());
+    }
+};
+
+// Testbench module
+SC_MODULE(Testbench) {
+    sc_clock clk;  // Clock signal
+    sc_signal<bool> rst;  // Reset signal
+    sc_signal<int> data_in;  // Input signal for the array
+    sc_signal<int> n;  // Input signal for the array size
+    sc_signal<int> average_out;  // Output signal for the average
+
+    // DUT instance
+    Average dut;
+
+    // Constructor
+    SC_CTOR(Testbench) {
+        // Bind the C++ instance to the SystemC instance
+        dut.bind(sc_bind(sc_signal<int> &) data_in, data_in);
+        dut.bind(sc_bind(sc_signal<int> &) n, n);
+        dut.bind(sc_bind(sc_signal<int> &) average_out, average_out);
+    }
+
+    // Tick the clock
+    void tick_clk() {
+        rst.write(0);
+        NextState();
+        wait();
+        rst.write(1);
+        wait();
+    }
+
+    // Next state
+    void NextState() {
+        clk.write(1);
+        wait();
+        clk.write(0);
+        wait();
+    }
+};
+
+// C++ wrapper for the DUT
+int average(int a[], int n) {
+    int sum = 0;
+    for (int i = 0; i < n; i++) {
+        sum += a[i];
+    }
+
+    return (double)sum / n;
+}
+
+// Testbench module instance
+Testbench tb;
+
+// DUT module instance
+Average dut;
+
+// Main function
+int main() {
+    // Create the DUT instance
+    sc_spawn(sc_bind(Testbench &) tb);
+    sc_signal<double> average_h;
+
+    // Bind the DUT output to the SystemC output
+    tb.bind(sc_bind(sc_signal<double> &) average_out, average_h);
+
+    // Provide the input signals for the DUT
+    tb.data_in.write(10);
+    tb.n.write(2);
+
+    // Tick the clock
+    tb.tick_clk();
+
+    // Check the output of the DUT
+    printf("Average of 10 and 2 = %f\n", average_h.read());
+
+    // Close the simulation
+    sc_stop();
+
+    return 0;
+}
+```
+In the testbench module, we have defined the input signals for the DUT as `data_in` and `n`, and the output signal as `average_out`. We have also defined the `Data` module that does the actual calculation of the average. Finally, we have created an instance of the testbench and DUT module, and bound the output and input signals between the two, and also provided the input signals and verified the output of the DUT.

@@ -1,0 +1,150 @@
+### C++/C Code Analysis
+
+#### Inputs and Outputs
+- **Input**: An integer `n` which is the decimal number to be converted.
+- **Output**: The binary representation of the decimal number `n`, printed to the console.
+
+#### Detailed Explanation
+1. **Include Directive and Namespace Declaration**:
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - This includes the standard input-output stream library and uses the standard namespace for convenience.
+
+2. **Function `decToBinary`**:
+   ```cpp
+   void decToBinary(int n)
+   ```
+   - This function takes an integer `n` as input and converts it to binary.
+
+3. **Array to Store Binary Number**:
+   ```cpp
+   int binaryNum[32];
+   ```
+   - An array `binaryNum` of size 32 is declared to store the binary digits. The size is chosen to handle large integers.
+
+4. **Counter for Binary Array**:
+   ```cpp
+   int i = 0;
+   ```
+   - A counter `i` is initialized to 0 to keep track of the position in the `binaryNum` array.
+
+5. **While Loop to Convert Decimal to Binary**:
+   ```cpp
+   while (n > 0) {
+       binaryNum[i] = n % 2;
+       n = n / 2;
+       i++;
+   }
+   ```
+   - This loop continues until `n` becomes 0.
+   - In each iteration, the remainder of `n` divided by 2 is stored in `binaryNum[i]`, and `n` is updated to `n / 2`.
+   - The counter `i` is incremented to move to the next position in the array.
+
+6. **For Loop to Print Binary Number in Reverse Order**:
+   ```cpp
+   for (int j = i - 1; j >= 0; j--)
+       cout << binaryNum[j];
+   ```
+   - This loop prints the binary digits stored in `binaryNum` in reverse order.
+
+7. **Main Function**:
+   ```cpp
+   int main()
+   {
+       int n = 10;
+       decToBinary(n);
+       return 0;
+   }
+   ```
+   - The `main` function initializes `n` to 10 and calls `decToBinary(n)` to convert and print the binary representation of 10.
+
+### SystemC Code Generation
+
+To integrate this logic into a SystemC environment, we need to create a module that takes an input signal `dec_in` and produces an output signal `binary_out`. The SystemC code will replicate the functionality of the C++ code.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinaryConverter) {
+    sc_in<int> dec_in;  // Input port for the decimal number
+    sc_out<int> binary_out; // Output port for the binary representation
+
+    // Constructor
+    SC_CTOR(BinaryConverter) {
+        // Process to convert decimal to binary
+        SC_METHOD(convert);
+        sensitive << dec_in;
+    }
+
+    // Method to convert decimal to binary
+    void convert() {
+        int n = dec_in.read();
+        int binaryNum[32];
+        int i = 0;
+
+        while (n > 0) {
+            binaryNum[i] = n % 2;
+            n = n / 2;
+            i++;
+        }
+
+        int binary = 0;
+        for (int j = i - 1; j >= 0; j--) {
+            binary = binary * 10 + binaryNum[j];
+        }
+
+        binary_out.write(binary);
+    }
+};
+```
+
+### Explanation of SystemC Code
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(BinaryConverter) {
+   ```
+   - A SystemC module named `BinaryConverter` is declared.
+
+2. **Input and Output Ports**:
+   ```cpp
+   sc_in<int> dec_in;
+   sc_out<int> binary_out;
+   ```
+   - `dec_in` is the input port for the decimal number.
+   - `binary_out` is the output port for the binary representation.
+
+3. **Constructor**:
+   ```cpp
+   SC_CTOR(BinaryConverter) {
+       SC_METHOD(convert);
+       sensitive << dec_in;
+   }
+   ```
+   - The constructor connects the `convert` method to the `dec_in` port.
+
+4. **Conversion Method**:
+   ```cpp
+   void convert() {
+       int n = dec_in.read();
+       int binaryNum[32];
+       int i = 0;
+
+       while (n > 0) {
+           binaryNum[i] = n % 2;
+           n = n / 2;
+           i++;
+       }
+
+       int binary = 0;
+       for (int j = i - 1; j >= 0; j--) {
+           binary = binary * 10 + binaryNum[j];
+       }
+
+       binary_out.write(binary);
+   }
+   ```
+   - The `convert` method reads the input `dec_in`, performs the conversion to binary, and writes the result to `binary_out`.
+
+This SystemC code faithfully replicates the logic of the original C++ code and can be integrated into a SystemC testbench using the provided signals.

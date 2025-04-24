@@ -1,0 +1,105 @@
+  **Inputs:**
+
+* `A`: A string representing a binary number.
+* `B`: A string representing a binary number.
+
+**Outputs:**
+
+* `sum`: A string representing the sum of `A` and `B`.
+
+**Code Summary:**
+
+The function `addBinary` takes two binary strings `A` and `B` as input and returns their sum as a binary string. The function first checks the length of `A` and `B` and swaps them if `A` is longer than `B`. This ensures that the loop runs for the shorter string's length.
+
+The function then initializes a string called `padding` with zeroes to pad the shorter string with zeroes to make it the same length as the longer string. The `diff` variable is calculated as the difference between the length of the two strings.
+
+The function then initializes the `res` string to store the result and the `carry` variable to store the carry bit. The function then loops through each bit of both strings starting from the end and adds them together.
+
+The loop first checks if both bits are `1` and sets the `carry` bit accordingly. If one of the bits is `0`, the `carry` bit is set to `0`. If the bits are not the same, the `carry` bit is set to the opposite of the first bit.
+
+After all bits are added, the function checks if there is a `carry` bit and adds it to the result. Finally, the function returns the result after reversing it and removing any leading zeroes.
+
+**SystemC Code:**
+```
+#include "systemc.h"
+
+// Channel for input strings
+sc_in<std::string> A("A");
+sc_in<std::string> B("B");
+
+// Channel for output string
+sc_out<std::string> sum("sum");
+
+// Function to add two binary strings
+std::string addBinary(std::string A, std::string B) {
+    // Initialize the padding string
+    std::string padding = std::string(A.length() - B.length(), '0');
+
+    // Initialize the result and carry bits
+    std::string res = "";
+    char carry = '0';
+
+    // Loop through each bit of both strings
+    for (int i = A.length() - 1; i >= 0; i--) {
+        // If both bits are 1, set the carry bit
+        if (A[i] == '1' && B[i] == '1') {
+            if (carry == '1') {
+                res.push_back('1');
+                carry = '1';
+            } else {
+                res.push_back('0');
+                carry = '1';
+            }
+        }
+        // If one bit is 0, set the carry bit to 0
+        else if (A[i] == '0' && B[i] == '0') {
+            if (carry == '1') {
+                res.push_back('1');
+                carry = '0';
+            } else {
+                res.push_back('0');
+                carry = '0';
+            }
+        }
+        // If the bits are not the same, set the carry bit to the opposite of the first bit
+        else if (A[i] != B[i]) {
+            if (carry == '1') {
+                res.push_back('0');
+                carry = '1';
+            } else {
+                res.push_back('1');
+                carry = '0';
+            }
+        }
+    }
+
+    // If there is a carry bit, add it to the result
+    if (carry == '1') {
+        res.push_back('1');
+    }
+
+    // Reverse the result and remove any leading zeroes
+    reverse(res.begin(), res.end());
+    int index = 0;
+    while (index + 1 < res.length() && res[index] == '0') {
+        index++;
+    }
+    return res.substr(index);
+}
+
+// Module to add two binary strings
+SC_MODULE(Adder) {
+    // Input ports for two binary strings
+    sc_in<std::string> A("A");
+    sc_in<std::string> B("B");
+
+    // Output port for the sum
+    sc_out<std::string> sum("sum");
+
+    // Add the two strings
+    void add() {
+        sum.write(addBinary(A.read(), B.read()));
+    }
+};
+```
+Note that the SystemC code uses the `std::string` type to represent binary strings, which are then passed to the `addBinary` function to perform the addition. The `addBinary` function returns a string representing the sum of the two input strings. The `Adder` module takes two input strings and outputs their sum as a string.

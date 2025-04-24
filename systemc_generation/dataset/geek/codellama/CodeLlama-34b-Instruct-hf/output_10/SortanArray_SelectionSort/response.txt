@@ -1,0 +1,125 @@
+  **Input(s):**
+
+* `arr[]`: An array of integers to be sorted.
+* `n`: The number of elements in the `arr` array.
+
+**Output(s):**
+
+* `arr[]`: The sorted array of integers.
+* `printArray(arr, n)`: A function that prints the sorted array to the standard output.
+
+**Summary:**
+
+The given C++/C code implements the selection sort algorithm, which is a simple sorting algorithm that works by repeatedly finding the minimum element from the unsorted part of an array, and moving it to the beginning of the array. The code includes a `swap` function, a `selectionSort` function, and a `printArray` function.
+
+The `swap` function takes two pointers to integers as arguments and swaps their values. The `selectionSort` function takes an array of integers and its length as inputs, and applies the selection sort algorithm to the array. Finally, the `printArray` function takes an array of integers and its length as inputs, and prints the array to the standard output.
+
+**SystemC Mapping:**
+
+To implement the selection sort algorithm using SystemC, we can create three modules: `swap`, `selectionSort`, and `printArray`.
+
+1. `swap` module:
+```scss
+// SC_MODULE(swap) {
+    sc_in<int> xp;
+    sc_in<int> yp;
+
+    SC_CTOR(swap) {
+        // Process to perform swapping
+        SC_METHOD(swap);
+        sensitive << xp << yp;
+    }
+
+    void swap() {
+        int temp = xp.read();
+        xp.write(yp.read());
+        yp.write(temp);
+    }
+}
+```
+This module takes two input signals, `xp` and `yp`, which are the pointers to the two integers to be swapped. It contains a single process that performs the swap operation when triggered.
+
+1. `selectionSort` module:
+```scss
+// SC_MODULE(selectionSort) {
+    sc_in<int> arr;
+    sc_in<int> n;
+    sc_out<int> sortedArr;
+
+    SC_CTOR(selectionSort) {
+        // Process to implement selection sort
+        SC_METHOD(selectionSort);
+        sensitive << arr << n;
+    }
+
+    void selectionSort() {
+        for (int i = 0; i < n.read(); i++) {
+            int min_idx = i;
+            for (int j = i+1; j < n.read(); j++) {
+                if (arr[j].read() < arr[min_idx].read()) {
+                    min_idx = j;
+                }
+            }
+            sortedArr.write(swap(arr[min_idx].read(), arr[i].read()));
+        }
+    }
+}
+```
+This module takes an input array `arr` and its length `n`, and an output array `sortedArr`. It contains a single process that implements the selection sort algorithm. It finds the minimum element in the unsorted part of the array, swaps it with the first element, and repeats this process until the entire array is sorted.
+
+1. `printArray` module:
+```scss
+// SC_MODULE(printArray) {
+    sc_in<int> arr;
+    sc_in<int> n;
+
+    SC_CTOR(printArray) {
+        // Process to print the array
+        SC_METHOD(printArray);
+        sensitive << arr << n;
+    }
+
+    void printArray() {
+        for (int i = 0; i < n.read(); i++) {
+            cout << arr[i].read() << " ";
+        }
+        cout << endl;
+    }
+}
+```
+This module takes an input array `arr` and its length `n`, and contains a single process that prints the array to the standard output.
+
+**Combining the Modules:**
+
+To combine the `swap`, `selectionSort`, and `printArray` modules, we can create a top-level SystemC module called `main` that instantiates and connects the three modules.
+```scss
+SC_MODULE(main) {
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+    sc_in<int> arr;
+    sc_in<int> n;
+    sc_out<int> sortedArr;
+
+    // Instantiate and connect the modules
+    swap mu_swap;
+    selectionSort mu_selectionSort;
+    printArray mu_printArray;
+
+    SC_CTOR(main) {
+        // Connect the modules
+        mu_swap.xp(arr[0]);
+        mu_swap.yp(arr[1]);
+        mu_selectionSort.arr(arr);
+        mu_selectionSort.n(n);
+        mu_selectionSort.sortedArr(sortedArr);
+        mu_printArray.arr(sortedArr);
+        mu_printArray.n(n);
+    }
+}
+```
+In this example, we have connected the `xp` and `yp` input signals of the `swap` module to the first two array elements of the input array `arr`, and the `arr` and `n` input signals of the `selectionSort` module to the input array `arr` and its length `n`. We have also connected the `sortedArr` output signal of the `selectionSort` module to the input array of the `printArray` module.
+
+**Verification:**
+
+To verify that the SystemC code faithfully captures the logic of the original C++/C source, we can run simulations using a SystemC simulator. We can compare the output of the SystemC code with the output of the original C++/C code, and ensure that they match. We can also run functional and performance tests to ensure that the SystemC code behaves correctly and meets the desired performance requirements.

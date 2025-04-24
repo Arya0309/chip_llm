@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch.nn.utils.rnn import pad_sequence
+from vllm import LLM
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -70,9 +71,7 @@ def generate_systemc(
             input = tokenizer.apply_chat_template(
                 prompt, tokenize=False, add_generation_prompt=True
             )
-            input = tokenizer(
-                input, return_tensors="pt", padding=True, truncation=True
-            ).to(next(model.parameters()).device)
+            input = tokenizer(input, return_tensors="pt", padding=True, truncation=True)
 
             df_input = df_input._append(
                 {
@@ -218,6 +217,20 @@ def output_dir_generator(
             f.write(row["respond"])
 
 
+def load_model(model_name, dtype):
+
+    model = LLM(
+        model=model_name,
+        max_model_len=8192,
+        gpu_memory_utilization=0.9,
+        max_logprobs=1000,
+        tensor_parallel_size=2,
+        dtype=dtype,
+    )
+    print(f"{model_name} model loaded successfully")
+    return model
+
+
 if __name__ == "__main__":
 
     model_name = "Qwen/Qwen2.5-Coder-32B-Instruct"  # Qwen/Qwen2.5-Coder-7B-Instruct, Qwen/Qwen2.5-Coder-14B-Instruct, Qwen/Qwen2.5-Coder-32B-Instruct
@@ -231,37 +244,33 @@ if __name__ == "__main__":
             "Warning: The model is not Qwen/Qwen2.5-Coder-32B-Instruct, but the dtype is set to float16. This may cause issues."
         )
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    tokenizer.padding_side = "left"
+    if not os.path.exists(f"/workspace/models/{model_name}"):
+        AutoTokenizer.from_pretrained(model_name).save_pretrained(
+            f"/workspace/models/{model_name}",
+        )
+        AutoModelForCausalLM.from_pretrained(model_name).save_pretrained(
+            f"/workspace/models/{model_name}",
+        )
 
-    if dtype == "float16":
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.float16,
-            device_map="auto",
+    tokenizer = AutoTokenizer.from_pretrained(
+        f"/workspace/models/{model_name}",
+    )
+
+    if dtype == None:
+        model = load_model(
+            model_name=f"/workspace/models/{model_name}",
         )
-    elif dtype == "bfloat16":
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
-        )
-    elif dtype == "int8":
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            load_in_8bit=True,
-            device_map="auto",
-        )
-    elif dtype == None:
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            device_map="auto",
+
+    else:
+        model = load_model(
+            model_name=f"/workspace/models/{model_name}",
+            dtype=dtype,
         )
 
     for i in range(1, epoach + 1):
         print(f"Epoch {i} / {epoach}")
         df_output = generate_systemc(
-            os.path.join(dataset, data), model=model, tokenizer=tokenizer, batch_size=16
+            os.path.join(dataset, data), model=model, tokenizer=tokenizer, batch_size=1
         )
         output_dir_generator(
             df_output, dataset, output_data_dir=f"{model_name}/output_{i}"

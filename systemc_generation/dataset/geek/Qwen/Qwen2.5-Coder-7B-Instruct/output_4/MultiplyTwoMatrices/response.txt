@@ -1,0 +1,119 @@
+### Analysis of the C++ Code
+
+#### Inputs and Outputs
+- **Inputs**: Two 2D integer arrays `mat1` and `mat2`.
+- **Outputs**: A 2D integer array `rslt` representing the product of `mat1` and `mat2`.
+
+#### Detailed Explanation
+
+1. **Header and Macro Definitions**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+
+   #define R1 2 // number of rows in Matrix-1
+   #define C1 2 // number of columns in Matrix-1
+   #define R2 2 // number of rows in Matrix-2
+   #define C2 3 // number of columns in Matrix-2
+   ```
+   - The code includes the standard library and uses macros to define the dimensions of the matrices.
+
+2. **Function to Multiply Matrices**
+   ```cpp
+   void mulMat(int mat1[][C1], int mat2[][C2])
+   {
+       int rslt[R1][C2];
+
+       cout << "Multiplication of given two matrices is:\n";
+
+       for (int i = 0; i < R1; i++) {
+           for (int j = 0; j < C2; j++) {
+               rslt[i][j] = 0;
+
+               for (int k = 0; k < R2; k++) {
+                   rslt[i][j] += mat1[i][k] * mat2[k][j];
+               }
+
+               cout << rslt[i][j] << "\t";
+           }
+
+           cout << endl;
+       }
+   }
+   ```
+   - This function takes two matrices `mat1` and `mat2` as input and computes their product.
+   - It initializes a result matrix `rslt` with zeros.
+   - The nested loops iterate through the matrices to compute each element of the result matrix using the formula \( rslt[i][j] = \sum_{k=0}^{R2-1} mat1[i][k] \times mat2[k][j] \).
+   - The result is printed to the console.
+
+3. **Driver Code**
+   ```cpp
+   int main()
+   {
+       int mat1[R1][C1] = { { 1, 1 }, { 2, 2 } };
+       int mat2[R2][C2] = { { 1, 1, 1 }, { 2, 2, 2 } };
+
+       if (C1 != R2) {
+           cout << "The number of columns in Matrix-1 must "
+                    "be equal to the number of rows in "
+                    "Matrix-2"
+                << endl;
+           cout << "Please update MACROs according to your "
+                    "array dimension in #define section"
+                << endl;
+
+           exit(EXIT_FAILURE);
+       }
+
+       mulMat(mat1, mat2);
+
+       return 0;
+   }
+   ```
+   - The driver code initializes the matrices `mat1` and `mat2`.
+   - It checks if the number of columns in `mat1` is equal to the number of rows in `mat2`. If not, it prints an error message and exits.
+   - It calls the `mulMat` function to compute and print the product of the matrices.
+
+### SystemC Code
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixMultiplier) {
+    sc_in<int> A[SIZE_A];  // Input ports for the first matrix
+    sc_in<int> B[SIZE_B];  // Input ports for the second matrix
+    sc_out<int> C[SIZE_RESULT]; // Output ports for the result matrix
+
+    // Constructor
+    SC_CTOR(MatrixMultiplier) {
+        // Process to perform matrix multiplication
+        SC_METHOD(multiply);
+        sensitive << A << B;
+    }
+
+    // Method to multiply the two matrices
+    void multiply() {
+        int rslt[SIZE_A][SIZE_B];
+
+        for (int i = 0; i < SIZE_A; i++) {
+            for (int j = 0; j < SIZE_B; j++) {
+                rslt[i][j] = 0;
+
+                for (int k = 0; k < SIZE_B; k++) {
+                    rslt[i][j] += A[i][k] * B[k][j];
+                }
+
+                C[i][j].write(rslt[i][j]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Module Definition**: The `MatrixMultiplier` module is defined with input ports `A` and `B` for the matrices and output ports `C` for the result.
+- **Constructor**: The constructor sets up the `multiply` method to be sensitive to changes in the input ports `A` and `B`.
+- **Multiply Method**: This method performs the matrix multiplication logic similar to the C++ code. It initializes a result matrix `rslt` with zeros, iterates through the matrices to compute each element, and writes the result to the output ports `C`.
+
+This SystemC code faithfully captures the logic of the original C++/C source and can be integrated with the provided signals for high-level synthesis.

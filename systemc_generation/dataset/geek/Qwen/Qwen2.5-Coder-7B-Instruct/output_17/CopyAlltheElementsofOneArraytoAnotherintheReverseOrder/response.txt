@@ -1,0 +1,163 @@
+### Inputs and Outputs
+
+**Inputs:**
+- None (The code does not take any external inputs from the user.)
+
+**Outputs:**
+- The code prints two arrays to the console:
+  1. The original array.
+  2. The copied array in reverse order.
+
+### Detailed Explanation
+
+1. **Header File Inclusion:**
+   ```c
+   #include <stdio.h>
+   ```
+   - This line includes the standard I/O library, which is necessary for using `printf` for printing arrays.
+
+2. **Function to Print Array:**
+   ```c
+   void printArray(int arr[], int len)
+   ```
+   - This function takes an integer array and its length as arguments and prints each element of the array.
+
+3. **Main Function:**
+   ```c
+   int main()
+   ```
+   - This is the entry point of the program.
+
+4. **Declaration of Original Array:**
+   ```c
+   int original_arr[] = {1, 2, 3, 4, 5};
+   ```
+   - An array named `original_arr` is declared and initialized with the values `{1, 2, 3, 4, 5}`.
+
+5. **Calculate Length of Array:**
+   ```c
+   int len = sizeof(original_arr) / sizeof(original_arr[0]);
+   ```
+   - The length of the array `original_arr` is calculated using the `sizeof` operator.
+
+6. **Declaration of Copied Array:**
+   ```c
+   int copied_arr[len], i, j;
+   ```
+   - An array named `copied_arr` is declared with the same length as `original_arr`. The variables `i` and `j` are also declared but not used in this code.
+
+7. **Copy Elements in Reverse Order:**
+   ```c
+   for (i = 0; i < len; i++) {
+       copied_arr[i] = original_arr[len - i - 1];
+   }
+   ```
+   - A loop iterates over the elements of `original_arr` and assigns them to `copied_arr` in reverse order.
+
+8. **Print Original Array:**
+   ```c
+   printf(" Original array: ");
+   printArray(original_arr, len);
+   ```
+   - The original array is printed to the console.
+
+9. **Print Copied Array:**
+   ```c
+   printf(" Resultant array: ");
+   printArray(copied_arr, len);
+   ```
+   - The copied array is printed to the console.
+
+10. **Return Statement:**
+    ```c
+    return 0;
+    ```
+    - The program returns 0 indicating successful execution.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that integrates the provided signals and replicates the logic of the original C++/C code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayReverser) {
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
+    sc_out<bool> done;     // Done signal
+
+    sc_in<sc_vector<int>> original_arr;  // Input port for the original array
+    sc_out<sc_vector<int>> copied_arr;    // Output port for the copied array
+
+    sc_vector<int> temp_arr;  // Temporary array to hold the copied array
+
+    SC_CTOR(ArrayReverser) {
+        SC_METHOD(reverser);
+        sensitive << clk.pos();  // Sensitive to positive edge of clock
+        dont_initialize();
+    }
+
+    void reverser() {
+        if (start.read()) {
+            temp_arr = original_arr.read();
+            int len = temp_arr.size();
+            for (int i = 0; i < len; i++) {
+                copied_arr[i].write(temp_arr[len - i - 1]);
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(ArrayReverser)
+   ```
+   - This declares a SystemC module named `ArrayReverser`.
+
+2. **Signals:**
+   - `clk`: Clock signal.
+   - `start`: Start signal to trigger the process.
+   - `done`: Done signal to indicate the process completion.
+   - `original_arr`: Input port for the original array.
+   - `copied_arr`: Output port for the copied array.
+
+3. **Temporary Array:**
+   ```cpp
+   sc_vector<int> temp_arr;
+   ```
+   - A temporary array to hold the elements of the original array.
+
+4. **Constructor:**
+   ```cpp
+   SC_CTOR(ArrayReverser) {
+       SC_METHOD(reverser);
+       sensitive << clk.pos();
+       dont_initialize();
+   }
+   ```
+   - The constructor sets up the method `reverser` to be sensitive to the positive edge of the clock.
+
+5. **Reverser Method:**
+   ```cpp
+   void reverser() {
+       if (start.read()) {
+           temp_arr = original_arr.read();
+           int len = temp_arr.size();
+           for (int i = 0; i < len; i++) {
+               copied_arr[i].write(temp_arr[len - i - 1]);
+           }
+           done.write(true);
+       } else {
+           done.write(false);
+       }
+   }
+   ```
+   - This method checks if the `start` signal is true. If so, it reads the original array, copies its elements in reverse order to the `copied_arr`, and sets the `done` signal to true. If the `start` signal is false, it sets the `done` signal to false.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated with the provided signals.

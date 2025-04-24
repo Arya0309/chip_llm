@@ -1,0 +1,160 @@
+### Analysis of the C++ Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - A 2D matrix `m` of size `r x c`.
+  - No explicit inputs from the user in the `main()` function, but the matrix `m` is hardcoded.
+  
+- **Outputs**:
+  - The sorted 2D matrix printed to the console.
+
+#### Detailed Explanation
+
+1. **Header File and Namespace**
+   ```cpp
+   #include<bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes standard library headers and uses the standard namespace.
+
+2. **Swap Function**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - Swaps the values of two integers pointed to by `xp` and `yp`.
+
+3. **Sort Row-Wise Function**
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   ```
+   - Sorts each row of the matrix `m` in ascending order.
+
+4. **Outer Loop for Rows**
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   ```
+   - Iterates over each row of the matrix.
+
+5. **Inner Loop for Columns**
+   ```cpp
+   for (int j = 0; j < c; j++) 
+   ```
+   - Iterates over each column of the matrix.
+
+6. **Bubble Sort for Each Row**
+   ```cpp
+   for (int k = 0; k < c - j - 1; k++) 
+   {
+       if (m[i][k] > m[i][k + 1]) 
+       {
+           swap(m[i][k], m[i][k + 1]);
+       }
+   }
+   ```
+   - Uses bubble sort to sort each row.
+
+7. **Printing the Sorted Matrix**
+   ```cpp
+   for (int i = 0; i < r; i++) 
+   {
+       for (int j = 0; j < c; j++)
+           cout << m[i][j] << " ";
+       cout << endl;
+   }
+   ```
+   - Prints each element of the sorted matrix.
+
+8. **Driver Code**
+   ```cpp
+   int main()
+   {
+       int m[][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}};
+       int c = sizeof(m[0]) / sizeof(m[0][0]);
+       int r = sizeof(m) / sizeof(m[0]);
+       sortRowWise(m, r, c);
+       return 0;
+   }
+   ```
+   - Initializes the matrix `m`, calculates the number of rows (`r`) and columns (`c`), and calls the `sortRowWise` function.
+
+### Equivalent SystemC Code
+
+Here is the equivalent SystemC code that integrates with the provided signals and performs the same logic:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done; // Done signal
+    sc_out<int> sorted_matrix[4][4]; // Output port for the sorted matrix
+
+    int m[4][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}};
+    int c = 4; // Number of columns
+    int r = 4; // Number of rows
+    bool sorting_done = false;
+
+    SC_CTOR(MatrixSorter) {
+        SC_METHOD(sortRows);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        SC_METHOD(printSortedMatrix);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sortRows() {
+        if (start.read()) {
+            for (int i = 0; i < r; i++) {
+                for (int k = 0; k < c - 1; k++) {
+                    for (int j = 0; j < c - k - 1; j++) {
+                        if (m[i][j] > m[i][j + 1]) {
+                            int temp = m[i][j];
+                            m[i][j] = m[i][j + 1];
+                            m[i][j + 1] = temp;
+                        }
+                    }
+                }
+            }
+            sorting_done = true;
+        }
+    }
+
+    void printSortedMatrix() {
+        if (sorting_done) {
+            for (int i = 0; i < r; i++) {
+                for (int j = 0; j < c; j++) {
+                    sorted_matrix[i][j].write(m[i][j]);
+                }
+            }
+            done.write(true);
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Inputs and Outputs**:
+  - `clk`: Clock signal.
+  - `start`: Start signal to initiate the sorting process.
+  - `done`: Done signal indicating the completion of the sorting process.
+  - `sorted_matrix`: Output port for the sorted matrix.
+
+- **Initialization**:
+  - The matrix `m` is initialized with the same values as in the original C++ code.
+  - The number of rows (`r`) and columns (`c`) are set.
+  - A boolean flag `sorting_done` is used to indicate when the sorting is complete.
+
+- **Methods**:
+  - `sortRows`: This method sorts each row of the matrix using a bubble sort algorithm. It is triggered by the rising edge of the clock signal and the start signal.
+  - `printSortedMatrix`: This method prints the sorted matrix to the `sorted_matrix` output port. It is also triggered by the rising edge of the clock signal and checks if the sorting is complete.
+
+This SystemC code integrates seamlessly with the provided signals and can be used in a high-level synthesis flow.

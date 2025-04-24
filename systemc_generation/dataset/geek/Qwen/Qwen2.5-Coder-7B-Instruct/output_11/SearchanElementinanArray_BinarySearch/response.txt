@@ -1,0 +1,140 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - A `vector<int>` named `v` containing the sorted array of integers.
+  - An `int` named `target` representing the element to search for within the array.
+- **Outputs**:
+  - A `bool` value indicating whether the `target` was found in the array (`true`) or not (`false`).
+
+#### Detailed Explanation of the Code
+
+1. **Function Declaration and Initialization**:
+   ```cpp
+   bool binarySearch(vector<int>& v, int target) {
+       int low = 0, high = v.size() - 1;
+   ```
+   - `binarySearch` function takes a reference to a `vector<int>` `v` and an `int` `target`.
+   - `low` is initialized to 0, representing the start of the array.
+   - `high` is initialized to `v.size() - 1`, representing the end of the array.
+
+2. **Binary Search Loop**:
+   ```cpp
+   while (low <= high) {
+       int mid = ((high - low) / 2) + low;
+       if (v[mid] == target) {
+           return true;
+       }
+       if (v[mid] > target)
+           high = mid - 1;
+       else
+           low = mid + 1;
+   }
+   ```
+   - The loop continues as long as `low` is less than or equal to `high`.
+   - `mid` is calculated as the midpoint between `low` and `high`.
+   - If `v[mid]` equals `target`, the function returns `true`.
+   - If `v[mid]` is greater than `target`, the search continues in the left half by updating `high` to `mid - 1`.
+   - If `v[mid]` is less than `target`, the search continues in the right half by updating `low` to `mid + 1`.
+
+3. **Return Statement**:
+   ```cpp
+   return false;
+   ```
+   - If the loop exits without finding the `target`, the function returns `false`.
+
+4. **Main Function**:
+   ```cpp
+   int main() {
+       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+       int target = 8;
+       if (binarySearch(v, target)) {
+           cout << target << " found.";
+       } else {
+           cout << target << " NOT found.";
+       }
+       return 0;
+   }
+   ```
+   - The `main` function initializes a sorted vector `v` and sets `target` to 8.
+   - It calls `binarySearch` and prints the result accordingly.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that incorporates the provided signals (`target`, `found`, and `v`) and replicates the logic of the original C++/C code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinarySearch) {
+    sc_in<int> target;  // Input signal for the target element
+    sc_out<bool> found; // Output signal indicating if the target was found
+    sc_vector<sc_in<int>> v; // Vector of input signals representing the array
+
+    // Constructor
+    SC_CTOR(BinarySearch) {
+        // Process to perform binary search
+        SC_METHOD(search);
+        sensitive << target << v;
+    }
+
+    // Method to perform binary search
+    void search() {
+        int low = 0, high = v.size() - 1;
+        while (low <= high) {
+            int mid = ((high - low) / 2) + low;
+            if (v[mid].read() == target.read()) {
+                found.write(true);
+                return;
+            }
+            if (v[mid].read() > target.read())
+                high = mid - 1;
+            else
+                low = mid + 1;
+        }
+        found.write(false);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    BinarySearch bs("binary_search");
+    bs.v.push_back(sc_in<int>("v_0"));
+    bs.v.push_back(sc_in<int>("v_1"));
+    bs.v.push_back(sc_in<int>("v_2"));
+    bs.v.push_back(sc_in<int>("v_3"));
+    bs.v.push_back(sc_in<int>("v_4"));
+    bs.v.push_back(sc_in<int>("v_5"));
+    bs.v.push_back(sc_in<int>("v_6"));
+    bs.v.push_back(sc_in<int>("v_7"));
+
+    bs.target = 8;
+    bs.search();
+
+    if (bs.found.read()) {
+        cout << "Target found." << endl;
+    } else {
+        cout << "Target NOT found." << endl;
+    }
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **Module Declaration**:
+  - `BinarySearch` module is declared with `target` as an input signal, `found` as an output signal, and `v` as a vector of input signals representing the array.
+
+- **Constructor**:
+  - The constructor initializes the `search` method to be sensitive to changes in `target` and `v`.
+
+- **Search Method**:
+  - The `search` method replicates the logic of the original binary search algorithm.
+  - It iteratively narrows down the search range until the target is found or the range is exhausted.
+  - The `found` signal is set to `true` if the target is found, otherwise, it is set to `false`.
+
+- **Main Function**:
+  - The `sc_main` function initializes the `BinarySearch` module, sets the values of the array elements, and triggers the search.
+  - It then checks the `found` signal and prints the appropriate message based on whether the target was found or not.
+
+This SystemC code ensures that the logic of the original C++/C code is faithfully captured and can be integrated into a high-level synthesis flow.

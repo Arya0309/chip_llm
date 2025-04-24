@@ -1,0 +1,104 @@
+
+#include <systemc.h>
+
+// Module that checks if a number is prime using simple trial division
+
+SC_MODULE(PrimeChecker) {
+    sc_in<int> n; // Input port for the number to be checked
+    sc_out<bool> is_prime; // Output port for whether `n` is prime or not prime
+
+    // Constructor
+    SC_CTOR(PrimeChecker) {
+        // Process to check if `n` is prime
+        SC_METHOD(check_prime);
+        sensitive << n;
+    }
+
+    // Method to check if `n` is prime
+    void check_prime() {
+        int cnt = 0;
+
+        // Check if `n` is less than or equal to 1
+        if (n <= 1) {
+            is_prime.write(false);
+            return;
+        }
+
+        // Iterate over the range of values between 1 and `n`
+        for (int i = 1; i <= n; i++) {
+            // Check if `n` is divisible by `i`
+            if (n % i == 0) {
+                cnt++;
+            }
+        }
+
+        // Check if `n` has more than 2 divisors
+        if (cnt > 2) {
+            is_prime.write(false);
+            return;
+        }
+
+        is_prime.write(true);
+    }
+};
+
+
+SC_MODULE(Testbench) {
+    sc_signal<int> n_sig;       // Signal for the input number
+    sc_signal<bool> prime_sig;  // Signal for the prime check result
+
+    // Instance of the PrimeChecker module
+    PrimeChecker prime_checker_inst;
+
+    // Constructor: Initialize the module and run the test thread
+    SC_CTOR(Testbench)
+    : prime_checker_inst("prime_checker_inst") {
+        // Connect signals to module ports
+        prime_checker_inst.n(n_sig);
+        prime_checker_inst.is_prime(prime_sig);
+
+        // Create a test thread to provide stimulus and check the result
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Test case: n = 29 (expected: prime)
+        n_sig.write(29);
+        wait(1, SC_NS); // Wait for the process to update
+        bool result = prime_sig.read();
+        std::cout << "Number " << n_sig.read() << " is " << (result ? "prime" : "NOT prime") << std::endl;
+        assert(result == true);
+
+        // Test case: n = 1 (expected: NOT prime)
+        n_sig.write(1);
+        wait(1, SC_NS);
+        result = prime_sig.read();
+        std::cout << "Number " << n_sig.read() << " is " << (result ? "prime" : "NOT prime") << std::endl;
+        assert(result == false);
+
+        // Test case: n = 10 (expected: NOT prime)
+        n_sig.write(10);
+        wait(1, SC_NS);
+        result = prime_sig.read();
+        std::cout << "Number " << n_sig.read() << " is " << (result ? "prime" : "NOT prime") << std::endl;
+        assert(result == false);
+
+        // Test case: n = 13 (expected: prime)
+        n_sig.write(13);
+        wait(1, SC_NS);
+        result = prime_sig.read();
+        std::cout << "Number " << n_sig.read() << " is " << (result ? "prime" : "NOT prime") << std::endl;
+        assert(result == true);
+
+        // End simulation after successful tests
+        std::cout << "All tests passed successfully." << std::endl;
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Instantiate the testbench module
+    sc_start();         // Start the simulation
+    return 0;
+}

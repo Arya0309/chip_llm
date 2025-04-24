@@ -1,0 +1,153 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: The code takes a square matrix `mat` of size `n x n`.
+- **Outputs**: The code calculates and outputs two values:
+  - **Trace**: The sum of the diagonal elements of the matrix.
+  - **Normal**: The Euclidean norm (or Frobenius norm) of the matrix, which is the square root of the sum of the squares of all the matrix elements.
+
+#### Detailed Explanation
+
+1. **Constants and Function Declarations**
+   ```cpp
+   const int MAX = 100;
+   ```
+   - This declares a constant `MAX` which sets the maximum size of the matrix.
+
+2. **Function to Calculate Normal**
+   ```cpp
+   int findNormal(int mat[][MAX], int n)
+   {
+       int sum = 0;
+       for (int i = 0; i < n; i++)
+           for (int j = 0; j < n; j++)
+               sum += mat[i][j] * mat[i][j];
+       return sqrt(sum);
+   }
+   ```
+   - This function calculates the normal of the matrix.
+   - It iterates over each element of the matrix, squares it, and adds it to `sum`.
+   - Finally, it returns the square root of `sum`.
+
+3. **Function to Calculate Trace**
+   ```cpp
+   int findTrace(int mat[][MAX], int n)
+   {
+       int sum = 0;
+       for (int i = 0; i < n; i++)
+           sum += mat[i][i];
+       return sum;
+   }
+   ```
+   - This function calculates the trace of the matrix.
+   - It iterates over the diagonal elements of the matrix and sums them up.
+   - Finally, it returns the sum.
+
+4. **Main Function**
+   ```cpp
+   int main()
+   {
+       int mat[][MAX] = {{1, 1, 1, 1, 1}, 
+           {2, 2, 2, 2, 2}, 
+           {3, 3, 3, 3, 3}, 
+           {4, 4, 4, 4, 4}, 
+           {5, 5, 5, 5, 5}};
+       cout << "Trace of Matrix = " << findTrace(mat, 5) << endl; 
+       cout << "Normal of Matrix = " << findNormal(mat, 5) << endl; 
+       return 0; 
+   }
+   ```
+   - This is the driver function that initializes a matrix and calls the `findTrace` and `findNormal` functions to compute and print the trace and normal of the matrix.
+
+### Equivalent SystemC Code
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixStats) {
+    sc_in<int> matrix[SIZE];  // Input port for the matrix elements
+    sc_out<int> trace;         // Output port for the trace
+    sc_out<int> norm;          // Output port for the normal
+
+    SC_CTOR(MatrixStats) {
+        // Process to calculate trace
+        SC_METHOD(calculate_trace);
+        sensitive << matrix;
+
+        // Process to calculate normal
+        SC_METHOD(calculate_norm);
+        sensitive << matrix;
+    }
+
+    void calculate_trace() {
+        int sum = 0;
+        for (int i = 0; i < SIZE; i++) {
+            sum += matrix[i].read();
+        }
+        trace.write(sum);
+    }
+
+    void calculate_norm() {
+        int sum = 0;
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                sum += matrix[i*SIZE + j].read() * matrix[i*SIZE + j].read();
+            }
+        }
+        norm.write(sqrt(sum));
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(MatrixStats) {
+       sc_in<int> matrix[SIZE];  // Input port for the matrix elements
+       sc_out<int> trace;         // Output port for the trace
+       sc_out<int> norm;          // Output port for the normal
+   ```
+   - This module `MatrixStats` has three ports: `matrix` (input), `trace` (output), and `norm` (output).
+
+2. **Constructor**
+   ```cpp
+   SC_CTOR(MatrixStats) {
+       // Process to calculate trace
+       SC_METHOD(calculate_trace);
+       sensitive << matrix;
+
+       // Process to calculate normal
+       SC_METHOD(calculate_norm);
+       sensitive << matrix;
+   }
+   ```
+   - The constructor initializes two processes: `calculate_trace` and `calculate_norm`, both sensitive to changes in the `matrix` input.
+
+3. **Calculate Trace Method**
+   ```cpp
+   void calculate_trace() {
+       int sum = 0;
+       for (int i = 0; i < SIZE; i++) {
+           sum += matrix[i].read();
+       }
+       trace.write(sum);
+   }
+   ```
+   - This method calculates the trace by summing the diagonal elements of the matrix and writes the result to the `trace` output port.
+
+4. **Calculate Norm Method**
+   ```cpp
+   void calculate_norm() {
+       int sum = 0;
+       for (int i = 0; i < SIZE; i++) {
+           for (int j = 0; j < SIZE; j++) {
+               sum += matrix[i*SIZE + j].read() * matrix[i*SIZE + j].read();
+           }
+       }
+       norm.write(sqrt(sum));
+   }
+   ```
+   - This method calculates the normal by summing the squares of all elements of the matrix and writes the square root of the sum to the `norm` output port.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

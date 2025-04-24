@@ -1,0 +1,135 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: A 2D array `m` of size `n x n`.
+- **Outputs**: The modified 2D array after swapping the first and last columns of each row.
+
+#### Detailed Explanation Line-by-Line
+
+1. **Header Inclusion and Namespace Declaration**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - Includes the iostream library for input/output operations and uses the standard namespace.
+
+2. **Macro Definition**
+   ```cpp
+   #define n 4 
+   ```
+   - Defines a macro `n` with the value 4, indicating the size of the 2D array.
+
+3. **Function Declaration**
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n`.
+
+4. **Loop to Swap First and Last Columns**
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[i][0]; 
+       m[i][0] = m[i][n - 1]; 
+       m[i][n - 1] = t; 
+   } 
+   ```
+   - Iterates over each row of the array.
+   - Swaps the first element (`m[i][0]`) with the last element (`m[i][n - 1]`) of the current row.
+
+5. **Driver Function**
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                    {4, 7, 6, 5}, 
+                    {3, 2, 1, 8}, 
+                    {9, 9, 7, 7}}; 
+       interchangeFirstLast(m); 
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - Initializes a 4x4 matrix `m`.
+   - Calls the `interchangeFirstLast` function to swap the columns.
+   - Prints the modified matrix.
+
+### Generated SystemC Code
+
+To integrate this functionality into a high-level synthesis flow, we need to convert the C++ code into a SystemC module. Here's how you can do it:
+
+```cpp
+#include <systemc.h>
+
+// SystemC module to interchange first and last columns of a 2D array
+SC_MODULE(ColumnInterchanger) {
+    sc_in<int> in[4][4];  // Input ports for the 4x4 array
+    sc_out<int> out[4][4]; // Output ports for the modified 4x4 array
+
+    // Constructor
+    SC_CTOR(ColumnInterchanger) {
+        // Process to perform column interchange
+        SC_METHOD(interchange);
+        sensitive << in;
+    }
+
+    // Method to interchange the first and last columns of each row
+    void interchange() {
+        for (int i = 0; i < 4; i++) {
+            int t = in[i][0].read();
+            out[i][0].write(in[i][3].read());
+            out[i][3].write(t);
+            for (int j = 1; j < 3; j++) {
+                out[i][j].write(in[i][j].read());
+            }
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(ColumnInterchanger) {
+   ```
+   - Declares a SystemC module named `ColumnInterchanger`.
+
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<int> in[4][4];  // Input ports for the 4x4 array
+   sc_out<int> out[4][4]; // Output ports for the modified 4x4 array
+   ```
+   - Defines input and output ports for a 4x4 array.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(ColumnInterchanger) {
+       SC_METHOD(interchange);
+       sensitive << in;
+   }
+   ```
+   - Constructs the module and binds the `interchange` method to the input ports.
+
+4. **Method to Interchange Columns**
+   ```cpp
+   void interchange() {
+       for (int i = 0; i < 4; i++) {
+           int t = in[i][0].read();
+           out[i][0].write(in[i][3].read());
+           out[i][3].write(t);
+           for (int j = 1; j < 3; j++) {
+               out[i][j].write(in[i][j].read());
+           }
+       }
+   }
+   ```
+   - Iterates over each row of the input array.
+   - Swaps the first element (`in[i][0]`) with the last element (`in[i][3]`) of the current row.
+   - Writes the modified elements to the output ports.
+
+This SystemC module can now be integrated into a high-level synthesis flow, allowing for efficient hardware implementation of the column interchange functionality.

@@ -1,0 +1,117 @@
+  CPP Code: selectionSort
+Inputs:
+
+* arr: an array of integers to be sorted
+* n: the length of the array
+
+Outputs:
+
+* The input array is sorted in ascending order.
+
+Summary:
+The program implements selection sort, a sorting algorithm that sorts an array by repeatedly finding the minimum element from the unsorted subarray and moving it to the beginning of the array. The algorithm maintains two subarrays, one consisting of the sorted elements and the other consisting of the unsorted elements. It repeatedly finds the minimum element from the unsorted subarray and moves it to the sorted subarray until the sorted subarray is the entire array.
+
+Line-by-line explanation:
+
+1. The program includes the required header files and declares the namespace.
+2. The swap function is defined that swaps the values of two integers.
+3. The selectionSort function is defined that sorts the input array in ascending order. It takes two arguments: "arr" which is the array to be sorted, and "n" which is the length of the array.
+4. The function declares three variables: "i", "j", and "min_idx".
+5. The function loops from 0 to n-1 (the length of the array) and maintains the loop variable "i" as the index of the sorted subarray and "j" as the index of the unsorted subarray.
+6. The function finds the minimum element in the unsorted subarray and stores the index of the minimum element in "min_idx".
+7. The function then swaps the minimum element with the first element of the sorted subarray.
+8. The function loops again from 0 to n-1 (the length of the array) and increments "i" by 1.
+9. The function checks if the last element of the sorted subarray is equal to the first element of the unsorted subarray. If yes, the algorithm exits the loop.
+10. The function prints the sorted array.
+
+SystemC Code:
+
+\begin{code}
+#include <systemc.h>
+#define N 5 // array size
+
+// selection sort module
+SC_MODULE(SelectionSort) {
+    sc_in<int> input_arr[N]; // input array
+    sc_out<int> output_arr[N]; // output sorted array
+    sc_out<bool> done; // done signal
+
+    // constructor
+    SC_CTOR(SelectionSort) {
+        // process to sort the array
+        SC_METHOD(sort);
+        sensitive << input_arr;
+    }
+
+    // method to sort the array
+    void sort() {
+        int arr[N]; // local array to store the input array
+        int i, j, min_idx;
+
+        // copy the input array to local array
+        for (int i = 0; i < N; i++) {
+            arr[i] = input_arr[i].read();
+        }
+
+        // repeatedly find the minimum element and move it to the sorted subarray
+        for (i = 0; i < N; i++) {
+            min_idx = i;
+            for (j = i + 1; j < N; j++) {
+                if (arr[j] < arr[min_idx]) {
+                    min_idx = j;
+                }
+            }
+            swap(&arr[min_idx], &arr[i]);
+        }
+
+        // write the sorted array to output_arr
+        for (int i = 0; i < N; i++) {
+            output_arr[i].write(arr[i]);
+        }
+
+        // assert done signal
+        done.write(true);
+    }
+};
+
+int sc_main(int argc, char *argv[]) {
+    sc_signal<int> input_arr[N]; // input array signal
+    sc_signal<int> output_arr[N]; // output sorted array signal
+    sc_signal<bool> done; // done signal
+
+    // create the selection sort module
+    SelectionSort selection_sort("SelectionSort");
+
+    // bind the input and output signals
+    selection_sort.input_arr(input_arr);
+    selection_sort.output_arr(output_arr);
+    selection_sort.done(done);
+
+    // generate the testbench stimulus
+    vector<int> test_arr = {64, 25, 12, 22, 11};
+    for (int i = 0; i < N; i++) {
+        input_arr[i].write(test_arr[i]);
+    }
+
+    // run the simulation
+    sc_start();
+
+    // print the sorted array
+    cout << "Sorted array: ";
+    for (int i = 0; i < N; i++) {
+        cout << output_arr[i].read() << " ";
+    }
+    return 0;
+}
+```
+The SystemC code implements a selectionSort module that takes an input array of size N and produces an output sorted array of size N. The module also has a done signal that is asserted after the sorting operation is completed. The testbench generates the input stimulus and checks the output sorted array.
+
+The algorithm works as follows:
+
+1. The selectionSort module declares the input and output signals and the done signal.
+2. The constructor initializes the process to sort the array.
+3. The sort method sorts the input array in ascending order and writes the sorted array to the output_arr signal.
+4. The sort method also asserts the done signal.
+5. The testbench generates the input stimulus and checks the output sorted array.
+
+In your SystemC code, ensure that the module incorporates the signals defined in the provided testbench.

@@ -1,0 +1,165 @@
+  This is a C++ implementation of a matrix rotate algorithm. In the HLS, the inputs are a size (R x C) 2D integer matrix, and the outputs are a size (R x C) 2D integer matrix. This code will rotate a matrix around by 90 degrees. It first copies the top and right edges to the bottom and left sides. Then it flips the matrix over and moves the left and right edges to the top and bottom of the grid from the right to the left.
+
+// C++ program to rotate a matrix 
+#include <iostream> 
+#define R 4 
+#define C 4 
+using namespace std; 
+
+// A function to rotate a matrix 
+// mat[][] of size R x C. 
+// Initially, m = R and n = C 
+void rotatematrix(int m, int n, 
+				int mat[R][C]) 
+{ 
+	int row = 0, col = 0; 
+	int prev, curr; 
+
+	/* row - Starting row index 
+	m - ending row index 
+	col - starting column index 
+	n - ending column index 
+	i - iterator */
+	while (row < m && col < n) 
+	{ 
+		if (row + 1 == m || 
+			col + 1 == n) 
+			break; 
+
+		// Store the first element of 
+		// next row, this element will 
+		// replace first element of current 
+		// row 
+		prev = mat[row + 1][col]; 
+
+		/* Move elements of first row from 
+		the remaining rows */
+		for (int i = col; i < n; i++) 
+		{ 
+			curr = mat[row][i]; 
+			mat[row][i] = prev; 
+			prev = curr; 
+		} 
+		row++; 
+
+		/* Move elements of last column 
+		from the remaining columns */
+		for (int i = row; i < m; i++) 
+		{ 
+			curr = mat[i][n-1]; 
+			mat[i][n-1] = prev; 
+			prev = curr; 
+		} 
+		n--; 
+
+		/* Move elements of last row from 
+		the remaining rows */
+		if (row < m) 
+		{ 
+			for (int i = n-1; i >= col; i--) 
+			{ 
+				curr = mat[m-1][i]; 
+				mat[m-1][i] = prev; 
+				prev = curr; 
+			} 
+		} 
+		m--; 
+
+		/* Move elements of first column from 
+		the remaining rows */
+		if (col < n) 
+		{ 
+			for (int i = m-1; i >= row; i--) 
+			{ 
+				curr = mat[i][col]; 
+				mat[i][col] = prev; 
+				prev = curr; 
+			} 
+		} 
+		col++; 
+	} 
+
+	// Print rotated matrix 
+	for (int i=0; i<R; i++) { 
+		for (int j=0; j<C; j++) { 
+		cout << mat[i][j] << " "; 
+		} 
+		cout << endl; 
+	} 
+} 
+
+
+// SystemC code:
+
+#include <systemc.h>
+
+// Module that adds two integers
+SC_MODULE(rotatematrix) {
+    sc_in<int> in[SIZE];
+    sc_out<int> out[SIZE];
+
+    // Constructor
+    SC_CTOR(rotatematrix) {
+		// This process performs the same algorithm as the C++ code above
+        SC_METHOD(rotateMatrix);
+        sensitive << in[SIZE];
+    }
+
+    void rotateMatrix() {
+        // The C++ code above uses R and C inputs.
+        // These need to be converted into SystemC used inputs:
+        int R, C;
+        R = in[0];
+        C = in[1];
+
+        // Set the initial output matrix size to be R x C.
+        int mat[R][C];
+
+        // Now loop through each element of the array and move it to its new position
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                mat[i][j]; // This element will be overwritten in the code below and will be the current value at i and j
+                int prev, curr;
+
+                // Store the first element of next row, this element will replace first element of current row
+                prev = mat[i+1][j];
+
+                // Move elements of first row from the remaining rows
+                for (int k = j; k < C; k++) {
+                    curr = mat[i][k];
+                    if (out[k]) out[k].write(prev);
+                    prev = curr; 
+                }
+                i++;
+
+                // Move elements of last column from the remaining columns
+                for (int k = i; k < R; k++) {
+                    curr = mat[k][j-1];
+                    if (out[k]) out[k].write(prev);
+                    else{
+                        prev = curr; 
+                    }
+                }
+                j--;
+            }
+        }
+
+        R--; // Move to the next row of the matrix
+        C--; // Move to the next column
+
+        // Now undo the loop to move elements back to the top of the array
+        for (int i = C; i > 0; i--) {
+            for (int j = R; j > 0; j--){
+                curr = mat[j][i-1];
+                if (out[j*C + i]) out[j*C + i].write(prev); 
+                else{
+                    prev = curr; 
+                }
+            }
+            rad--;
+            C = C + 1; // Move to the next column
+            j--;
+        }
+    }
+};
+

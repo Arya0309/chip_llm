@@ -1,0 +1,168 @@
+### Analysis of Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - A 2D integer array `mat` of size `n x n`.
+- **Outputs**:
+  - The trace of the matrix.
+  - The normal of the matrix.
+
+#### Detailed Explanation of Code
+
+1. **Constants and Function Declarations**
+   ```cpp
+   const int MAX = 100; 
+   ```
+   - Defines the maximum size of the matrix to be 100.
+
+2. **Function to Find Normal of a Matrix**
+   ```cpp
+   int findNormal(int mat[][MAX], int n) 
+   { 
+       int sum = 0; 
+       for (int i = 0; i < n; i++) 
+           for (int j = 0; j < n; j++) 
+               sum += mat[i][j] * mat[i][j]; 
+       return sqrt(sum); 
+   } 
+   ```
+   - Initializes `sum` to 0.
+   - Iterates over each element of the matrix, squares it, and adds it to `sum`.
+   - Returns the square root of `sum`, which is the normal of the matrix.
+
+3. **Function to Find Trace of a Matrix**
+   ```cpp
+   int findTrace(int mat[][MAX], int n) 
+   { 
+       int sum = 0; 
+       for (int i = 0; i < n; i++) 
+           sum += mat[i][i]; 
+       return sum; 
+   } 
+   ```
+   - Initializes `sum` to 0.
+   - Iterates over the diagonal elements of the matrix and adds them to `sum`.
+   - Returns `sum`, which is the trace of the matrix.
+
+4. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int mat[][MAX] = {{1, 1, 1, 1, 1}, 
+           {2, 2, 2, 2, 2}, 
+           {3, 3, 3, 3, 3}, 
+           {4, 4, 4, 4, 4}, 
+           {5, 5, 5, 5, 5}}; 
+       cout << "Trace of Matrix = " << 
+               findTrace(mat, 5) << endl; 
+       cout << "Normal of Matrix = " << 
+               findNormal(mat, 5) << endl; 
+       return 0; 
+   } 
+   ```
+   - Initializes a 5x5 matrix `mat`.
+   - Calls `findTrace` and `findNormal` functions with the matrix and its size.
+   - Prints the trace and normal of the matrix.
+
+### Equivalent SystemC Code
+
+Here is the equivalent SystemC code that incorporates the provided signals (`matrix`, `trace`, and `norm`) and captures the logic of the original C++/C code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixAnalysis) {
+    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
+    sc_out<int> trace;  // Output port for the trace
+    sc_out<int> norm;   // Output port for the normal
+
+    // Constructor
+    SC_CTOR(MatrixAnalysis) {
+        // Process to calculate trace and normal
+        SC_THREAD(calculate);
+        sensitive << matrix;
+    }
+
+    // Thread to perform calculations
+    void calculate() {
+        int n = 5;  // Assuming a fixed size of 5x5 for simplicity
+        int sum_trace = 0;
+        int sum_norm = 0;
+
+        // Calculate trace
+        for (int i = 0; i < n; i++) {
+            sum_trace += matrix[i][i].read();
+        }
+
+        // Calculate normal
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                sum_norm += matrix[i][j].read() * matrix[i][j].read();
+            }
+        }
+
+        // Write results to output ports
+        trace.write(sum_trace);
+        norm.write(sqrt(sum_norm));
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(MatrixAnalysis) {
+   ```
+   - Declares a SystemC module named `MatrixAnalysis`.
+
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<int> matrix[MAX][MAX];  
+   sc_out<int> trace;  
+   sc_out<int> norm;   
+   ```
+   - Declares input port `matrix` of type `int` and dimensions `MAX x MAX`.
+   - Declares output ports `trace` and `norm` of type `int`.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(MatrixAnalysis) {
+       SC_THREAD(calculate);
+       sensitive << matrix;
+   }
+   ```
+   - Constructs the module and binds the `calculate` thread to the `matrix` input.
+   - The `calculate` thread is sensitive to changes in the `matrix`.
+
+4. **Thread for Calculations**
+   ```cpp
+   void calculate() {
+       int n = 5;  
+       int sum_trace = 0;
+       int sum_norm = 0;
+
+       // Calculate trace
+       for (int i = 0; i < n; i++) {
+           sum_trace += matrix[i][i].read();
+       }
+
+       // Calculate normal
+       for (int i = 0; i < n; i++) {
+           for (int j = 0; j < n; j++) {
+               sum_norm += matrix[i][j].read() * matrix[i][j].read();
+           }
+       }
+
+       // Write results to output ports
+       trace.write(sum_trace);
+       norm.write(sqrt(sum_norm));
+   }
+   ```
+   - Initializes `n` to 5 (assuming a fixed size of 5x5 for simplicity).
+   - Initializes `sum_trace` and `sum_norm` to 0.
+   - Calculates the trace by summing the diagonal elements.
+   - Calculates the normal by summing the squares of all elements and taking the square root.
+   - Writes the calculated trace and normal to the respective output ports.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

@@ -1,0 +1,82 @@
+  Inputs:
+
+* `A` (sc_in<std::string>): First binary string to be added.
+* `B` (sc_in<std::string>): Second binary string to be added.
+
+Outputs:
+
+* `sum` (sc_out<std::string>): Result of the addition of `A` and `B`.
+
+Summary:
+
+The provided C++/C code implements a function `addBinary` that takes two binary strings `A` and `B` as input and returns their sum as a binary string. The function first checks if the length of `A` is greater than `B`, and if so, swaps the strings to make sure that the function works correctly. It then calculates the difference in length between the two strings and pads the shorter string with leading zeroes to make it the same length as the longer string.
+
+The function then uses a carry mechanism to add the two strings bit by bit, starting from the least significant bit (LSB) and working towards the most significant bit (MSB). For each bit, it checks if both `A` and `B` have the same value ('0' or '1') or not ('0' and '1' or '1' and '0'). If they have the same value, the function adds them and stores the result in the `res` string. If they don't have the same value, the function adds the carry bit (which starts at '0') to the result. After the addition is complete, the function checks if there is a carry bit left over and adds it to the result. Finally, the function removes any leading zeroes from the result string and returns it as the sum of `A` and `B`.
+
+SystemC code:
+```
+#include <systemc.h>
+
+// Module that adds two binary strings
+SC_MODULE(Adder) {
+    sc_in<string> A;  // Input port for the first binary string
+    sc_in<string> B;  // Input port for the second binary string
+    sc_out<string> sum;  // Output port for the sum
+
+    // Constructor
+    SC_CTOR(Adder) {
+        // Method to perform addition
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to add the two binary strings
+    void add();
+        // Check if A is longer than B
+        if (A.length() > B.length()) {
+            // Swap the strings
+            std::string temp = A;
+            A = B;
+            B = temp;
+        }
+
+        // Calculate the difference in length between the two strings
+        int diff = B.length() - A.length();
+
+        // Pad the shorter string with leading zeroes
+        std::string padding(diff, '0');
+        A = padding + A;
+
+        // Add the two strings bit by bit, starting from the LSB
+        std::string res;
+        char carry = '0';
+        for (int i = A.length() - 1; i >= 0; i--) {
+            // Check if A and B have the same value at the current bit
+            if (A[i] == B[i]) {
+                // Add the two bits and the carry
+                res.push_back(A[i]);
+                carry = '0';
+            } else {
+                // Add the carry and the current bit
+                res.push_back(carry);
+                carry = '1';
+            }
+        }
+
+        // Check if there is a carry bit left over
+        if (carry == '1') {
+            res.push_back(carry);
+        }
+
+        // Remove any leading zeroes from the result string
+        int index = 0;
+        while (res[index] == '0') {
+            index++;
+        }
+        res = res.substr(index);
+
+        // Write the result to the output port
+        sum.write(res);
+    }
+};
+```

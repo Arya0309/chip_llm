@@ -1,0 +1,74 @@
+  This C++/C source is a program to check whether two given matrices are identical. In particular, the program returns 1 if the matrices A and B are identical, and 0 else. In a high-level synthesis  flow, one could interface with the input and output of the program using SystemC. 
+
+The input ports A (representing the first matrix, size N * N) and B (representing the second matrix, size N * N) can be connected to signals identical, sc_in<int> A[SIZE], sc_in<int> B[SIZE], and sc_out<bool> identical, respectively, as specified. Since the return type is unspecified in C++, SystemC can be used to return 1 if the matrices A and B are identical; otherwise, the return value is 0. 
+
+The function which checks whether two matrix A[][] and B[][] are identical is called through the main function. A[N][N] and B[N][N] are input arrays that hold the values of matrix A and matrix B, respectively. The function does a linear for loop (for i = 0 to N-1) to go over the matrix. For each index i, another linear loop (for j = 0 to N-1) is executed to go over the second dimension. 
+
+The function returns 1 if the two matrices are identical, meaning it primes the return value high (0x00000001 or one) if both matrices are the same; if the two matrices are not identical, 0 otherwise (i.e., low). The end result is stored in an initially zero output matrix identical. 
+
+The main function checks whether the matrices A and B are identical; if they are, it looks up the output value directly (i.e., the value stored in the output matrix; otherwise, it looks up the value directly and sets it up accordingly. 
+
+Here's a possible SystemC code template providing the input and output interfaces specified by the task:
+```
+#include <systemc.h>
+
+// Entity that checks whether two matrices are identical
+class MatrixChecker : public sc_module {
+    // Inputs
+    sc_in<int> A[SIZE];
+
+    // Inputs
+    sc_in<int> B[SIZE];
+
+    // Outputs
+    sc_out<bool> identical;
+
+    // Local signals
+    sc_signal<int> A_data[SIZE][SIZE];
+
+    sc_signal<int> B_data[SIZE][SIZE];
+
+    // Constructor
+    SC_CTOR(MatrixChecker) {
+        // Initialize signals
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                A_data[i][j](0);
+                B_data[i][j](0);
+            }
+        }
+
+        // Connect input ports to signals
+        A.connect(A_data);
+        B.connect(B_data);
+
+        // Connect output ports to signals
+        identical.connect(areSame(A_data, B_data));
+    }
+
+    // Function that checks if two matrices are identical
+    sc_logic areSame(sc_signal<int> A_data[SIZE][SIZE], sc_signal<int> B_data[SIZE][SIZE]) {
+        sc_logic retVal = sc_false;
+
+        // Check if the two matrices are identical
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (A_data[i][j] != B_data[i][j]) retVal = sc_false;
+            }
+        }
+
+        // Return the result of the comparison
+        return retVal;
+    }
+};
+
+```
+- The inclusion of <systemc.h> is necessary to implement the SystemC. It is not standard, but cannot be used as a header for C++ code without extensions.
+
+- The MatrixChecker is a SystemC entity that does the matrix comparison using the areSame() function. 
+
+- The constructor of the MatrixChecker class initializes the signals (A and B) and connects the input and output ports to the signals. The areSame function compares the two matrices and returns the comparison's result (true if they are identical, and false otherwise).
+
+- The areSame() function goes through the array and (slightly reduced here) checks if each element is Zero, i.e., if it is the same. If any of the elements not match, the result is equal to sc_false, i.e., 0x00000000, marking the matrices as non-identical, since each element made a difference, and therefore shouldn't be the same.
+
+Running the synthesized module through a system will thus give an output to identify (true or false whether the two identities are equivalent). This brings up the issue of propagation delay, which can't be handled in linear for loops carried out depending on how bandwidth and latency, etc.

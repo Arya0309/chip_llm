@@ -1,0 +1,98 @@
+### Inputs and Outputs
+
+**Inputs**:
+1. `nums`: An array of integers to be sorted.
+2. `size_nums`: The size of the `nums` array.
+
+**Outputs**:
+1. The sorted array in ascending order.
+
+### Detailed Explanation
+
+1. **Initialization**:
+   - The array `nums` is initialized with values `{1, 12, 6, 8, 10}`.
+   - The size of the array `size_nums` is calculated using `(sizeof(nums) / sizeof(nums[0]))`.
+
+2. **Displaying the Original Array**:
+   - The original array is printed to the console.
+
+3. **Sorting the Array**:
+   - The `sort` function is called with the array `nums` and its size `size_nums`.
+   - Inside the `sort` function, a nested loop is used to implement the bubble sort algorithm.
+     - The outer loop runs `len` times (where `len` is the length of the array).
+     - The inner loop compares adjacent elements and swaps them if they are in the wrong order.
+     - A boolean flag `isSwapped` is used to optimize the algorithm by breaking out of the loop if no swaps are made in a pass, indicating the array is already sorted.
+
+4. **Displaying the Sorted Array**:
+   - The sorted array is printed to the console.
+
+5. **Driver Code**:
+   - The `main` function orchestrates the execution by calling the `sort` function and printing the results.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that implements the same logic and integrates with the provided signals (`clk`, `start`, `done`).
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Sorter) {
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;    // Done signal
+
+    sc_in<int> nums[5];     // Input array
+    sc_out<int> sorted_nums[5]; // Output sorted array
+
+    bool isSwapped;
+
+    // Constructor
+    SC_CTOR(Sorter) {
+        // Process to handle sorting
+        SC_METHOD(sortArray);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    // Method to sort the array
+    void sortArray() {
+        if (start.read()) {
+            for (int i = 0; i < 5; i++) {
+                isSwapped = false;
+                for (int j = 1; j < 5 - i; j++) {
+                    if (nums[j].read() < nums[j - 1].read()) {
+                        int temp = nums[j].read();
+                        nums[j].write(nums[j - 1].read());
+                        nums[j - 1].write(temp);
+                        isSwapped = true;
+                    }
+                }
+                if (!isSwapped) {
+                    break;
+                }
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   - `Sorter` module is declared with `clk`, `start`, and `done` signals as inputs and `sorted_nums` as an output.
+
+2. **Initialization**:
+   - The `nums` array is declared to hold the input integers.
+   - The `sorted_nums` array is declared to hold the sorted integers (though not used in this snippet, it could be added for completeness).
+
+3. **Sorting Logic**:
+   - The `sortArray` method is sensitive to the positive edge of the clock (`clk.pos()`).
+   - If the `start` signal is high, the sorting process begins.
+   - The nested loop implementation of bubble sort is used to sort the array.
+   - The `isSwapped` flag is used to optimize the sorting process.
+   - Once the sorting is complete, the `done` signal is set to high.
+
+This SystemC code integrates with the provided signals and provides the same functionality as the original C++ code, ensuring seamless integration into a high-level synthesis flow.

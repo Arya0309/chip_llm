@@ -1,0 +1,73 @@
+  **Inputs:**
+
+* `n`: An integer that represents the number of natural numbers to sum.
+
+**Outputs:**
+
+* `result`: An integer that represents the sum of the first `n` natural numbers.
+
+**Summary:**
+The provided C++ program defines a function `findSum` that takes an integer `n` as input and returns an integer that represents the sum of the first `n` natural numbers. The program also defines a `main` function that initializes an integer `n` to 5 and then calls the `findSum` function with `n` as input, which outputs the sum to the console.
+
+The `findSum` function first initializes an integer `sum` to 0 and then uses a `for` loop to iterate from 1 to `n`. Inside the loop, the function adds the current iteration number (i.e., `i`) to `sum`. After the loop, the function returns the final value of `sum`, which represents the sum of the first `n` natural numbers.
+
+**SystemC Equivalent:**
+The following SystemC code snippet defines a module called `Summation` that computes the sum of the first `n` natural numbers, where `n` is a parameter of the module. The module has two input ports (`n` and `accumulator`) and one output port (`result`). The module uses a process to perform the summation, which is sensitive to changes in the `n` parameter and the `accumulator` input. Whenever the `n` parameter changes, the process updates the `accumulator` variable and the `result` output.
+```c++
+#include <systemc.h>
+
+// Module that computes the sum of the first n natural numbers
+SC_MODULE(Summation) {
+    sc_in<unsigned int> n;
+    sc_in<unsigned int> accumulator;
+    sc_out<unsigned int> result;
+
+    // Constructor
+    SC_CTOR(Summation) {
+        // Process to perform the summation
+        SC_THREAD(summation);
+        sensitive << n << accumulator;
+    }
+
+    // Function to perform the summation
+    void summation() {
+        unsigned int sum = 0;
+        for (unsigned int i = 1; i <= n; i++) {
+            sum += i;
+        }
+        accumulator = sum;
+        result.write(sum);
+    }
+};
+```
+The `Summation` module can be instantiated and connected in a SystemC design to perform the sum operation. For example:
+```c++
+#include "summation.h"
+
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the Summation module
+    Summation summation("summation");
+
+    // Connect the inputs and outputs of the Summation module
+    sc_in<unsigned int> n("n");
+    sc_in<unsigned int> accumulator("accumulator");
+    sc_out<unsigned int> result("result");
+    summation.n(n);
+    summation.accumulator(accumulator);
+    summation.result(result);
+
+    // Initialize the inputs
+    n.write(5);
+
+    // Wait for the result to be computed
+    sc_start();
+    int result_value = result.read();
+
+    // Print the result
+    std::cout << "The sum of the first 5 natural numbers is: "
+              << result_value << std::endl;
+
+    return 0;
+}
+```
+Note that in this example, the `summation` module is instantiated and connected to the `n`, `accumulator`, and `result` signals, which are defined in the `sc_main` function. The inputs and outputs of the `Summation` module are then initialized and set to the corresponding signals. Finally, the `sc_start` function is called to wait for the result to be computed and the result is printed to the console.

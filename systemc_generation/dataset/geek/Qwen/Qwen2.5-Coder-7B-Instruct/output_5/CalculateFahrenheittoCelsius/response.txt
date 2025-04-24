@@ -1,0 +1,144 @@
+### C++/C Code Analysis
+
+#### Inputs and Outputs
+- **Inputs**: None (The code is a standalone program with no external inputs except for a hardcoded value `n`).
+- **Outputs**: A floating-point number representing the temperature in Celsius.
+
+#### Line-by-Line Explanation
+
+1. **Include Header File**
+   ```cpp
+   #include <bits/stdc++.h>
+   ```
+   - This line includes the standard library header file which contains a collection of all standard library functions.
+
+2. **Using Namespace**
+   ```cpp
+   using namespace std;
+   ```
+   - This line allows us to use the standard library without prefixing each function with `std::`.
+
+3. **Function Declaration**
+   ```cpp
+   float Conversion(float n)
+   ```
+   - This line declares a function named `Conversion` that takes a floating-point number `n` as input and returns a floating-point number.
+
+4. **Function Body**
+   ```cpp
+   {
+       return (n - 32.0) * 5.0 / 9.0;
+   }
+   ```
+   - Inside the function, the formula `(n - 32.0) * 5.0 / 9.0` is used to convert the temperature from Fahrenheit to Celsius.
+   - The result is then returned.
+
+5. **Main Function**
+   ```cpp
+   int main()
+   {
+       float n = 40;
+       cout << Conversion(n);
+       return 0;
+   }
+   ```
+   - The `main` function sets a hardcoded value `n` to 40.
+   - It then calls the `Conversion` function with `n` and prints the result using `cout`.
+   - The program returns 0, indicating successful execution.
+
+### SystemC Code Generation
+
+To convert the given C++ code into a SystemC module, we need to:
+1. Create a SystemC module that takes an input signal `fahrenheit` and produces an output signal `celsius`.
+2. Implement the conversion logic inside the module.
+
+Here is the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+// SystemC module to convert Fahrenheit to Celsius
+SC_MODULE(FahrenheitToCelsius) {
+    sc_in<float> fahrenheit;  // Input port for the temperature in Fahrenheit
+    sc_out<float> celsius;     // Output port for the temperature in Celsius
+
+    // Constructor
+    SC_CTOR(FahrenheitToCelsius) {
+        // Process to perform the conversion
+        SC_METHOD(convert);
+        sensitive << fahrenheit;
+    }
+
+    // Method to convert Fahrenheit to Celsius
+    void convert() {
+        celsius.write((fahrenheit.read() - 32.0) * 5.0 / 9.0);
+    }
+};
+
+// Testbench to drive the module
+SC_MODULE(Testbench) {
+    sc_signal<float> fahrenheit;  // Signal to drive the input
+    sc_signal<float> celsius;     // Signal to capture the output
+
+    // Instance of the FahrenheitToCelsius module
+    FahrenheitToCelsius ftc("ftc");
+
+    // Constructor
+    SC_CTOR(Testbench) : ftc("ftc") {
+        // Connect the signals
+        ftc.fahrenheit(fahrenheit);
+        ftc.celsius(celsius);
+
+        // Process to drive the input
+        SC_THREAD(drive_input);
+        SC_THREAD(check_output);
+    }
+
+    // Thread to drive the input
+    void drive_input() {
+        fahrenheit.write(40.0);  // Drive the input with 40 degrees Fahrenheit
+        wait(1, SC_NS);          // Wait for 1 nanosecond
+        fahrenheit.write(32.0);  // Drive the input with 32 degrees Fahrenheit
+        wait(1, SC_NS);          // Wait for 1 nanosecond
+        fahrenheit.write(212.0); // Drive the input with 212 degrees Fahrenheit
+        wait(1, SC_NS);         // Wait for 1 nanosecond
+        sc_stop();               // Stop the simulation
+    }
+
+    // Thread to check the output
+    void check_output() {
+        wait(1, SC_NS);          // Wait for 1 nanosecond
+        cout << "Fahrenheit: 40, Celsius: " << celsius.read() << endl;
+        wait(1, SC_NS);          // Wait for 1 nanosecond
+        cout << "Fahrenheit: 32, Celsius: " << celsius.read() << endl;
+        wait(1, SC_NS);          // Wait for 1 nanosecond
+        cout << "Fahrenheit: 212, Celsius: " << celsius.read() << endl;
+    }
+};
+
+// Main function to start the simulation
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **FahrenheitToCelsius Module**
+   - **Inputs**: `fahrenheit` (input signal)
+   - **Outputs**: `celsius` (output signal)
+   - **Constructor**: Initializes the `convert` method to be sensitive to changes in `fahrenheit`.
+   - **convert Method**: Converts the input temperature from Fahrenheit to Celsius and writes the result to `celsius`.
+
+2. **Testbench Module**
+   - **Signals**: `fahrenheit` and `celsius` (signals to drive and capture the input and output)
+   - **Constructor**: Instantiates the `FahrenheitToCelsius` module and connects its ports to the signals.
+   - **drive_input Thread**: Drives the `fahrenheit` signal with different values and waits for a short period before moving to the next value.
+   - **check_output Thread**: Reads the `celsius` signal after a short delay and prints the results.
+
+3. **Main Function**
+   - Starts the simulation by creating an instance of the `Testbench` module and calling `sc_start()`.
+
+This SystemC code faithfully captures the logic of the original C++ program and can be integrated into a high-level synthesis flow.

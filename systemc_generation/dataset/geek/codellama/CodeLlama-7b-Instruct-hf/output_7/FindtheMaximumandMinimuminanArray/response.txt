@@ -1,0 +1,98 @@
+  Task: Analyze the provided C++/C code and provide a natural language summary that describes its inputs, outputs, functionality, and equivalent SystemC code.
+
+The provided C++/C code is a program that finds the minimum and maximum elements in an array. The code reads an array of integers, determines the minimum and maximum values using the C++ standard library functions min_element and max_element, and then prints them to the console.
+
+Inputs:
+
+* An integer array of size n, stored in the variable arr.
+* The size of the array, n, which is calculated from the size of the arr variable using the sizeof() operator.
+
+Outputs:
+
+* The minimum and maximum values in the array, stored in the variables min_val and max_val.
+
+Functionality:
+
+* The getMin() function takes an integer array of size n and its size as input and returns the minimum value in the array. It uses the min_element algorithm from the C++ standard library.
+* The getMax() function does the same as getMin(), but returns the maximum value instead.
+* The main() function takes the array and its size as input and calls getMin() and getMax() to calculate the minimum and maximum values. It then prints these values to the console using std::cout.
+
+SystemC code example:
+
+The equivalent SystemC code to this C++/C code is as follows:
+```
+#include <systemc.h>
+
+// Minimum and maximum finder module
+class MinMaxFinder : public sc_module {
+  public:
+    // Input ports
+    sc_in<int> arr_in;
+    sc_in<int> n_in;
+    
+    // Output ports
+    sc_out<int> min_out;
+    sc_out<int> max_out;
+    
+    // Constructor
+    MinMaxFinder(const char* name) : sc_module(name) {}
+    
+    // Method to find minimum and maximum elements
+    void find_min_max() {
+      // Get minimum and maximum values
+      int min_val = *min_element(arr_in, arr_in + n_in);
+      int max_val = *max_element(arr_in, arr_in + n_in);
+      
+      // Print minimum and maximum values to console
+      std::cout << "Minimum value: " << min_val << std::endl;
+      std::cout << "Maximum value: " << max_val << std::endl;
+    }
+    
+    // Process to find minimum and maximum elements
+    void process() {
+      find_min_max();
+    }
+};
+```
+This SystemC code has the same inputs and outputs as the original C++/C code, and its functionality is implemented using the SystemC library. The module takes an array of integers as input and calculates the minimum and maximum values. The minimum and maximum values are then printed to the console using the SystemC library.
+
+To integrate this SystemC code with the provided signals (i.e., clk, start, done, min_val, and max_val), the module can be rewritten as follows:
+```
+#include <systemc.h>
+
+// Minimum and maximum finder module
+class MinMaxFinder : public sc_module {
+  public:
+    // Input ports
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    
+    // Output ports
+    sc_out<bool> done;
+    sc_out<int> min_val;
+    sc_out<int> max_val;
+    
+    // Constructor
+    MinMaxFinder(const char* name) : sc_module(name) {}
+    
+    // Method to find minimum and maximum elements
+    void find_min_max() {
+      // Get minimum and maximum values
+      int min_val = *min_element(arr_in, arr_in + n_in);
+      int max_val = *max_element(arr_in, arr_in + n_in);
+      
+      // Set output ports
+      min_val.write(min_val);
+      max_val.write(max_val);
+      
+      // Set done signal
+      done.write(true);
+    }
+    
+    // Process to find minimum and maximum elements
+    void process() {
+      find_min_max();
+    }
+};
+```
+This SystemC code incorporates the signals defined above and sets the output ports and done signal at the end of the process function. The module can now be integrated with an existing testbench that provides the signals clk, start, and done as inputs and waits for the done signal before checking the values of min_val and max_val.

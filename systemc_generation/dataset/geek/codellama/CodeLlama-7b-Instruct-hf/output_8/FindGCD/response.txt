@@ -1,0 +1,157 @@
+  Sure, here's an analysis and summary of the provided C++/C code:
+
+**Input(s) and Output(s):**
+- `a` and `b` are the two integers to find the GCD of.
+- `gcd_result` is the output of the GCD function.
+
+**Code Summary:**
+
+```scss
+int gcd(int a, int b) {
+    // Find Minimum of a and b
+    int res = min(a, b);
+
+      // Testing divisiblity with all numbers starting from
+    // min(a, b) to 1
+
+    while (res > 1) {
+
+        // If any number divide both a and b, so we
+        // got the answer
+        if (a % res == 0 && b % res == 0)
+            break;
+        res--;
+    }
+    return res;
+}
+```
+
+This is a function called `gcd` that takes two `int` inputs, `a` and `b`, and returns the GCD (greatest common divisor) of those two numbers. The function first finds the minimum of `a` and `b`, which is initially assumed to be the GCD. Then, it tests the divisibility of all numbers starting from the minimum to 1, and returns the first number that divides both `a` and `b`. The resulting output, `gcd_result`, is the GCD of `a` and `b`.
+
+```scss
+int main() {
+    int a = 12, b = 16;
+  
+    // Finding gcd of two numbers a and b
+
+
+    cout << gcd(a, b);
+    return 0;
+}
+```
+
+This is the `main` function, which takes no input and has no output. It simply calls the `gcd` function with the values `12` and `16` as input, and prints the output to the console.
+
+Now, let's generate an equivalent SystemC code snippet that preserves the logic and can be used in a high-level synthesis flow:
+```scss
+#include <systemc.h>
+
+// Module that finds the GCD of two integers
+SC_MODULE(GCD) {
+    sc_in<int> a;  // Input port for the first integer
+    sc_in<int> b;  // Input port for the second integer
+    sc_out<int> gcd_result;  // Output port for the GCD
+
+    // Constructor
+    SC_CTOR(GCD) {
+        // Process to find GCD
+        SC_METHOD(find_gcd);
+        sensitive << a << b;
+    }
+
+    // Method to find the GCD of two integers
+    void find_gcd() {
+        // Initialize the GCD with the minimum of the two integers
+        int gcd = min(a.read(), b.read());
+
+        // Looking for divisibility of all numbers starting from the minimum to 1
+        while (gcd > 1) {
+            // If any number divides both the first and second integer, so we got the answer
+            if (a.read() % gcd == 0 && b.read() % gcd == 0)
+                break;
+            gcd--;
+        }
+        gcd_result.write(gcd);
+    }
+};
+```
+Note that the output port `gcd_result` is now connected to the `GCD` module, and the `find_gcd` method is called upon the sensitivity of the `a` and `b` input ports. The `find_gcd` method uses the `min` function to find the minimum of the two input integers, and then iteratively tests the divisibility of all numbers starting from the minimum to 1. If any number divides both the first and second integer, the GCD is found, and the output is written to the `gcd_result` port.
+
+Finally, to integrate this SystemC code with the provided testbench signals, we can simply modify the existing SystemC code to utilize the `a` and `b` input ports, and the `gcd_result` output port:
+```scss
+#include <systemc.h>
+
+// Module that adds two integers
+SC_MODULE(Adder) {
+    sc_in<int> a;  // Input port for the first integer
+    sc_in<int> b;  // Input port for the second integer
+    sc_out<int> sum; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(Adder) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << a << b;
+    }
+
+    // Method to add the two integers
+    void add() {
+        sum.write(a.read() + b.read());
+    }
+};
+
+// Module that finds the GCD of two integers
+SC_MODULE(GCD) {
+    sc_in<int> a;  // Input port for the first integer
+    sc_in<int> b;  // Input port for the second integer
+    sc_out<int> gcd_result;  // Output port for the GCD
+
+    // Constructor
+    SC_CTOR(GCD) {
+        // Process to find GCD
+        SC_METHOD(find_gcd);
+        sensitive << a << b;
+    }
+
+    // Method to find the GCD of two integers
+    void find_gcd() {
+        // Initialize the GCD with the minimum of the two integers
+        int gcd = min(a.read(), b.read());
+
+        // Looking for divisibility of all numbers starting from the minimum to 1
+        while (gcd > 1) {
+            // If any number divides both the first and second integer, so we got the answer
+            if (a.read() % gcd == 0 && b.read() % gcd == 0)
+                break;
+            gcd--;
+        }
+        gcd_result.write(gcd);
+    }
+};
+
+int sc_main() {
+    // Creating the components
+    Adder adder("adder");
+    GCD gcd("gcd");
+
+    // Connecting the ports
+    adder.a(a);
+    adder.b(b);
+    adder.sum(gcd.a);
+    adder.sum(gcd.b);
+    gcd.gcd_result(sum);
+
+    // Creating a test case
+    a.write(12);
+    b.write(16);
+  
+    // Running the test case
+    sc_start(100, SC_NS);
+  
+    // Printing the result
+    cout << "The GCD of 12 and 16 is: " << gcd_result.read() << endl;
+  
+    return 0;
+}
+```
+Note that the `Adder` module is left unchanged, and the `GCD` module is integrated with the `Adder` module using the `a` and `b` input ports, and the `gcd_result` output port. Finally, the test case is set up to find the GCD of 12 and 16 using the `Adder` and `GCD` modules.

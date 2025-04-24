@@ -8,13 +8,20 @@ class SystemCDataset(Dataset):
         self.df = pd.read_json(path, orient="records")[
             ["task_id", "task", "testbench", "module_name", "prompt"]
         ].dropna()
-        try:
-            self.df["input"] = tokenizer.apply_chat_template(
-                self.df.prompt.tolist(), tokenize=False, add_generation_prompt=True
-            )
-        except Exception as e:
-            print("Chat template not supported, using default template")
-            self.df["input"] = self.df.prompt.tolist()
+
+        self.df["input"] = tokenizer.apply_chat_template(
+            self.df.prompt.tolist(), tokenize=False, add_generation_prompt=True
+        )
+
+        # try:
+        #     self.df["input"] = tokenizer.apply_chat_template(
+        #         self.df.prompt.tolist(), tokenize=False, add_generation_prompt=True
+        #     )
+        # except Exception as e:
+        #     print("Chat template not supported, using default template")
+        #     self.df["input"] = self.df.prompt.apply(
+        #         lambda msgs: msgs[1]["content"] if msgs else None
+        #     )
 
     def __getitem__(self, idx):
         item = self.df.iloc[idx]

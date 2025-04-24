@@ -1,0 +1,59 @@
+  This is a C++ program that adds two complex numbers by declaring and using a user-defined Complex class. The program has a main function that first initializes two complex number objects with reals (real1, real2) and imaginary parts (imag1, imag2). Then, it calls the addComp() method of the Complex class to find the sum of both complex numbers.
+
+The input signals are:
+
+* real1, an integer port for representing the real part of the first complex number.
+* imag1, an integer port for representing the imaginary part of the first complex number.
+* real2, an integer port for representing the real part of the second complex number.
+* imag2, an integer port for representing the imaginary part of the second complex number.
+
+The output signals are:
+
+* real_sum, an integer port for representing the real part of the sum of the two complex numbers.
+* imag_sum, an integer port for representing the imaginary part of the sum of the two complex numbers.
+
+The major lines and blocks of the code are:
+
+* The Complex class declaration, which has two integer data members (real and imaginary) and a constructor that initializes these members with the values of real1 and imag1, and real2 and imag2 respectively.
+* The addComp() method of the Complex class, which adds the real and imaginary parts of both complex numbers and returns a Complex variable that represents the sum.
+* The main function, which initializes two Complex objects, C1 and C2, and then calls the addComp() method of the Complex class to find the sum. It then prints the sum of the two complex numbers in the format "real{real_sum} + i{imag_sum}".
+
+In SystemC, we can capture the behavior of this program by creating a module that performs the same operations as the C++ program. Here's a suggested SystemC implementation:
+
+#include <systemc.h>
+
+// Module that adds two complex numbers
+SC_MODULE(complex_adder) {
+    sc_in<int> real1;  // Input port for the real part of the first complex number
+    sc_in<int> imag1;  // Input port for the imaginary part of the first complex number
+    sc_in<int> real2;  // Input port for the real part of the second complex number
+    sc_in<int> imag2;  // Input port for the imaginary part of the second complex number
+    sc_out<int> real_sum;  // Output port for the real part of the sum of the two complex numbers
+    sc_out<int> imag_sum;  // Output port for the imaginary part of the sum of the two complex numbers
+
+    void add();  // Method to add the two complex numbers
+
+    SC_CTOR(complex_adder) {
+        sensitive << real1 << imag1 << real2 << imag2;
+        SC_THREAD(add);
+    }
+};
+
+void complex_adder::add() {
+    complex_sum result;  // Temp var to hold the sum
+    result.real = real1.read() + real2.read();  // Real part of the sum
+    result.imaginary = imag1.read() + imag2.read();  // Imaginary part of the sum
+    real_sum.write(result.real);  // Output the real part of the sum
+    imag_sum.write(result.imaginary);  // Output the imaginary part of the sum
+}
+
+int main() {
+    sc_signal<int> real1;
+    sc_signal<int> imag1;
+    sc_signal<int> real2;
+    sc_signal<int> imag2;
+    complex_adder adder(real1, imag1, real2, imag2);
+    sc_start(100, SC_NS);
+    cout << "Sum of the two complex numbers is: " << adder.real_sum.read() << " + i" << adder.imag_sum.read() << endl;
+    return 0;
+}

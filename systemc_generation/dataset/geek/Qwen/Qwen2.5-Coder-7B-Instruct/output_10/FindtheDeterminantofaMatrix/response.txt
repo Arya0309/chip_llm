@@ -1,0 +1,199 @@
+### Inputs and Outputs
+- **Inputs**: 
+  - `matrix[SIZE]`: A 2D array of doubles representing the square matrix whose determinant is to be calculated. The size of the matrix is determined by the constant `SIZE`.
+  
+- **Outputs**: 
+  - `det`: A double representing the determinant of the input matrix.
+
+### Detailed Explanation
+
+#### Main Function
+1. **Variable Declaration**:
+   ```cpp
+   const int MAXN = 105;
+   double a[MAXN][MAXN];
+   ```
+   - `MAXN` is a constant set to 105, which defines the maximum size of the matrix.
+   - `a` is a 2D array of doubles to store the matrix.
+
+2. **Matrix Initialization**:
+   ```cpp
+   int n = 4;
+   double matrix[4][4] = {{1, 0, 2, -1},
+                           {3, 0, 0, 5},
+                           {2, 1, 4, -3},
+                           {1, 0, 5, 0}};
+   ```
+   - `n` is the size of the matrix (4x4 in this case).
+   - `matrix` is a 2D array initialized with the given values.
+
+3. **Copying Matrix to Global Array**:
+   ```cpp
+   for (int i = 0; i < n; i++) {
+       for (int j = 0; j < n; j++) {
+           a[i][j] = matrix[i][j];
+       }
+   }
+   ```
+   - This loop copies the values from `matrix` to `a`.
+
+4. **Calculating Determinant**:
+   ```cpp
+   double det = determinant(n);
+   ```
+   - Calls the `determinant` function to calculate the determinant of the matrix stored in `a`.
+
+5. **Output**:
+   ```cpp
+   cout << "Determinant = " << det << endl;
+   ```
+   - Prints the determinant to the console.
+
+#### Determinant Function
+1. **Function Declaration**:
+   ```cpp
+   double determinant(int n) {
+       double det = 1.0;
+       for (int i = 0; i < n; i++) {
+           int pivot = i;
+           for (int j = i + 1; j < n; j++) {
+               if (abs(a[j][i]) > abs(a[pivot][i])) {
+                   pivot = j;
+               }
+           }
+           if (pivot != i) {
+               swap(a[i], a[pivot]);
+               det *= -1;
+           }
+           if (a[i][i] == 0) {
+               return 0;
+           }
+           det *= a[i][i];
+           for (int j = i + 1; j < n; j++) {
+               double factor = a[j][i] / a[i][i];
+               for (int k = i + 1; k < n; k++) {
+                   a[j][k] -= factor * a[i][k];
+               }
+           }
+       }
+       return det;
+   }
+   ```
+
+2. **Initialization**:
+   ```cpp
+   double det = 1.0;
+   ```
+   - Initializes the determinant to 1.0.
+
+3. **Pivoting**:
+   ```cpp
+   for (int i = 0; i < n; i++) {
+       int pivot = i;
+       for (int j = i + 1; j < n; j++) {
+           if (abs(a[j][i]) > abs(a[pivot][i])) {
+               pivot = j;
+           }
+       }
+       if (pivot != i) {
+           swap(a[i], a[pivot]);
+           det *= -1;
+       }
+   ```
+   - This loop finds the pivot row and swaps it with the current row if necessary to ensure the largest absolute value is at the pivot position. It also flips the sign of the determinant if a row swap occurs.
+
+4. **Checking for Zero Pivot**:
+   ```cpp
+   if (a[i][i] == 0) {
+       return 0;
+   }
+   ```
+   - If the pivot element is zero, the matrix is singular, and the determinant is zero.
+
+5. **Scaling and Elimination**:
+   ```cpp
+   det *= a[i][i];
+   for (int j = i + 1; j < n; j++) {
+       double factor = a[j][i] / a[i][i];
+       for (int k = i + 1; k < n; k++) {
+           a[j][k] -= factor * a[i][k];
+       }
+   }
+   ```
+   - Scales the current row by the pivot element and subtracts it from subsequent rows to eliminate elements below the pivot.
+
+6. **Return Determinant**:
+   ```cpp
+   return det;
+   ```
+   - Returns the calculated determinant.
+
+### Equivalent SystemC Code
+```cpp
+#include <systemc.h>
+
+SC_MODULE(DeterminantCalculator) {
+    sc_in<double> matrix[4]; // Input port for the matrix
+    sc_out<double> det;      // Output port for the determinant
+
+    SC_CTOR(DeterminantCalculator) {
+        SC_THREAD(calculate_determinant);
+        sensitive << matrix;
+    }
+
+    void calculate_determinant() {
+        double a[4][4];
+        int n = 4;
+        double det = 1.0;
+
+        // Copy matrix to local array
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                a[i][j] = matrix[i].read();
+            }
+        }
+
+        // Pivoting
+        for (int i = 0; i < n; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < n; j++) {
+                if (fabs(a[j][i]) > fabs(a[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(a[i], a[pivot]);
+                det *= -1;
+            }
+            if (a[i][i] == 0) {
+                det = 0;
+                break;
+            }
+            det *= a[i][i];
+            for (int j = i + 1; j < n; j++) {
+                double factor = a[j][i] / a[i][i];
+                for (int k = i + 1; k < n; k++) {
+                    a[j][k] -= factor * a[i][k];
+                }
+            }
+        }
+
+        // Write determinant to output port
+        det.write(det);
+    }
+};
+```
+
+### Explanation of SystemC Code
+- **Module Declaration**:
+  - `DeterminantCalculator` is a SystemC module with an input port `matrix` and an output port `det`.
+
+- **Constructor**:
+  - Registers the `calculate_determinant` method as a thread to be executed when the `matrix` port changes.
+
+- **Thread Function**:
+  - Copies the input matrix to a local array `a`.
+  - Performs the same steps as the C++ code to calculate the determinant.
+  - Writes the calculated determinant to the `det` output port.
+
+This SystemC code faithfully captures the logic of the original C++ code and can be integrated into a high-level synthesis flow.

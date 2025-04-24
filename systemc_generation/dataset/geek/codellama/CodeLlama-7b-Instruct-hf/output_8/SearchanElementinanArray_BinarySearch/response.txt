@@ -1,0 +1,71 @@
+  **Question:** Write a SystemC code that enters the iterative binary search algorithm described in the C++/C source, with respect to the signals provided and described.
+
+**Input(s) and output(s):**
+
+* The code receives an integer target signal at input port `target` and uses it to search for the element in the vector signal `v` in the `binarySearch` function (line 25).
+* The `binarySearch` function outputs a boolean signal found at output port `found` indicating if the target element has been found or not (line 3).
+
+**Summary of Functionality:**
+
+* The `binarySearch` function takes a `vector<int>&` called `v` and an integer `target` as input.
+* It sets the lower bound of the parts to be searched to `0` and the upper bound to `v.size() - 1` (line 28) to define the vector partition.
+* The function repeats this process until the `low`, `mid`, `high` values cannot be divided into smaller parts or the target is found (line 19).
+* At each iteration, the `binarySearch` function finds the midpoint, checks if the element at the midpoint is equal to `target`, and accordingly updates the `low`, `high`, `mid` values to search accordingly.
+* Finally, if the target element is not found, the `binarySearch` function returns `false`.
+
+Here is the SystemC code that performs the same tasks as the provided C++/C code.
+
+```
+#include <systemc.h>
+
+SC_MODULE(BinarySearch) {
+    // Inputs
+    sc_in<vector<int>> v;  // Input vector
+    sc_in<int> target;  // Target element to be searched
+
+    // Outputs
+    sc_out<bool> found;  // If the target is found
+
+    // Declarations
+    int low;  // Lower bound of parts to be searched
+    int high;  // Upper bound of parts to be searched
+    int mid;  // Midpoint of the parts to be searched
+
+    // Constructor
+    SC_CTOR(BinarySearch) {
+        // Process to perform the binary search
+        SC_METHOD(search);
+        sensitive << v << target;
+    }
+
+    // Method to perform binary search
+    void search() {
+        // Initialize lower and upper bounds
+        low = 0;
+        high = v.size() - 1;
+        while (low <= high) {
+            // Update midpoint
+            mid = (high + low) / 2;
+            
+            // If element at midpoint is the target
+            if (v[mid] == target) {
+                // Set found to true
+                found.write(true);
+            }
+
+            // If the element at midpoint is greater than the target
+            if (v[mid] > target) {
+                high = mid - 1;
+            }
+            // If the element at midpoint is smaller than the target
+            else {
+                low = mid + 1;
+            }
+        }
+        // If we don't find the target
+        found.write(false);
+    }
+};
+```
+
+To facilitate integration with the existing testbench, the SystemC code utilizes the `target` and `found` signals that are defined in the input and output ports of the module, respectively. The `vector<int>` input port `v` is also utilized to perform the binary search.

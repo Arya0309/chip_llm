@@ -1,0 +1,172 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: An integer array `arr` and its size `n`.
+- **Outputs**: The minimum and maximum values from the array.
+
+#### Detailed Explanation
+
+1. **Include Directives and Namespace Declaration**
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std; 
+   ```
+   - This includes the standard library and uses the standard namespace.
+
+2. **Function to Find Minimum Element**
+   ```cpp
+   int getMin(int arr[], int n) 
+   { 
+       return *min_element(arr, arr + n); 
+   } 
+   ```
+   - This function takes an array `arr` and its size `n` as inputs.
+   - It uses the `std::min_element` function from the `<algorithm>` header to find the minimum element in the array.
+   - The dereferenced iterator returned by `min_element` is returned as the result.
+
+3. **Function to Find Maximum Element**
+   ```cpp
+   int getMax(int arr[], int n) 
+   { 
+       return *max_element(arr, arr + n); 
+   } 
+   ```
+   - This function takes an array `arr` and its size `n` as inputs.
+   - It uses the `std::max_element` function from the `<algorithm>` header to find the maximum element in the array.
+   - The dereferenced iterator returned by `max_element` is returned as the result.
+
+4. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int arr[] = { 12, 1234, 45, 67, 1 }; 
+       int n = sizeof(arr) / sizeof(arr[0]); 
+       cout << "Minimum element of array: " << getMin(arr, n) << " "; 
+       cout << "Maximum element of array: " << getMax(arr, n); 
+       return 0; 
+   } 
+   ```
+   - This function initializes an array `arr` and calculates its size `n`.
+   - It calls `getMin` and `getMax` functions to find the minimum and maximum elements of the array.
+   - It prints the results using `cout`.
+
+### Equivalent SystemC Code
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayMinMax) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_out<int> min_val;     // Output for minimum value
+    sc_out<int> max_val;     // Output for maximum value
+
+    int arr[] = { 12, 1234, 45, 67, 1 }; 
+    int n = sizeof(arr) / sizeof(arr[0]); 
+    int min_val_result = INT_MAX;
+    int max_val_result = INT_MIN;
+
+    // Process to find minimum and maximum values
+    SC_METHOD(find_min_max);
+    sensitive << clk.pos();
+    always @(*) {
+        if (start.read()) {
+            min_val_result = INT_MAX;
+            max_val_result = INT_MIN;
+            for (int i = 0; i < n; i++) {
+                if (arr[i] < min_val_result) {
+                    min_val_result = arr[i];
+                }
+                if (arr[i] > max_val_result) {
+                    max_val_result = arr[i];
+                }
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+
+    // Method to assign results to output ports
+    SC_METHOD(assign_outputs);
+    sensitive << done;
+    always @(*) {
+        if (done.read()) {
+            min_val.write(min_val_result);
+            max_val.write(max_val_result);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(ArrayMinMax) {
+   ```
+   - Defines a SystemC module named `ArrayMinMax`.
+
+2. **Signals Declaration**
+   ```cpp
+   sc_in<bool> clk;
+   sc_in<bool> start;
+   sc_out<bool> done;
+   sc_out<int> min_val;
+   sc_out<int> max_val;
+   ```
+   - Declares the input and output signals as specified.
+
+3. **Initialization**
+   ```cpp
+   int arr[] = { 12, 1234, 45, 67, 1 }; 
+   int n = sizeof(arr) / sizeof(arr[0]); 
+   int min_val_result = INT_MAX;
+   int max_val_result = INT_MIN;
+   ```
+   - Initializes the array and its size.
+   - Initializes variables to store the minimum and maximum values.
+
+4. **Process to Find Minimum and Maximum Values**
+   ```cpp
+   SC_METHOD(find_min_max);
+   sensitive << clk.pos();
+   always @(*) {
+       if (start.read()) {
+           min_val_result = INT_MAX;
+           max_val_result = INT_MIN;
+           for (int i = 0; i < n; i++) {
+               if (arr[i] < min_val_result) {
+                   min_val_result = arr[i];
+               }
+               if (arr[i] > max_val_result) {
+                   max_val_result = arr[i];
+               }
+           }
+           done.write(true);
+       } else {
+           done.write(false);
+       }
+   }
+   ```
+   - Sensitive to positive edges of the clock signal.
+   - When `start` is true, it resets the minimum and maximum values.
+   - Iterates through the array to find the minimum and maximum values.
+   - Sets `done` to true when the computation is complete.
+
+5. **Process to Assign Results to Output Ports**
+   ```cpp
+   SC_METHOD(assign_outputs);
+   sensitive << done;
+   always @(*) {
+       if (done.read()) {
+           min_val.write(min_val_result);
+           max_val.write(max_val_result);
+       }
+   }
+   ```
+   - Sensitive to changes in the `done` signal.
+   - When `done` is true, it assigns the computed minimum and maximum values to the output ports.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated with the provided testbench signals.

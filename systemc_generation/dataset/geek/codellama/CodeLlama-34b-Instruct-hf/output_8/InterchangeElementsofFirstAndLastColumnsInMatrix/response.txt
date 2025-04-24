@@ -1,0 +1,101 @@
+  Inputs:
+
+* A 2D array of integers `m` of size `(n x n)`
+* An integer `rows` representing the number of rows in the array `m`
+
+Outputs:
+
+* A 2D array of integers `m` with the elements of the first row and last row swapped
+
+The C++/C code provided swaps the elements of the first and last rows of a 2D array `m` of size `(n x n)`. It does this by first declaring a constant called `n` which holds the value 4. It then defines a function called `interchangeFirstLast` which takes an integer matrix `m` of size `(n x n)` as its only parameter. The function first declares two integer variables `rows` and `cols` and sets them to `n` and `n`, respectively.
+
+The function then loops through the elements of the first row of the matrix (index 0) and the last row of the matrix (index `rows - 1`) and swaps their values using a temporary variable `t`. After the loop is finished, the function displays the swapped array using a nested loop that iterates through each row and column of the matrix and displays the element at each position.
+
+To convert this code to SystemC, we need to identify the inputs and outputs. In this case, the inputs are the 2D array `m` and the number of rows `rows`, and the output is the swapped 2D array `m`.
+
+Here is a SystemC code snippet that implements the same functionality as the original C++/C code:
+```scss
+#include <systemc.h>
+
+SC_MODULE(Swapper) {
+    sc_in<int> in;     // Input port for the 2D array
+    sc_in<int> rows;   // Input port for the number of rows
+    sc_out<int> out;   // Output port for the swapped 2D array
+
+    SC_CTOR(Swapper) {
+        // Process to perform the swap
+        SC_METHOD(swap);
+        sensitive << in << rows;
+    }
+
+    void swap() {
+        int rows_tmp = rows;
+        int cols_tmp = rows_tmp;
+        int m[cols_tmp][rows_tmp];
+
+        // Read the input array
+        for (int i = 0; i < rows_tmp; i++) {
+            for (int j = 0; j < cols_tmp; j++) {
+                m[i][j] = in.read();
+            }
+        }
+
+        // Swap the elements of the first and last rows
+        for (int i = 0; i < cols_tmp; i++) {
+            int t = m[0][i];
+            m[0][i] = m[rows_tmp - 1][i];
+            m[rows_tmp - 1][i] = t;
+        }
+
+        // Write the swapped array to the output
+        for (int i = 0; i < rows_tmp; i++) {
+            for (int j = 0; j < cols_tmp; j++) {
+                out.write(m[i][j]);
+            }
+        }
+    }
+};
+```
+Note that we have added two input ports to the module: `in` for the 2D array and `rows` for the number of rows. We have also added an output port `out` for the swapped 2D array.
+
+In the constructor, we read the input array using a nested loop and store it in a temporary array `m`. We then perform the swap operation as in the original code, swapping the elements of the first and last rows. Finally, we write the swapped array to the output port using another nested loop.
+
+To use this module in a SystemC testbench, we can instantiate it and connect its input and output ports to the appropriate signals:
+```scss
+#include <systemc.h>
+
+int main() {
+    // Create a signal for the input array
+    sc_signal<int> in[SIZE];
+
+    // Create a signal for the number of rows
+    sc_signal<int> rows;
+
+    // Create a signal for the output array
+    sc_signal<int> out[SIZE];
+
+    // Create a Swapper module
+    Swapper swapper("swapper", in, rows, out);
+
+    // Set the value of the input array
+    in[0] = 1; in[1] = 2; in[2] = 3; in[3] = 4;
+    in[4] = 5; in[5] = 6; in[6] = 7; in[7] = 8;
+    in[8] = 9; in[9] = 10; in[10] = 11; in[11] = 12;
+    in[12] = 13; in[13] = 14; in[14] = 15; in[15] = 16;
+    rows = 4;
+
+    // Run the swapper module
+    swapper.run();
+
+    // Print the output array
+    for (int i = 0; i < rows + 1; i++) {
+        for (int j = 0; j < rows + 1; j++) {
+            printf("%d ", out[i * rows + j]);
+        }
+        printf("\n");
+    }
+
+    return 0;
+}
+```
+This testbench creates a signal for the input array `in`, a signal for the number of rows `rows`, and a signal for the output array `out`. It then instantiates a Swapper module and connects the input and output signals to the appropriate ports. It sets the value of the input array and the number of rows, and runs the Swapper module using the `run()` method. Finally, it prints the output array using a nested loop.

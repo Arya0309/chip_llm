@@ -1,0 +1,126 @@
+### Analysis of the C++/C Code
+
+**Inputs and Outputs**:
+- **Inputs**: None
+- **Outputs**: The sorted array
+
+**Detailed Explanation**:
+
+1. **Initialization and Setup**:
+   - The `main` function initializes an array `nums` with values `{1, 12, 6, 8, 10}`.
+   - It calculates the size of the array using `size_nums = sizeof(nums) / sizeof(nums[0])`.
+
+2. **Printing the Unsorted Array**:
+   - The program prints the unsorted array before sorting.
+
+3. **Sorting the Array**:
+   - The `sort` function is called with the array and its size as arguments.
+   - Inside the `sort` function:
+     - A boolean variable `isSwapped` is initialized to `false`.
+     - The outer loop runs `len` times (i.e., `5` times for this array).
+     - The inner loop runs `len - i - 1` times to compare adjacent elements.
+     - If an element is found to be smaller than the previous element, they are swapped using the `swapNums` function.
+     - If no swaps occur in a pass, the loop breaks early, indicating the array is already sorted.
+
+4. **Printing the Sorted Array**:
+   - After sorting, the program prints the sorted array.
+
+5. **Return Statement**:
+   - The `main` function returns `0`, indicating successful execution.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that replicates the functionality of the provided C++/C code. This code includes the necessary signals (`clk`, `start`, `done`) and integrates seamlessly with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArraySorter) {
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;     // Done signal
+
+    int nums[5] = {1, 12, 6, 8, 10}; // Initialized array
+    bool isSwapped;
+
+    SC_CTOR(ArraySorter) {
+        SC_METHOD(sortArray);
+        sensitive << clk.pos(); // Sensitive to positive edge of clock
+        dont_initialize();
+    }
+
+    void sortArray() {
+        if (start.read()) {
+            for (int i = 0; i < 5; i++) {
+                isSwapped = false;
+                for (int j = 1; j < 5 - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        swapNums(j, j - 1);
+                        isSwapped = true;
+                    }
+                }
+                if (!isSwapped) {
+                    break;
+                }
+            }
+            done.write(true); // Set done signal after sorting
+        } else {
+            done.write(false); // Reset done signal
+        }
+    }
+
+    void swapNums(int first, int second) {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    ArraySorter sorter("sorter");
+    sc_clock clk("clk", 10, SC_NS); // 10 ns period clock
+    sc_signal<bool> start("start");
+    sc_signal<bool> done("done");
+
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Testbench code here
+    start = false;
+    wait(10, SC_NS);
+    start = true;
+    wait(100, SC_NS); // Wait for sorting to complete
+    start = false;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **Module Definition**:
+  - `ArraySorter` is a SystemC module that encapsulates the sorting functionality.
+  
+- **Signals**:
+  - `clk`: Clock signal for synchronous operations.
+  - `start`: Signal to initiate the sorting process.
+  - `done`: Signal to indicate that the sorting is complete.
+
+- **Array Initialization**:
+  - The `nums` array is initialized with the same values as in the C++ code.
+
+- **Sorting Functionality**:
+  - The `sortArray` method is sensitive to the positive edge of the clock (`clk.pos()`).
+  - When `start` is set to `true`, the sorting process begins.
+  - The sorting logic is implemented similarly to the C++ code, with nested loops and a `swapNums` function.
+  - Once the sorting is complete, the `done` signal is set to `true`.
+
+- **Swap Function**:
+  - The `swapNums` function swaps two elements in the `nums` array.
+
+- **Testbench Integration**:
+  - The `sc_main` function sets up the clock and signals for testing.
+  - The testbench starts the sorting process and waits for it to complete before resetting the signals.
+
+This SystemC code should be able to be integrated into a larger system and tested using the provided signals.

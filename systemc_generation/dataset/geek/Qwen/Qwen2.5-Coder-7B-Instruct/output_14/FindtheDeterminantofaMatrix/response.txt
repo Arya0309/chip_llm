@@ -1,0 +1,118 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - A square matrix `matrix` of size `n x n`.
+  - The size of the matrix `n`.
+- **Outputs**:
+  - The determinant of the matrix.
+
+#### Detailed Explanation of the Code
+
+1. **Constants and Variables**:
+   ```cpp
+   const int MAXN = 105;
+   double a[MAXN][MAXN];
+   ```
+   - `MAXN` is a constant defining the maximum size of the matrix.
+   - `a` is a 2D array to store the matrix elements.
+
+2. **Function: `determinant`**
+   - This function calculates the determinant of a given square matrix using Gaussian elimination with partial pivoting.
+   - **Parameters**:
+     - `n`: The size of the matrix.
+   - **Steps**:
+     - Initialize `det` to 1.0.
+     - For each row `i`:
+       - Find the row `pivot` with the maximum absolute value in column `i`.
+       - Swap rows `i` and `pivot` if necessary, and adjust the sign of `det` accordingly.
+       - If the pivot element is zero, the determinant is zero.
+       - Multiply `det` by the pivot element.
+       - Eliminate the pivot element in all subsequent rows.
+   - **Return Value**:
+     - The determinant of the matrix.
+
+3. **Main Function**
+   - Initializes a 4x4 matrix with given values.
+   - Copies the matrix into the `a` array.
+   - Calls the `determinant` function to compute the determinant.
+   - Prints the determinant to the console.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that integrates the provided signals and captures the logic of the original C++/C code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(DeterminantCalculator) {
+    sc_in<double> matrix[SIZE];  // Input matrix
+    sc_out<double> det;          // Output determinant
+
+    double a[SIZE][SIZE];  // Internal storage for the matrix
+    int n;                 // Size of the matrix
+
+    SC_CTOR(DeterminantCalculator) {
+        // Process to calculate the determinant
+        SC_METHOD(calculate_determinant);
+        sensitive << matrix << n;
+    }
+
+    void calculate_determinant() {
+        // Copy the input matrix into the internal storage
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                a[i][j] = matrix[i * SIZE + j].read();
+            }
+        }
+
+        double det = 1.0;
+        for (int i = 0; i < n; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < n; j++) {
+                if (abs(a[j][i]) > abs(a[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(a[i], a[pivot]);
+                det *= -1;
+            }
+            if (a[i][i] == 0) {
+                det = 0;
+                break;
+            }
+            det *= a[i][i];
+            for (int j = i + 1; j < n; j++) {
+                double factor = a[j][i] / a[i][i];
+                for (int k = i + 1; k < n; k++) {
+                    a[j][k] -= factor * a[i][k];
+                }
+            }
+        }
+
+        // Write the determinant to the output port
+        det.write(det);
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Module Definition**:
+  - `DeterminantCalculator` is a SystemC module that takes an input matrix and calculates its determinant.
+  - It has `SIZE` input ports for the matrix elements and one output port for the determinant.
+
+- **Internal Storage**:
+  - `a` is a 2D array to store the matrix elements.
+  - `n` is the size of the matrix.
+
+- **Constructor**:
+  - The constructor initializes the `calculate_determinant` method to be sensitive to changes in the input matrix and the matrix size.
+
+- **Method: `calculate_determinant`**
+  - Copies the input matrix into the internal storage.
+  - Calculates the determinant using the same logic as the original C++/C code.
+  - Writes the calculated determinant to the output port.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated with the provided signals for high-level synthesis.

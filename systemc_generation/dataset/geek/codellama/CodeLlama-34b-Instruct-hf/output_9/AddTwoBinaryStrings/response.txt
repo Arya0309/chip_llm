@@ -1,0 +1,83 @@
+  **Inputs:**
+
+* A: String containing a binary number
+* B: String containing a binary number
+
+**Outputs:**
+
+* sum: String containing the sum of the two binary numbers
+
+**Summary:**
+The provided C++/C code implements a function called "addBinary" that takes two binary strings as input and returns their sum as a string. The function first checks if the length of the first string is greater than the length of the second string, and if so, it swaps the two strings and calls the same function again. The function then calculates the difference in length between the two strings and adds zeros to the front of the shorter string to make it the same length as the other string. The function then adds the two strings using a series of if statements that check for different combinations of bits. If there is a carry at the end, it is added to the end of the result. Finally, the function removes any leading zeroes from the result and returns it.
+
+**SystemC code:**
+```
+#include <systemc.h>
+
+SC_MODULE(AddBinary) {
+    sc_in<string> A;
+    sc_in<string> B;
+    sc_out<string> sum;
+
+    // Constructor
+    SC_CTOR(AddBinary) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to add the two strings
+    void add() {
+        string a = A.read();
+        string b = B.read();
+        if (a.length() > b.length()) {
+            a = a.substr(b.length());
+            b = b + std::string(a.length() - b.length(), '0');
+        } else {
+            b = b.substr(a.length());
+            a = a + std::string(b.length() - a.length(), '0');
+        }
+        string res;
+        char carry = '0';
+        for (int i = a.length() - 1; i >= 0; i--) {
+            if (a[i] == '1' && b[i] == '1') {
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '1';
+                } else {
+                    res.push_back('0');
+                    carry = '1';
+                }
+            } else if (a[i] == '0' && b[i] == '0') {
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '0';
+                } else {
+                    res.push_back('0');
+                    carry = '0';
+                }
+            } else if (a[i] != b[i]) {
+                if (carry == '1') {
+                    res.push_back('0');
+                    carry = '1';
+                } else {
+                    res.push_back('1');
+                    carry = '0';
+                }
+            }
+        }
+        if (carry == '1') {
+            res.push_back('1');
+        }
+        int index = 0;
+        while (index + 1 < res.length() && res[index] == '0') {
+            index++;
+        }
+        res = res.substr(index);
+        sum.write(res);
+    }
+};
+```
+The SystemC code defines a module called "AddBinary" that takes two input strings called "A" and "B" and outputs a string called "sum". The module contains a single process called "add" that adds the two input strings using a series of if statements that check for different combinations of bits. If there is a carry at the end, it is added to the end of the result. Finally, the module removes any leading zeroes from the result and writes it to the output.
+
+Note that in the SystemC code, the input and output signals are named "A", "B", and "sum" to match the signals defined in the provided signals section. The code also uses the "std::string" type to represent the input and output strings, which is more appropriate for handling string data in SystemC.

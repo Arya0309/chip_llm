@@ -1,0 +1,141 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - A 2D array `m` of size `n x n`.
+- **Outputs**:
+  - The modified 2D array `m` with the elements of the first and last columns swapped.
+
+#### Detailed Explanation Line-by-Line
+
+1. **Header and Namespace Declaration**
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - This includes the iostream library for input/output operations and sets the standard namespace to `std`.
+
+2. **Macro Definition**
+   ```cpp
+   #define n 4 
+   ```
+   - Defines the size of the matrix `n` as 4.
+
+3. **Function to Interchange First and Last Columns**
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   { 
+       for (int i = 0; i < n; i++) 
+       { 
+           int t = m[i][0]; 
+           m[i][0] = m[i][n - 1]; 
+           m[i][n - 1] = t; 
+       } 
+   } 
+   ```
+   - **Parameters**: A 2D array `m` of size `n x n`.
+   - **Logic**:
+     - Iterates over each row (`i`) from 0 to `n-1`.
+     - Swaps the first element (`m[i][0]`) with the last element (`m[i][n-1]`) of the current row using a temporary variable `t`.
+
+4. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                       {4, 7, 6, 5}, 
+                       {3, 2, 1, 8}, 
+                       {9, 9, 7, 7}}; 
+       interchangeFirstLast(m); 
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - **Logic**:
+     - Initializes a 4x4 matrix `m`.
+     - Calls the `interchangeFirstLast` function to swap the first and last columns of the matrix.
+     - Prints the modified matrix to the console.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that captures the same behavior:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSwap) {
+    sc_in<int> in[4][4];  // Input port for the matrix
+    sc_out<int> out[4][4]; // Output port for the modified matrix
+
+    // Constructor
+    SC_CTOR(MatrixSwap) {
+        // Process to perform the column swap
+        SC_METHOD(swapColumns);
+        sensitive << in;
+    }
+
+    // Method to swap the first and last columns of the matrix
+    void swapColumns() {
+        for (int i = 0; i < 4; i++) {
+            int t = in[i][0].read();
+            out[i][0].write(in[i][3].read());
+            out[i][3].write(t);
+        }
+        for (int i = 0; i < 4; i++) {
+            for (int j = 1; j < 3; j++) {
+                out[i][j].write(in[i][j].read());
+            }
+        }
+    }
+};
+```
+
+#### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(MatrixSwap) {
+   ```
+   - Declares a SystemC module named `MatrixSwap`.
+
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<int> in[4][4];  // Input port for the matrix
+   sc_out<int> out[4][4]; // Output port for the modified matrix
+   ```
+   - Defines 4x4 input and output ports to handle the matrix data.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(MatrixSwap) {
+       SC_METHOD(swapColumns);
+       sensitive << in;
+   }
+   ```
+   - Registers the `swapColumns` method to be called whenever any input changes.
+
+4. **Method to Swap Columns**
+   ```cpp
+   void swapColumns() {
+       for (int i = 0; i < 4; i++) {
+           int t = in[i][0].read();
+           out[i][0].write(in[i][3].read());
+           out[i][3].write(t);
+       }
+       for (int i = 0; i < 4; i++) {
+           for (int j = 1; j < 3; j++) {
+               out[i][j].write(in[i][j].read());
+           }
+       }
+   }
+   ```
+   - **Logic**:
+     - Iterates over each row (`i`) from 0 to 3.
+     - Swaps the first element (`in[i][0]`) with the last element (`in[i][3]`) of the current row using a temporary variable `t`.
+     - Copies the middle elements (`in[i][1]` and `in[i][2]`) directly to the corresponding positions in the output matrix.
+
+This SystemC code faithfully captures the logic of the original C++/C source and can be integrated into a high-level synthesis flow.

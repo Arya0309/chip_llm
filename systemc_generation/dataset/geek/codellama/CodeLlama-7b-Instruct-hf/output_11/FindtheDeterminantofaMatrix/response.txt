@@ -1,0 +1,97 @@
+  **Input(s) and Output(s):**
+
+The given C++/C code as input defines a function `determinant` with a single integer argument `n`, which returns a double value representing the determinant of an n x n matrix. The function takes an n x n matrix as input in the form of a 2D array of doubles called `a`.
+
+The main function of the C++/C code declares an integer variable `n` and a double matrix `matrix` of size n x n. It then fills the matrix with a predefined set of values and calls the `determinant` function with the value of `n`. The output of the function is a double variable `det` which represents the determinant of the matrix.
+
+**Summary:**
+
+The `determinant` function takes an integer `n` argument, and a 2D array of doubles `a` representing an n x n matrix. It first declares a double variable `det` which will be used to store the output value.
+
+The function then iterates over the rows and columns of the matrix, evaluating the determinant of the matrix for each row. The function starts by searching for the largest element in the current row, and swapping rows if the largest element is not in the first position. It then evaluates the determinant of the smaller submatrix by recursively calling the function with a smaller `n` argument. The function then performs row operations on the matrix to get the determinant of the whole matrix.
+
+After the first for loop, the function returns the value of `det` which represents the determinant of the original matrix.
+
+The main function of the C++/C code declares an integer `n` and a double matrix `matrix` representing an n x n matrix, and fills it with a predefined set of values. It then calls the `determinant` function with the value of `n` and a pointer to the matrix, and prints the value of `det` to the console.
+
+**SystemC Translation:**
+
+The given C++/C code can be translated into SystemC code as follows:
+```scss
+#include <systemc.h>
+
+// Define a det struct representing a determinant
+struct det {
+    double val;
+};
+
+// Define a module that computes the determinant of a matrix
+SC_MODULE(Det) {
+    // Declare input and output ports
+    sc_in<int> n;
+    sc_in<double> a[n][n];
+    sc_out<double> det;
+
+    // Define the compute method
+    void computeDet() {
+        // Initialize the determinant to 1
+        det = 1.0;
+        // Iterate over rows and columns of the matrix
+        for (int i = 0; i < n; i++) {
+            // Find the largest element in the current row
+            int pivot = i;
+            for (int j = i + 1; j < n; j++) {
+                if (a[j][i] > a[pivot][i]) {
+                    pivot = j;
+                }
+            }
+            // Swap rows if the largest element is not in the first position
+            if (pivot != i) {
+                swap(a[i], a[pivot]);
+                det *= -1;
+            }
+            // If the current element is 0, return 0
+            if (a[i][i] == 0) {
+                return 0;
+            }
+            // Compute the determinant of the smaller submatrix recursively
+            double subdet = computeDet(n - 1);
+            // Perform row operations on the matrix to get the determinant of the whole matrix
+            det *= a[i][i];
+            for (int j = i + 1; j < n; j++) {
+                double factor = a[j][i] / a[i][i];
+                for (int k = i + 1; k < n; k++) {
+                    a[j][k] -= factor * a[i][k];
+                }
+            }
+        }
+    }
+
+    // Define the execute method
+    void execute() {
+        // Call the computeDet method
+        computeDet();
+        // Print the output
+        cout << "Determinant = " << det.read() << endl;
+    }
+};
+
+// Define a main function
+int main() {
+    // Create a det module instance
+    Det detInst = new Det("detInst");
+    // Set the n port
+    detInst.n = n;
+    // Set the a port
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            detInst.a[i][j] = a[i][j];
+        }
+    }
+    // Execute the det module
+    detInst.execute();
+    // Return 0
+    return 0;
+}
+```
+In this SystemC code, the `det` struct is defined to store the value of the determinant, and the `Det` module is defined to compute the determinant of a matrix. The `computeDet` method is defined to compute the determinant of a submatrix, and the `execute` method is defined to execute the `Det` module. The `main` function creates an instance of the `Det` module, sets the input ports, and executes the module.

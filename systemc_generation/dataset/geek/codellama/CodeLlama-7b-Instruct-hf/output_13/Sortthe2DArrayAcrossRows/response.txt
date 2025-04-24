@@ -1,0 +1,121 @@
+  The provided C++/C code sorts a 2D matrix row-wise. The inputs are a matrix of integers, a row count, and a column count, and the outputs are the sorted matrix.
+
+Here's a detailed line-by-line explanation:
+
+1. `#include<bits/stdc++.h>` - This line includes the standard libraries for C++.
+2. `using namespace std;` - This line imports all the standard libraries and using namespaces in the C++ standard library.
+3. `//Swap function` - This is a function that swaps two integers.
+4. `void swap(int *xp, int *yp)` - This is the prototype for the swap function, which takes two pointers to integers. The function swaps the values of the two integers pointed to by the pointers.
+5. `int temp = *xp; *xp = *yp; *yp = temp;` - This is the implementation of the swap function. It first assigns the value of the first integer to a temporary variable, then assigns the value of the second integer to the first pointer, and finally assigns the temporary variable to the second pointer. This swaps the values of the two integers.
+6. `void sortRowWise(int m[][4], int r, int c)` - This is the function that sorts the matrix row-wise.
+7. `for (int i = 0; i < r; i++)` - This is the loop that sorts the rows of the matrix.
+8. `for (int j = 0; j < c; j++)` - This is the loop that sorts the columns of the matrix.
+9. `for (int k = 0; k < c - j - 1; k++)` - This is the loop that performs the comparisons and swaps inside the column loop.
+10. `if (m[i][k] > m[i][k + 1])` - This is the comparison that checks if the current element of the row is greater than the next element of the same row.
+11. `swap(m[i][k], m[i][k + 1])` - This is the swap function call that performs the swap of the elements.
+12. `cout << m[i][j] << " "; cout << endl;` - This is the code that prints the sorted matrix. It prints each row on a new line.
+13. `int main() { int m[][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}}; int c = sizeof(m[0]) / sizeof(m[0][0]); int r = sizeof(m) / sizeof(m[0]); sortRowWise(m, r, c); return 0; }` - This is the driver code that calls the `sortRowWise` function with the matrix, row count, and column count as inputs.
+
+Here's an equivalent SystemC code snippet that captures the behavior of the above code:
+```scss
+#include <systemc.h>
+
+// 2D matrix to store the input data
+logic m[4][4];
+
+// Function to perform the matrix sorting
+void sortRowWise(int r, int c) {
+  // Loop to sort the rows of the matrix
+  for (int i = 0; i < r; i++) {
+    // Loop to sort the columns of the matrix
+    for (int j = 0; j < c; j++) {
+      // Loop to perform comparisons and swaps
+      for (int k = 0; k < c - j - 1; k++) {
+        // Comparison and swap of elements
+        if (m[i][k] > m[i][k + 1]) {
+          tmp = m[i][k];
+          m[i][k] = m[i][k + 1];
+          m[i][k + 1] = tmp;
+        }
+      }
+    }
+  }
+  // Printing the sorted matrix
+  for (int i = 0; i < r; i++) {
+    for (int j = 0; j < c; j++) {
+      out << "m[" << i << "][" << j << "] = " << m[i][j] << endl;
+    }
+  }
+}
+
+// Incorporating the signals
+
+sc_in<bool> clk;  // Clock signal
+sc_in<bool> start;  // Start signal
+sc_out<bool> done;  // Done signal
+
+// Module that sorts the matrix row-wise
+SC_MODULE(SortRowWise) {
+  sc_in<int> r;  // Row count
+  sc_in<int> c;  // Column count
+  sc_in<int> m[4][4];  // Matrix
+  sc_out<int> result[4][4];  // Sorted matrix
+
+  // Constructor
+  SC_CTOR(SortRowWise) {
+    // Process to perform sorting
+    SC_METHOD(sortRowWise);
+    sensitive << r << c << m;
+  }
+
+  // Function to perform the matrix sorting
+  void sortRowWise() {
+    // Calculate the row and column counts
+    int rows = r.read();
+    int cols = c.read();
+     for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        result[i][j] = m[i][j];  // Copy the elements to the sorted matrix
+      }
+      for (int j = 0; j < cols - 1; j++) {
+        for (int k = 0; k < cols - j - 1; k++) {
+          if (result[i][k] > result[i][k + 1]) {
+            tmp = result[i][k];
+            result[i][k] = result[i][k + 1];
+            result[i][k + 1] = tmp;
+          }
+        }
+      }
+    }
+  }
+};
+
+// Driver code
+void main() {
+  int m[4][4];
+  done = false;
+  while (!done) {
+    // Reset the matrix
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        m[i][j] = 0;
+      }
+    }
+    // Initialize the matrix with random values
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        m[i][j] = rand();
+      }
+    }
+    // Sort the matrix
+    sortRowWise(4, 4, m);
+    // Output the sorted matrix
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        cout << "m[" << i << "][" << j << "] = " << m[i][j] << endl;
+      }
+    }
+    done = true;
+  }
+}
+```

@@ -1,0 +1,84 @@
+  The provided code is a C++ program that implements a bubble sort algorithm to sort an array of integers in ascending order. The program reads in the input array and uses the bubble sort algorithm to rearrange the elements in the array. The program then outputs the sorted array.
+
+The inputs of the program are:
+
+* The input array, represented as an array of integers.
+
+The outputs of the program are:
+
+* The sorted array, represented as an array of integers.
+
+The program's functionality can be broken down into the following sections:
+
+* The `main()` function sets up the array and calls the `sort()` function to sort it.
+* The `sort()` function is the main execution loop of the program. It uses the bubble sort algorithm to compare adjacent elements in the array and swap them if they are in the wrong order. It continues to iterate over the array until no swaps are needed, indicating that the array is sorted.
+* The `swapNums()` function is a utility function used by the `sort()` function to swap two elements in the array.
+
+Here is an equivalent SystemC code snippet that captures the logic of the provided C++/C code:
+```c
+// SystemC program to sort array in ascending order using bubble sort
+#include <systemc.h>
+
+// Input and output ports
+sc_in<int> nums;  // Input array to be sorted
+sc_out<int> sorted;  // Sorted array
+sc_in<int> isSwapped;  // Signal indicating if any swaps were made
+
+// Functionality
+void sort(int nums[], int len) {
+    // Sensitive to the isSwapped signal
+    sc_sensitive << isSwapped;
+
+    // Iterate until no swaps are needed
+    while (isSwapped == 1) {
+        // Set isSwapped to false
+        isSwapped = false;
+
+        // Iterate over the array
+        for (int i = 1; i < len; i++) {
+            // Compare current element with previous element
+            if (nums[i] < nums[i - 1]) {
+                // Swap elements if necessary
+                swapNums(nums, i, i - 1);
+                isSwapped = true;
+            }
+        }
+    }
+}
+
+// Swaps two numbers in the array
+void swapNums(int nums[], int first, int second) {
+    // Temporary variable to hold element to be swapped
+    int tmp = nums[first];
+
+    // Swap elements in the array
+    nums[first] = nums[second];
+    nums[second] = tmp;
+}
+
+int main() {
+    // Set up the inputs and outputs
+    sc_in<int> clk;
+    sc_in<int> start;
+    sc_out<int> done;
+
+    // Create a process to run the sort function
+    sc_process p = sc_process(sort, clk);
+
+    // Set the input parameters
+    p.p.nums = &nums;
+    p.p.len = 5;
+
+    // Run the process
+    p.p.run();
+
+    // Check that the array is sorted
+    if (sorted[0] == 1 && sorted[1] == 2 && sorted[2] == 3 &&
+        sorted[3] == 4 && sorted[4] == 5) {
+        done = 1;
+    }
+
+    return 0;
+}
+```
+This code uses the SystemC process API to implement the sort function as a separate process. The sort function sensitively responds to the `isSwapped` signal and iterates over the array until no swaps are needed. The `swapNums()` function is used to swap two elements in the array. The `main()` function sets up the input and output ports and creates a process to run the sort function. The `main()` function also checks that the array is sorted and sets the `done` output to 1 if it is.

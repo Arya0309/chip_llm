@@ -1,0 +1,131 @@
+### Analysis of the C++ Code
+
+#### Inputs and Outputs
+- **Inputs**: Two integers `a` and `b`.
+- **Outputs**: The least common multiple (LCM) of the two integers.
+
+#### Detailed Explanation
+
+1. **Variable Declarations**
+   ```cpp
+   int a = 15, b = 20, max_num, flag = 1;
+   ```
+   - `a` and `b` are the input integers.
+   - `max_num` will store the larger of the two integers.
+   - `flag` is used to control the loop until the LCM is found.
+
+2. **Determine the Larger Number**
+   ```cpp
+   max_num = (a > b) ? a : b;
+   ```
+   - This line uses the ternary operator to assign the larger value between `a` and `b` to `max_num`.
+
+3. **Loop to Find LCM**
+   ```cpp
+   while (flag) {
+       if (max_num % a == 0 && max_num % b == 0) {
+           cout << "LCM of " << a << " and " << b << " is " << max_num;
+           break;
+       }
+       ++max_num;
+   }
+   ```
+   - The `while` loop continues indefinitely until `flag` is set to 0.
+   - Inside the loop, the condition checks if `max_num` is divisible by both `a` and `b`.
+     - If true, it prints the LCM and breaks out of the loop.
+     - If false, it increments `max_num` by 1 and continues the loop.
+
+4. **Return Statement**
+   ```cpp
+   return 0;
+   ```
+   - The program returns 0, indicating successful execution.
+
+### Equivalent SystemC Code
+
+To convert this C++ code into a SystemC module, we need to:
+
+1. Declare the input and output ports.
+2. Implement the logic within a SystemC process.
+
+Here's the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(LCMFinder) {
+    sc_in<int> a;  // Input port for the first number
+    sc_in<int> b;  // Input port for the second number
+    sc_out<int> lcm_result; // Output port for the LCM
+
+    // Constructor
+    SC_CTOR(LCMFinder) {
+        // Process to find the LCM
+        SC_METHOD(find_lcm);
+        sensitive << a << b;
+    }
+
+    // Method to find the LCM of two numbers
+    void find_lcm() {
+        int max_num = (a.read() > b.read()) ? a.read() : b.read();
+        bool flag = true;
+
+        while (flag) {
+            if (max_num % a.read() == 0 && max_num % b.read() == 0) {
+                lcm_result.write(max_num);
+                flag = false;
+                break;
+            }
+            ++max_num;
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(LCMFinder) {
+   ```
+   - Declares a SystemC module named `LCMFinder`.
+
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<int> a;  // Input port for the first number
+   sc_in<int> b;  // Input port for the second number
+   sc_out<int> lcm_result; // Output port for the LCM
+   ```
+   - Defines the input ports `a` and `b` and the output port `lcm_result`.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(LCMFinder) {
+       // Process to find the LCM
+       SC_METHOD(find_lcm);
+       sensitive << a << b;
+   }
+   ```
+   - Initializes the module and sets up a SystemC method `find_lcm` to be triggered whenever `a` or `b` changes.
+
+4. **Method to Find LCM**
+   ```cpp
+   void find_lcm() {
+       int max_num = (a.read() > b.read()) ? a.read() : b.read();
+       bool flag = true;
+
+       while (flag) {
+           if (max_num % a.read() == 0 && max_num % b.read() == 0) {
+               lcm_result.write(max_num);
+               flag = false;
+               break;
+           }
+           ++max_num;
+       }
+   }
+   ```
+   - Implements the logic to find the LCM similar to the original C++ code.
+   - It reads the values from the input ports `a` and `b`, determines the larger number, and then finds the LCM using a loop.
+   - Once the LCM is found, it writes the result to the output port `lcm_result` and breaks out of the loop.
+
+This SystemC code faithfully captures the logic of the original C++ code and can be integrated into a high-level synthesis flow.

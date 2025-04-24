@@ -1,0 +1,64 @@
+  **Inputs**:
+
+* `matrix`: a 2D array of doubles representing a square matrix
+* `det`: a double variable representing the determinant of the matrix
+
+**Outputs**:
+
+* `det`: the determinant of the matrix
+
+**Summary**:
+
+The C++/C code is a function `determinant` that takes a square matrix of doubles as input and returns the determinant of the matrix. The function first declares two variables `det` and `pivot` to store the determinant and the pivot element of the matrix respectively.
+
+The function then iterates through each row of the matrix using a nested for loop and checks if the absolute value of the element at the current row and column is greater than the absolute value of the element at the pivot row and column. If it is, the function swaps the rows and multiplies the determinant by -1.
+
+The function then checks if the element at the diagonal is 0. If it is, the function returns 0 as the determinant.
+
+Otherwise, the function multiplies the determinant by the element at the diagonal and performs a row operation on the matrix to eliminate the elements below and to the right of the diagonal.
+
+The function returns the final value of the determinant variable at the end of the execution.
+
+**SystemC Code**:
+```
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    sc_in<double> matrix[MAXN];
+    sc_out<double> det;
+
+    SC_CTOR(Determinant) {
+        SC_THREAD(determinant);
+        sensitive << matrix[i][j];
+    }
+
+    void determinant() {
+        double det = 1.0;
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = i + 1; j < matrix.length; j++) {
+                if (abs(matrix[j][i]) > abs(matrix[i][i])) {
+                    swap(matrix[i], matrix[j]);
+                    det *= -1.0;
+                }
+            }
+            if (matrix[i][i] == 0) {
+                det = 0.0;
+                break;
+            }
+            det *= matrix[i][i];
+            for (int j = i + 1; j < matrix.length; j++) {
+                double factor = matrix[j][i] / matrix[i][i];
+                for (int k = i + 1; k < matrix.length; k++) {
+                    matrix[j][k] -= factor * matrix[i][k];
+                }
+            }
+        }
+        det.write(det);
+    }
+};
+```
+In the SystemC code, we define a module `Determinant` that takes a 2D array of doubles `matrix` as input and outputs the determinant `det`. The module has a single process `determinant` that is sensitive to the input matrix.
+
+The `determinant` process performs the same operations as the C++/C function `determinant` and outputs the determinant of the matrix at the end of the execution.
+
+Note that we have used the `MAXN` constant to define the size of the matrix, which should be set to the desired size when instantiating the module.

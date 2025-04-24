@@ -1,0 +1,116 @@
+  **Inputs:**
+
+* An integer array named `arr` with a length of `n`.
+* An integer variable named `n` that represents the length of `arr`.
+
+**Outputs:**
+
+* A sorted integer array named `arr` with a length of `n`.
+
+**Functional Overview:**
+
+The provided C++/C code is an implementation of the selection sort algorithm, which is used to sort an integer array in ascending order. The code starts by defining the necessary functions and variables, including a `swap` function that swaps the values of two integers, a `selectionSort` function that performs the actual sorting, and a `printArray` function that prints the sorted array. The code then defines the input array, `arr`, and its length, `n`, and passes them to the `selectionSort` function. Inside the `selectionSort` function, the code uses a for loop to iterate through the input array and find the minimum element in the unsorted portion of the array. The minimum element is then swapped with the first element of the unsorted portion using the `swap` function. This process is repeated until the entire input array is sorted. Finally, the sorted array is printed using the `printArray` function.
+
+**SystemC Code:**
+
+Here is an equivalent SystemC code snippet that preserves the logic of the original C++/C source:
+```
+#include <systemc.h>
+
+// Define the input and output signals
+sc_in<int> arr[];
+sc_in<int> n;
+sc_out<int> done;
+
+// Define the sorted array
+int sorted_arr[];
+int sorted_n;
+
+// Define the swap function
+void swap(int *xp, int *yp) {
+    int temp = *xp;
+    *xp = *yp;
+    *yp = temp;
+}
+
+// Define the selectionSort function
+void selectionSort(int arr[], int n) {
+    int i, j, min_idx;
+    for (i = 0; i < n-1; i++) {
+        min_idx = i;
+        for (j = i+1; j < n; j++) {
+            if (arr[j] < arr[min_idx]) {
+                min_idx = j;
+            }
+        }
+        swap(&arr[min_idx], &arr[i]);
+    }
+    for (i = 0; i < n; i++) {
+        sorted_arr[i] = arr[i];
+    }
+    sorted_n = n;
+    done.write(true);
+}
+
+// Define the printArray function
+void printArray(int arr[], int size) {
+    int i;
+    for (i = 0; i < size; i++) {
+        cout << arr[i] << " ";
+    }
+    cout << endl;
+}
+
+// Define the top-level module
+SC_MODULE(SortingModule) {
+    // Define the ports
+    sc_in<int> clk;
+    sc_in<int> start;
+    sc_out<int> done;
+
+    // Define the local variables
+    int i, j, min_idx;
+
+    // Define the algorithms
+    void selectionSort() {
+        for (i = 0; i < sorted_n-1; i++) {
+            min_idx = i;
+            for (j = i+1; j < sorted_n; j++) {
+                if (sorted_arr[j] < sorted_arr[min_idx]) {
+                    min_idx = j;
+                }
+            }
+            swap(&sorted_arr[min_idx], &sorted_arr[i]);
+        }
+        done.write(true);
+    }
+
+    // Define the reset process
+    void reset() {
+        sorted_n = 0;
+        for (i = 0; i < n; i++) {
+            sorted_arr[i] = arr[i];
+        }
+        done.write(false);
+    }
+
+    // Define the sensitivity list
+    sc_sensitive << clk.pos() << start;
+
+    // Define the method
+    void method() {
+        if (start.read()) {
+            selectionSort();
+        } else if (reset_event) {
+            reset();
+        }
+    }
+};
+```
+In the SystemC code, the input array `arr` and its length `n` are declared as input signals, while the sorted array `sorted_arr` and its length `sorted_n` are declared as local variables. The `swap` function and the `printArray` function are defined again, and the `selectionSort` function is modified to write the sorted array to the `sorted_arr` variable and the sorted length to the `sorted_n` variable. The `reset` function is defined to reset the `sorted_n` and `sorted_arr` variables.
+
+The top-level module `SortingModule` contains the `clk`, `start`, and `done` ports, which map to the `clk`, `start`, and `done` signals in the original C++/C code. The `sorted_arr` and `sorted_n` variables are declared as local variables, and the `selectionSort` function is modified to write the sorted array to these variables. The `reset` function is also defined, which is triggered by the reset event.
+
+In the `method` function, we check the `start` signal to determine whether to call the `selectionSort` function or the `reset` function. If the `start` signal is asserted, we call the `selectionSort` function to sort the input array. If the `reset` signal is asserted, we call the `reset` function to reset the `sorted_arr` and `sorted_n` variables.
+
+The SystemC code is designed to be synthesizable and can be used in a high-level synthesis flow to generate an FPGA implementation of the selection sort algorithm.

@@ -1,0 +1,82 @@
+  **Inputs:**
+
+* `matrix`: A two-dimensional array of integers of size `SIZE x SIZE`.
+* `SIZE`: The size of the input matrix.
+
+**Outputs:**
+
+* `principal`: The sum of the elements on the principal diagonal of the matrix.
+* `secondary`: The sum of the elements on the secondary diagonal of the matrix.
+
+**Summary:**
+
+The provided C++/C code defines a function `printDiagonalSums` that takes a two-dimensional array of integers as input and calculates the sum of the elements on the principal diagonal and the secondary diagonal of the matrix. The function first initializes two variables called `principal` and `secondary` to zero, and then iterates over the rows and columns of the matrix using nested for loops. Inside the inner loop, the function checks whether the current row index `i` is equal to the current column index `j` (for the principal diagonal) or whether the sum of the row index `i` and column index `j` is equal to `SIZE - 1` (for the secondary diagonal). If either condition is true, the function adds the value of the current element to the corresponding diagonal sum. Finally, the function prints the diagonal sums to the console.
+
+**Equivalent SystemC Code:**
+```
+#include <systemc.h>
+
+SC_MODULE(DiagonalSums) {
+    sc_in<int> matrix[SIZE][SIZE];
+    sc_out<int> principal;
+    sc_out<int> secondary;
+
+    // Constructor
+    SC_CTOR(DiagonalSums) {
+        // Initialize diagonal sums to zero
+        principal = 0;
+        secondary = 0;
+    }
+
+    // Process to calculate diagonal sums
+    SC_METHOD(calculate_diagonal_sums) {
+        // Iterate over the rows and columns of the matrix
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                // Check if we are on the principal diagonal
+                if (i == j) {
+                    // Add the value of the current element to the principal sum
+                    principal += matrix[i][j].read();
+                }
+                else if (i + j == SIZE - 1) {
+                    // Add the value of the current element to the secondary sum
+                    secondary += matrix[i][j].read();
+                }
+            }
+        }
+    }
+
+    // Output the diagonal sums to the console
+    SC_METHOD(print_diagonal_sums) {
+        std::cout << "Principal Diagonal: " << principal.read() << std::endl;
+        std::cout << "Secondary Diagonal: " << secondary.read() << std::endl;
+    }
+};
+```
+**Testbench integration:**
+
+To integrate the above SystemC code with the provided testbench, we need to create a `SC_MODULE` that instantiates the `DiagonalSums` module and connects it to the input and output signals provided in the testbench. Here's an example of how to do this:
+```
+#include <systemc.h>
+
+SC_MODULE(DiagonalSumsTestbench) {
+    sc_in<int> matrix[SIZE][SIZE];
+    sc_out<int> principal;
+    sc_out<int> secondary;
+
+    // Instantiate the DiagonalSums module
+    DiagonalSums diag_sums("diag_sums");
+
+    // Connect the module to the input and output signals
+    diag_sums.matrix(matrix);
+    diag_sums.principal(principal);
+    diag_sums.secondary(secondary);
+
+    // Run the simulation for 100 clock cycles
+    for (int i = 0; i < 100; i++) {
+        diag_sums.calculate_diagonal_sums();
+        diag_sums.print_diagonal_sums();
+    }
+};
+```
+Note that the above SystemC code assumes that the `DiagonalSums` module is implemented using flip-flops to store the diagonal sums, and that the testbench is using clock cycles to drive the input values and read the output values. Depending on the specific requirements of your system, you may need to modify the code to use registers or latches instead of flip-flops, or to adjust the timing of the input and output signals accordingly.

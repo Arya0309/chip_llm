@@ -1,0 +1,85 @@
+  **Inputs and Outputs:**
+The input to the code is a square matrix of size `n` by `n`, where `n` is a positive integer less than or equal to `MAXN` (105). The output is the determinant of the matrix.
+
+**Code Summary:**
+The code is a C++ implementation of the Gaussian elimination algorithm for computing the determinant of a square matrix. The `determinant` function takes an `n` by `n` matrix as input and returns its determinant. The `main` function creates a 4x4 matrix and calls the `determinant` function to compute its determinant.
+
+**Line-by-Line Explanation:**
+The code starts by including the C++ standard input/output library `iostream` and the C++ math library `cmath`. The `using namespace std;` statement is used to enable the use of the standard library functions without qualification.
+
+The next line defines a constant `MAXN`, which is the maximum size of the square matrix.
+
+The `a` matrix is defined to be a global variable of type `double[MAXN][MAXN]`, representing the square matrix to be processed.
+
+The `determinant` function takes an `n` by `n` matrix `a` as input and returns its determinant. The function starts by initializing a local variable `det` to 1.0.
+
+The algorithm then proceeds to iterate over each row of the matrix, starting from the first row. For each row `i`, the function finds the index `pivot` of the maximum element in the column `i`. If the maximum element is negative, the function swaps the current row `i` with the row `pivot` and multiplies `det` by -1.
+
+If the pivot element is 0, the function returns 0 immediately, as the determinant is 0 in this case. Otherwise, the function multiplies `det` by the pivot element and proceeds with the elimination process.
+
+In the elimination process, the function iterates over each column of the matrix, starting from the column `i+1`. For each column `j`, the function computes a factor `factor` equal to the ratio of the element `a[j][i]` to the pivot element `a[i][i]`. The function then iterates over each row of the matrix, starting from the row `j+1`, and subtracts the product of `factor` and the element `a[i][k]` from the element `a[j][k]`.
+
+The function repeats this process for each row of the matrix until all the elements below the pivot element are eliminated. The final value of `det` is returned as the determinant of the matrix.
+
+**SystemC Code:**
+ Here is a SystemC code snippet that preserves the logic of the original C++/C code and incorporates the signals defined above.
+```
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+    // Input ports for the matrix
+sc_in<double[MAXN][MAXN]> matrix;
+
+// Output port for the determinant
+sc_out<double> det;
+
+// Define the matrix and determinant signals
+sc_signal<double>[MAXN][MAXN] a;
+sc_signal<double> det;
+
+// Constructor
+SC_CTOR(Determinant) {
+    sensitive << matrix;
+}
+
+// Determinant function
+void determinant() {
+    det.write(1.0);
+    for (int i = 0; i < MAXN; i++) {
+        int pivot = i;
+        for (int j = i + 1; j < MAXN; j++) {
+            if (abs(a[j][i]) > abs(a[pivot][i])) {
+                pivot = j;
+            }
+        }
+        if (pivot != i) {
+            swaprows(i, pivot);
+            det.write(-1.0 * det.read());
+        }
+        if (a[i][i] == 0) {
+            det.write(0.0);
+            break;
+        }
+        det.write(det.read() * a[i][i]);
+        for (int j = i + 1; j < MAXN; j++) {
+            double factor = a[j][i] / a[i][i];
+            for (int k = i + 1; k < MAXN; k++) {
+                a[j][k] -= factor * a[i][k];
+            }
+        }
+    }
+    det.write(det.read() * a[0][0]);
+}
+
+// Swap rows function
+void swaprows(int i, int j) {
+    for (int k = 0; k < MAXN; k++) {
+        double temp = a[i][k];
+        a[i][k] = a[j][k];
+        a[j][k] = temp;
+    }
+}
+
+};
+```
+In the SystemC code, the `Determinant` module has input and output ports for the matrix and determinant signals, respectively. The module also declares local signals `a` and `det` to store the matrix and determinant values during the computation. The `determinant` function is implemented using a process sensitive to the input `matrix`. The function implements the Gaussian elimination algorithm to compute the determinant of the matrix. The `swaprows` function is used to swap the rows of the matrix during the pivoting process.

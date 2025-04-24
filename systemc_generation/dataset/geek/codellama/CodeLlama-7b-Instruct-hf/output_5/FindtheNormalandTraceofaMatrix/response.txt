@@ -1,0 +1,84 @@
+  The provided C++/C code computes the trace and normal of a given matrix. The input to the code is a matrix of size nxn, where n is a positive integer. The output is two integers, the trace and normal of the matrix.
+
+Here is a natural language summary of the code:
+
+The code reads in a matrix of size nxn, where n is a positive integer. The matrix is represented as a two-dimensional array of integers. The code first computes the trace of the matrix using the findTrace function, which sums the elements on the main diagonal of the matrix. The trace is then computed using the findNormal function, which computes the square root of the sum of the squares of the elements in the matrix.
+
+The code then writes the trace and normal to the output signals trace and norm, respectively. The output signals are of type int, and they are declared as outputs in the module.
+
+Now, here is an equivalent SystemC code snippet that preserves the logic:
+
+#include <systemc.h>
+
+// Module that computes the trace and normal of a matrix
+SC_MODULE(hierarchical_computing) {
+    // Declare the input and output signals
+    sc_in<int> matrix[MAX];     // Matrix to be used
+    sc_out<int> trace;          // Output: Trace of the matrix
+    sc_out<int> norm;           // Output: Normal of the matrix
+
+    // Constructor
+    SC_CTOR(hierarchical_computing) {
+        // Declare the internal signals
+        sc_signal<int> sum;     // Sum of elements in the matrix
+        sc_signal<int> norm_sum; // Sum of squares of elements in the matrix
+
+        // Process to compute the trace and normal
+        SC_METHOD(trace_normal);
+        sensitive << matrix;
+
+        // Method to compute the trace
+        SC_METHOD(trace);
+        sensitive << matrix;
+
+        // Method to compute the normal
+        SC_METHOD(norm);
+        sensitive << matrix;
+    }
+
+    // Method to compute the trace
+    void trace() {
+        unsigned n = 5;  // Size of the matrix
+        sc_uint<3> i, j; // Loop variables
+        sum = 0;         // Initialization
+        for (i = 0; i < n; i++) {
+            for (j = 0; j < n; j++) {
+                if (i == j) {
+                    sum += matrix[i][j];
+                }
+            }
+        }
+        trace = sum;
+    }
+
+    // Method to compute the normal
+    void norm() {
+        unsigned n = 5;  // Size of the matrix
+        sc_uint<3> i, j; // Loop variables
+        norm_sum = 0;    // Initialization
+        for (i = 0; i < n; i++) {
+            for (j = 0; j < n; j++) {
+                norm_sum += matrix[i][j] * matrix[i][j];
+            }
+        }
+        norm = sqrt(norm_sum);
+    }
+
+    // Method to compute the trace and normal
+    void trace_normal() {
+        sc_uint<3> i, j; // Loop variables
+        trace = 0;      // Initialization
+        for (i = 0; i < n; i++) {
+            for (j = 0; j < n; j++) {
+                if (i == j) {
+                    trace += matrix[i][j];
+                }
+            }
+        }
+        norm = sqrt(norm_sum);
+    }
+};
+
+The SystemC code is self-describing, and it clearly defines the inputs, outputs, and internal signals. The methods trace, norm, and trace_normal each perform a specific computation, and they are sensitized to the matrix input signal. The trace_normal method combines the functionality of the trace and norm methods into a single method for efficiency.
+
+Note that the SystemC code uses the C++-specific syntax and data types, and it utilizes the signals defined above to compute the trace and normal of the matrix. The generated SystemC code can be integrated seamlessly with an existing testbench.

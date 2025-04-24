@@ -1,0 +1,160 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - Two integers `a` and `b`.
+- **Outputs**: 
+  - The greatest common divisor (GCD) of `a` and `b`.
+
+#### Detailed Explanation of the Code
+
+1. **Header File and Namespace**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes the standard library and uses the `std` namespace for convenience.
+
+2. **Function Declaration**
+   ```cpp
+   int gcd(int a, int b) {
+   ```
+   - Declares a function `gcd` that takes two integers `a` and `b` and returns an integer.
+
+3. **Finding Minimum of `a` and `b`**
+   ```cpp
+   int res = min(a, b);
+   ```
+   - Initializes `res` with the minimum value between `a` and `b`.
+
+4. **Loop to Find GCD**
+   ```cpp
+   while (res > 1) {
+       if (a % res == 0 && b % res == 0)
+           break;
+       res--;
+   }
+   ```
+   - A loop runs from `res` down to 2. It checks if `res` divides both `a` and `b`. If it does, the loop breaks and `res` is the GCD.
+
+5. **Return GCD**
+   ```cpp
+   return res;
+   ```
+   - Returns the calculated GCD.
+
+6. **Main Function**
+   ```cpp
+   int main() {
+       int a = 12, b = 16;
+       cout << gcd(a, b);
+       return 0;
+   }
+   ```
+   - Defines `main`, initializes `a` and `b` with values 12 and 16 respectively, and prints the GCD of `a` and `b`.
+
+### SystemC Code Snippet
+
+To convert this C++ code into SystemC, we need to create a module that takes two integer inputs (`a` and `b`) and produces an integer output (`gcd_result`). Here’s how you can do it:
+
+```cpp
+#include <systemc.h>
+
+// Module that calculates the GCD of two integers
+SC_MODULE(GCDModule) {
+    sc_in<int> a;  // Input port for the first number
+    sc_in<int> b;  // Input port for the second number
+    sc_out<int> gcd_result; // Output port for the GCD
+
+    // Constructor
+    SC_CTOR(GCDModule) {
+        // Process to calculate GCD
+        SC_METHOD(calculate_gcd);
+        sensitive << a << b;
+    }
+
+    // Method to calculate the GCD
+    void calculate_gcd() {
+        int res = std::min(a.read(), b.read());
+        while (res > 1) {
+            if (a.read() % res == 0 && b.read() % res == 0)
+                break;
+            res--;
+        }
+        gcd_result.write(res);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Create instances of the module
+    GCDModule gcd_inst("gcd_inst");
+
+    // Bind ports (if needed, typically done in a testbench)
+    // For example:
+    // gcd_inst.a(12);
+    // gcd_inst.b(16);
+    // gcd_inst.gcd_result(gcd_result_signal);
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+1. **Include SystemC Header**
+   ```cpp
+   #include <systemc.h>
+   ```
+   - Includes the SystemC library.
+
+2. **Module Declaration**
+   ```cpp
+   SC_MODULE(GCDModule) {
+   ```
+   - Declares a SystemC module named `GCDModule`.
+
+3. **Input and Output Ports**
+   ```cpp
+   sc_in<int> a;  // Input port for the first number
+   sc_in<int> b;  // Input port for the second number
+   sc_out<int> gcd_result; // Output port for the GCD
+   ```
+   - Defines input ports `a` and `b` and output port `gcd_result`.
+
+4. **Constructor**
+   ```cpp
+   SC_CTOR(GCDModule) {
+       SC_METHOD(calculate_gcd);
+       sensitive << a << b;
+   }
+   ```
+   - Initializes the module and binds the `calculate_gcd` method to the inputs `a` and `b`.
+
+5. **Method to Calculate GCD**
+   ```cpp
+   void calculate_gcd() {
+       int res = std::min(a.read(), b.read());
+       while (res > 1) {
+           if (a.read() % res == 0 && b.read() % res == 0)
+               break;
+           res--;
+       }
+       gcd_result.write(res);
+   }
+   ```
+   - Implements the logic to calculate the GCD within the `calculate_gcd` method.
+
+6. **Main Function**
+   ```cpp
+   int sc_main(int argc, char* argv[]) {
+       GCDModule gcd_inst("gcd_inst");
+       sc_start();
+       return 0;
+   }
+   ```
+   - Creates an instance of the `GCDModule` and starts the simulation.
+
+This SystemC code captures the logic of the original C++ code and can be integrated with a testbench using the provided signals.

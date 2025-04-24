@@ -1,0 +1,87 @@
+  The given C++/C code is a simple program to check if a number is prime or not based on the Simple Trial Division algorithm.
+
+Input:
+
+* `n`: The number to be checked for primality.
+
+Output:
+
+* `is_prime`: A boolean value indicating whether `n` is prime or not.
+
+The code first initializes `cnt` to 0 and then checks if `n` is less than or equal to 1. If it is, it prints `n` followed by `is NOT prime`.
+
+In the else block, it starts checking for divisors of `n` by iterating over the numbers from 1 to `n` and checks if `n` is divisible by `i`. If `n` is divisible by `i`, it increments `cnt`.
+
+Finally, it checks if `cnt` is greater than 2, and if so, it prints `n` followed by `is NOT prime`. Otherwise, it prints `n` followed by `is prime`.
+
+The C++/C code preserves the logic of the algorithm, and the SystemC code must faithfully capture the same logic. However, since the C++/C code is using the `std::cout` to print the output, it is necessary to replace that with a SystemC module that uses the provided `is_prime` output signal to generate the output.
+
+Here is a SystemC code that captures the same logic as the C++/C code while also utilizing the provided `n` and `is_prime` inputs and outputs:
+
+```scss
+#include <systemc.h>
+
+// Simple trial division module
+SC_MODULE(stddiv) {
+    // Declare input and output ports
+    sc_in<int> n;
+    sc_out<bool> is_prime;
+
+    // Constructor
+    SC_CTOR(stddiv) {
+        // Define processes
+        SC_METHOD(divide);
+        sensitive << n;
+        SC_METHOD(check_prime);
+        sensitive << is_prime;
+    }
+
+    // Process to check divisibility
+    void divide() {
+        // Initialize counter
+        int cnt = 0;
+
+        // Check for divisors from 1 to n
+        for (int i = 1; i <= n; i++) {
+            // Increment counter if n is divisible by i
+            if (n % i == 0)
+                cnt++;
+        }
+    }
+
+    // Process to check for primality
+    void check_prime() {
+        // If n is divisible by more than 2 numbers
+        // then it is not prime
+        if (cnt > 2) {
+            is_prime.write(0);
+        } else {
+            // Otherwise it is prime
+            is_prime.write(1);
+        }
+    }
+};
+
+// Main module
+SC_MODULE(main) {
+    sc_in<int> n;
+    sc_out<bool> is_prime;
+
+    stddiv stddiv_module;
+    SC_CTOR(main) {
+        stddiv_module.n(n);
+        stddiv_module.is_prime(is_prime);
+    }
+};
+
+int sc_main(int argc, char *argv[]) {
+    sc_clock clk("clk", 1, SC_NS);
+    main top("top");
+    sc_start(100, SC_NS);
+    return 0;
+}
+```
+
+This SystemC code uses the `stddiv` module to check divisibility and the `check_prime` module to check primality based on the value of `is_prime`. The `main` module instantiates the `stddiv` and `check_prime` modules and provides the input and output signals that are required by the `stddiv` module. The `sc_main` function starts the simulation and returns 0.
+
+The output of the simulation can be accessed by reading the `is_prime` output signal using the `read` method.

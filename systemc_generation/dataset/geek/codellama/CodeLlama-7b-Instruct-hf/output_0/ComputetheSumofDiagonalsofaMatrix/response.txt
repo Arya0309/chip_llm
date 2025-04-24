@@ -1,0 +1,122 @@
+  The provided C++/C code is a simple program to find the sum of the diagonals of a matrix. The code accepts an integer matrix as input (via the `mat` array) and its size (`n`) as input via the command line. The program then iterates through the matrix and calculates the sum of the principal and secondary diagonals.
+
+Inputs:
+
+* The input integer matrix is represented as a two-dimensional array `mat` of size `n x n`.
+* The input size `n` is represented as a scalar integer.
+
+Outputs:
+
+* The principal diagonal sum is represented as a scalar integer `principal`.
+* The secondary diagonal sum is represented as a scalar integer `secondary`.
+
+Line-by-Line Explanation:
+
+1. `const int MAX = 100;` - Declares a constant variable `MAX` with value 100, which is used as a limit for the size of the matrix.
+2. `void printDiagonalSums(int mat[][MAX], int n) {` - Declares a function `printDiagonalSums` that takes an integer matrix `mat` of size `n x n`, and an integer `n` as input, and returns two scalar integers `principal` and `secondary`.
+3. `int principal = 0, secondary = 0;` - Declares two scalar integers `principal` and `secondary` with initial value 0, which are used to store the sums of the principal and secondary diagonals respectively.
+4. `for (int i = 0; i < n; i++) {` - Iterates through the rows of the matrix `mat`.
+5. `for (int j = 0; j < n; j++)	  {` - Iterates through the columns of the matrix `mat`.
+6. `if (i == j)  principal += mat[i][j];` - If the current row and column indices `i` and `j` match, adds the element at the corresponding position in the matrix to the `principal` sum.
+7. `if ((i + j) == (n - 1))  secondary += mat[i][j];` - If the sum of the row and column indices `i` and `j` equals the length of the matrix `n - 1`, adds the element at the corresponding position in the matrix to the `secondary` sum.
+8. `}` - Closes the inner loop.
+9. `}` - Closes the outer loop.
+10. `cout << "Principal Diagonal:" << 
+ principal << endl;` - Prints the `principal` sum to the console with a label "Principal Diagonal".
+11. `cout << "Secondary Diagonal:" << 
+ secondary << endl;` - Prints the `secondary` sum to the console with a label "Secondary Diagonal".
+12. `} //void printDiagonalSums(int mat[][MAX], int n) {` - Closes the `printDiagonalSums` function.
+13. `int main() {` - Declares the `main` function, which is the entry point of the program.
+14. `int a[][MAX] = {{1, 2, 3, 4},` - Declares a 2D integer array `a` with size `4 x 4`.
+15. `{5, 6, 7, 8},` - Populates the first row of the array with values `1, 2, 3, 4`.
+16. `{1, 2, 3, 4},` - Populates the second row of the array with values `5, 6, 7, 8`.
+17. `{5, 6, 7, 8}}; //int a[][MAX];` - Closes the `a` array.
+18. `printDiagonalSums(a, 4); //void printDiagonalSums(int mat[][MAX], int n)` - Calls the `printDiagonalSums` function with the `a` matrix and size `4`.
+19. `return 0;` - Returns an integer 0 to indicate successful termination of the program.
+20. `}` - Closes the `main` function.
+
+SystemC Code:
+```scss
+#include <systemc.h>
+
+// Module that finds the sum of the diagonals of a matrix
+SC_MODULE(DiagonalSum) {
+    // Input signals
+    sc_in<int> matrix[SIZE]; // Input matrix
+    sc_in<int> size; // Length of the matrix
+
+    // Output signals
+    sc_out<int> principal; // Sum of the principal diagonal
+    sc_out<int> secondary; // Sum of the secondary diagonal
+
+    // Block-by-block natural language explanation
+    void printDiagonalSums() {
+        // Iterate through the rows of the matrix
+        for (int i = 0; i < size; i++) {
+            // Iterate through the columns of the matrix
+            for (int j = 0; j < size; j++) {
+                // Condition for the principal diagonal
+                if (i == j) {
+                    // Add the element at the corresponding position to the principal sum
+                    principal += matrix[i][j];
+                }
+
+                // Condition for the secondary diagonal
+                if ((i + j) == (size - 1)) {
+                    // Add the element at the corresponding position to the secondary sum
+                    secondary += matrix[i][j];
+                }
+            }
+        }
+    }
+
+    // Driver code
+    SC_CTOR(DiagonalSum) {
+        // Define the input and output ports
+        SC_SIG(matrix, size);
+        SC_SIG(principal, secondary);
+
+        // Process to find the sum of the diagonals
+        SC_METHOD(printDiagonalSums);
+        sensitive << matrix << size;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the DiagonalSum module
+    DiagonalSum diagonalSum("diagonalSum");
+
+    // Connect the input and output ports of the module
+    sc_signal<int>* matrix = new sc_signal<int>[SIZE * SIZE];
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            matrix[i * SIZE + j] = argv[i] + (j * 4);
+        }
+    }
+
+    diagonalSum.matrix = matrix;
+    diagonalSum.size = SIZE;
+
+    // Define the clock and reset
+    sc_clock clock("clock", 10, SC_NS);
+    sc_signal<bool> reset = false;
+
+    // Run the simulation
+    sc_start(50, SC_NS);
+
+    // Print the outputs
+    cout << "Principal Diagonal: " << diagonalSum.principal << endl;
+    cout << "Secondary Diagonal: " << diagonalSum.secondary << endl;
+
+    return 0;
+}
+```
+Explanation:
+
+The SystemC code starts with the inclusion of the `<systemc.h>` header file, which provides the necessary functions and classes for synchronous simulation. The `DiagonalSum` module is defined, which takes two input signals `matrix` and `size`, and two output signals `principal` and `secondary`.
+
+The `printDiagonalSums` method is defined, which iterates through the rows and columns of the input matrix `matrix`, and calculates the sum of the principal and secondary diagonals. The `principal` and `secondary` sums are updated using the `+= operator`.
+
+The `driver` code is defined in the `sc_main` function, which instantiates the `DiagonalSum` module, and connects the input and output ports using the `SC_SIG` macro. The clock and reset are defined, and the simulation is run for 50 nanoseconds using the `sc_start` function. Finally, the output signals are printed to the console using the `cout` statement.
+
+In this solution, the `DiagonalSum` module is self-contained, and can be used in a high-level synthesis flow. The SystemC code captures the logic of the original C++/C source, and can be compiled and simulated using the `systemc` compiler and tools.

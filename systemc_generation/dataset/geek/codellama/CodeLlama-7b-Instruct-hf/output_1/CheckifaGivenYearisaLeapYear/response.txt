@@ -1,0 +1,151 @@
+  The provided code is a C++ program that checks if a given year is a leap year or not. The program takes as an input an integer representing the year and outputs a boolean indicating whether the year is a leap year or not.
+
+The program uses the following logic to determine whether a given year is a leap year:
+
+* If the year is divisible by 400, it is a leap year.
+* If the year is not divisible by 100 but is divisible by 4, it is a leap year.
+* Otherwise, it is not a leap year.
+
+The program defines a function called `checkYear()` with the following implementation:
+```cpp
+bool checkYear(int year) {
+	if (year % 400 == 0) {
+		return true;
+	} else if (year % 100 == 0) {
+		return false;
+	} else if (year % 4 == 0) {
+		return true;
+	} else {
+		return false;
+	}
+}
+```
+This function checks if the input year is a leap year by using the aforementioned logic.
+
+The main function of the program takes integers representing years as input and uses the `checkYear()` function to determine if the year is a leap year. If it is a leap year, the program outputs "Leap Year" to the console, otherwise, it outputs "Not a Leap Year". The program's output is printed to the console when the program is executed.
+
+To provide an equivalent SystemC code snippet, we can define a SystemC module called `LeapYear` with the following structure:
+```c
+#include <systemc.h>
+
+SC_MODULE(LeapYear) {
+	// Input ports
+	sc_in<int> year;
+
+	// Output ports
+	sc_out<bool> is_leap_year;
+
+	SC_CTOR(LeapYear) {
+		// Function to check if year is a leap year
+		SC_METHOD(check_leap_year);
+		sensitive << year;
+	}
+
+	// Check if year is a leap year
+	void check_leap_year() {
+		// Determine if the year is divisible by 400
+		if (year % 400 == 0) {
+			is_leap_year.write(true);
+		} else if (year % 100 == 0) {
+			// Determine if the year is not divisible by 400 but is divisible by 100
+			if (year % 4 == 0) {
+				is_leap_year.write(true);
+			} else {
+				is_leap_year.write(false);
+			}
+		} else {
+			// All other years are not leap years
+			is_leap_year.write(false);
+		}
+	}
+};
+```
+In this SystemC code, we define input and output ports for the year and leap year indicators. We define a `SC_METHOD` called `check_leap_year` which checks if the year is a leap year using the same logic as the C++ code. We use the `sensitive` keyword to ensure that the method is triggered whenever the input `year` changes. We define a `systemc.h` header file to include all the necessary SystemC files and include the `LeapYear` module in the `main` function.
+
+A complete example for the SystemC code would be:
+```c
+#include <systemc.h>
+
+SC_MODULE(LeapYear) {
+	// Input ports
+	sc_in<int> year;
+
+	// Output ports
+	sc_out<bool> is_leap_year;
+
+	SC_CTOR(LeapYear) {
+		// Function to check if year is a leap year
+		SC_METHOD(check_leap_year);
+		sensitive << year;
+	}
+
+	// Check if year is a leap year
+	void check_leap_year() {
+		// Determine if the year is divisible by 400
+		if (year % 400 == 0) {
+			is_leap_year.write(true);
+		} else if (year % 100 == 0) {
+			// Determine if the year is not divisible by 400 but is divisible by 100
+			if (year % 4 == 0) {
+				is_leap_year.write(true);
+			} else {
+				is_leap_year.write(false);
+			}
+		} else {
+			// All other years are not leap years
+			is_leap_year.write(false);
+		}
+	}
+};
+
+SC_MODULE(LeapYearTest) {
+	SC_CTOR(LeapYearTest) {
+		LeapYear leap_year("leap_year");
+		sc_in<int> year("year");
+		sc_out<bool> is_leap_year("is_leap_year");
+	}
+
+	SC_CTOR(LeapYear) {
+		// Connect module ports
+		leap_year.year(year);
+		leap_year.is_leap_year(is_leap_year);
+	}
+
+	// Print the result of the year check
+	void print_result() {
+		if (is_leap_year.read() == true) {
+			cout << "Leap Year";
+		} else {
+			cout << "Not a Leap Year";
+		}
+	}
+};
+
+int sc_main(int argc, char *argv[]) {
+	sc_int<32> year = 2000;
+	sc_clock clk("clk", 10, SC_NS);
+	sc_signal<bool> is_leap_year;
+	sc_signal<int> year("year");
+
+	LeapYearTest testbench("testbench");
+	testbench.year(year);
+	testbench.is_leap_year(is_leap_year);
+
+	// Insert evaluation points
+	sc_start(10, SC_NS);
+
+	// Check if the year is a leap year
+	if (is_leap_year.read() == true) {
+		cout << "Leap Year";
+	} else {
+		cout << "Not a Leap Year";
+	}
+
+	// Print the result of the year check
+	testbench.print_result();
+	return 0;
+}
+```
+In this example, we define a `LeapYear` module that checks if a year is a leap year. We define an `sc_in` and `sc_out` for the year and leap year indicators, respectively. We also define an `SC_METHOD` called `check_leap_year` to check if the year is a leap year using the same logic as the C++ code. We connect the module ports to the input and output signals and define a `LeapYearTest` module that connects the module to the input and output signals and prints the result of the year check.
+
+We also define an evaluation point in the `sc_start()` function to trigger the `check_leap_year` method when the year changes. We use the `sc_signal` class to create signals for the year and leap year indicators. We define a `sc_clock` for the simulation clock and use the `sc_start()` function to start the simulation.

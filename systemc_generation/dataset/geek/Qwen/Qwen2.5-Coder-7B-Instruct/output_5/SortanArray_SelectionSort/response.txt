@@ -1,0 +1,121 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - `arr`: An integer array to be sorted.
+  - `n`: The size of the array.
+- **Outputs**:
+  - The sorted array is printed to the console.
+
+#### Detailed Explanation
+
+1. **Swap Function (`swap`)**:
+   - This function takes two pointers to integers and swaps their values.
+   - Example: `swap(&arr[min_idx], &arr[i]);` swaps the elements at `min_idx` and `i`.
+
+2. **Selection Sort Function (`selectionSort`)**:
+   - This function sorts an array using the selection sort algorithm.
+   - It iterates over the array, finds the minimum element in the unsorted part, and swaps it with the first element of the unsorted part.
+   - Example:
+     ```cpp
+     for (i = 0; i < n-1; i++) {
+         min_idx = i;
+         for (j = i+1; j < n; j++)
+             if (arr[j] < arr[min_idx])
+                 min_idx = j;
+         swap(&arr[min_idx], &arr[i]);
+     }
+     ```
+
+3. **Print Array Function (`printArray`)**:
+   - This function prints the elements of the array.
+   - Example:
+     ```cpp
+     for (i=0; i < size; i++)
+         cout << arr[i] << " ";
+     cout << endl;
+     ```
+
+4. **Main Function (`main`)**:
+   - Initializes an array, determines its size, calls the `selectionSort` function, and then prints the sorted array.
+   - Example:
+     ```cpp
+     int arr[] = {64, 25, 12, 22, 11};
+     int n = sizeof(arr)/sizeof(arr[0]);
+     selectionSort(arr, n);
+     cout << "Sorted array: ";
+     printArray(arr, n);
+     return 0;
+     ```
+
+### SystemC Code
+
+Here is the equivalent SystemC code that captures the logic of the provided C++/C code. This SystemC code includes the necessary signals (`clk`, `start`, `done`) and integrates seamlessly with an existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_inout<int> arr;  // Input array (inout because we modify it)
+    sc_in<int> n;  // Size of the array
+
+    int min_idx;
+    int i, j;
+
+    SC_CTOR(SelectionSort) {
+        SC_METHOD(sort);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sort() {
+        if (start.read()) {
+            for (i = 0; i < n.read() - 1; i++) {
+                min_idx = i;
+                for (j = i + 1; j < n.read(); j++) {
+                    if (arr[j] < arr[min_idx]) {
+                        min_idx = j;
+                    }
+                }
+                if (min_idx != i) {
+                    int temp = arr[min_idx];
+                    arr[min_idx] = arr[i];
+                    arr[i] = temp;
+                }
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**:
+   - `SelectionSort` is a SystemC module that includes the necessary signals and an array.
+
+2. **Signals**:
+   - `clk`: Clock signal.
+   - `start`: Start signal to initiate the sorting process.
+   - `done`: Done signal to indicate when the sorting is complete.
+   - `arr`: Input array that is modified during sorting.
+   - `n`: Size of the array.
+
+3. **Variables**:
+   - `min_idx`, `i`, `j`: Variables used for the selection sort algorithm.
+
+4. **Constructor**:
+   - The constructor initializes the `sort` method to be sensitive to positive edges of the clock signal.
+
+5. **sort Method**:
+   - The `sort` method checks if the `start` signal is high.
+   - If `start` is high, it performs the selection sort algorithm.
+   - After sorting, it sets the `done` signal to high.
+   - If `start` is low, it sets the `done` signal to low.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

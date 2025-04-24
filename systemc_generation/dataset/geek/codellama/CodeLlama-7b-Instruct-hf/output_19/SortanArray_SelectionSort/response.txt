@@ -1,0 +1,115 @@
+  Task 1: Identify input(s) and output(s) of the provided C++/C code.
+
+The inputs of the code are the array of integers "arr" and its size "n" as parameters in the "selectionSort" function. The outputs of the code are the sorted array "arr" and the "done" signal, which is set to true when the sorting algorithm completes.
+
+Task 2: Provide a detailed, line-by-line or block-by-block natural language summary that explains:
+
+1. The inputs and outputs of the code:
+The inputs are the array of integers "arr" and its size "n" as parameters in the "selectionSort" function. The outputs are the sorted array "arr" and the "done" signal, which is set to true when the sorting algorithm completes.
+2. Each major line or block of code and its functionality:
+* The first line of the code, "using namespace std;", imports the standard functions in the C++/C standard library.
+* The line that follows, "int main()", defines the start of the program's entry point, which is a function.
+* The "selectionSort" function sorts an array using the selection sort algorithm.
+* The function begins by declaring three variables: "i", "j", and "min_idx".
+* The interpreter then goes through the array "arr" and performs a selection sort on each subarray, choosing the smallest number in each subarray and swapping it with the number at the beginning of the subarray.
+* The "done" signal is set to true when the sorting algorithm completes.
+* The last line of the code "return Q;", ends the program.
+
+Task 3: Finally, generate an equivalent SystemC code snippet that preserves the logic and can be used in a high-level synthesis flow.
+
+The following SystemC code snippet implements the logic of the C++/C source code:
+
+#include <systemc.h>
+
+// Module that performs selection sort on an integer array
+SC_MODULE(SelectionSort) {
+    sc_in<int> arr; // Input array
+    sc_in<int> n; // Input size of the array
+    sc_out<int> sorted_arr; // Output sorted array
+    sc_out<bool> done; // Output signal to indicate sort completion
+
+    // Constructor
+    SC_CTOR(SelectionSort) {
+        // Process to perform selection sort on the array
+        SC_METHOD(selection_sort_method);
+        sensitive << arr << n;
+    }
+
+    // Method to perform selection sort on the array
+    void selection_sort_method() {
+        int i, j, min_idx;
+        for (i = 0; i < n-1; i++) {
+            // Find the minimum element in the unsorted subarray
+            min_idx = i;
+            for (j = i+1; j < n; j++) {
+                if (arr.read()[j] < arr.read()[min_idx]) {
+                    min_idx = j;
+                }
+            }
+            // Swap the found minimum element with the first element
+            swap(&arr[i], &arr[min_idx]);
+        }
+        // Set the done signal to true when the sorting algorithm completes
+        done.write(true);
+    }
+
+    // Method to swap the two given elements
+    void swap(int *xp, int *yp) {
+        int temp = *xp;
+        *xp = *yp;
+        *yp = temp;
+    }
+};
+
+// Testbench for the selection sort module
+SC_MODULE(SelectionSort_Test) {
+    sc_in<int> arr[5]; // Input array
+    sc_in<int> n; // Input size of the array
+    sc_out<int> sorted_arr; // Output sorted array
+    sc_out<bool> done; // Output signal to indicate sort completion
+
+    SelectionSort module_to_test; // SelectionSort module
+
+    // Constructor
+    SC_CTOR(SelectionSort_Test) {
+        module_to_test. arr(arr);
+        module_to_test.n(n);
+        module_to_test.sorted_arr(sorted_arr);
+        module_to_test.done(done);
+        module_to_test.clk(clk);
+        module_to_test.rst(rst);
+        module_to_test.start(start);
+        SC_THREAD(test_sequence);
+        sensitive << clk.posedge();
+        reset_signal_is(rst, true);
+    }
+
+    // Sequential testbench function
+    void test_sequence(void) {
+        int arr[5] = {64, 25, 12, 22, 11}; // Test array
+        n = 5; // Size of the test array
+        for (int i = 0; i < 5; i++) {
+            module_to_test.clk(false); // Start the sorting algorithm
+            module_to_test.start(true);
+            module_to_test.rst(false);
+            module_to_test.arr(arr);
+            module_to_test.n(n);
+            while (done == false) {
+                module_to_test.clk(true); // Run the sorting algorithm
+                module_to_test.eval(); // Evaluate the module
+            }
+            sort_array(sorted_arr); // Sort the array
+            // Check if the array is sorted correctly
+            if (check_array(sorted_arr, n) == true) {
+                printf("Sorted array: ");
+                print_sorted_array(sorted_arr);
+                printf("Congratulations! Your selection sort is working correctly!\n");
+            else {
+                printf("Something is wrong with your sorting algorithm. Please check it again!");
+           }
+       }
+       return 0;
+   }
+};
+
+The provided SystemC code includes input and output signals that are named "arr", "n", "sorted_arr", and "done", which are consistent with the input and output of the C++/C source code. The constructors of both the SelectionSort module and the SelectionSort_Test module ensure that the inputs and outputs are properly connected.

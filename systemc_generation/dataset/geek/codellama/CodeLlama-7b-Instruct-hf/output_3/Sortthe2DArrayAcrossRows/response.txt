@@ -1,0 +1,135 @@
+  The provided C++/C code is a function named `sortRowWise` that takes a two-dimensional integer matrix as an input and sorts the rows of the matrix in ascending order. The function swaps elements in each row when a smaller element is found later in the row. Finally, the function prints the sorted matrix.
+
+The inputs to the function are:
+
+* `m`: a two-dimensional integer matrix.
+* `r`: the number of rows in the matrix.
+* `c`: the number of columns in the matrix.
+
+The outputs of the function are:
+
+* The sorted matrix.
+
+The function's main logic can be described in the following blocks:
+
+1. Function declaration: This block declares a function named `sortRowWise`. It takes two parameters `m` and `r` representing the matrix and its number of rows, respectively.
+2. Swap function: This block defines a function named `swap` accepting two integers `xp` and `yp` as parameters. The function swaps the values of `xp` and `yp`.
+3. Loop over each row of the matrix: This block considers each row of the matrix one by one.
+4. Loop over each column of the row: This block considers each column of the current row one by one.
+5. Loop over each element in the column: This block considers each element in the current column one by one.
+6. Swapping: This block checks if a smaller element is found later in the current column. If so, it invokes the `swap` function to swap the values of the smaller element and the element found later.
+7. Printing the sorted matrix: This block prints the sorted matrix to the console.
+
+The SystemC code snippet that corresponds to the provided C++/C code and takes into account the provided signals and modules is as follows:
+
+#include <systemc.h>
+
+SC_MODULE(sortRowWise) {
+    sc_in<sc_int<4> > m[3][4];  // Input ports for the matrix
+    sc_in<sc_int<4> r;  // Input port for the number of rows
+    sc_in<sc_int<4> c;  // Input port for the number of columns
+    sc_out<sc_int<4> > sortedMat[3][4]; // Output port for the sorted matrix
+
+    // Constructor
+    SC_CTOR(sortRowWise) {
+        // Loop over each row of the matrix
+        SC_METHOD(sortRow);
+        for (int i = 0; i < r; i++) {
+            sensitive << m[i][0] << m[i][1] << m[i][2] << m[i][3];
+        }
+
+        // Loop over each column of the row
+        SC_METHOD(sortColumn);
+        for (int j = 0; j < 4; j++) {
+            sensitive << m[0][j] << m[1][j] << m[2][j];
+        }
+
+        // Loop over each element in the column
+        SC_METHOD(sortElement);
+        for (int k = 0; k < c - j - 1; k++) {
+            sensitive << m[i][k] << m[i][k + 1];
+        }
+    }
+
+    // Method to sort each row
+    void sortRow() {
+        // Loop over each element in the current row
+        for (int k = 0; k < c - j - 1; k++) {
+            // Check if a smaller element is found later
+            if (m[i][k] > m[i][k + 1]) {
+                // Swap the elements
+                sortedMat[i][k].write(m[i][k]);
+                sortedMat[i][k + 1].write(m[i][k + 1]);
+            }
+        }
+    }
+
+    // Method to sort each column
+    void sortColumn() {
+        // Loop over each element in the current column
+        for (int k = 0; k < c - j - 1; k++) {
+            // Check if a smaller element is found later
+            if (m[i][j] > m[i][j + 1]) {
+                // Swap the elements
+                sortedMat[i][j].write(m[i][j]);
+                sortedMat[i][j + 1].write(m[i][j + 1]);
+            }
+        }
+    }
+
+    // Method to sort each element
+    void sortElement() {
+        // Check if a smaller element is found later
+        if (m[i][k] > m[i][k + 1]) {
+            // Swap the elements
+            sortedMat[i][k].write(m[i][k]);
+            sortedMat[i][k + 1].write(m[i][k + 1]);
+        }
+    }
+}
+
+// Module that sorts the matrix
+SC_MODULE(SortMatrix) {
+    sc_in<sc_int<4> > m[3][4];  // Input ports for the matrix
+    sc_in<sc_int<4> r;  // Input port for the number of rows
+    sc_in<sc_int<4> c;  // Input port for the number of columns
+    sc_out<sc_int<4> > sortedMat[3][4]; // Output port for the sorted matrix
+
+    // Loop over each row of the matrix
+    sortRowWise srw(m, r, c);
+    for (int i = 0; i < r; i++) {
+        sensitive << srw->out;
+    }
+}
+
+// Module that prints the sorted matrix
+SC_MODULE(PrintSortedMatrix) {
+sc_in<sc_int<4> > sortedMat[3][4];
+
+void printSortedMatrix() {
+    // Print the sorted matrix
+    for (int i = 0; i < r; i++) {
+        for (int j = 0; j < c; j++) {
+            std::cout << sortedMat[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+}
+
+int main() {
+    // Instantiate the modules
+    sortRowWise srw;
+    SortMatrix sm;
+    PrintSortedMatrix psm;
+
+    // Connect the input and output ports
+    srw->in(ms);
+    srw->out(sm);
+    sm->mat(psm);
+
+    // Run the simulation
+    sc_start();
+
+    return 0;
+}

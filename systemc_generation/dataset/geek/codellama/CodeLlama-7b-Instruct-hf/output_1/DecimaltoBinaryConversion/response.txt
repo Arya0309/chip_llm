@@ -1,0 +1,68 @@
+  **Input(s):** The input to this code is a decimal number, represented by the variable `n` in the C++/C source.
+
+**Output(s):** The output of this code is a binary number equal to the decimal number `n`. This binary number is stored in an array called `binaryNum`.
+
+**Summary:** The code starts by declaring an array called `binaryNum` of 32 integers, and an integer variable `i` that will be used as a counter. It then defines a function called `decToBinary` that takes an integer parameter called `n` and converts it to a binary number by storing the remaining digits in the array `binaryNum` in reverse order. The function then prints the binary number to the console.
+
+In the C++/C source, a driver code is provided that calls the `decToBinary` function with the decimal number `n` and does not wait for the function to return before leaving the main function. Therefore, the SystemC code must wait for the `decToBinary` function to complete before returning from the main function.
+
+Here is a SystemC code snippet that reflects the same behavior as the C++/C source and utilizes the signals defined above:
+
+```scss
+#include <systemc.h>
+
+// Module that converts a decimal number to a binary number
+SC_MODULE(binaryConverter) {
+    // Input port for the decimal number
+    sc_in<int> dec_in;
+    // Output port for the binary number
+    sc_out<int> binary_out;
+
+    // Function to convert decimal to binary
+    void decToBinary(int n) {
+        int binaryNum[32];
+        int i = 0;
+        while (n > 0) {
+            binaryNum[i] = n % 2;
+            n = n / 2;
+            i++;
+        }
+        for (int j = i - 1; j >= 0; j--)
+            binary_out.write(binaryNum[j]);
+    }
+};
+
+// Module that waits for binaryConverter to finish
+SC_MODULE(waitForCompletion) {
+    // Instantiate binaryConverter and waitForCompletion
+    SC_HAS_PROCESS(waitForCompletion);
+    binaryConverter bin_conv();
+    SC_CTOR(waitForCompletion) {
+        bin_conv.dec_in(dec_in);
+        bin_conv.binary_out(binary_out);
+        SC_CTHREAD(wait, clk.pos());
+        bin_conv.start(sc_start(&bin_conv));
+        sc_event_and_call(clk.posedge_event(), bin_conv.done());
+        dec_in.write(10);
+    }
+
+    // Function to wait for binaryConverter to complete
+    void wait() {
+        binary_out.write(0);
+        while (true) {
+            if (bin_conv.status() == DONE)
+                break;
+        }
+        binary_out.write(bin_conv.binary_out().read());
+    }
+};
+
+int sc_main(int argc, char *argv[]) {
+    // Instantiate waitForCompletion
+    waitForCompletion wfc;
+    sc_start();
+    return 0;
+}
+```
+
+In this SystemC code, the `binaryConverter` module converts a decimal number to a binary number and stores it in an array called `binaryNum`. The `decToBinary` function uses the `binaryNum` array to store the binary representation of the input decimal number. The `printBinary` function prints the binary array in reverse order. The `waitForCompletion` module waits for the `binaryConverter` module to complete by calling the `done` method of the `binaryConverter` module. Finally, the `sc_main` function instantiates the `waitForCompletion` module and starts the simulation.

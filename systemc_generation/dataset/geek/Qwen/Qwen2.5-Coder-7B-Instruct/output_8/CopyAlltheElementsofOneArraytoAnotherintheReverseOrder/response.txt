@@ -1,0 +1,188 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - None (the array `original_arr` is hardcoded within the code)
+- **Outputs**:
+  - The original array and the copied array printed to the console
+
+#### Detailed Explanation
+1. **Header File Include**:
+   ```c
+   #include <stdio.h>
+   ```
+   - This line includes the standard I/O library for printing to the console.
+
+2. **Function to Print Array**:
+   ```c
+   void printArray(int arr[], int len) 
+   { 
+       int i; 
+       for (i = 0; i < len; i++) { 
+           printf("%d ", arr[i]); 
+       } 
+   }
+   ```
+   - This function takes an integer array and its length as input and prints each element of the array.
+
+3. **Main Function**:
+   ```c
+   int main() 
+   { 
+       int original_arr[] = {1, 2, 3, 4, 5}; 
+       int len = sizeof(original_arr)/sizeof(original_arr[0]); 
+   ```
+   - The `original_arr` is initialized with values `{1, 2, 3, 4, 5}`.
+   - The length of the array is calculated using `sizeof`.
+
+4. **Declaration of Copied Array**:
+   ```c
+       int copied_arr[len], i, j; 
+   ```
+   - A new array `copied_arr` of the same length as `original_arr` is declared.
+
+5. **Copying Elements in Reverse Order**:
+   ```c
+       for (i = 0; i < len; i++) { 
+           copied_arr[i] = original_arr[len - i - 1]; 
+       } 
+   ```
+   - This loop copies each element from `original_arr` to `copied_arr` in reverse order.
+
+6. **Printing Arrays**:
+   ```c
+       printf(" Original array: "); 
+       printArray(original_arr, len); 
+       printf(" Resultant array: "); 
+       printArray(copied_arr, len); 
+   ```
+   - The original array and the copied array are printed to the console.
+
+7. **Return Statement**:
+   ```c
+       return 0; 
+   }
+   ```
+   - The `main` function returns 0, indicating successful execution.
+
+### Equivalent SystemC Code
+
+To convert the above C++ code into SystemC, we need to:
+1. Use SystemC signals for inputs and outputs.
+2. Implement the logic using SystemC constructs.
+
+Here's the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayCopier) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_out<int> original_array[5];  // Output for original array
+    sc_out<int> copied_array[5];  // Output for copied array
+
+    int original_arr[5] = {1, 2, 3, 4, 5};
+    int len = sizeof(original_arr) / sizeof(original_arr[0]);
+    int copied_arr[5];
+
+    // Constructor
+    SC_CTOR(ArrayCopier) {
+        // Process to handle the copying logic
+        SC_METHOD(copy_arrays);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to handle the done signal
+        SC_METHOD(set_done);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    // Method to copy arrays in reverse order
+    void copy_arrays() {
+        if (start.read()) {
+            for (int i = 0; i < len; i++) {
+                copied_arr[i] = original_arr[len - i - 1];
+            }
+            done.write(false);
+        }
+    }
+
+    // Method to set the done signal
+    void set_done() {
+        if (start.read()) {
+            done.write(true);
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS);  // 10 ns period clock
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+    sc_signal<int> original_array[5];
+    sc_signal<int> copied_array[5];
+
+    ArrayCopier ac("ac");
+    ac.clk(clk);
+    ac.start(start);
+    ac.done(done);
+    ac.original_array(original_array);
+    ac.copied_array(copied_array);
+
+    // Testbench process
+    sc_process_handle tb_process = sc_spawn(sc_bind(&testbench, &ac));
+
+    sc_start();
+
+    return 0;
+}
+
+void testbench(ArrayCopier* ac) {
+    ac->start.write(true);
+    wait(20, SC_NS);  // Wait for 20 ns for the copy operation to complete
+    ac->start.write(false);
+
+    while (!ac->done.read()) {
+        wait(10, SC_NS);
+    }
+
+    // Check the copied array
+    for (int i = 0; i < 5; i++) {
+        cout << "Original array[" << i << "] = " << ac->original_array[i].read() << endl;
+        cout << "Copied array[" << i << "] = " << ac->copied_array[i].read() << endl;
+    }
+}
+```
+
+### Explanation of SystemC Code
+1. **Module Declaration**:
+   - `ArrayCopier` module is declared with `clk`, `start`, and `done` signals as inputs and outputs.
+
+2. **Initialization**:
+   - `original_arr` and `len` are initialized similarly to the C++ code.
+   - `copied_arr` is declared but not initialized yet.
+
+3. **Constructor**:
+   - Two methods `copy_arrays` and `set_done` are declared and sensitive to the positive edge of the clock (`clk.pos()`).
+
+4. **copy_arrays Method**:
+   - This method copies elements from `original_arr` to `copied_arr` in reverse order when `start` is high.
+   - It sets `done` to false initially and then to true after copying.
+
+5. **set_done Method**:
+   - This method sets `done` to true when `start` is high.
+
+6. **sc_main Function**:
+   - Initializes the clock and signals.
+   - Instantiates the `ArrayCopier` module and connects it to the signals.
+   - Spawns a testbench process to drive the `start` signal and check the results.
+
+7. **Testbench Function**:
+   - Drives the `start` signal high to trigger the copy operation.
+   - Waits for the `done` signal to be high to indicate completion.
+   - Prints the original and copied arrays to verify the results.
+
+This SystemC code captures the logic of the original C++ code and integrates seamlessly with the provided signals.

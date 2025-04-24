@@ -1,0 +1,67 @@
+  **Inputs:**
+
+* `n_in`: a positive integer
+
+**Outputs:**
+
+* `result_out`: a boolean indicating whether the input number `n_in` is a prime number that can be expressed as the sum of two prime numbers
+
+**Summary:**
+
+The provided C++/C code defines two functions: `isPrime` and `isPossible`. `isPrime` takes an integer `n` as input and checks if it is a prime number using a for-loop that iterates from 2 to the square root of `n`. If `n` is divisible by any number between 2 and its square root, `isPrime` returns `false`. Otherwise, it returns `true`.
+
+`isPossible` takes an integer `N` as input and checks if it is a prime number and if `N - 2` is also a prime number. If both conditions are met, `isPossible` returns `true`. Otherwise, it returns `false`.
+
+The main function takes no input and simply checks if `n = 13` is a prime number that can be expressed as the sum of two prime numbers using the `isPossible` function. If it is, it prints "Yes" to the console. Otherwise, it prints "No".
+
+**SystemC Snippet:**
+
+```
+#include <systemc.h>
+
+SC_MODULE(PrimeChecker) {
+    sc_in<int> n_in;
+    sc_out<bool> result_out;
+
+    SC_CTOR(PrimeChecker) {
+        // Process to check if n_in is prime
+        SC_METHOD(check_prime);
+        sensitive << n_in;
+        // Process to check if n_in can be expressed as the sum of two prime numbers
+        SC_METHOD(check_possible);
+        sensitive << n_in;
+    }
+
+    // Method to check if n_in is prime
+    void check_prime() {
+        if (n_in.read() <= 1) {
+            result_out.write(false);
+            return;
+        }
+        for (int i = 2; i <= n_in.read(); i++) {
+            if (n_in.read() % i == 0) {
+                result_out.write(false);
+                return;
+            }
+        }
+        result_out.write(true);
+    }
+
+    // Method to check if n_in can be expressed as the sum of two prime numbers
+    void check_possible() {
+        if (result_out.read() == true && n_in.read() - 2 >= 2) {
+            result_out.write(true);
+        } else {
+            result_out.write(false);
+        }
+    }
+};
+```
+
+In this SystemC snippet, we define a `PrimeChecker` module that takes an `n_in` input port and a `result_out` output port. The `PrimeChecker` module has two clocked process `check_prime` and `check_possible`.
+
+The `check_prime` process is triggered by the rising edge of the `n_in` input port. It first checks if the input `n_in` is less than or equal to 1, if it is, it writes `false` to `result_out` and returns. Otherwise, it iterates from 2 to `n_in` and checks if `n_in` is divisible by any number between 2 and its square root. If it is, it writes `false` to `result_out` and returns. Otherwise, it writes `true` to `result_out`.
+
+The `check_possible` process is triggered by the rising edge of the `n_in` input port. It first checks if `result_out` is `true` and if `n_in - 2` is greater than or equal to 2. If both conditions are met, it writes `true` to `result_out`. Otherwise, it writes `false` to `result_out`.
+
+Note that the `PrimeChecker` module uses a single clock signal to trigger the `check_prime` and `check_possible` processes simultaneously. This is different from the original C++/C code, where the `isPrime` function is called sequentially before the `isPossible` function.

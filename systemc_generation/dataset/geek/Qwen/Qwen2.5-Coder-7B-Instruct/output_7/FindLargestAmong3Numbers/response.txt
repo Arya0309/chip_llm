@@ -1,0 +1,135 @@
+### Analysis of Provided C++/C Code
+
+**Inputs and Outputs**:
+- **Inputs**: None (The values of `a`, `b`, and `c` are hardcoded within the code).
+- **Outputs**: The largest number among `a`, `b`, and `c`.
+
+**Line-by-Line Explanation**:
+
+1. **Header Inclusion and Namespace Declaration**:
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - Includes the input-output stream library for console operations.
+   - Declares the standard namespace to avoid prefixing standard library names with `std::`.
+
+2. **Main Function**:
+   ```cpp
+   int main() {
+       int a = 1, b = 2, c = 11;
+   ```
+   - Defines the `main` function, which is the entry point of the program.
+   - Initializes three integer variables `a`, `b`, and `c` with values 1, 2, and 11 respectively.
+
+3. **Nested If-Else Statements**:
+   ```cpp
+       if (a >= b) {
+           if (a >= c)
+               cout << a;
+           else
+               cout << c;
+       }
+       else {
+           if (b >= c)
+               cout << b;
+           else
+               cout << c;
+       }
+   ```
+   - Compares `a` with `b`. If `a` is greater than or equal to `b`, it further compares `a` with `c`.
+     - If `a` is also greater than or equal to `c`, it prints `a`.
+     - Otherwise, it prints `c`.
+   - If `a` is less than `b`, it compares `b` with `c`.
+     - If `b` is greater than or equal to `c`, it prints `b`.
+     - Otherwise, it prints `c`.
+
+4. **Return Statement**:
+   ```cpp
+       return 0;
+   ```
+   - Returns 0 from the `main` function, indicating successful execution.
+
+### SystemC Code Snippet
+
+To integrate this logic into a SystemC design, we need to create a module that takes inputs `a`, `b`, and `c`, and outputs the largest value among them. Here's how the SystemC code would look:
+
+```cpp
+#include <systemc.h>
+
+// Module to find the largest among three numbers
+SC_MODULE(LargestFinder) {
+    sc_in<int> a;  // Input port for the first number
+    sc_in<int> b;  // Input port for the second number
+    sc_in<int> c;  // Input port for the third number
+    sc_out<int> largest; // Output port for the largest number
+
+    // Constructor
+    SC_CTOR(LargestFinder) {
+        // Process to determine the largest number
+        SC_METHOD(find_largest);
+        sensitive << a << b << c;
+    }
+
+    // Method to find the largest number
+    void find_largest() {
+        if (a.read() >= b.read()) {
+            if (a.read() >= c.read())
+                largest.write(a.read());
+            else
+                largest.write(c.read());
+        } else {
+            if (b.read() >= c.read())
+                largest.write(b.read());
+            else
+                largest.write(c.read());
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(LargestFinder) {
+       sc_in<int> a;  // Input port for the first number
+       sc_in<int> b;  // Input port for the second number
+       sc_in<int> c;  // Input port for the third number
+       sc_out<int> largest; // Output port for the largest number
+   ```
+   - Defines a SystemC module named `LargestFinder`.
+   - Declares input ports `a`, `b`, and `c` for the three numbers.
+   - Declares an output port `largest` for the result.
+
+2. **Constructor**:
+   ```cpp
+   SC_CTOR(LargestFinder) {
+       // Process to determine the largest number
+       SC_METHOD(find_largest);
+       sensitive << a << b << c;
+   }
+   ```
+   - Initializes the module with the name `LargestFinder`.
+   - Registers the method `find_largest` to be called whenever `a`, `b`, or `c` changes.
+
+3. **Method to Find Largest Number**:
+   ```cpp
+   void find_largest() {
+       if (a.read() >= b.read()) {
+           if (a.read() >= c.read())
+               largest.write(a.read());
+           else
+               largest.write(c.read());
+       } else {
+           if (b.read() >= c.read())
+               largest.write(b.read());
+           else
+               largest.write(c.read());
+       }
+   }
+   ```
+   - Reads the current values of `a`, `b`, and `c`.
+   - Uses nested if-else statements to compare the values and write the largest value to the `largest` port.
+
+This SystemC code snippet accurately captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

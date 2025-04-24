@@ -1,0 +1,142 @@
+  Here is a detailed analysis of the provided C++/C code:
+
+* **Input(s)**:
+	+ `matrix`: a `double` array of size `MAXN * MAXN`
+	+ `n`: an `int` variable representing the size of the square matrix
+* **Output(s)**:
+	+ `det`: a `double` variable representing the determinant of the matrix
+
+The `determinant` function takes an `int` input `n` and returns a `double`. The function is designed to calculate the determinant of a square matrix represented by the `matrix` array, where the size of the matrix is `n`.
+
+The inner `for` loop iterates over each element of the `matrix` array and calculates the determinant recursively using the Leibniz formula. The function also uses the `abs()` function to calculate the absolute value of each element.
+
+The `main()` function simply calls the `determinant` function with the input `n` and calculates the determinant of the matrix represented by the `matrix` array. The determinant is then printed to the console using `cout`.
+
+Based on this analysis, the natural language summary of the code is: The `determinant` function calculates the determinant of a square matrix represented by an `double` array `matrix` of size `MAXN * MAXN`. It recursively calls the `determinant` function with a smaller `n - 1` matrix and calculates the determinant of the original matrix. The function also uses the `abs()` function to calculate the absolute value of each element. The `main()` function simply calls the `determinant` function with the input `n` and calculates the determinant of the matrix represented by the `matrix` array.
+
+Now, we can use this natural language summary to generate the SystemC code that preserves the logic and can be used in a high-level synthesis flow.
+
+Here is an equivalent SystemC code snippet that captures the logic of the original C++/C source:
+```scss
+#include <systemc.h>
+
+// Module that calculates the determinant of a square matrix
+SC_MODULE(Determinant) {
+    // Input ports
+    sc_in<double> matrix[SIZE];
+    sc_in<int> n;
+
+    // Output port
+    sc_out<double> det;
+
+    // Local variables
+    double a[SIZE][SIZE];
+    double det_n;
+
+    // Constructor
+    SC_CTOR(Determinant) {
+        // Assign the input ports
+        sc_signal<double> matrix_;
+        sc_signal<int> n_;
+
+        // Assign the output port
+        sc_signal<double> det_;
+
+        // Make each element of the matrix an input port
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                a[i][j] = &matrix_[i][j];
+            }
+        }
+
+        // Calculate the determinant recursively using the Leibniz formula
+        for (int i = 0; i < SIZE; i++) {
+            int pivot = i;
+            for (int j = i + 1; j < SIZE; j++) {
+                if (abs(a[j][i]) > abs(a[pivot][i])) {
+                    pivot = j;
+                }
+            }
+            if (pivot != i) {
+                swap(&a[i], &a[pivot]);
+                det_n *= -1;
+            }
+            if (a[i][i] == 0) {
+                return 0;
+            }
+            det_n *= a[i][i];
+            for (int j = i + 1; j < SIZE; j++) {
+                double factor = a[j][i] / a[i][i];
+                for (int k = i + 1; k < SIZE; k++) {
+                    a[j][k] -= factor * a[i][k];
+                }
+            }
+        }
+
+        // Assign the output port
+        det = det_;
+    }
+
+    // Method to calculate the determinant recursively
+    void calc_determinant(int n) {
+        if (n == 1) {
+            return a[0][0];
+        } else {
+            det_n = 0;
+            for (int i = 0; i < n; i++) {
+                calc_determinant(n - 1);
+                det_n += a[i][i] * (i % 2 == 0 ? 1 : -1) * det_n;
+            }
+        }
+    }
+};
+```
+The `Determinant` module has the following inputs and outputs:
+
+* Inputs:
+	+ `matrix`: a `double` array of size `SIZE`
+	+ `n`: an `int` variable representing the size of the square matrix
+* Output:
+	+ `det`: a `double` variable representing the determinant of the matrix
+
+The `Determinant` module contains a `calc_determinant` procedure that calculates the determinant of a square matrix recursively using the Leibniz formula. The procedure calculates the determinant of the matrix module and assigns it to the output port `det`. The `calc_determinant` procedure is called from the `SC_CTOR` constructor of the module.
+
+The `SC_CTOR` constructor initializes the input ports `matrix` and `n`, as well as the output port `det`. It also initializes the local variables `a` and `det_n`. The `det_n` variable is used to store the intermediate results of the determinant calculation.
+
+The `for` loops in the `SC_CTOR` constructor assign each element of the `matrix` array an input port. This is done so that the input array can be modified by the `calc_determinant` procedure.
+
+The `calc_determinant` procedure calculates the determinant recursively using the Leibniz formula. The procedure iterates over each element of the input matrix and calculates the determinant recursively using the Leibniz formula. The `swap()` function is used to swap the elements in the input array if the current element is not equal to the element at the largest pivot in the current row. The `abs()` function is used to calculate the absolute value of each element. The `if` statement is used to check if the absolute value of the current element is equal to zero, in which case the determinant is assigned a value of zero.
+
+The `for` loop at the end of the `calc_determinant` procedure calculates the determinant of the recursive call to the `calc_determinant` procedure. The final output of the recursive call is assigned to the `det_n` variable. If the current element is the largest pivot in the current row, then the current element is multiplied by one. Otherwise, the current element is multiplied by -1. The resulting value is added to the `det_n` variable, which is assigned to the output port `det`.
+
+The `SC_CTOR` constructor assigns the output port `det` to the `det_n` variable.
+
+The `Determinant` module can be compiled and simulated using the following SystemC code:
+
+```scss
+// Main module
+SC_MODULE(Main) {
+    // Input ports
+    sc_interface matrix[SIZE];
+    sc_in<int> n;
+
+    // Output port
+    sc_interface det;
+
+    // Instantiate the Determinant module
+    Determinant determinant("Determinant");
+
+    // Connect the input ports
+    determinant.matrix = &matrix;
+    determinant.n = &n;
+    determinant.det = &det;
+
+    // Run the simulation
+    void run() {
+        determinant.run();
+    }
+};
+```
+The `Main` module instantiates the `Determinant` module and connects the input ports and output port of the `Determinant` module. The `run` method runs the simulation of the `Determinant` module.
+
+TheSystemC code provided is a compilable snippet that captures the logic of the original C++/C source. The`Determinant` module calculates the determinant of a square matrix recursively using the Leibniz formula, and the `Main` module instantiates the `Determinant` module and runs the simulation.

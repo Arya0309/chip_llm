@@ -4,6 +4,8 @@ import argparse
 from dataclasses import dataclass, field
 from vllm import SamplingParams
 
+current_dir = os.path.dirname(os.path.realpath(__file__))
+
 
 @dataclass
 class ModelConfig:
@@ -14,6 +16,7 @@ class ModelConfig:
     batch_size: int
     tensor_parallel_size: int
     gpu_memory_utilization: float
+    dtype: str
 
     root_name: str = "dataset"  # The name of root directory for saving the outputs
     obj_dataset: str = "geek"  # The name of the objective dataset
@@ -47,7 +50,9 @@ def parse_args():
     parser.add_argument(
         "--generation_config",
         type=str,
-        default="./generation_config/{model_name}.yaml",
+        default=os.path.join(
+            current_dir, "config", "generation_config", "{model_name}.yaml"
+        ),
     )
 
     return parser.parse_args()

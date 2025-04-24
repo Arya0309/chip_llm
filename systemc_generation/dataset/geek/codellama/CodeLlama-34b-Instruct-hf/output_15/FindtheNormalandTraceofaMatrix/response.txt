@@ -1,0 +1,74 @@
+  Inputs:
+
+* `mat[][MAX]`: a 2D array of integers representing a matrix
+* `n`: the size of the matrix
+
+Outputs:
+
+* `trace`: the trace of the matrix (the sum of the elements on the main diagonal)
+* `normal`: the normal of the matrix (the square root of the sum of the squares of all elements)
+
+Explanation:
+
+1. `findTrace()`: This function takes two inputs: `mat[][MAX]` and `n`. It calculates and returns the trace of the matrix. The function starts by initializing the `sum` variable to 0. Then, it loops through all the elements of the main diagonal of the matrix (i.e., the elements on the diagonal from the top left to bottom right). It adds each element to the `sum` variable. Finally, it returns the `sum` variable.
+2. `findNormal()`: This function takes two inputs: `mat[][MAX]` and `n`. It calculates and returns the normal of the matrix. The function starts by initializing the `sum` variable to 0. Then, it loops through all the elements of the matrix and squares each element. It adds each squared element to the `sum` variable. Finally, it returns the square root of the `sum` variable.
+3. `main()`: This is the main function of the program. It starts by defining a 5x5 matrix called `mat`. It then calls the `findTrace()` function with `mat` and `5` as inputs, and prints the result to the console. It then calls the `findNormal()` function with `mat` and `5` as inputs, and prints the result to the console.
+
+Translation to SystemC:
+
+To translate the provided C++/C code to SystemC, we need to define a module with the required inputs and outputs. We can implement the `findTrace()` and `findNormal()` functions as methods in this module. We also need to define the `main()` function as a SystemC thread.
+
+Here's a SystemC code snippet that implements the same logic as the provided C++/C code:
+```scss
+#include <systemc.h>
+
+SC_MODULE(MatrixOperations) {
+    sc_in<int> matrix[SIZE][SIZE]; // Input matrix
+    sc_in<int> n; // Size of the input matrix
+    sc_out<int> trace; // Output: trace of the input matrix
+    sc_out<int> normal; // Output: normal of the input matrix
+
+    // Constructor
+    SC_CTOR(MatrixOperations) {
+        // Create a process to calculate the trace and normal of the input matrix
+        SC_METHOD(calcTraceAndNormal);
+        sensitive << matrix;
+    }
+
+    // Method to calculate the trace and normal of the input matrix
+    void calcTraceAndNormal() {
+        int trace = 0;
+        int normal = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                trace += matrix[i][j];
+                normal += matrix[i][j] * matrix[i][j];
+            }
+        }
+        trace.write(trace);
+        normal.write(sqrt(normal));
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Initialize the system
+    sc_clock clock("clock", 10, SC_NS, 0.5, 0, SC_NS, true);
+    sc_signal<int> matrix[SIZE][SIZE];
+    sc_signal<int> n;
+    sc_signal<int> trace;
+    sc_signal<int> normal;
+
+    // Create a MatrixOperations module
+    MatrixOperations matrixOperations("matrixOperations");
+
+    // Connect the inputs and outputs
+    matrixOperations.matrix = matrix;
+    matrixOperations.n = n;
+    matrixOperations.trace = trace;
+    matrixOperations.normal = normal;
+
+    // Run the simulation
+    sc_start();
+}
+```
+Note that this SystemC code uses `sc_clock` to generate a clock signal, which is required by the `sc_signal` objects to work correctly. The `sc_main` function initializes the system by creating the `MatrixOperations` module and connecting the inputs and outputs. It then starts the simulation by calling `sc_start()`.

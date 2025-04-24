@@ -1,0 +1,103 @@
+  Sure, here is the summary and SystemC code for the provided C++/C code:
+
+**Inputs and Outputs**:
+
+The inputs are the two binary strings A and B, which are of type `std::string`. The output is the sum of the two binary strings, also of type `std::string`.
+
+**Code Explanation**: 
+
+The provided C++/C code is a function named `addBinary` that adds two binary strings. The function takes two string inputs, `A` and `B`, and returns the sum as a string.
+
+The function starts by checking whether the length of `A` is greater than the length of `B`. If it is, the function calls itself with the two arguments swapped. This is necessary to ensure that the longest string is added to the shorter string, as the function assumes that the length of `A` is never greater than the length of `B`. Once the lengths are equal, the function initializes a `diff` variable to store the difference between the two string lengths.
+
+The function then calculates the `padding` string that should be added to the shorter string to make it the same length as the longer string. The `padding` string consists of a series of zeroes. The string is iteratively added to the end of `A` by calling the `push_back` method, which appends a new character to the string. The `padding` string is also reversed before it can be appended to `A`.
+
+The function then defines a `carry` variable that will be used to keep track of the carry bit. The carry bit indicates whether the sum is greater than one. If the sum is greater than one, the carry bit is set to `1`. This is necessary because binary strings only have two digits, 0 and 1, and the sum of two such digits can be greater than one.
+
+The function then iterates through the characters of the longer string, starting from the end and moving towards the beginning. If the i-th character of `A` and the i-th character of `B` are both ones, the function checks whether the carry bit is set. If it is set, the sum is set to one, and the carry bit is reset. If the carry bit is not set, the sum is set to zero, and the carry bit is reset.
+
+If the i-th character of `A` and the i-th character of `B` are both zeroes, the function checks whether the carry bit is set. If the carry bit is set, the sum is set to zero, and the carry bit is reset. If the carry bit is not set, the sum is set to one, and the carry bit is reset.
+
+If the i-th character of `A` and the i-th character of `B` are different, the function sets the sum to the value of the carry bit, and sets the carry bit to the opposite of its current value.
+
+After iterating through the entire string, the function returns the resulting sum, which is a newly allocated string. The sum is reversed so that the least significant digit is the first character of the string. Any leading zeroes are then removed.
+
+**SystemC Code**: 
+
+Here is an example of how the C++/C code can be converted into SystemC code:
+```scss
+#include <systemc.h>
+
+// Module that adds two binary strings
+SC_MODULE(Adder) {
+    sc_in<std::string> A;  // Input port for string A
+    sc_in<std::string> B;  // Input port for string B
+    sc_out<std::string> sum; // Output port for the sum
+
+    // Constructor
+    SC_CTOR(Adder) {
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << A << B;
+    }
+
+    // Method to add the strings
+    void add() {
+        // Initialize carry bit
+        int carry = 0;
+
+        // Iterate through each character of A and B
+        for (int i = A.length(); i >= 0; i--) {
+            char a = A.at(i);
+            char b = B.at(i);
+
+            // Check if there is a carry bit
+            if (carry == 1) {
+                // Add the carry bit to the result
+                sum.append(carry);
+                carry = 0;
+            }
+
+            // Check if both characters are ones
+            if (a == '1' && b == '1') {
+                // Set sum to one and reset carry bit
+                sum.append('1');
+                carry = 0;
+            }
+
+            // Check if both characters are zeroes
+            else if (a == '0' && b == '0') {
+                // Set sum to zero and reset carry bit
+                sum.append('0');
+                carry = 0;
+            }
+
+            // Check if characters are different
+            else {
+                // Set sum to the opposite of the carry bit, and reset carry bit
+                sum.append(carry ? '0' : '1');
+                carry = 0;
+            }
+        }
+
+        // If there is a final carry bit, add it to the result
+        if (carry == 1) {
+            sum.append('1');
+        }
+
+        // Reverse the sum and remove leading zeroes
+        std::reverse(sum.begin(), sum.end());
+        while (sum[0] == '0' && sum.length() > 1) {
+            sum.erase(0, 1);
+        }
+
+        // Write the result to the output port
+        sum.write(sum);
+    }
+};
+```
+In this SystemC code, the module takes two input ports, `A` and `B`, and one output port, `sum`. The `add` method performs the actual addition by iterating through each character of `A` and `B`, adding the characters as appropriate based on the value of the `carry` bit. Finally, the method sets the `sum` output port to the resulting string.
+
+Note that this SystemC code assumes that the input strings are of type `std::string` and that the output string should be writable through the `sum` output port. You will need to modify the code to accommodate different input and output types, if necessary.
+
+I hope this helps! Let me know if you have any questions or concerns.

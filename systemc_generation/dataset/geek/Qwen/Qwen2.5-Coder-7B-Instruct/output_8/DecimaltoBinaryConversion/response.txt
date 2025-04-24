@@ -1,0 +1,151 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: None (the code uses a hardcoded value `n = 10`).
+- **Outputs**: A binary representation of the decimal number (printed to the console).
+
+#### Detailed Explanation of Each Line/Block
+
+1. **Include Statements**
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - These lines include the standard input-output stream library and use the standard namespace for convenience.
+
+2. **Function Declaration**
+   ```cpp
+   void decToBinary(int n)
+   ```
+   - This function takes an integer `n` as input and converts it to a binary number.
+
+3. **Array Declaration**
+   ```cpp
+   int binaryNum[32];
+   ```
+   - An array `binaryNum` of size 32 is declared to store the binary digits.
+
+4. **Counter Initialization**
+   ```cpp
+   int i = 0;
+   ```
+   - A counter `i` is initialized to 0 to keep track of the position in the `binaryNum` array.
+
+5. **While Loop**
+   ```cpp
+   while (n > 0) {
+       binaryNum[i] = n % 2;
+       n = n / 2;
+       i++;
+   }
+   ```
+   - This loop continues until `n` becomes 0.
+   - In each iteration, the remainder when `n` is divided by 2 (`n % 2`) is stored in `binaryNum[i]`.
+   - `n` is then divided by 2 (`n / 2`), and `i` is incremented.
+
+6. **For Loop**
+   ```cpp
+   for (int j = i - 1; j >= 0; j--)
+       cout << binaryNum[j];
+   ```
+   - This loop prints the binary digits stored in `binaryNum` in reverse order.
+
+7. **Main Function**
+   ```cpp
+   int main()
+   {
+       int n = 10;
+       decToBinary(n);
+       return 0;
+   }
+   ```
+   - The `main` function sets `n` to 10 and calls the `decToBinary` function with this value.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that integrates with the provided signals and preserves the logic of the original C++/C code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinaryConverter) {
+    sc_in<int> dec_in;  // Input port for the decimal number
+    sc_out<int> binary_out; // Output port for the binary number
+
+    // Constructor
+    SC_CTOR(BinaryConverter) {
+        // Process to convert decimal to binary
+        SC_METHOD(convert_decimal_to_binary);
+        sensitive << dec_in;
+    }
+
+    // Method to convert decimal to binary
+    void convert_decimal_to_binary() {
+        int n = dec_in.read();
+        int binaryNum[32];
+        int i = 0;
+
+        while (n > 0) {
+            binaryNum[i] = n % 2;
+            n = n / 2;
+            i++;
+        }
+
+        int binary = 0;
+        for (int j = i - 1; j >= 0; j--) {
+            binary = binary * 10 + binaryNum[j];
+        }
+
+        binary_out.write(binary);
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(BinaryConverter) {
+   ```
+   - A SystemC module named `BinaryConverter` is declared.
+
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<int> dec_in;  // Input port for the decimal number
+   sc_out<int> binary_out; // Output port for the binary number
+   ```
+   - Two ports, `dec_in` and `binary_out`, are declared to handle the input and output respectively.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(BinaryConverter) {
+       SC_METHOD(convert_decimal_to_binary);
+       sensitive << dec_in;
+   }
+   ```
+   - The constructor initializes the module and specifies that the `convert_decimal_to_binary` method should be called whenever `dec_in` changes.
+
+4. **Conversion Method**
+   ```cpp
+   void convert_decimal_to_binary() {
+       int n = dec_in.read();
+       int binaryNum[32];
+       int i = 0;
+
+       while (n > 0) {
+           binaryNum[i] = n % 2;
+           n = n / 2;
+           i++;
+       }
+
+       int binary = 0;
+       for (int j = i - 1; j >= 0; j--) {
+           binary = binary * 10 + binaryNum[j];
+       }
+
+       binary_out.write(binary);
+   }
+   ```
+   - This method reads the decimal number from `dec_in`, converts it to a binary number, and writes the result to `binary_out`.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

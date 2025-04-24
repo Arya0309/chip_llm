@@ -1,0 +1,120 @@
+### Inputs and Outputs
+
+**Inputs:**
+- `in[SIZE]`: An array of integers representing the input matrix.
+
+**Outputs:**
+- `out[SIZE]`: An array of integers representing the rotated matrix.
+
+### Detailed Explanation
+
+The provided C++ code rotates a given square matrix clockwise by one position. Here’s a detailed breakdown of each part of the code:
+
+1. **Matrix Rotation Function (`rotatematrix`)**:
+    - **Parameters**: `m` (number of rows), `n` (number of columns), and `mat[R][C]` (the matrix to be rotated).
+    - **Variables**:
+        - `row`, `col`: Indices for traversing the matrix.
+        - `prev`, `curr`: Variables to store intermediate values during rotation.
+    - **Logic**:
+        - The function uses a while loop to rotate the matrix layer by layer until all layers are processed.
+        - For each layer, it performs four steps:
+            1. **Top row rotation**: Moves elements from the top row to the right.
+            2. **Right column rotation**: Moves elements from the right column to the bottom.
+            3. **Bottom row rotation**: Moves elements from the bottom row to the left.
+            4. **Left column rotation**: Moves elements from the left column to the top.
+        - The process continues until all elements are rotated.
+
+2. **Main Function**:
+    - Defines a sample matrix `a` and calls the `rotatematrix` function to rotate it.
+    - Prints the rotated matrix.
+
+### SystemC Code Snippet
+
+Below is the equivalent SystemC code that utilizes the provided signals (`in[SIZE]` and `out[SIZE]`) to rotate a matrix. This code can be integrated into a high-level synthesis flow.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixRotator) {
+    static const int SIZE = 4; // Assuming a 4x4 matrix for simplicity
+    sc_in<int> in[SIZE * SIZE]; // Input matrix elements
+    sc_out<int> out[SIZE * SIZE]; // Output matrix elements
+
+    SC_CTOR(MatrixRotator) {
+        SC_THREAD(rotate_matrix);
+    }
+
+    void rotate_matrix() {
+        int mat[SIZE][SIZE];
+
+        // Copy input matrix elements to local array
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                mat[i][j] = in[i * SIZE + j].read();
+            }
+        }
+
+        // Rotate the matrix
+        int row = 0, col = 0;
+        int prev, curr;
+        while (row < SIZE && col < SIZE) {
+            if (row + 1 == SIZE || col + 1 == SIZE) break;
+
+            prev = mat[row + 1][col];
+            for (int i = col; i < SIZE; ++i) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            for (int i = row; i < SIZE; ++i) {
+                curr = mat[i][SIZE - 1];
+                mat[i][SIZE - 1] = prev;
+                prev = curr;
+            }
+            SIZE--;
+
+            if (row < SIZE) {
+                for (int i = SIZE - 1; i >= col; --i) {
+                    curr = mat[SIZE - 1][i];
+                    mat[SIZE - 1][i] = prev;
+                    prev = curr;
+                }
+            }
+            SIZE--;
+
+            if (col < SIZE) {
+                for (int i = SIZE - 1; i >= row; --i) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        // Copy rotated matrix elements to output array
+        for (int i = 0; i < SIZE; ++i) {
+            for (int j = 0; j < SIZE; ++j) {
+                out[i * SIZE + j].write(mat[i][j]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Definition**:
+    - `MatrixRotator` is a SystemC module that takes an input matrix (`in`) and produces an output matrix (`out`).
+
+2. **Initialization**:
+    - The constructor initializes a SystemC thread `rotate_matrix`.
+
+3. **Matrix Rotation Logic**:
+    - The `rotate_matrix` method reads the input matrix elements into a local array `mat`.
+    - It then applies the same rotation logic as the original C++ code to rotate the matrix.
+    - Finally, it writes the rotated matrix elements back to the output array `out`.
+
+This SystemC code snippet can be integrated into a larger design, and it ensures that the matrix rotation logic is preserved for high-level synthesis.

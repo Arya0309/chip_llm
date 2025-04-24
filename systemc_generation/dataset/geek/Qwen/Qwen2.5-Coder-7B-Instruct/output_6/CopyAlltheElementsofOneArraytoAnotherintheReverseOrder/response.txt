@@ -1,0 +1,77 @@
+### Inputs and Outputs
+
+**Inputs**:
+1. `original_arr`: An integer array containing the elements to be copied and reversed.
+2. `len`: The length of the `original_arr` array.
+
+**Outputs**:
+1. `copied_arr`: An integer array containing the elements of `original_arr` in reverse order.
+2. The function `printArray` prints the elements of both `original_arr` and `copied_arr`.
+
+### Detailed Explanation
+
+1. **Function `printArray`**:
+   - **Parameters**: `arr[]` (the array to print), `len` (the length of the array).
+   - **Functionality**: Iterates through the array and prints each element followed by a space.
+
+2. **Main Function**:
+   - **Initialization**:
+     - `original_arr`: An array initialized with `{1, 2, 3, 4, 5}`.
+     - `len`: The length of `original_arr`, calculated using `sizeof(original_arr)/sizeof(original_arr[0])`.
+     - `copied_arr`: An array of the same length as `original_arr` to store the reversed elements.
+     - `i` and `j`: Loop variables.
+   - **Copying and Reversing**:
+     - A loop runs from `0` to `len-1`.
+     - For each iteration, `copied_arr[i]` is assigned the value of `original_arr[len - i - 1]`, effectively reversing the order of elements.
+   - **Printing Arrays**:
+     - Calls `printArray` to print the `original_arr`.
+     - Calls `printArray` again to print the `copied_arr`.
+
+### SystemC Code Snippet
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayReverser) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+
+    sc_in<int> original_arr[5];  // Input array
+    sc_out<int> copied_arr[5];  // Output array
+
+    int len = 5;  // Length of the arrays
+
+    SC_CTOR(ArrayReverser) {
+        SC_METHOD(reverser);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void reverser() {
+        if (start.read()) {
+            for (int i = 0; i < len; i++) {
+                copied_arr[i].write(original_arr[len - i - 1].read());
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   - `ArrayReverser` is a SystemC module with inputs `clk`, `start`, and `done`, and outputs `original_arr` and `copied_arr`.
+
+2. **Clock Sensitive Method**:
+   - `reverser` method is sensitive to the positive edge of the clock (`clk.pos()`).
+
+3. **Behavior**:
+   - When `start` is high, the method copies the elements of `original_arr` to `copied_arr` in reverse order.
+   - The `done` signal is set to high when the copying is complete.
+   - If `start` is low, the `done` signal remains low.
+
+This SystemC code captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

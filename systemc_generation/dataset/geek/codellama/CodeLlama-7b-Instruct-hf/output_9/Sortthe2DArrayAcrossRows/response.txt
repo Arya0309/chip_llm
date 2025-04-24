@@ -1,0 +1,109 @@
+  **Inputs and Outputs:**
+
+The C++/C code provided takes in a 2D matrix of integers, `m`, as its input, where each row contains 4 integers each. The function `main()` calls `sortRowWise()` with the size of the matrix as its inputs, and `m` as an output. `sortRowWise()` sorts the rows of the matrix in ascending order, and the sorted matrix is printed at the end of the function.
+
+Therefore, the input of the code is an integer matrix `m` and an integer pair representing the size of the matrix, `r` and `c`. The output of the code is the sorted version of `m`, where the rows of the matrix are sorted in ascending order.
+
+**Natural Language Summary:**
+
+The code provided reads a 2D matrix `m` of integers and sorts its rows in ascending order. The function `swap()` takes in pointers to two integers and swaps their values. The main function first loops over the elements of the matrix row-wise, and the value of the loop variable `j` is used to index the columns of the matrix `m`. The inner loop compares the elements at the current row and the next rows and swaps them if necessary using the `swap()` function. After finishing the inner loop, the outer loop continues to the next row. Finally, the function `sortRowWise()` prints the sorted matrix.
+
+The SystemC code equivalent of this C++/C code can be written as follows:
+```c
+// Include the SystemC headers
+#include <systemc.h>
+
+// Define the struct to hold the matrix elements
+struct Matrix {
+    int rows; // Number of rows in the matrix
+    int cols; // Number of columns in the matrix
+    int* data; // Pointer to the matrix data
+};
+
+// Define the module to sort the rows of the matrix
+SC_MODULE(SortRows) {
+    // Input ports
+    sc_in<int> rows; // Number of rows in the matrix
+    sc_in<int> cols; // Number of columns in the matrix
+    sc_in<int> data; // Matrix data to be sorted
+
+    // Output ports
+    sc_out<int> sorted; // The sorted matrix
+
+    // Constructor
+    SC_CTOR(SortRows) {
+        // Process to sort the rows of the matrix
+        SC_METHOD(sort_rows);
+        sensitive << rows << cols << data;
+    }
+
+    // Method to sort the rows of the matrix
+    void sort_rows() {
+        // Create a temporary array to hold the sorted rows
+        int* sorted_rows = new int[rows];
+
+        // Loop over the rows of the matrix
+        for (int i = 0; i < rows; i++) {
+            // Copy the values of the current row to the temporary array
+            for (int j = 0; j < cols; j++) {
+                sorted_rows[j] = data[i][j];
+            }
+
+            // Sort the numbers in the current row
+            bubble_sort(sorted_rows, cols);
+
+            // Write the sorted row back to the matrix
+            for (int j = 0; j < cols; j++) {
+                data[i][j] = sorted_rows[j];
+            }
+        }
+
+        // Free the temporary array
+        delete[] sorted_rows;
+    }
+
+    // Method to implement the bubble sort algorithm
+    void bubble_sort(int* arr, int n) {
+        // Loop over the array and swap elements if necessary
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - i - 1; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    swap(arr[j], arr[j + 1]);
+                }
+            }
+        }
+    }
+
+    // Method to swap two integers
+    void swap(int* a, int* b) {
+        int temp = *a;
+        *a = *b;
+        *b = temp;
+    }
+};
+
+// Driver code to test the module
+int main() {
+    // Create a new matrix to sort
+    Matrix m = {{9, 8, 7, 1},
+                  {7, 3, 0, 2},
+                  {9, 5, 3, 2},
+                  {6, 3, 1, 2}};
+
+    // Create the SortRows module
+    SortRows sr(m.rows, m.cols, m.data);
+
+    // Run the sorting process
+    sr.run();
+
+    // Print the sorted matrix
+    for (int i = 0; i < m.rows; i++) {
+        for (int j = 0; j < m.cols; j++) {
+            cout << m.data[i][j] << " ";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+```

@@ -1,0 +1,189 @@
+### Input and Output Summary
+
+**Inputs:**
+1. `d` - An integer representing the number of positions to rotate the array to the left.
+2. `in_array[7]` - An array of 7 integers to be rotated.
+
+**Outputs:**
+1. `out_array[7]` - An array of 7 integers after being rotated `d` positions to the left.
+
+### Detailed Explanation of the C++/C Code
+
+1. **Include and Namespace Declaration:**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes the standard C++ library and uses the standard namespace.
+
+2. **Rotate Function:**
+   ```cpp
+   void Rotate(int arr[], int d, int n)
+   {
+       int temp[n];
+       int k = 0;
+       for (int i = d; i < n; i++) {
+           temp[k] = arr[i];
+           k++;
+       }
+       for (int i = 0; i < d; i++) {
+           temp[k] = arr[i];
+           k++;
+       }
+       for (int i = 0; i < n; i++) {
+           arr[i] = temp[i];
+       }
+   }
+   ```
+   - **Inputs:** `arr[]`, `d`, `n`.
+     - `arr[]`: The input array to be rotated.
+     - `d`: The number of positions to rotate the array to the left.
+     - `n`: The size of the array.
+   - **Functionality:**
+     - Creates a temporary array `temp` of size `n`.
+     - Copies the elements from `arr[d]` to `arr[n-1]` to the front of `temp`.
+     - Copies the elements from `arr[0]` to `arr[d-1]` to the end of `temp`.
+     - Copies the elements of `temp` back to `arr`.
+
+3. **PrintTheArray Function:**
+   ```cpp
+   void PrintTheArray(int arr[], int n)
+   {
+       for (int i = 0; i < n; i++) {
+           cout << arr[i] << " ";
+       }
+   }
+   ```
+   - **Inputs:** `arr[]`, `n`.
+     - `arr[]`: The array to be printed.
+     - `n`: The size of the array.
+   - **Functionality:**
+     - Iterates through the array and prints each element followed by a space.
+
+4. **Main Function:**
+   ```cpp
+   int main()
+   {
+       int arr[] = { 1, 2, 3, 4, 5, 6, 7 };
+       int N = sizeof(arr) / sizeof(arr[0]);
+       int d = 2;
+       Rotate(arr, d, N);
+       PrintTheArray(arr, N);
+       return 0;
+   }
+   ```
+   - **Inputs:** None (hardcoded values).
+   - **Functionality:**
+     - Defines an array `arr` with 7 elements.
+     - Calculates the size of the array `N`.
+     - Calls `Rotate` with `arr`, `d`, and `N`.
+     - Calls `PrintTheArray` with `arr` and `N`.
+     - Returns 0.
+
+### SystemC Code Snippet
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Rotator) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> rst;  // Reset signal
+    sc_in<int> d;      // Number of positions to rotate
+    sc_in<int> in_array[7];  // Input array
+    sc_out<int> out_array[7];  // Output array
+
+    // Temporary array for rotation
+    int temp[7];
+
+    // Constructor
+    SC_CTOR(Rotator) {
+        // Process to handle the rotation
+        SC_METHOD(handle_rotation);
+        sensitive << clk.pos();
+        async_reset_signal_is(rst, true);
+    }
+
+    // Method to handle the rotation
+    void handle_rotation() {
+        if (rst.read()) {
+            // Reset the output array
+            for (int i = 0; i < 7; i++) {
+                out_array[i].write(0);
+            }
+        } else {
+            // Perform the rotation
+            int k = 0;
+            for (int i = d; i < 7; i++) {
+                temp[k] = in_array[i].read();
+                k++;
+            }
+            for (int i = 0; i < d; i++) {
+                temp[k] = in_array[i].read();
+                k++;
+            }
+            for (int i = 0; i < 7; i++) {
+                out_array[i].write(temp[i]);
+            }
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(Rotator) {
+       sc_in<bool> clk;  // Clock signal
+       sc_in<bool> rst;  // Reset signal
+       sc_in<int> d;      // Number of positions to rotate
+       sc_in<int> in_array[7];  // Input array
+       sc_out<int> out_array[7];  // Output array
+   ```
+   - Declares a SystemC module named `Rotator` with the specified input and output ports.
+
+2. **Temporary Array:**
+   ```cpp
+   int temp[7];
+   ```
+   - A temporary array `temp` to store the rotated elements.
+
+3. **Constructor:**
+   ```cpp
+   SC_CTOR(Rotator) {
+       SC_METHOD(handle_rotation);
+       sensitive << clk.pos();
+       async_reset_signal_is(rst, true);
+   }
+   ```
+   - Constructs the module and binds the `handle_rotation` method to the positive edge of the clock (`clk.pos()`).
+   - Specifies that the reset signal (`rst`) is active-high (`true`).
+
+4. **Rotation Handling Method:**
+   ```cpp
+   void handle_rotation() {
+       if (rst.read()) {
+           for (int i = 0; i < 7; i++) {
+               out_array[i].write(0);
+           }
+       } else {
+           int k = 0;
+           for (int i = d; i < 7; i++) {
+               temp[k] = in_array[i].read();
+               k++;
+           }
+           for (int i = 0; i < d; i++) {
+               temp[k] = in_array[i].read();
+               k++;
+           }
+           for (int i = 0; i < 7; i++) {
+               out_array[i].write(temp[i]);
+           }
+       }
+   }
+   ```
+   - **Functionality:**
+     - If the reset signal (`rst`) is high, resets the output array to zero.
+     - Otherwise, performs the rotation by copying elements to the temporary array `temp` and then writing the contents of `temp` to the output array `out_array`.
+
+This SystemC code snippet accurately reflects the logic of the original C++/C code and can be integrated with the provided signals for seamless testing and simulation.

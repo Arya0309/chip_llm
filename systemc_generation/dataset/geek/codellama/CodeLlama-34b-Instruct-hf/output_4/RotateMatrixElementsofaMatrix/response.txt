@@ -1,0 +1,95 @@
+  **Inputs:**
+
+* `int a[R][C]`: A two-dimensional array of integers that represents a matrix.
+* `int R`: The number of rows in the matrix.
+* `int C`: The number of columns in the matrix.
+
+**Outputs:**
+
+* `void`: The function does not return any value. Instead, it rotates the matrix and prints the rotated matrix to the console.
+
+**Summary:**
+
+The function `rotatematrix` takes a two-dimensional array of integers, `a`, and its dimensions, `R` and `C`, as input. It rotates the matrix by 90 degrees in a clockwise direction and prints the rotated matrix to the console.
+
+The function first checks if the matrix is valid (i.e., if `R` and `C` are positive and non-zero) and if the matrix can be rotated (i.e., if `R` and `C` are equal). If the matrix is not valid or cannot be rotated, the function returns without doing anything.
+
+The function then initializes several variables:
+
+* `row`: The current row index.
+* `col`: The current column index.
+* `prev`: The previous element in the current row.
+* `curr`: The current element in the current row.
+
+The function then enters a while loop that iterates until the entire matrix has been rotated. The loop consists of three main parts:
+
+1. **Move elements of first row from remaining rows**: In this part, the function moves the elements of the first row to the left by one position. The element that was previously in the first column is stored in `prev`, and the current element is stored in `curr`. The function then replaces the current element with `prev`, and `prev` with `curr`.
+2. **Move elements of last column from remaining columns**: In this part, the function moves the elements of the last column up by one position. The element that was previously in the last row is stored in `prev`, and the current element is stored in `curr`. The function then replaces the current element with `prev`, and `prev` with `curr`.
+3. **Move elements of last row from remaining rows**: In this part, the function moves the elements of the last row to the left by one position. The element that was previously in the first column is stored in `prev`, and the current element is stored in `curr`. The function then replaces the current element with `prev`, and `prev` with `curr`.
+
+After the while loop is finished, the function prints the rotated matrix to the console.
+
+**SystemC code:**
+```
+#include <systemc.h>
+
+SC_MODULE(RotateMatrix) {
+    sc_in<int> in[R];
+    sc_out<int> out[R];
+
+    void rotate() {
+        int row = 0, col = 0;
+        int prev, curr;
+
+        while (row < R && col < C) {
+            if (row + 1 == R || col + 1 == C) {
+                break;
+            }
+
+            prev = in[row + 1][col];
+            for (int i = col; i < C; i++) {
+                curr = in[row][i];
+                in[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            for (int i = row; i < R; i++) {
+                curr = in[i][C - 1];
+                in[i][C - 1] = prev;
+                prev = curr;
+            }
+            C--;
+
+            if (row < R) {
+                for (int i = C - 1; i >= col; i--) {
+                    curr = in[R - 1][i];
+                    in[R - 1][i] = prev;
+                    prev = curr;
+                }
+            }
+            R--;
+
+            if (col < C) {
+                for (int i = R - 1; i >= row; i--) {
+                    curr = in[i][col];
+                    in[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                out[i][j] = in[i][j];
+            }
+        }
+    }
+
+    SC_CTOR(RotateMatrix) {
+        SC_METHOD(rotate);
+        sensitive << in;
+    }
+};
+```

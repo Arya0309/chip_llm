@@ -1,0 +1,126 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: None explicitly mentioned in the code, but it assumes a predefined 2D matrix `m` with values `{{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}}`.
+- **Outputs**: The sorted 2D matrix is printed to the console.
+
+#### Detailed Explanation
+
+1. **Include Statements and Namespace Declaration**
+   ```cpp
+   #include<bits/stdc++.h>
+   using namespace std;
+   ```
+   - Includes the standard C++ library and uses the standard namespace.
+
+2. **Swap Function**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - Swaps the values of two integers pointed to by `xp` and `yp`.
+
+3. **Function to Sort Rows of a Matrix**
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   {
+       for (int i = 0; i < r; i++) 
+       {
+           for (int j = 0; j < c; j++) 
+           {
+               for (int k = 0; k < c - j - 1; k++) 
+               {
+                   if (m[i][k] > m[i][k + 1]) 
+                   {
+                       swap(m[i][k], m[i][k + 1]);
+                   }
+               }
+           }
+       }
+
+       for (int i = 0; i < r; i++) 
+       {
+           for (int j = 0; j < c; j++)
+               cout << m[i][j] << " ";
+           cout << endl;
+       }
+   }
+   ```
+   - **Outer Loop**: Iterates over each row (`i`) of the matrix.
+   - **Middle Loop**: Iterates over each column (`j`) of the current row.
+   - **Inner Loop**: Compares adjacent elements in the current row and swaps them if they are in the wrong order.
+   - **Printing Sorted Matrix**: After sorting all rows, prints the sorted matrix.
+
+4. **Main Function**
+   ```cpp
+   int main()
+   {
+       int m[][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}};
+       int c = sizeof(m[0]) / sizeof(m[0][0]);
+       int r = sizeof(m) / sizeof(m[0]);
+       sortRowWise(m, r, c);
+       return 0;
+   }
+   ```
+   - Defines a 2D matrix `m` and calculates the number of rows (`r`) and columns (`c`).
+   - Calls the `sortRowWise` function to sort the matrix and print the result.
+
+### Equivalent SystemC Code
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done; // Done signal
+
+    sc_inout<int> m[4][4]; // Input/Output matrix
+
+    SC_CTOR(MatrixSorter) {
+        SC_METHOD(sortRows);
+        sensitive << clk.pos();
+        async_reset_signal_is(reset, true);
+    }
+
+    void sortRows() {
+        static bool initialized = false;
+        if (!initialized) {
+            initialized = true;
+            // Calculate dimensions
+            int r = 4;
+            int c = 4;
+
+            // Sort rows
+            for (int i = 0; i < r; i++) {
+                for (int j = 0; j < c; j++) {
+                    for (int k = 0; k < c - j - 1; k++) {
+                        if (m[i][k] > m[i][k + 1]) {
+                            int temp = m[i][k];
+                            m[i][k] = m[i][k + 1];
+                            m[i][k + 1] = temp;
+                        }
+                    }
+                }
+            }
+
+            // Mark as done
+            done.write(true);
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Module Declaration**: `MatrixSorter` module is declared with input/output ports.
+- **Signals**: `clk`, `start`, and `done` signals are used for control and synchronization.
+- **Matrix**: `m` is a 2D array of integers that acts as both input and output.
+- **Constructor**: Initializes the module and sets up the sensitivity list for the `sortRows` method.
+- **sortRows Method**: This method sorts the rows of the matrix when triggered by the `start` signal. It uses nested loops similar to the C++ code to perform the sorting. Once sorting is complete, it sets the `done` signal to indicate completion.
+
+This SystemC code preserves the logic of the original C++ code and can be integrated into a high-level synthesis flow.

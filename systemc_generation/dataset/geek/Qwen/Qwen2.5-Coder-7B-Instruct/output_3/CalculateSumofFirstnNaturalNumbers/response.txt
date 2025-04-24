@@ -1,0 +1,155 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: None (The value of `n` is hardcoded within the code as `5`).
+- **Outputs**: The sum of the first `n` natural numbers (in this case, `15`).
+
+#### Detailed Line-by-Line Explanation
+
+1. **Include Header**
+   ```cpp
+   #include <iostream>
+   ```
+   - This includes the standard input-output stream library which is necessary for using `cout`.
+
+2. **Namespace Declaration**
+   ```cpp
+   using namespace std;
+   ```
+   - This allows us to use `cout` without prefixing it with `std::`.
+
+3. **Function Declaration**
+   ```cpp
+   int findSum(int n)
+   ```
+   - This declares a function named `findSum` that takes an integer `n` as an argument and returns an integer.
+
+4. **Variable Initialization**
+   ```cpp
+   int sum = 0;
+   ```
+   - Initializes a variable `sum` to `0`. This will hold the cumulative sum of the numbers from `1` to `n`.
+
+5. **For Loop**
+   ```cpp
+   for (int i = 1; i <= n; i++)
+       sum = sum + i;
+   ```
+   - A `for` loop runs from `1` to `n` (inclusive). In each iteration, the current value of `i` is added to `sum`.
+
+6. **Return Statement**
+   ```cpp
+   return sum;
+   ```
+   - The function returns the computed sum.
+
+7. **Main Function**
+   ```cpp
+   int main()
+   {
+       int n = 5;
+       cout << findSum(n);
+       return 0;
+   }
+   ```
+   - The `main` function sets `n` to `5` and calls `findSum(n)`, then prints the result (`15`) using `cout`.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that integrates the provided C++/C logic into a SystemC module. It uses the signals `n` and `result` as specified.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SumCalculator) {
+    sc_in<unsigned int> n;  // Input port for the number of terms
+    sc_out<unsigned int> result;  // Output port for the sum
+
+    SC_CTOR(SumCalculator) {
+        SC_METHOD(calculateSum);
+        sensitive << n;
+    }
+
+    void calculateSum() {
+        unsigned int sum = 0;
+        for (unsigned int i = 1; i <= n.read(); i++) {
+            sum += i;
+        }
+        result.write(sum);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    SumCalculator sum_calc("sum_calc");
+    sc_signal<unsigned int> n_sig;
+    sc_signal<unsigned int> result_sig;
+
+    sum_calc.n(n_sig);
+    sum_calc.result(result_sig);
+
+    n_sig = 5;
+    sc_start();
+
+    cout << "Sum of first " << n_sig << " natural numbers: " << result_sig << endl;
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(SumCalculator) {
+   ```
+   - Defines a SystemC module named `SumCalculator`.
+
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<unsigned int> n;
+   sc_out<unsigned int> result;
+   ```
+   - Declares input port `n` and output port `result` as specified.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(SumCalculator) {
+       SC_METHOD(calculateSum);
+       sensitive << n;
+   }
+   ```
+   - Constructs the module and binds the `calculateSum` method to the `n` signal.
+
+4. **Method to Calculate Sum**
+   ```cpp
+   void calculateSum() {
+       unsigned int sum = 0;
+       for (unsigned int i = 1; i <= n.read(); i++) {
+           sum += i;
+       }
+       result.write(sum);
+   }
+   ```
+   - This method calculates the sum of the first `n` natural numbers and writes the result to the `result` port.
+
+5. **Main Function**
+   ```cpp
+   int sc_main(int argc, char* argv[]) {
+       SumCalculator sum_calc("sum_calc");
+       sc_signal<unsigned int> n_sig;
+       sc_signal<unsigned int> result_sig;
+
+       sum_calc.n(n_sig);
+       sum_calc.result(result_sig);
+
+       n_sig = 5;
+       sc_start();
+
+       cout << "Sum of first " << n_sig << " natural numbers: " << result_sig << endl;
+
+       return 0;
+   }
+   ```
+   - Sets up the simulation environment, initializes `n_sig` to `5`, starts the simulation, and prints the result.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated with an existing testbench using the provided signals.

@@ -1,0 +1,145 @@
+### Analysis of the C++ Code
+
+**Inputs and Outputs**:
+- **Input**: A 2D integer array `m` of size `n x n`.
+- **Output**: The modified 2D array where the elements of the first and last rows have been swapped.
+
+**Line-by-Line Explanation**:
+1. **Header Inclusion and Namespace Declaration**:
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+   ```
+   - Includes the standard input-output stream library and uses the standard namespace.
+
+2. **Macro Definition**:
+   ```cpp
+   #define n 4 
+   ```
+   - Defines a macro `n` with the value `4`, representing the size of the 2D array.
+
+3. **Function Declaration**:
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   ```
+   - Declares a function `interchangeFirstLast` that takes a 2D array `m` of size `n x n`.
+
+4. **Variable Declaration**:
+   ```cpp
+   int rows = n; 
+   ```
+   - Declares and initializes a variable `rows` with the value of `n`.
+
+5. **Loop to Swap Elements**:
+   ```cpp
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[0][i]; 
+       m[0][i] = m[rows - 1][i]; 
+       m[rows - 1][i] = t; 
+   } 
+   ```
+   - Iterates over each column index `i` from `0` to `n-1`.
+   - Swaps the elements in the first row (`m[0][i]`) with the corresponding elements in the last row (`m[rows - 1][i]`).
+
+6. **Main Function**:
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                   {4, 7, 6, 5}, 
+                   {3, 2, 1, 8}, 
+                   {9, 9, 7, 7}}; 
+                   
+       interchangeFirstLast(m); 
+       
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - Initializes a 2D array `m` with specific values.
+   - Calls the `interchangeFirstLast` function to swap the first and last rows.
+   - Prints the modified array.
+
+### SystemC Code Snippet
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SwapRows) {
+    sc_in<int> in[4][4];  // Input ports for the 2D array
+    sc_out<int> out[4][4]; // Output ports for the modified 2D array
+
+    // Constructor
+    SC_CTOR(SwapRows) {
+        // Process to perform row swapping
+        SC_METHOD(interchangeFirstLast);
+        sensitive << in;
+    }
+
+    // Method to swap the first and last rows of the input array
+    void interchangeFirstLast() {
+        for (int i = 0; i < 4; i++) {
+            int t = in[0][i].read();
+            out[0][i].write(in[3][i].read());
+            out[3][i].write(t);
+        }
+        // Copy all other rows as they are
+        for (int i = 1; i < 3; i++) {
+            for (int j = 0; j < 4; j++) {
+                out[i][j].write(in[i][j].read());
+            }
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+- **Module Declaration**:
+  ```cpp
+  SC_MODULE(SwapRows) {
+  ```
+  - Declares a SystemC module named `SwapRows`.
+
+- **Input and Output Ports**:
+  ```cpp
+  sc_in<int> in[4][4];  // Input ports for the 2D array
+  sc_out<int> out[4][4]; // Output ports for the modified 2D array
+  ```
+  - Defines 2D input and output ports `in` and `out` respectively, each of size `4 x 4`.
+
+- **Constructor**:
+  ```cpp
+  SC_CTOR(SwapRows) {
+      SC_METHOD(interchangeFirstLast);
+      sensitive << in;
+  }
+  ```
+  - Registers the `interchangeFirstLast` method to be called whenever any input changes.
+
+- **Row Swapping Method**:
+  ```cpp
+  void interchangeFirstLast() {
+      for (int i = 0; i < 4; i++) {
+          int t = in[0][i].read();
+          out[0][i].write(in[3][i].read());
+          out[3][i].write(t);
+      }
+      // Copy all other rows as they are
+      for (int i = 1; i < 3; i++) {
+          for (int j = 0; j < 4; j++) {
+              out[i][j].write(in[i][j].read());
+          }
+      }
+  }
+  ```
+  - Iterates over each column index `i` from `0` to `3`.
+  - Swaps the elements in the first row (`in[0][i]`) with the corresponding elements in the last row (`in[3][i]`).
+  - Copies all other rows unchanged to the output ports.
+
+This SystemC code snippet accurately captures the logic of the original C++ code and can be integrated into a high-level synthesis flow.

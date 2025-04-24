@@ -1,0 +1,98 @@
+  The provided C++/C code is a program that adds two binary strings and returns the result as a third string. The inputs are two binary strings, "A" and "B", and the output is the sum of these two strings in binary format.
+
+The code is organized into two main parts:
+
+1. The input/output declarations and driver code.
+2. The addBinary function, which performs the actual addition of the two binary strings.
+
+**Input/Output Declarations and Driver Code**
+
+The input/output declarations consist of three strings: "A", "B", and "sum". The driver code initializes strings "a" and "b" with the input values and calls the addBinary function with these inputs. The output, "sum", is then printed to the console.
+
+**addBinary Function**
+
+The addBinary function takes two binary strings, "A" and "B", as inputs and returns their sum as a binary string. The function works as follows:
+
+1. It checks if the length of "A" is greater than the length of "B". If it is, it swaps the two strings and calls the function again, ensuring that "A" is always the shorter string.
+2. It calculates the difference in length between the two strings using a padding string of zeroes.
+3. It adds the two strings together, carrying the one when necessary, and returns the resulting binary string.
+4. If a carry is left over, it is appended to the result.
+5. The resulting string is then reversed and returned.
+
+To convert this C++/C code to SystemC, we need to identify the inputs and outputs and create SystemC signals for each. The inputs are the "A" and "B" strings, and the output is the "sum" string. We can create SystemC signals using the provided sc_in and sc_out types, like so:
+```sc_in<std::string> A, B;
+sc_out<std::string> sum;
+```
+Next, we can define a SystemC module that includes the above signals and defines a method for adding the two binary strings.
+```sc_module(Adder) {
+    // Input ports for the two binary strings
+    sc_in<std::string> A;
+    sc_in<std::string> B;
+
+    // Output port for the result
+    sc_out<std::string> sum;
+
+    // Process that performs the addition
+    SC_METHOD(add) {
+        // Add the two binary strings and store the result in the output port
+        sum.write(addBinary(A.read(), B.read()));
+    }
+}
+```
+Finally, we can define the addBinary function within the SystemC module.
+```sc_module(Adder) {
+    // ...
+    // Function to add two binary strings
+    std::string addBinary(std::string a, std::string b) {
+        // Swap the strings if necessary
+        if (a.length() > b.length()) {
+            std::swap(a, b);
+        }
+
+        // Calculate the differece in length
+        int diff = b.length() - a.length();
+
+        // Add the strings together, carrying when necessary
+        // and return the result
+        std::string res;
+        char carry = '0';
+        for (int i = a.length() - 1; i >= 0; i--) {
+            if (a[i] == '1' && b[i] == '1') {
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '1';
+                } else {
+                    res.push_back('0');
+                    carry = '1';
+                }
+            } else if (a[i] == '0' && b[i] == '0') {
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '0';
+                } else {
+                    res.push_back('0');
+                    carry = '0';
+                }
+            } else if (a[i] != b[i]) {
+                if (carry == '1') {
+                    res.push_back('0');
+                    carry = '1';
+                } else {
+                    res.push_back('1');
+                    carry = '0';
+                }
+            }
+        }
+
+        // Add the carry if present
+        if (carry == '1') {
+            res.push_back(carry);
+        }
+
+        // Reverse the result and return it
+        std::reverse(res.begin(), res.end());
+        return res;
+    }
+}
+```
+Note that we've made some modifications to the original code to make it more modular and easier to integrate with SystemC. For example, we've moved the addBinary function within the Adder module to make it self-contained, and we've replaced the direct printing of the result with a return statement that allows the caller to process the result further if necessary.

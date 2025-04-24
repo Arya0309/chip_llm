@@ -1,0 +1,98 @@
+  **Inputs and Outputs**
+
+The input to this code is an array of integers `arr[]` and its length `n`, which are defined by the user in the `main()` function. The output of the code is the sorted version of the input array.
+
+**Functionality of Blocks**
+
+The `swap()` function is used to swap two elements of the input array. It takes two integer pointers `xp` and `yp` as input and swaps their values.
+
+The `selectionSort()` function is the main sorting algorithm. It works by iterating through the array from `i = 0` to `n - 1`, and in each iteration, it finds the minimum element in the unsorted subarray starting from `i` and swaps it with the first element of the subarray.
+
+The `printArray()` function is used to print the sorted array. It takes the sorted array `arr[]` and its length `n` as input and prints the elements of the array separated by spaces and ending with a newline.
+
+**Equivalent SystemC Code**
+
+The SystemC code below reflects the same behavior as the C++/C source code:
+```scss
+#include <systemc.h>
+
+// Module that provides the input and output for the sorting algorithm
+SC_MODULE(InputOutput) {
+    sc_in<int> clk; // Clock signal
+    sc_in<bool> start; // Start signal
+    sc_out<bool> done; // Done signal
+    sc_in<int> arr[10]; // Input array
+    sc_in<int> n; // Length of the input array
+    sc_out<int> sorted[10]; // Output array
+
+    // Function to swap two elements of the input array
+    void swap(int *xp, int *yp) {
+        int temp = *xp;
+        *xp = *yp;
+        *yp = temp;
+    }
+
+    // Function to sort the input array
+    void selectionSort() {
+        int i, j, min_idx;
+
+        // Iterate through the unsorted subarray
+        for (i = 0; i < n; i++) {
+
+            // Find the minimum element in the unsorted subarray
+            min_idx = i;
+            for (j = i + 1; j < n; j++) {
+                if (arr[j] < arr[min_idx]) {
+                    min_idx = j;
+                }
+            }
+
+            // Swap the minimum element with the first element of the subarray
+            swap(&arr[min_idx], &arr[i]);
+        }
+    }
+
+    // Function to print the sorted array
+    void printArray() {
+        int i;
+        for (i = 0; i < n; i++) {
+            cout << sorted[i] << " ";
+        }
+        cout << endl;
+    }
+
+    // Constructor
+    SC_CTOR(InputOutput) {
+        SC_METHOD(selectionSort);
+        sensitive << start;
+        do_not_initialize();
+        SC_METHOD(printArray);
+        sensitive << done;
+    }
+};
+
+int sc_main(int argc, char *argv[]) {
+    sc_clock clk("clk", sc_time(1, SC_NS));
+    sc_signal<bool> start("start");
+    sc_signal<bool> done("done");
+    sc_signal<int> arr[10]("arr");
+    sc_signal<int> n("n");
+    sc_signal<int> sorted[10]("sorted");
+
+    // Instantiate the module
+    InputOutput input_output("<Instance Name>",
+                              clk,
+                              start,
+                              done,
+                              arr,
+                              n,
+                              sorted);
+
+    // Run the simulation
+    sc_start();
+    return 0;
+}
+```
+In this SystemC code, the `InputOutput` module provides the input and output ports for the sorting algorithm. The `swap()` function and `selectionSort()` function are implemented as described in the C++/C source code. The `printArray()` function is implemented to print the sorted array. The `sc_main()` function instantiates the `InputOutput` module and runs the simulation.
+
+Note that the `sc_time()` function is used to define the clock signal with a frequency of 1 Hz, which is equivalent to the frequency of the clock signal in the C++/C source code. The `do_not_initialize()` method is used to prevent the `selectionSort()` function from initializing the array.

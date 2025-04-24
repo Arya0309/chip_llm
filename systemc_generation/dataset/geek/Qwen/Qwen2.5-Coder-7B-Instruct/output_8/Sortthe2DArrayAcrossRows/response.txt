@@ -1,0 +1,82 @@
+### Analysis of the C++ Code
+
+#### Inputs and Outputs
+- **Inputs**: None (The matrix is hardcoded within the code).
+- **Outputs**: The sorted matrix is printed to the console.
+
+#### Detailed Explanation
+1. **Swap Function (`swap`)**:
+   - This function swaps the values of two integers pointed to by `xp` and `yp`.
+   
+2. **Sort Row-wise Function (`sortRowWise`)**:
+   - **Parameters**: A 2D array `m`, the number of rows `r`, and the number of columns `c`.
+   - **Functionality**:
+     - Outer loop iterates over each row of the matrix.
+     - Middle loop iterates over each element in the current row.
+     - Inner loop compares adjacent elements and swaps them if they are out of order, effectively sorting the row.
+   - **Output**: The sorted matrix is printed to the console.
+
+3. **Main Function (`main`)**:
+   - **Matrix Declaration**: A 2D array `m` is initialized with values.
+   - **Dimension Calculation**: The number of columns `c` and rows `r` are calculated.
+   - **Function Call**: `sortRowWise` is called with the matrix and its dimensions.
+   - **Return**: The program returns 0.
+
+### SystemC Code Snippet
+
+Below is the SystemC code snippet that replicates the logic of the provided C++ code. It includes the necessary signals (`clk`, `start`, `done`) and integrates seamlessly with the existing testbench.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done; // Done signal
+
+    int m[4][4] = {{9, 8, 7, 1},
+                    {7, 3, 0, 2},
+                    {9, 5, 3, 2},
+                    {6, 3, 1, 2}};
+    int c = sizeof(m[0]) / sizeof(m[0][0]);
+    int r = sizeof(m) / sizeof(m[0]);
+
+    bool sorting_done = false;
+
+    SC_CTOR(MatrixSorter) {
+        SC_THREAD(sort_matrix);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sort_matrix() {
+        while (true) {
+            wait();  // Wait for the clock edge
+            if (start.read()) {
+                sorting_done = false;
+                for (int i = 0; i < r; i++) {
+                    for (int j = 0; j < c; j++) {
+                        for (int k = 0; k < c - j - 1; k++) {
+                            if (m[i][k] > m[i][k + 1]) {
+                                int temp = m[i][k];
+                                m[i][k] = m[i][k + 1];
+                                m[i][k + 1] = temp;
+                            }
+                        }
+                    }
+                }
+                sorting_done = true;
+            }
+            done.write(sorting_done);
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+- **Module Declaration**: `MatrixSorter` is declared with input (`clk`, `start`) and output (`done`) signals.
+- **Matrix Initialization**: The matrix `m` is initialized with the same values as in the C++ code.
+- **Sorting Logic**: The `sort_matrix` thread waits for the `clk` edge and checks if `start` is high. If so, it sorts the matrix row-wise using nested loops. Once sorting is complete, it sets `sorting_done` to true.
+- **Done Signal**: The `done` signal is updated to reflect whether the sorting is complete.
+
+This SystemC code can be integrated into an existing testbench that provides the `clk`, `start`, and reads the `done` signal to control the sorting process.

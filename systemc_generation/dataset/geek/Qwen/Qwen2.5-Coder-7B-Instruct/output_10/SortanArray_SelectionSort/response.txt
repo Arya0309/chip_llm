@@ -1,0 +1,160 @@
+### Analysis of the C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**: 
+  - `arr`: An integer array to be sorted.
+  - `n`: The size of the array.
+- **Outputs**: 
+  - The sorted array is printed to the console.
+
+#### Detailed Explanation
+
+1. **Swap Function (`swap`)**:
+   - **Purpose**: Swaps the values of two integers.
+   - **Parameters**:
+     - `xp`: Pointer to the first integer.
+     - `yp`: Pointer to the second integer.
+   - **Process**:
+     - Temporarily stores the value at `xp`.
+     - Assigns the value at `yp` to `xp`.
+     - Assigns the stored value to `yp`.
+
+2. **Selection Sort Function (`selectionSort`)**:
+   - **Purpose**: Sorts an array using the selection sort algorithm.
+   - **Parameters**:
+     - `arr`: The array to be sorted.
+     - `n`: The size of the array.
+   - **Process**:
+     - Iterates over the array from the first element to the second last element.
+     - For each iteration, finds the index of the minimum element in the unsorted part of the array.
+     - Swaps the minimum element with the first element of the unsorted part.
+
+3. **Print Array Function (`printArray`)**:
+   - **Purpose**: Prints the elements of an array.
+   - **Parameters**:
+     - `arr`: The array to be printed.
+     - `size`: The size of the array.
+   - **Process**:
+     - Iterates over the array and prints each element followed by a space.
+     - Prints a newline character after the last element.
+
+4. **Main Function (`main`)**:
+   - **Purpose**: Initializes an array, sorts it using `selectionSort`, and prints the sorted array.
+   - **Process**:
+     - Defines an array `arr` and calculates its size `n`.
+     - Calls `selectionSort` to sort the array.
+     - Calls `printArray` to print the sorted array.
+
+### Equivalent SystemC Code
+
+Below is the equivalent SystemC code that integrates with the provided signals (`clk`, `start`, `done`) and performs the same sorting operation:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_out<int> sorted_array[5]; // Output array for sorted values
+
+    int arr[5] = {64, 25, 12, 22, 11}; // Input array
+    int n = 5;                          // Size of the array
+    int i, j, min_idx;
+
+    SC_CTOR(SelectionSort) {
+        // Process to handle sorting
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        async_reset_signal_is(reset, true);
+
+        // Process to handle start and done signals
+        SC_METHOD(start_done_process);
+        sensitive << clk.pos();
+        async_reset_signal_is(reset, true);
+    }
+
+    void sort_process() {
+        if (start.read()) {
+            for (i = 0; i < n-1; i++) {
+                min_idx = i;
+                for (j = i+1; j < n; j++) {
+                    if (arr[j] < arr[min_idx]) {
+                        min_idx = j;
+                    }
+                }
+                swap(&arr[min_idx], &arr[i]);
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+
+    void start_done_process() {
+        if (done.read()) {
+            for (int k = 0; k < n; k++) {
+                sorted_array[k].write(arr[k]);
+            }
+        }
+    }
+
+    void swap(int *xp, int *yp) {
+        int temp = *xp;
+        *xp = *yp;
+        *yp = temp;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS); // Clock signal with period 10 ns
+    sc_signal<bool> start("start");
+    sc_signal<bool> done("done");
+    sc_signal<int> sorted_array[5];
+
+    SelectionSort sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+    sorter.sorted_array(sorted_array);
+
+    // Testbench process
+    sc_process_handle testbench;
+    testbench = sc_spawn(sc_bind([]() {
+        sc_start(50, SC_NS); // Start signal for 50 ns
+        sc_start(100, SC_NS); // End simulation after 100 ns
+    }));
+
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+
+1. **Module Definition (`SelectionSort`)**:
+   - **Inputs**: `clk`, `start`, `reset`.
+   - **Outputs**: `done`, `sorted_array`.
+   - **Arrays**: `arr` for input, `sorted_array` for output.
+   - **Variables**: `i`, `j`, `min_idx`.
+
+2. **Constructor (`SC_CTOR`)**:
+   - Sets up the sensitivity of the processes to the clock edge and reset signal.
+
+3. **Sorting Process (`sort_process`)**:
+   - Handles the sorting logic when the `start` signal is asserted.
+   - Sorts the array using the selection sort algorithm.
+   - Asserts the `done` signal when sorting is complete.
+
+4. **Start and Done Process (`start_done_process`)**:
+   - Copies the sorted array to the `sorted_array` output when the `done` signal is asserted.
+
+5. **Swap Function (`swap`)**:
+   - Swaps the values of two integers, similar to the original C++ code.
+
+6. **Testbench (`sc_main`)**:
+   - Initializes the clock and signals.
+   - Spawns a testbench process to assert the `start` signal and end the simulation.
+
+This SystemC code provides a high-level synthesis-ready version of the original C++/C code, integrating with the specified signals for seamless testbench integration.

@@ -1,0 +1,196 @@
+### C++/C Code Analysis
+
+**Inputs and Outputs:**
+- **Input:** None (The `main` function does not accept any external inputs directly. It uses a hardcoded value `num = 5`.)
+- **Output:** The factorial of the input number, which is printed to the console.
+
+**Detailed Explanation:**
+
+1. **Header Inclusion and Namespace Declaration:**
+   ```cpp
+   #include <iostream>
+   using namespace std;
+   ```
+   - This includes the standard input-output stream library and sets the standard namespace to `std`, making it unnecessary to prefix standard library names with `std::`.
+
+2. **Function Declaration:**
+   ```cpp
+   unsigned int factorial(unsigned int n)
+   ```
+   - Declares a function `factorial` that takes an unsigned integer `n` and returns an unsigned integer.
+
+3. **Factorial Calculation:**
+   ```cpp
+   int res = 1, i;
+   for (i = 2; i <= n; i++)
+       res *= i;
+   return res;
+   ```
+   - Initializes `res` to 1.
+   - Uses a loop to multiply `res` by each integer from 2 to `n`.
+   - Returns the computed factorial.
+
+4. **Main Function:**
+   ```cpp
+   int main()
+   {
+       int num = 5;
+       cout << "Factorial of " << num << " is "
+           << factorial(num) << endl;
+       return 0;
+   }
+   ```
+   - Sets `num` to 5.
+   - Calls the `factorial` function with `num` as the argument.
+   - Prints the result to the console.
+
+### SystemC Code Generation
+
+To create a SystemC module that performs the same functionality, we need to define a module with input and output ports, and implement the factorial calculation within a process.
+
+Here's the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+// Module that calculates the factorial of a number
+SC_MODULE(FactorialCalculator) {
+    sc_in<unsigned int> in;  // Input port for the number
+    sc_out<unsigned int> out; // Output port for the factorial
+
+    // Constructor
+    SC_CTOR(FactorialCalculator) {
+        // Process to calculate factorial
+        SC_METHOD(calculate_factorial);
+        sensitive << in;
+    }
+
+    // Method to calculate factorial
+    void calculate_factorial() {
+        unsigned int n = in.read();
+        unsigned int res = 1, i;
+        for (i = 2; i <= n; i++)
+            res *= i;
+        out.write(res);
+    }
+};
+
+// Testbench to drive the FactorialCalculator module
+SC_MODULE(Testbench) {
+    sc_signal<unsigned int> in_signal;
+    sc_signal<unsigned int> out_signal;
+
+    FactorialCalculator* calc;
+
+    // Constructor
+    SC_CTOR(Testbench) {
+        calc = new FactorialCalculator("calculator");
+        calc->in(in_signal);
+        calc->out(out_signal);
+
+        // Process to drive the input signal
+        SC_THREAD(drive_input);
+        SC_THREAD(check_output);
+    }
+
+    // Thread to drive the input signal
+    void drive_input() {
+        in_signal.write(5);  // Drive the input with 5
+        wait(1, SC_NS);      // Wait for 1 ns
+        sc_stop();           // Stop the simulation after 1 ns
+    }
+
+    // Thread to check the output
+    void check_output() {
+        wait(1, SC_NS);      // Wait for 1 ns
+        cout << "Factorial of " << in_signal.read() << " is "
+             << out_signal.read() << endl;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("testbench");
+    sc_start();
+    return 0;
+}
+```
+
+### Explanation of SystemC Code:
+
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(FactorialCalculator) {
+       sc_in<unsigned int> in;  // Input port for the number
+       sc_out<unsigned int> out; // Output port for the factorial
+   ```
+   - Defines a module `FactorialCalculator` with an input port `in` and an output port `out`.
+
+2. **Constructor:**
+   ```cpp
+   SC_CTOR(FactorialCalculator) {
+       SC_METHOD(calculate_factorial);
+       sensitive << in;
+   }
+   ```
+   - Registers a method `calculate_factorial` to be sensitive to changes on the `in` port.
+
+3. **Factorial Calculation:**
+   ```cpp
+   void calculate_factorial() {
+       unsigned int n = in.read();
+       unsigned int res = 1, i;
+       for (i = 2; i <= n; i++)
+           res *= i;
+       out.write(res);
+   }
+   ```
+   - Reads the input value.
+   - Calculates the factorial using a loop.
+   - Writes the result to the output port.
+
+4. **Testbench:**
+   ```cpp
+   SC_MODULE(Testbench) {
+       sc_signal<unsigned int> in_signal;
+       sc_signal<unsigned int> out_signal;
+
+       FactorialCalculator* calc;
+
+       SC_CTOR(Testbench) {
+           calc = new FactorialCalculator("calculator");
+           calc->in(in_signal);
+           calc->out(out_signal);
+
+           SC_THREAD(drive_input);
+           SC_THREAD(check_output);
+       }
+
+       void drive_input() {
+           in_signal.write(5);
+           wait(1, SC_NS);
+           sc_stop();
+       }
+
+       void check_output() {
+           wait(1, SC_NS);
+           cout << "Factorial of " << in_signal.read() << " is "
+                << out_signal.read() << endl;
+       }
+   };
+   ```
+   - Defines a testbench module with input and output signals.
+   - Instantiates the `FactorialCalculator` module and connects its ports to the signals.
+   - Drives the input signal with `5` and waits for the output to be ready.
+   - Checks and prints the output.
+
+5. **Simulation Entry Point:**
+   ```cpp
+   int sc_main(int argc, char* argv[]) {
+       Testbench tb("testbench");
+       sc_start();
+       return 0;
+   }
+   ```
+   - Creates an instance of the testbench and starts the simulation.
+
+This SystemC code faithfully captures the logic of the original C++ code and can be integrated with the provided signals for testing and verification.

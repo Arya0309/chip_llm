@@ -1,0 +1,100 @@
+
+#include <systemc.h>
+
+/* Observe that the input ports are binary_in, and the output port is decimal_out.
+ * These ports will be utilized in the SystemC conversion port. They are equated to those of 
+ * the C++/C driver code shown earlier. */
+
+
+// Module responsible for converting a binary input from a stream to a decimal output in SystemC.
+
+SC_MODULE(BinaryToDecimalConverter) {
+  // Declare the binary input and output ports.
+  sc_in<int> binary_in;  // Input port for the binary input value.
+  sc_out<int> decimal_out; // Output port for the decimal output value.
+
+  // Function that converts a binary input stream to a decimal output in SystemC.
+  void convert() {
+    int dec_value = 0;
+    decimal_out.write(binary_in.read());
+  }
+};
+
+/* SystemC code that combines the BinaryToDecimalConverter module, the binary_in signal from the driver code, 
+ *and the decimal_out signal to present the output value. */
+
+
+SC_MODULE(Adder) {
+  sc_in<int> a;  // Input port for the binary input.
+  sc_out<int> decimal_out;  // Output port for the converted binary input's decimal value.
+
+  // Incorporate the BinaryToDecimalConverter module into the system. Introduce signals and tasks.
+  BinaryToDecimalConverter BinaryToDecimal;
+  sc_out<int> binary_in(BinaryToDecimal.binary_in);
+
+  // Declare the system task of adding the two inputs.
+  void add();
+
+  // Declare the constructor.
+  SC_CTOR(Adder) {
+    SC_THREAD(add);
+  }
+};
+
+// Driver code to set up the adder system and run it.
+
+
+SC_MODULE(Testbench) {
+    sc_signal<int> binary_sig; // Signal for the binary number
+    sc_signal<int> decimal_sig; // Signal for the decimal number
+
+    BinaryToDecimalConverter converter_inst; // Instance of the converter module
+
+    // Constructor
+    SC_CTOR(Testbench) : converter_inst("converter") {
+        // Connect signals to ports
+        converter_inst.binary_in(binary_sig);
+        converter_inst.decimal_out(decimal_sig);
+
+        // Process to run tests
+        SC_THREAD(run_tests);
+    }
+
+    // Thread to run test cases
+    void run_tests() {
+        // Test case 1: Convert binary 10101001 to decimal
+        binary_sig = 10101001;
+        wait(1, SC_NS); // Wait for the conversion to process
+        int result = decimal_sig.read();
+        cout << "Binary: 10101001 -> Decimal: " << result << endl;
+        assert(result == 169);
+
+        // Test case 2: Convert binary 1111 to decimal
+        binary_sig = 1111;
+        wait(1, SC_NS);
+        result = decimal_sig.read();
+        cout << "Binary: 1111 -> Decimal: " << result << endl;
+        assert(result == 15);
+
+        // Test case 3: Convert binary 100000 to decimal
+        binary_sig = 100000;
+        wait(1, SC_NS);
+        result = decimal_sig.read();
+        cout << "Binary: 100000 -> Decimal: " << result << endl;
+        assert(result == 32);
+
+        // Print success message
+        cout << "All tests passed successfully." << endl;
+
+        sc_stop(); // Stop the simulation
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb"); // Create an instance of the Testbench
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}

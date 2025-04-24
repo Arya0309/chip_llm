@@ -1,0 +1,90 @@
+  **Inputs:**
+
+* `m`: The number of rows in the matrix
+* `n`: The number of columns in the matrix
+* `mat`: The matrix to be rotated
+
+**Outputs:**
+
+* `mat`: The rotated matrix
+
+**Summary:**
+
+The provided code defines a function `rotatematrix()` which takes three arguments: `m`, `n`, and `mat`. The function rotates the matrix `mat` by 90 degrees counterclockwise and stores the result in the same matrix. The function first saves the first element of the next row in a variable called `prev` and then moves the elements of the first row from the remaining rows to the current row. Next, it moves the elements of the last column from the remaining columns to the current column, and then moves the elements of the last row from the remaining rows to the current row. Finally, it moves the elements of the first column from the remaining rows to the current column.
+
+**SystemC Code:**
+
+Here is the equivalent SystemC code that reflects the same behavior:
+```
+#include <systemc.h>
+
+SC_MODULE(RotateMatrix) {
+    sc_in<int> m, n;          // Input ports for the number of rows and columns
+    sc_in<int[R][C]> mat;     // Input port for the matrix
+    sc_out<int[R][C]> out;    // Output port for the rotated matrix
+
+    // Constructor
+    SC_CTOR(RotateMatrix) {
+        // Process to rotate the matrix
+        SC_METHOD(rotate);
+        sensitive << m << n << mat;
+    }
+
+    void rotate() {
+        int row = 0, col = 0;
+        int prev;
+
+        // While the current row index is less than the number of rows
+        // and the current column index is less than the number of columns
+        while (row < m && col < n) {
+            // If the next row index is equal to the number of rows
+            // or the next column index is equal to the number of columns,
+            // we break out of the loop
+            if (row + 1 == m || col + 1 == n)
+                break;
+
+            // Save the first element of the next row in a variable called prev
+            prev = mat[row + 1][col];
+
+            // Move the elements of the first row from the remaining rows to the current row
+            for (int i = col; i < n; i++) {
+                mat[row][i] = prev;
+                prev = mat[row][i];
+            }
+            row++;
+
+            // Move the elements of the last column from the remaining columns to the current column
+            for (int i = row; i < m; i++) {
+                mat[i][n - 1] = prev;
+                prev = mat[i][n - 1];
+            }
+            n--;
+
+            // Move the elements of the last row from the remaining rows to the current row
+            if (row < m) {
+                for (int i = n - 1; i >= col; i--) {
+                    mat[m - 1][i] = prev;
+                    prev = mat[m - 1][i];
+                }
+            }
+            m--;
+
+            // Move the elements of the first column from the remaining rows to the current column
+            if (col < n) {
+                for (int i = m - 1; i >= row; i--) {
+                    mat[i][col] = prev;
+                    prev = mat[i][col];
+                }
+            }
+            col++;
+        }
+
+        // Write the rotated matrix to the output port
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                out[i][j] = mat[i][j];
+            }
+        }
+    }
+};
+```

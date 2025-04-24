@@ -1,0 +1,159 @@
+### Analysis of the Provided C++ Code
+
+#### Inputs and Outputs
+- **Inputs**: None (the array `arr` is hardcoded within the `main` function).
+- **Outputs**: The sorted array, printed to the console.
+
+#### Detailed Explanation
+
+1. **Swap Function**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - **Functionality**: Swaps the values of two integers pointed to by `xp` and `yp`.
+
+2. **Selection Sort Function**
+   ```cpp
+   void selectionSort(int arr[], int n) 
+   { 
+       int i, j, min_idx; 
+
+       for (i = 0; i < n-1; i++) 
+       { 
+           min_idx = i; 
+           for (j = i+1; j < n; j++) 
+           if (arr[j] < arr[min_idx]) 
+               min_idx = j; 
+
+           swap(&arr[min_idx], &arr[i]); 
+       } 
+   } 
+   ```
+   - **Functionality**: Implements the selection sort algorithm. It repeatedly finds the minimum element from the unsorted part and puts it at the beginning. The loop runs `n-1` times, where `n` is the size of the array.
+
+3. **Print Array Function**
+   ```cpp
+   void printArray(int arr[], int size) 
+   { 
+       int i; 
+       for (i=0; i < size; i++) 
+           cout << arr[i] << " "; 
+       cout << endl; 
+   } 
+   ```
+   - **Functionality**: Prints the elements of the array.
+
+4. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int arr[] = {64, 25, 12, 22, 11}; 
+       int n = sizeof(arr)/sizeof(arr[0]); 
+       selectionSort(arr, n); 
+       cout << "Sorted array: "; 
+       printArray(arr, n); 
+       return 0; 
+   } 
+   ```
+   - **Functionality**: Initializes an array, calculates its size, sorts it using `selectionSort`, and prints the sorted array.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that preserves the logic of the original C++ code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(SelectionSort) {
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
+    sc_out<bool> done;   // Done signal
+    sc_out<int> sorted_array[5]; // Output array of sorted elements
+
+    int arr[5] = {64, 25, 12, 22, 11}; // Hardcoded array
+    int n = sizeof(arr)/sizeof(arr[0]); // Size of the array
+    int i, j, min_idx;
+
+    SC_CTOR(SelectionSort) {
+        SC_METHOD(sort_process);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void sort_process() {
+        if (start.read()) {
+            // Selection Sort
+            for (i = 0; i < n-1; i++) {
+                min_idx = i;
+                for (j = i+1; j < n; j++) {
+                    if (arr[j] < arr[min_idx]) {
+                        min_idx = j;
+                    }
+                }
+                swap(&arr[min_idx], &arr[i]);
+            }
+
+            // Print sorted array (simulated by writing to output ports)
+            for (i = 0; i < n; i++) {
+                sorted_array[i].write(arr[i]);
+            }
+
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+
+    void swap(int *xp, int *yp) {
+        int temp = *xp;
+        *xp = *yp;
+        *yp = temp;
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    sc_clock clk("clk", 10, SC_NS); // 10 ns period clock
+    sc_signal<bool> start("start");
+    sc_signal<bool> done("done");
+    sc_signal<int> sorted_array[5];
+
+    SelectionSort sorter("sorter");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+    sorter.sorted_array(sorted_array);
+
+    // Testbench process
+    sc_process_handle testbench;
+    testbench = sc_spawn(sc_bind([]() {
+        wait(20, SC_NS);
+        start = true;
+        wait(100, SC_NS);
+        start = false;
+    }));
+
+    sc_start(150, SC_NS);
+
+    return 0;
+}
+```
+
+### Explanation of the SystemC Code
+
+- **Inputs**: `clk` (clock signal), `start` (start signal).
+- **Outputs**: `done` (done signal), `sorted_array` (array of sorted elements).
+
+- **Process**:
+  - When `start` is asserted, the `sort_process` method is triggered on the rising edge of the clock.
+  - The selection sort algorithm is executed, and the sorted array is written to the `sorted_array` ports.
+  - Once sorting is complete, the `done` signal is asserted.
+
+- **Swap Function**:
+  - The `swap` function remains the same, but now it operates on the `arr` array within the module.
+
+This SystemC code snippet can be integrated into an existing testbench that utilizes the `clk`, `start`, and `done` signals.

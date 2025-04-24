@@ -1,0 +1,117 @@
+  **Inputs and Outputs:**
+
+* Inputs:
+	+ `int m`: The number of rows in the matrix
+	+ `int n`: The number of columns in the matrix
+	+ `int mat[R][C]`: The matrix to be rotated
+* Outputs:
+	+ `mat[R][C]`: The rotated matrix
+
+**Explanation:**
+
+The code given is a C++/C function named `rotatematrix` that takes an integer matrix `mat` of size `R x C` as input and returns the rotated matrix `mat[R][C]` as output.
+
+The function first declares and initializes a few variables:
+
+* `int row = 0`, `int col = 0`: These variables are used as iterators to keep track of the current row and column being processed.
+* `int prev, curr`: These variables are used to store the previous and current elements of the matrix that are being replaced during the rotation process.
+
+The function then enters a `while` loop that runs as long as `row < m` and `col < n`. The loop breaks when either `row + 1 == m` or `col + 1 == n` (i.e., when there are no more rows or columns to rotate).
+
+During each iteration of the loop, the function performs the following operations:
+
+1. Store the first element of the next row in the variable `prev`: `prev = mat[row + 1][col]`.
+2. Move the elements of the first row from the remaining rows:
+	* This is done by taking the current element `mat[row][i]` and saving it in `prev`.
+	* Then, the function replaces the current element with the previous element `prev`, effectively moving the elements of the first row to the right.
+3. Move the elements of the last column from the remaining columns:
+	* This is done by taking the current element `mat[i][n-1]` and saving it in `prev`.
+	* Then, the function replaces the current element with the previous element `prev`, effectively moving the elements of the last column down.
+4. Move the elements of the last row from the remaining rows:
+	* This is done by taking the current element `mat[m-1][i]` and saving it in `prev`.
+	* Then, the function replaces the current element with the previous element `prev`, effectively moving the elements of the last row to the left.
+5. Move the elements of the first column from the remaining rows:
+	* This is done by taking the current element `mat[i][col]` and saving it in `prev`.
+	* Then, the function replaces the current element with the previous element `prev`, effectively moving the elements of the first column up.
+
+The function then increments the iterators `row` and `col` and repeats the process until all rows and columns have been rotated.
+
+Finally, the function prints the rotated matrix to the console.
+
+**SystemC Code:**
+```
+#include <systemc.h>
+
+// Module that rotates a matrix
+SC_MODULE(RotateMatrix) {
+    sc_in<int> R, C;  // Input ports for the number of rows and columns in the matrix
+    sc_in<int[R][C]> mat;  // Input port for the matrix to be rotated
+    sc_out<int[R][C]> rotated_mat;  // Output port for the rotated matrix
+
+    // Constructor
+    SC_CTOR(RotateMatrix) {
+        // Process to perform rotation
+        SC_METHOD(rotate);
+        sensitive << R << C << mat;
+    }
+
+    // Method to rotate the matrix
+    void rotate() {
+        int row = 0, col = 0;
+        int prev, curr;
+
+        while (row < R && col < C) {
+            if (row + 1 == R || col + 1 == C) {
+                break;
+            }
+
+            // Store the first element of the next row
+            prev = mat[row + 1][col];
+
+            // Move elements of the first row from the remaining rows
+            for (int i = col; i < C; i++) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            // Move elements of the last column from the remaining columns
+            for (int i = row; i < R; i++) {
+                curr = mat[i][C - 1];
+                mat[i][C - 1] = prev;
+                prev = curr;
+            }
+            C--;
+
+            // Move elements of the last row from the remaining rows
+            if (row < R) {
+                for (int i = C - 1; i >= col; i--) {
+                    curr = mat[R - 1][i];
+                    mat[R - 1][i] = prev;
+                    prev = curr;
+                }
+            }
+            R--;
+
+            // Move elements of the first column from the remaining rows
+            if (col < C) {
+                for (int i = R - 1; i >= row; i--) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
+                }
+            }
+            col++;
+        }
+
+        // Print the rotated matrix
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                rotated_mat[i][j] = mat[i][j];
+            }
+        }
+    }
+};
+```
+Note that in the SystemC code, the matrix is represented as an `int[R][C]` signal, which is passed as an input to the `RotateMatrix` module. The module also has three output ports: `R`, `C`, and `rotated_mat`. The `rotate` method is sensitive to changes in the `R`, `C`, and `mat` signals, and updates the `rotated_mat` signal accordingly. The method implements the same logic as the C++/C code, but using SystemC constructs.

@@ -1,0 +1,59 @@
+  **Inputs**:
+
+* `m`: A two-dimensional integer array representing a matrix.
+* `n`: An integer constant representing the number of rows and columns in the matrix.
+
+**Outputs**:
+
+* The same matrix with the first and last columns swapped.
+
+**Natural Language Summary**:
+
+The provided C++/C code defines a function `interchangeFirstLast` that takes a two-dimensional integer array `m` as input and swaps the elements of the first and last columns of the matrix. The function works by iterating through each row of the matrix and swapping the elements at indices 0 and `n - 1` (where `n` is the number of columns in the matrix). The function also includes a driver function `main` that shows an example usage of the `interchangeFirstLast` function.
+
+**SystemC Code Snippet**:
+```
+#include <systemc.h>
+
+SC_MODULE(MatrixInterchanger) {
+  sc_in<int> n; // number of rows and columns in the matrix
+  sc_in<int> m[SIZE]; // input matrix
+  sc_out<int> result[SIZE]; // output matrix with first and last columns swapped
+
+  // Process to swap the first and last columns
+  SC_METHOD(interchangeFirstLast) {
+    for (int i = 0; i < n; i++) {
+      int temp = m[i][0]; // save the first element of the ith row
+      m[i][0] = m[i][n - 1]; // replace it with the last element
+      m[i][n - 1] = temp; // replace the last element with the first element
+    }
+  }
+};
+```
+In the SystemC code snippet above, we define a module `MatrixInterchanger` that takes a two-dimensional integer array `m` as input and generates a two-dimensional integer array `result` as output. The module includes an `n` input port to specify the number of rows and columns in the matrix, and a `interchangeFirstLast` process that iterates through each row of the matrix and swaps the elements at indices 0 and `n - 1`. The module instantiates the `interchangeFirstLast` process in its constructor and makes it sensitive to changes in the `n` and `m` inputs.
+
+Note that in this SystemC code snippet, we have used the `SIZE` constant to represent the size of the input and output matrices. This constant can be set to a fixed value or provided as a parameter when instantiating the `MatrixInterchanger` module. Additionally, we have used the `sc_in` and `sc_out` ports to represent the input and output matrices, respectively. These ports can be connected to the relevant signals in the testbench using the SystemC `sensitive` and `write` statements, as shown in the example code snippet below.
+```
+// Drive the input matrix
+for (int i = 0; i < SIZE; i++) {
+  for (int j = 0; j < SIZE; j++) {
+    in[i][j].write(i * j);
+  }
+}
+
+// Instantiate the MatrixInterchanger module
+MatrixInterchanger interchanger("interchanger");
+
+// Connect the inputs and outputs
+for (int i = 0; i < SIZE; i++) {
+  interchanger.n.write(SIZE);
+  for (int j = 0; j < SIZE; j++) {
+    interchanger.m[i][j].write(in[i][j].read());
+    out[i][j].write(interchanger.result[i][j].read());
+  }
+}
+
+// Add the process to the kernel
+sc_spawn(interchanger.interchangeFirstLast, interchanger);
+```
+In this testbench code snippet, we first drive the input matrix `in` using a nested loop and then instantiate the `MatrixInterchanger` module `interchanger`. We then connect the inputs and outputs of the module by writing the `n` and `m` signals and reading the `result` signal. Finally, we add the `interchangeFirstLast` process to the kernel using the `sc_spawn` function.

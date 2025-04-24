@@ -1,0 +1,178 @@
+### Inputs and Outputs
+
+**Inputs:**
+- None. The input is hardcoded within the `main` function of the C++ code.
+
+**Outputs:**
+- The sorted 2D matrix row-wise, printed to the console.
+
+### Detailed Explanation
+
+#### Line-by-Line Explanation
+
+1. **Header Inclusion and Namespace Declaration**
+   ```cpp
+   #include<bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes the standard C++ library and uses the standard namespace.
+
+2. **Swap Function**
+   ```cpp
+   void swap(int *xp, int *yp) 
+   { 
+       int temp = *xp; 
+       *xp = *yp; 
+       *yp = temp; 
+   } 
+   ```
+   - This function swaps the values pointed to by two integer pointers.
+
+3. **Sort Row-Wise Function**
+   ```cpp
+   void sortRowWise(int m[][4], int r, int c)
+   {
+       for (int i = 0; i < r; i++) 
+       {
+           for (int j = 0; j < c; j++) 
+           {
+               for (int k = 0; k < c - j - 1; k++) 
+               {
+                   if (m[i][k] > m[i][k + 1]) 
+                   {
+                       swap(m[i][k], m[i][k + 1]);
+                   }
+               }
+           }
+       }
+   ```
+   - This function sorts each row of the matrix `m` in ascending order using a nested loop and the `swap` function.
+
+4. **Printing Sorted Matrix**
+   ```cpp
+       for (int i = 0; i < r; i++) 
+       {
+           for (int j = 0; j < c; j++)
+               cout << m[i][j] << " ";
+           cout << endl;
+       }
+   }
+   ```
+   - This loop prints each element of the sorted matrix, row by row.
+
+5. **Main Function**
+   ```cpp
+   int main()
+   {
+       int m[][4] = {{9, 8, 7, 1},
+                       {7, 3, 0, 2},
+                       {9, 5, 3, 2},
+                       {6, 3, 1, 2}};
+       int c = sizeof(m[0]) / sizeof(m[0][0]);
+       int r = sizeof(m) / sizeof(m[0]);
+       sortRowWise(m, r, c);
+       return 0;
+   }
+   ```
+   - This initializes a 2D matrix `m`, calculates the number of columns `c` and rows `r`, calls the `sortRowWise` function, and then returns 0.
+
+### Equivalent SystemC Code
+
+To convert this C++ code into SystemC, we need to define the necessary signals and implement the logic in a SystemC module. Here’s how you can do it:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSorter) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_inout<int> matrix[4][4]; // 2D matrix to be sorted
+
+    // Constructor
+    SC_CTOR(MatrixSorter) {
+        SC_THREAD(sortMatrix);
+        sensitive << clk.pos();
+    }
+
+    // Method to sort the matrix
+    void sortMatrix() {
+        while (true) {
+            wait();  // Wait for the clock edge
+
+            if (start.read()) {
+                // Sort each row of the matrix
+                for (int i = 0; i < 4; i++) {
+                    for (int j = 0; j < 4; j++) {
+                        for (int k = 0; k < 4 - j - 1; k++) {
+                            if (matrix[i][k].read() > matrix[i][k + 1].read()) {
+                                int temp = matrix[i][k].read();
+                                matrix[i][k].write(matrix[i][k + 1].read());
+                                matrix[i][k + 1].write(temp);
+                            }
+                        }
+                    }
+                }
+
+                // Indicate sorting is done
+                done.write(true);
+            } else {
+                done.write(false);
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Definition**
+   ```cpp
+   SC_MODULE(MatrixSorter) {
+       sc_in<bool> clk;          // Clock signal
+       sc_in<bool> start;        // Start signal
+       sc_out<bool> done;        // Done signal
+       sc_inout<int> matrix[4][4]; // 2D matrix to be sorted
+   ```
+   - Defines the SystemC module `MatrixSorter` with the required signals and ports.
+
+2. **Constructor**
+   ```cpp
+   SC_CTOR(MatrixSorter) {
+       SC_THREAD(sortMatrix);
+       sensitive << clk.pos();
+   }
+   ```
+   - Initializes the `sortMatrix` thread and specifies that it should be sensitive to positive edges of the clock signal.
+
+3. **Sorting Logic**
+   ```cpp
+   void sortMatrix() {
+       while (true) {
+           wait();  // Wait for the clock edge
+
+           if (start.read()) {
+               // Sort each row of the matrix
+               for (int i = 0; i < 4; i++) {
+                   for (int j = 0; j < 4; j++) {
+                       for (int k = 0; k < 4 - j - 1; k++) {
+                           if (matrix[i][k].read() > matrix[i][k + 1].read()) {
+                               int temp = matrix[i][k].read();
+                               matrix[i][k].write(matrix[i][k + 1].read());
+                               matrix[i][k + 1].write(temp);
+                           }
+                       }
+                   }
+               }
+
+               // Indicate sorting is done
+               done.write(true);
+           } else {
+               done.write(false);
+           }
+       }
+   }
+   ```
+   - This thread continuously waits for the clock edge. When the `start` signal is high, it sorts the matrix row-wise and sets the `done` signal high after sorting is complete. If the `start` signal is low, it keeps the `done` signal low.
+
+This SystemC code faithfully captures the logic of the original C++ code and can be integrated with the provided testbench signals.

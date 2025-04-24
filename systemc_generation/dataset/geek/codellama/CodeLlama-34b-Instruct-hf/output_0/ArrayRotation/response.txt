@@ -1,0 +1,115 @@
+  **Inputs:**
+
+* `arr`: An integer array that stores the input values to be rotated.
+* `d`: The number of positions by which the elements of the array are rotated.
+* `n`: The size of the input array.
+
+**Outputs:**
+
+* `arr`: The rotated integer array.
+
+**Explanation:**
+
+The provided C++/C code defines two functions: `Rotate` and `PrintTheArray`.
+
+The `Rotate` function takes an integer array `arr`, the number of positions to rotate `d`, and the size of the array `n` as inputs. It rotates the elements of `arr` by `d` positions and stores the rotated version in a temporary array called `temp`. The first `n - d` elements of `arr` are stored in the front of `temp`, followed by the first `d` elements of `arr`. The function then copies the elements of `temp` back into `arr` to get the final rotated array.
+
+The `PrintTheArray` function takes an integer array `arr` and its size `n` as inputs, and prints the elements of the array to the console.
+
+The `main` function initializes an array called `arr` with the values 1 through 7, sets the number of positions to rotate `d` to 2, and calculates the size of the array `N` as 7 (the number of elements in `arr`). It then calls the `Rotate` function to rotate the elements of `arr` by `d` positions, and prints the rotated array to the console using the `PrintTheArray` function.
+
+**SystemC Code:**
+
+The following SystemC code snippet defines a `Rotator` module that takes an input array of integers called `in_array`, a rotating distance `d`, and the size of the input array `N` as inputs. It also has an output array `out_array` that stores the rotated version of `in_array`. The `Rotator` module contains two processes: `rotate` and `print`. The `rotate` process rotates the elements of `in_array` by `d` positions and stores the rotated version in `out_array`. The `print` process prints the elements of `out_array` to the console using the `PrintTheArray` function.
+```cpp
+#include <systemc.h>
+#include <iostream>
+
+// Module that rotates an integer array by a specified distance
+SC_MODULE(Rotator) {
+    sc_in<int> in_array[7]; // Input array
+    sc_in<int> d; // Rotating distance
+    sc_in<int> N; // Size of input array
+    sc_out<int> out_array[7]; // Output array
+
+    // Rotate process
+    SC_THREAD(rotate) {
+        // Temporary array to store rotated version
+        int temp[7];
+
+        // Keep track of current index
+        int k = 0;
+
+        // Rotate the first n - d elements of in_array to the front of temp
+        for (int i = d; i < N; i++) {
+            temp[k] = in_array[i];
+            k++;
+        }
+
+        // Rotate the first d elements of in_array into temp
+        for (int i = 0; i < d; i++) {
+            temp[k] = in_array[i];
+            k++;
+        }
+
+        // Copy the elements of temp back into out_array
+        for (int i = 0; i < N; i++) {
+            out_array[i] = temp[i];
+        }
+
+        // Copy the elements of out_array to in_array to ensure modular arithmetic
+        for (int i = 0; i < N; i++) {
+            in_array[i] = out_array[i];
+        }
+    }
+
+    // Print process
+    SC_THREAD(print) {
+        // Print the elements of out_array to the console
+        for (int i = 0; i < N; i++) {
+            std::cout << out_array[i] << " ";
+        }
+    }
+
+    // Constructor
+    SC_CTOR(Rotator) {
+        // Process to perform rotation
+        SC_METHOD(rotate);
+        sensitive << in_array << d << N;
+
+        // Process to print the rotated array
+        SC_METHOD(print);
+        sensitive << out_array;
+    }
+};
+```
+To use this code in a SystemC testbench, you would create an instance of the `Rotator` module and connect it to the required signals. You would also need to initialize the input signals `in_array`, `d`, and `N` with the appropriate values. The `Rotator` module would then rotate the elements of `in_array` by `d` positions and store the rotated version in `out_array`, which you could print using the `PrintTheArray` function.
+```cpp
+int main() {
+    // Create an instance of the Rotator module
+    Rotator rotator("rotator");
+
+    // Connect the Rotator module to the required signals
+    sc_in<bool> clk("clk");
+    sc_in<bool> rst("rst");
+    sc_in<int> in_array[7]("in_array");
+    sc_out<int> out_array[7]("out_array");
+
+    // Initialize the input signals
+    in_array[0] = 1;
+    in_array[1] = 2;
+    in_array[2] = 3;
+    in_array[3] = 4;
+    in_array[4] = 5;
+    in_array[5] = 6;
+    in_array[6] = 7;
+    d = 2;
+    N = 7;
+
+    // Run the testbench
+    sc_start(100, SC_NS);
+
+    return 0;
+}
+```
+Note that this code is just a sample implementation to demonstrate how to convert the C++/C code to SystemC, and may require modification to fit your specific use case.

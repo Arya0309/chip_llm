@@ -1,0 +1,148 @@
+### Input and Output Analysis
+
+**Inputs**:
+1. `arr[]`: An array of integers.
+2. `n`: The size of the array.
+
+**Outputs**:
+1. Minimum element of the array.
+2. Maximum element of the array.
+
+### Detailed Line-by-Line Explanation
+
+1. **Header Inclusion and Namespace Declaration**:
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std; 
+   ```
+   - This includes the standard library and uses the `std` namespace for convenience.
+
+2. **Function to Get Minimum Element**:
+   ```cpp
+   int getMin(int arr[], int n) 
+   { 
+       return *min_element(arr, arr + n); 
+   } 
+   ```
+   - This function takes an array `arr` and its size `n` as parameters.
+   - It returns the minimum element in the array using the `min_element` function from the `<algorithm>` header.
+
+3. **Function to Get Maximum Element**:
+   ```cpp
+   int getMax(int arr[], int n) 
+   { 
+       return *max_element(arr, arr + n); 
+   } 
+   ```
+   - This function takes an array `arr` and its size `n` as parameters.
+   - It returns the maximum element in the array using the `max_element` function from the `<algorithm>` header.
+
+4. **Main Function**:
+   ```cpp
+   int main() 
+   { 
+       int arr[] = { 12, 1234, 45, 67, 1 }; 
+       int n = sizeof(arr) / sizeof(arr[0]); 
+       cout << "Minimum element of array: " << getMin(arr, n) << " "; 
+       cout << "Maximum element of array: " << getMax(arr, n); 
+       return 0; 
+   } 
+   ```
+   - This is the entry point of the program.
+   - It initializes an array `arr` with values `{12, 1234, 45, 67, 1}`.
+   - It calculates the size of the array `n`.
+   - It prints the minimum and maximum elements of the array using the `getMin` and `getMax` functions.
+
+### SystemC Code Snippet
+
+To convert the given C++ code into SystemC, we need to create a module that takes the array and its size as inputs and produces the minimum and maximum values as outputs. Here's how you can do it:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ElementFinder) {
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_out<int> min_val;  // Output port for the minimum value
+    sc_out<int> max_val;  // Output port for the maximum value
+
+    sc_in<int> arr [];  // Input port for the array
+    sc_in<int> n;  // Input port for the size of the array
+
+    int current_min;
+    int current_max;
+
+    // Constructor
+    SC_CTOR(ElementFinder) {
+        // Process to handle the computation
+        SC_METHOD(compute);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to handle the start and done signals
+        SC_METHOD(start_done);
+        sensitive << start;
+        dont_initialize();
+    }
+
+    // Method to compute the minimum and maximum values
+    void compute() {
+        if (start.read()) {
+            current_min = arr[0];
+            current_max = arr[0];
+            for (int i = 1; i < n.read(); i++) {
+                if (arr[i] < current_min) {
+                    current_min = arr[i];
+                }
+                if (arr[i] > current_max) {
+                    current_max = arr[i];
+                }
+            }
+            min_val.write(current_min);
+            max_val.write(current_max);
+            done.write(true);
+        }
+    }
+
+    // Method to handle the start and done signals
+    void start_done() {
+        if (start.read()) {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   - `ElementFinder` is a SystemC module that finds the minimum and maximum elements in an array.
+
+2. **Signals**:
+   - `clk`: Clock signal.
+   - `start`: Start signal to initiate the computation.
+   - `done`: Done signal to indicate the computation is complete.
+   - `min_val`: Output port for the minimum value.
+   - `max_val`: Output port for the maximum value.
+   - `arr`: Input port for the array.
+   - `n`: Input port for the size of the array.
+
+3. **State Variables**:
+   - `current_min` and `current_max`: Variables to store the current minimum and maximum values during computation.
+
+4. **Constructor**:
+   - Initializes the module with methods `compute` and `start_done`.
+   - `compute` is sensitive to positive edges of the clock (`clk.pos()`).
+   - `start_done` is sensitive to changes in the `start` signal.
+
+5. **compute Method**:
+   - When `start` is high, it initializes `current_min` and `current_max` with the first element of the array.
+   - It iterates through the array to find the minimum and maximum values.
+   - Writes the results to `min_val` and `max_val`.
+   - Sets `done` to true to indicate the computation is complete.
+
+6. **start_done Method**:
+   - When `start` is high, it sets `done` to false to indicate the computation has started.
+
+This SystemC code should integrate seamlessly with your existing testbench and provide the same functionality as the original C++ code.

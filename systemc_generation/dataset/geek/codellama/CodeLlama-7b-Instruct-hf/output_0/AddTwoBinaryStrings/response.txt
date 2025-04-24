@@ -1,0 +1,104 @@
+  The provided C++/C program is a function called `addBinary` that takes two binary strings as input and returns their sum as a third string. The code first checks whether the length of the first string is greater than the length of the second string. If it is, the function swaps the two strings and returns the result of the swapped strings.
+
+The function then calculates the difference between the lengths of the two strings and initializes a padding string of zeroes to be added as a prefix to the shorter string. The padding string is then concatenated to the shorter string.
+
+The function then iterates over the characters of the padded strings in reverse order, performing bitwise arithmetic operations (OR, AND, and XOR) to compute the sum of the two binary strings. A carry flag is used to keep track of carry bits.
+
+Finally, the result is reversed, and leading zeroes are removed, and the final string is returned as the sum.
+
+In SystemC, this functionality can be implemented in the following way:
+```scss
+// C++ program to add two binary strings
+#include <iostream>
+#include <string>
+
+// This function adds two binary strings and return result as a third string
+string addBinary(string A, string B) {
+    // If the length of string A is greater than the length of B then just swap the string by calling the same function and make sure to return the function otherwise recursion will occur which leads to calling the same function twice
+    if (A.length() > B.length()) {
+        return addBinary(B, A);
+    }
+
+    // Calculating the difference between the length of the two strings
+    int diff = B.length() - A.length();
+
+    // Initialise the padding string which is used to store zeroes that should be added as prefix to the string which has length smaller than the other string
+    string padding;
+    for (int i = 0; i < diff; i++) {
+        padding.push_back('0');
+    }
+
+    A = padding + A;
+    string res;
+    char carry = '0';
+
+    // Iterate over the characters of the padded strings in reverse order, performing bitwise arithmetic operations (OR, AND, and XOR) to compute the sum of the two binary strings
+    for (int i = A.length() - 1; i >= 0; i--) {
+        // This if condition solves 110 111 possible cases
+        if (A[i] == '1' && B[i] == '1') {
+            if (carry == '1') {
+                res.push_back('1'), carry = '1';
+            } else {
+                res.push_back('0'), carry = '1';
+            }
+        // This if condition solves 000 001 possible cases
+        } else if (A[i] == '0' && B[i] == '0') {
+            if (carry == '1') {
+                res.push_back('1'), carry = '0';
+            } else {
+                res.push_back('0'), carry = '0';
+            }
+        // This if condition solves 100 101 010 011 possible cases
+        } else if (A[i] != B[i]) {
+            if (carry == '1') {
+                res.push_back('0'), carry = '1';
+            } else {
+                res.push_back('1'), carry = '0';
+            }
+        }
+    }
+
+    // If at the end their is carry then just add it to the result
+    if (carry == '1') {
+        res.push_back(carry);
+    }
+
+    // Reverse the result
+    reverse(res.begin(), res.end());
+
+    // To remove leading zeroes
+    int index = 0;
+    while (index + 1 < res.length() && res[index] == '0') {
+        index++;
+    }
+
+    return (res.substr(index));
+}
+
+// Define the inputs and outputs of the function
+sc_in<string> A;
+sc_in<string> B;
+sc_out<string> sum;
+
+// Define the function in SystemC
+SC_MODULE(addBinary) {
+    sc_in<string> A;
+    sc_in<string> B;
+    sc_out<string> sum;
+
+    // Declaration of the function
+    void calculate_sum(const string& A, const string& B, string& sum) {
+        // Call the C++/C function to calculate the sum
+        sum = addBinary(A, B);
+    }
+
+    // Instantiation of the function in SystemC
+    void calculate_sum(void) {
+        string sum;
+        calculate_sum(A, B, sum);
+        // Write the result to the output port
+        sum.write(sum);
+    }
+};
+```
+In addition to the input/output ports, the SystemC module also includes a `calculate_sum` method that calls the C++/C function `addBinary` and writes the result to the output port `sum`. The `calculate_sum` method is declared in the module header file, but defined in the implementation file. The method takes three arguments: `A`, `B`, and `sum`. The arguments `A` and `B` are the input strings, and the `sum` is the output string. The `calculate_sum` method uses these arguments to call the `addBinary` function and compute the sum. The result is then written to the `sum` output port.

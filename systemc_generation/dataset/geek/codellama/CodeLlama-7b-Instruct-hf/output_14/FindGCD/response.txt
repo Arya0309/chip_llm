@@ -1,0 +1,71 @@
+  This C++ program is a simple implementation of the Euclid's algorithm for finding the greatest common divisor (GCD) of two numbers. The program takes two integers, `a` and `b`, as inputs and returns the GCD as the output.
+
+The code defines a function `gcd()` that takes two integers as input and returns the GCD as the output. The function first finds the minimum of `a` and `b` and then decrements `res` until it becomes 1. At each decrement, the function checks if `a` mod `res` and `b` mod `res` are equal to 0 and breaks the loop if they do. The GCD is found when `res` becomes 1.
+
+The `main()` function takes `a` and `b` as command-line inputs and calls `gcd(a, b)` to compute the GCD. The result is then printed to the console.
+
+To integrate this code with SystemC, we can rewrite it using SystemC's syntax and semantics. Here's a possible SystemC implementation:
+```scss
+#include <systemc>
+
+// Module that computes the GCD of two numbers
+SC_MODULE(GCD) {
+    // Input ports
+    sc_in<int> a; // Input port for the first number
+    sc_in<int> b; // Input port for the second number
+
+    // Output port
+    sc_out<int> gcd_result; // Output port for the GCD
+
+    // Method to compute the GCD
+    void compute_gcd() {
+        // Find the minimum of a and b
+        int min_res = min(a.read(), b.read());
+
+        // Decrease the minimum by 1 until we find a factor
+        while (min_res > 1) {
+            // Test if a and b are divisible by min_res
+            if (a.read() % min_res == 0 && b.read() % min_res == 0) {
+                break;
+            }
+            min_res--;
+        }
+
+        // Set the GCD result
+        gcd_result.write(min_res);
+    }
+};
+
+int sc_main(int argc, char *argv[]) {
+    // Create the GCD module
+    GCD gcd_inst("gcd_inst");
+
+    // Connect the input ports
+    gcd_inst.a(sc_in<int>("a"));
+    gcd_inst.b(sc_in<int>("b"));
+
+    // Connect the output port
+    gcd_inst.gcd_result(sc_out<int>("gcd_result"));
+
+    // Add the module to the simulator top level
+    sc_object<GCD> gcd_module;
+    sc_object_utils<GCD>::init(gcd_module, gcd_inst);
+
+    // Add a clock
+    sc_clock clock;
+    sc_clock_utils<clock>::init(clock);
+
+    // Run the simulation
+    sc_start();
+
+    // Print the GCD result
+    cout << "The GCD of " << a << " and " << b << " is " << gcd_result << endl;
+
+    return 0;
+}
+```
+This SystemC implementation defines a `GCD` module that takes two integers, `a` and `b`, as input and computes the GCD. The module has a `compute_gcd()` method that uses the Euclid's algorithm to find the GCD. The `compute_gcd()` method has two nested loops that decrement `min_res` until it becomes 1. At each decrement, the method checks if `a` and `b` are divisible by `min_res` and breaks the loop if they do. The GCD is found when `min_res` becomes 1.
+
+The `sc_main()` function defines an instance of the `GCD` module and connects the input ports `a` and `b` to a randomly generated integer. The output port `gcd_result` is connected to the console output. The `sc_start()` method starts the simulation, and the `gcd_result` is printed to the console.
+
+Since the original C++/C code defines `a` and `b` as command-line inputs, we cannot directly use them in SystemC. Therefore, we must create a `sc_in<int>` signal for each input and connect it to `GCD.a` and `GCD.b`, respectively. We can also connect the output `gcd_result` to a `sc_out<int>` signal that can be used in the testbench.

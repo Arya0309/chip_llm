@@ -1,0 +1,62 @@
+  **Inputs**:
+
+* `num`: an unsigned integer passed to the `factorial` function as an argument.
+
+**Outputs**:
+
+* `res`: an unsigned integer returned as the factorial of `num`.
+* `cout`: a string printed to the console consisting of the factorial of `num`.
+
+**Line-by-Line Analysis**:
+
+The provided code is a full program that computes the factorial of a given number using recursion.
+There are two parts to the code: the `factorial` function and the `main` function.
+
+1. The `factorial` function takes an unsigned integer `n` as an argument and returns an unsigned integer `res` as its result.
+The function initializes `res` to 1 and then computes the factorial of `n` by iterating through the values between 2 and `n`, multiplying the current factorial by each value, and returning the final result.
+2. The `main` function takes no arguments and has no return value. It declares an `int` variable `num` and initializes it to 5. The function then calls the `factorial` function with `num` as its argument. Using `cout` (a C++ I/O stream), the function prints the string "Factorial of " followed by the decimal value of `num` and then the computed factorial of `num`. Finally, the function returns 0 to indicate successful execution.
+
+**SystemC Equivalent**:
+To model the behavior of the provided C++/C code in SystemC, we define a new module called `Factorial`.
+This module will have two input ports: `num` of type `sc_in<unsigned int>` and `res` of type `sc_out<unsigned int>`.
+The `num` port will accept the same unsigned integer input that the `factorial` function in the original code expects.
+The `res` port will output the computed factorial of `num`.
+We will also add two sensitive ports: `clk` and `rst_n`.
+The `clk` port will be used to control the clock signal in the SystemC design, and the `rst_n` port will be used to reset the module.
+
+Here is the SystemC code:
+```c++
+#include <systemc.h>
+
+SC_MODULE(Factorial) {
+  sc_in<unsigned int> num;
+  sc_out<unsigned int> res;
+  sc_in<bool> clk;
+  sc_in<bool> rst_n;
+
+  SC_CTOR(Factorial) {
+    SC_METHOD(factorial);
+    sensitive << clk.pos();
+    // Remove the sensitivity on clk to compute the factorial only while clock is low.
+    // We need to hold the result until the next clock cycle to ensure that the factorial
+    // is computed correctly.
+    // The outputs of the module should be updated only if clk is high.
+    sensitive << clk.neg();
+  }
+
+  void factorial() {
+    unsigned int res = 1;
+    int i;
+    for (i = 2; i <= num; i++) {
+      res *= i;
+    }
+    res.write(res);
+  }
+};
+```
+Note that we have added a `SC_METHOD` callback for the `factorial` function to ensure that it is executed at the appropriate time.
+We have also added two sensitive ports to the module: `clk` and `rst_n`.
+The `clk` port is used to control the clock signal, and the `rst_n` port is used to reset the module.
+Finally, we have added two statements to the `factorial` function: `res.write(res)` and `sensitive << clk.neg()`.
+The first statement writes the computed value of `res` to the output port `res`.
+The second statement ensures that the `factorial` function is executed only when `clk` is low, and it also updates the outputs of the module only if `clk` is high.

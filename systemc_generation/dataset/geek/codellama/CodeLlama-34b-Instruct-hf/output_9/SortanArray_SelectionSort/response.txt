@@ -1,0 +1,98 @@
+  **Inputs:**
+
+* An array of integers to be sorted, represented by the variable `arr`.
+* The number of elements in the array, represented by the variable `n`.
+
+**Outputs:**
+
+* The sorted array, represented by the variable `arr`.
+
+**Explanation:**
+
+The provided code is a C++ implementation of the selection sort algorithm. It has four major components:
+
+1. Function `swap`: This function takes two integer pointer arguments `xp` and `yp` and swaps the values pointed by them. It is a utility function used in selection sort to swap the minimum element with the first element in the unsorted subarray.
+2. Function `selectionSort`: This function takes an array of integers and its size as input and outputs the sorted array. It implements the selection sort algorithm as follows:
+	* Iterate over the input array `arr` from the first element to the second-last element.
+	* For each element `arr[i]`, find the minimum element in the unsorted subarray `arr[i+1]` to `arr[n-1]`.
+	* Swap the minimum element with the first element in the unsorted subarray using the `swap` function.
+3. Function `printArray`: This function takes an array of integers and its size as input and prints the array to the console. It is used to print the sorted array in the `main` function.
+4. `main` function: This function takes no input and has no output. It declares an array of integers `arr` with five elements, calculates the size of the array `n`, and passes the array and its size to the `selectionSort` function. It then prints the sorted array using the `printArray` function.
+
+**SystemC Code:**
+```scss
+#include <systemc.h>
+
+// Selection Sort Module
+SC_MODULE(SelectionSort) {
+    sc_in<int> arr[10]; // Input array
+    sc_in<int> n; // Number of elements in the array
+    sc_out<int> sorted_arr[10]; // Sorted array output
+
+    // Constructor
+    SC_CTOR(SelectionSort) {
+        // Sorting process
+        SC_METHOD(sort);
+        sensitive << arr << n;
+    }
+
+    // Sorting method
+    void sort() {
+        int i, j, min_idx;
+        for (i = 0; i < n.read(); i++) {
+            min_idx = i;
+            for (j = i+1; j < n.read(); j++) {
+                if (arr[j].read() < arr[min_idx].read()) {
+                    min_idx = j;
+                }
+            }
+            swap(arr[min_idx].write(), arr[i].write());
+        }
+        for (i = 0; i < n.read(); i++) {
+            sorted_arr[i].write(arr[i].read());
+        }
+    }
+
+    // Swap function
+    template<typename T>
+    void swap(T& a, T& b) {
+        T temp = a.read();
+        a.write(b.read());
+        b.write(temp);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Create an instance of SelectionSort module
+    SelectionSort sorter("sorter");
+
+    // Connect the clk, start, and done signals
+    sc_in<sc_clock> clk("clk");
+    sc_in<bool> start("start");
+    sc_out<bool> done("done");
+    sorter.clk(clk);
+    sorter.start(start);
+    sorter.done(done);
+
+    // Create an array of integers
+    const int arr[10] = {64, 25, 12, 22, 11};
+    int n = sizeof(arr)/sizeof(arr[0]);
+
+    // Initialize the selection sort module
+    sorter.sort(arr, n);
+
+    // Print the sorted array
+    std::cout << "Sorted array: ";
+    for (int i = 0; i < n; i++) {
+        std::cout << sorter.sorted_arr[i].read() << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
+```
+In this SystemC code, we define a `SelectionSort` module that takes an input array of integers and its size as input, and outputs the sorted array. We define `clk`, `start`, and `done` signals to connect the module to the testbench.
+
+In the `sort` method, we implement the selection sort algorithm by iterating over the input array, finding the minimum element in the unsorted subarray, and swapping it with the first element in the unsorted subarray. We then print the sorted array using the `printArray` function.
+
+Note that we have defined the `swap` function as a template to make it generic and avoid casting the input arguments to `int`.

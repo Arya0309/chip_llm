@@ -1,0 +1,100 @@
+### C++/C Code Analysis
+
+#### Inputs and Outputs
+- **Inputs**:
+  - `vector<int> v`: A vector of integers where the search will be performed.
+  - `int key`: The integer value to search within the vector.
+- **Outputs**:
+  - `int i`: The index position of the key in the vector if found, otherwise `-1`.
+
+#### Detailed Explanation
+1. **Function `linearSearch`**:
+   - **Parameters**:
+     - `vector<int> v`: The vector of integers.
+     - `int key`: The integer value to search for.
+   - **Logic**:
+     - The function iterates over each element in the vector using a `for` loop.
+     - For each element, it checks if the current element (`v[i]`) is equal to the key.
+     - If the key is found, the function returns the index `i`.
+     - If the loop completes without finding the key, the function returns `-1`.
+
+2. **Main Function**:
+   - **Initialization**:
+     - A vector `v` is initialized with values `{1, 2, 3, 4, 5, 8, 9, 11}`.
+     - An integer `key` is set to `8`.
+   - **Search Execution**:
+     - The `linearSearch` function is called with the vector `v` and the key `8`.
+     - The result of the search is stored in `i`.
+   - **Output**:
+     - If `i` is not `-1`, it prints that the key was found at position `i + 1`.
+     - If `i` is `-1`, it prints that the key was not found.
+
+### SystemC Code Snippet
+
+To create a SystemC equivalent that integrates with the provided signals, we need to define a module that takes in the vector and key, performs the linear search, and outputs the index if found.
+
+Here's the SystemC code:
+
+```cpp
+#include <systemc.h>
+
+// Module that implements linear search
+SC_MODULE(LinearSearch) {
+    sc_in<int> key;  // Input port for the key to search
+    sc_out<int> index; // Output port for the index of the key if found, otherwise -1
+    sc_vector<sc_in<int>> data; // Input vector of integers
+
+    // Constructor
+    SC_CTOR(LinearSearch) {
+        // Process to perform linear search
+        SC_METHOD(search);
+        sensitive << key << data;
+    }
+
+    // Method to perform linear search
+    void search() {
+        int size = data.size();
+        for (int i = 0; i < size; i++) {
+            if (data[i].read() == key.read()) {
+                index.write(i);
+                return;
+            }
+        }
+        index.write(-1);
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    // Instantiate the module
+    LinearSearch ls("ls");
+
+    // Initialize the input vector and key
+    ls.data(8); // Example vector size is 8
+    ls.key(8);
+
+    // Start the simulation
+    sc_start();
+
+    return 0;
+}
+```
+
+### Explanation of SystemC Code
+1. **Module Definition**:
+   - `LinearSearch` module is defined with `key` as an input and `index` as an output.
+   - `data` is a vector of input integers.
+
+2. **Constructor**:
+   - The constructor initializes a method `search` to be sensitive to changes in `key` and `data`.
+
+3. **Search Method**:
+   - The `search` method iterates over the vector `data` to find the key.
+   - If the key is found, it writes the index to the `index` output.
+   - If the key is not found, it writes `-1` to the `index` output.
+
+4. **Simulation Setup**:
+   - In `sc_main`, an instance of `LinearSearch` is created.
+   - The input vector `data` and key are initialized.
+   - The simulation is started with `sc_start()`.
+
+This SystemC code preserves the logic of the original C++/C code and can be integrated with the provided signals for testing and verification.

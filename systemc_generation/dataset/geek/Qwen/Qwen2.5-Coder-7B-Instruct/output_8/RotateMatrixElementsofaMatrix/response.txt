@@ -1,0 +1,162 @@
+### Analysis of the Provided C++/C Code
+
+#### Inputs and Outputs
+- **Inputs**:
+  - `mat[R][C]`: A 2D array representing the matrix to be rotated.
+  - `R`: Number of rows in the matrix.
+  - `C`: Number of columns in the matrix.
+- **Outputs**:
+  - The rotated matrix is printed to the console.
+
+#### Detailed Explanation
+
+1. **Function Declaration and Initialization**
+   ```cpp
+   void rotatematrix(int m, int n, int mat[R][C])
+   ```
+   - This function takes the dimensions of the matrix (`m` and `n`) and the matrix itself as inputs.
+
+2. **Initialization Variables**
+   ```cpp
+   int row = 0, col = 0;
+   int prev, curr;
+   ```
+   - `row` and `col` are initialized to track the current boundaries of the submatrix being rotated.
+   - `prev` and `curr` are used for element rotation.
+
+3. **While Loop for Rotation**
+   ```cpp
+   while (row < m && col < n)
+   ```
+   - This loop continues until the entire matrix is rotated.
+
+4. **Edge Case Handling**
+   ```cpp
+   if (row + 1 == m || col + 1 == n) break;
+   ```
+   - If the current boundaries reach the edges of the matrix, the loop breaks.
+
+5. **Rotation Logic**
+   - **First Row Rotation**:
+     ```cpp
+     prev = mat[row + 1][col];
+     for (int i = col; i < n; i++)
+     {
+         curr = mat[row][i];
+         mat[row][i] = prev;
+         prev = curr;
+     }
+     row++;
+     ```
+   - **Last Column Rotation**:
+     ```cpp
+     prev = mat[m-1][n-1];
+     for (int i = row; i < m; i++)
+     {
+         curr = mat[i][n-1];
+         mat[i][n-1] = prev;
+         prev = curr;
+     }
+     n--;
+     ```
+   - **Last Row Rotation**:
+     ```cpp
+     prev = mat[m-1][col];
+     for (int i = n-1; i >= col; i--)
+     {
+         curr = mat[m-1][i];
+         mat[m-1][i] = prev;
+         prev = curr;
+     }
+     m--;
+     ```
+   - **First Column Rotation**:
+     ```cpp
+     prev = mat[row][col];
+     for (int i = m-1; i >= row; i--)
+     {
+         curr = mat[i][col];
+         mat[i][col] = prev;
+         prev = curr;
+     }
+     col++;
+     ```
+
+6. **Output the Rotated Matrix**
+   ```cpp
+   for (int i=0; i<R; i++)
+   {
+       for (int j=0; j<C; j++)
+       cout << mat[i][j] << " ";
+       cout << endl;
+   }
+   ```
+
+### Equivalent SystemC Code
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(RotateMatrix) {
+    sc_in<int> in[4][4];  // Input ports for the matrix elements
+    sc_out<int> out[4][4]; // Output ports for the rotated matrix elements
+
+    // Constructor
+    SC_CTOR(RotateMatrix) {
+        // Process to perform matrix rotation
+        SC_METHOD(rotate);
+        sensitive << in;
+    }
+
+    // Method to rotate the matrix
+    void rotate() {
+        int m = 4, n = 4;
+        int row = 0, col = 0;
+        int prev, curr;
+
+        while (row < m && col < n) {
+            if (row + 1 == m || col + 1 == n) break;
+
+            prev = in[row + 1][col];
+
+            for (int i = col; i < n; i++) {
+                curr = in[row][i];
+                out[row][i] = prev;
+                prev = curr;
+            }
+            row++;
+
+            prev = in[m-1][n-1];
+            for (int i = row; i < m; i++) {
+                curr = in[i][n-1];
+                out[i][n-1] = prev;
+                prev = curr;
+            }
+            n--;
+
+            prev = in[m-1][col];
+            for (int i = n-1; i >= col; i--) {
+                curr = in[m-1][i];
+                out[m-1][i] = prev;
+                prev = curr;
+            }
+            m--;
+
+            prev = in[row][col];
+            for (int i = m-1; i >= row; i--) {
+                curr = in[i][col];
+                out[i][col] = prev;
+                prev = curr;
+            }
+            col++;
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+- **Ports**: The module `RotateMatrix` has 16 input ports (`in[4][4]`) and 16 output ports (`out[4][4]`) to represent the 4x4 matrix.
+- **Constructor**: The constructor initializes a method `rotate` to be sensitive to changes in the input ports.
+- **Rotation Logic**: The `rotate` method implements the same logic as the original C++ function, rotating the matrix and writing the result to the output ports.
+
+This SystemC code can be integrated into a larger design and tested using a suitable testbench that provides the necessary input signals and captures the output signals.

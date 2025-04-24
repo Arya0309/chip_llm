@@ -1,0 +1,170 @@
+### C++/C Code Analysis
+
+**Inputs and Outputs**:
+- **Inputs**: None (the array `arr` is hardcoded within the `main` function).
+- **Outputs**: The minimum and maximum values of the array, printed to the console.
+
+**Detailed Explanation**:
+1. **Include and Namespace**:
+   ```cpp
+   #include <bits/stdc++.h> 
+   using namespace std; 
+   ```
+   - Includes the standard library and uses the standard namespace.
+
+2. **Function to Get Minimum Value**:
+   ```cpp
+   int getMin(int arr[], int n) 
+   { 
+       return *min_element(arr, arr + n); 
+   } 
+   ```
+   - This function takes an array `arr` and its size `n` as input.
+   - It uses the `min_element` function from the `<algorithm>` header to find the minimum element in the array.
+   - Returns the minimum element.
+
+3. **Function to Get Maximum Value**:
+   ```cpp
+   int getMax(int arr[], int n) 
+   { 
+       return *max_element(arr, arr + n); 
+   } 
+   ```
+   - Similar to the `getMin` function, but uses the `max_element` function to find the maximum element in the array.
+   - Returns the maximum element.
+
+4. **Main Function**:
+   ```cpp
+   int main() 
+   { 
+       int arr[] = { 12, 1234, 45, 67, 1 }; 
+       int n = sizeof(arr) / sizeof(arr[0]); 
+       cout << "Minimum element of array: " << getMin(arr, n) << " "; 
+       cout << "Maximum element of array: " << getMax(arr, n); 
+       return 0; 
+   } 
+   ```
+   - Defines an array `arr` with some elements.
+   - Calculates the size of the array `n`.
+   - Calls `getMin` and `getMax` functions to find the minimum and maximum values.
+   - Prints the results to the console.
+
+### Equivalent SystemC Code
+
+To convert this C++/C code into a SystemC module, we need to use the provided signals (`clk`, `start`, `done`, `min_val`, `max_val`). Here's the equivalent SystemC code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MinMaxFinder) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_out<int> min_val;      // Output for minimum value
+    sc_out<int> max_val;      // Output for maximum value
+
+    int arr[] = { 12, 1234, 45, 67, 1 };  // Hardcoded array
+    int n = sizeof(arr) / sizeof(arr[0]);  // Size of the array
+    bool found_min = false;
+    bool found_max = false;
+    int current_min = INT_MAX;
+    int current_max = INT_MIN;
+
+    SC_CTOR(MinMaxFinder) {
+        SC_METHOD(find_min_max);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void find_min_max() {
+        if (start.read()) {
+            for (int i = 0; i < n; i++) {
+                if (arr[i] < current_min) {
+                    current_min = arr[i];
+                    found_min = true;
+                }
+                if (arr[i] > current_max) {
+                    current_max = arr[i];
+                    found_max = true;
+                }
+            }
+            if (found_min && found_max) {
+                min_val.write(current_min);
+                max_val.write(current_max);
+                done.write(true);
+            }
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code:
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(MinMaxFinder) {
+   ```
+   - Declares a SystemC module named `MinMaxFinder`.
+
+2. **Signals**:
+   ```cpp
+   sc_in<bool> clk;
+   sc_in<bool> start;
+   sc_out<bool> done;
+   sc_out<int> min_val;
+   sc_out<int> max_val;
+   ```
+   - Defines the input and output signals as specified.
+
+3. **Array and Variables**:
+   ```cpp
+   int arr[] = { 12, 1234, 45, 67, 1 };
+   int n = sizeof(arr) / sizeof(arr[0]);
+   bool found_min = false;
+   bool found_max = false;
+   int current_min = INT_MAX;
+   int current_max = INT_MIN;
+   ```
+   - Initializes the array and variables similar to the C++ code.
+
+4. **Constructor**:
+   ```cpp
+   SC_CTOR(MinMaxFinder) {
+       SC_METHOD(find_min_max);
+       sensitive << clk.pos();
+       dont_initialize();
+   }
+   ```
+   - Registers the `find_min_max` method to be sensitive to the positive edge of the clock signal.
+   - Prevents initialization of variables during simulation start.
+
+5. **Method to Find Min and Max**:
+   ```cpp
+   void find_min_max() {
+       if (start.read()) {
+           for (int i = 0; i < n; i++) {
+               if (arr[i] < current_min) {
+                   current_min = arr[i];
+                   found_min = true;
+               }
+               if (arr[i] > current_max) {
+                   current_max = arr[i];
+                   found_max = true;
+               }
+           }
+           if (found_min && found_max) {
+               min_val.write(current_min);
+               max_val.write(current_max);
+               done.write(true);
+           }
+       } else {
+           done.write(false);
+       }
+   }
+   ```
+   - Checks if the `start` signal is high.
+   - Iterates through the array to find the minimum and maximum values.
+   - Writes the results to the output signals and sets the `done` signal when both values are found.
+
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

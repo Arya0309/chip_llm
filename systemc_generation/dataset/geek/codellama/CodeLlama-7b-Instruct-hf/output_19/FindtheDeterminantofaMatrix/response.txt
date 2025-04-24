@@ -1,0 +1,96 @@
+  **Natural Language Summary**
+
+This C++/C code calculates the determinant of an n x n matrix.
+
+**1. Inputs and Outputs**
+
+The inputs to the code are a 2D array `a` and its size `n`. The output is the determinant of the matrix.
+
+**2. Major Line or Block of Code and Functionality**
+
+The code defines a function `determinant` that takes `n` as an argument and computes the determinant of the matrix `a`. The function performs the following steps:
+
+* It initializes the determinant `det` to 1.0.
+* It iterates through the rows of the matrix `a` starting from the first element.
+* For each row, it finds the maximum absolute value element of that row.
+* If the found value is not equal to the current row index `i`, then the routine swaps the current row `a[i]` with a new row `a[pivot]`.
+* It then checks if the current element `a[i][i]` is equal to 0. If yes, then the determinant is 0 and the function returns 0.
+* Otherwise, it multiplies the determinant by the current element `a[i][i]` and continues to perform the next steps.
+* The next step is to subtract the factor `factor` from the subsequent rows' elements in each column from `i + 1` to `n`.
+
+The function `determinant` recursively calls itself with a reduced matrix and returns the result.
+
+The `main` function reads a 4x4 matrix and uses the `determinant` function to calculate its determinant. It then prints the determinant to the console.
+
+**3. SystemC Code Snippet**
+
+Here's an equivalent SystemC code snippet that preserves the logic of the provided C++/C code:
+```c
+#include "systemc.h"
+
+// Inputs and outputs
+sc_in<int> a[4]; // Matrix
+sc_in<int> n;    // Size of the matrix
+sc_out<int> det; // Determinant
+sc_clock clk;    // Clock signal
+
+// Function to calculate the determinant
+void determinant(int n) {
+    int det = 1;
+    for (int i = 0; i < n; i++) {
+        int pivot = i;
+        for (int j = i + 1; j < n; j++) {
+            if (abs(a[j][i]) > abs(a[pivot][i]))
+                pivot = j;
+        }
+        if (pivot != i) {
+            a[i] ^= a[pivot];
+            det *= -1;
+        }
+        if (a[i][i] == 0)
+            det = 0;
+        else
+            det *= a[i][i];
+        for (int j = i + 1; j < n; j++) {
+            double factor = a[j][i] / a[i][i];
+            for (int k = i + 1; k < n; k++) {
+                a[j][k] -= factor * a[i][k];
+            }
+        }
+    }
+    return det;
+}
+
+SC_MODULE(main) {
+    sc_in<int> a[4]; // Matrix
+    sc_in<int> n;    // Size of the matrix
+    sc_out<int> det; // Determinant
+    sc_clock clk;    // Clock signal
+
+    // Constructor
+    main(sc_module_name name) : sc_module(name) {
+        SC_THREAD(calculate_determinant);
+        sensitive << clk.posedge();
+    }
+
+    // Function to calculate the determinant
+    void calculate_determinant() {
+        for (int i = 0; i < 4; i++) {       // Iterate through the rows
+            for (int j = i + 1; j < 4; j++) { // Iterate through the columns
+                if (a[i][j] != 0) {
+                    int det = determinant(4); // Calculate the determinant
+                    cout << "Determinant: " << det << endl;
+                }
+            }
+        }
+    }
+};
+
+```
+The SystemC code defines an input `a` and an `n` variable that represents the size of the matrix. It also defines an output `det` that will store the determinant. The `main` module contains a single thread that calculates the determinant of the matrix.
+
+The `determinant` function is an equivalent to the C++/C `determinant` function. It calculates the determinant of a square matrix by iterating through its rows, finding the maximum absolute value element of each row, and then computing the determinant recursively.
+
+The `main` module uses the `calculate_determinant` function to calculate the determinant of the matrix. It iterates through the rows and columns of the matrix, and for each element that is not equal to 0, it calculates the determinant recursively. The resulting determinant is then printed to the console.
+
+Note that the SystemC code utilizes the `sc_in` and `sc_out` ports to communicate the input and output of the function. Additionally, the `sc_clock` port is used to synchronize the function with the clock signal.

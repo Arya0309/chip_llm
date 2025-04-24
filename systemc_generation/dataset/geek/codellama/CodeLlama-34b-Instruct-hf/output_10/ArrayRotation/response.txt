@@ -1,0 +1,91 @@
+  **Inputs**:
+
+* `arr`: The array of integers to be rotated.
+* `d`: The number of positions to rotate the array by.
+* `N`: The size of the array.
+
+**Outputs**:
+
+* `arr`: The rotated array.
+
+**Summary**:
+
+This C++/C code takes an array of integers and rotates it by `d` positions. The function first creates a temporary array, `temp`, of size `N`, and then populates it as follows:
+
+* The first `N - d` elements of `arr` are stored in `temp` from index 0 to `N - d - 1`.
+* The next `d` elements of `arr` are stored in `temp` from index `N - d` to `N - 1`.
+* The remaining elements of `arr` are stored in `temp` from index `N` to `2 * N - 1`.
+
+Once the temporary array is populated, the function copies the elements of `temp` back to `arr`.
+
+The function then prints the rotated array using the `PrintTheArray` function.
+
+**SystemC Code**:
+```scss
+#include <systemc.h>
+
+// Module that rotates an array of integers
+SC_MODULE(Rotator) {
+    sc_in<int> arr[7];  // Input port for the array to be rotated
+    sc_in<int> d;  // Input port for the number of positions to rotate by
+    sc_in<bool> rst;  // Input port for reset
+    sc_out<int> out_array[7];  // Output port for the rotated array
+
+    // Constructor
+    SC_CTOR(Rotator) {
+        // Process to perform rotation
+        SC_METHOD(rotate);
+        sensitive << arr << d << rst;
+    }
+
+    // Method to rotate the array
+    void rotate() {
+        int temp[7];
+        for (int i = 0; i < 7; i++) {
+            temp[i] = 0;
+        }
+        for (int i = d; i < 7; i++) {
+            temp[i - d] = arr[i];
+        }
+        for (int i = 0; i < d; i++) {
+            temp[7 - d + i] = arr[i];
+        }
+        for (int i = 0; i < 7; i++) {
+            out_array[i] = temp[i];
+        }
+    }
+};
+
+// Module that prints an array of integers
+SC_MODULE(Printer) {
+    sc_in<int> arr[7];  // Input port for the array to be printed
+    sc_in<bool> rst;  // Input port for reset
+    sc_out<bool> out_array[7];  // Output port for the rotated array
+
+    // Constructor
+    SC_CTOR(Printer) {
+        // Process to print the array
+        SC_METHOD(print);
+        sensitive << arr << rst;
+    }
+
+    // Method to print the array
+    void print() {
+        for (int i = 0; i < 7; i++) {
+            sc_uint<32> val = arr[i].read();
+            for (int j = 0; j < 32; j++) {
+                if (val >> j & 1) {
+                    out_array[i] = 1;
+                } else {
+                    out_array[i] = 0;
+                }
+            }
+        }
+    }
+};
+```
+In this SystemC code, we define two modules: `Rotator` and `Printer`. The `Rotator` module takes an input array, a rotate amount, and a reset signal as inputs, and outputs a rotated array. The `Printer` module takes an input array and a reset signal as inputs, and outputs the printed array. The `Rotator` module uses a temporary array, `temp`, to store the rotated elements of the input array. The `Printer` module uses a loop to print the elements of the input array to the output array.
+
+Both modules are constructed using the constructor, which specifies the sensitive inputs for the process inside each module. The `Rotator` module has two sensitive inputs: `arr` and `d`, and the `Printer` module has one sensitive input: `arr`. This ensures that the processes inside each module are only executed when the relevant inputs have changed.
+
+Once constructed, the modules can be used in a high-level synthesis flow to optimize and transform the code for hardware implementation.

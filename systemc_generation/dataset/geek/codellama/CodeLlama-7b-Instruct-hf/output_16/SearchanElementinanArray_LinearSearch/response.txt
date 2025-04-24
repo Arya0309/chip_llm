@@ -1,0 +1,92 @@
+  The provided C++/C code implements a linear search algorithm iteratively. The main function contains the vector `v` and the key `key` to search for. The `linearSearch` function searches the vector `v` for the key `key` and returns the position of the key in the vector if found, or -1 if not found.
+
+Inputs:
+
+* `vector<int> v` - the input vector
+* `int key` - the search key
+
+Outputs:
+
+* `int i` - the position of the key in the vector, or -1 if not found
+
+Line-by-line explanation:
+
+1. The function `linearSearch` takes two inputs: `v` (the vector to search) and `key` (the search key).
+2. It initializes the iterator `i` to 0.
+3. The function first checks if the vector `v` with the size `v.size()` is empty. If so, it returns -1 as the key is not found.
+4. The function then uses a for loop to iterate through the vector `v` and compares each element with the `key`. If a match is encountered, the function returns the position of the element in the vector (i.e., `i`).
+5. If the for loop reaches the end, meaning no match was found, the function returns -1 to indicate that the key was not found.
+6. In the main function, the linear search function is called with the vector `v` and the key `key`.
+7. The output of the `linearSearch` function, `i`, is then compared with -1 to determine if the key was found. If so, it outputs the position of the key in the vector, otherwise, it outputs the text `"Key not found."`.
+
+SystemC code:
+
+```scss
+#include <systemc.h>
+
+using namespace std;
+
+SC_MODULE(linear_search) {
+    sc_in<vector<int>> v;
+    sc_in<int> key;
+    sc_out<int> index;
+
+    SC_CTOR(linear_search) {
+        SC_THREAD(search);
+    }
+
+    void search() {
+        int i = 0;
+        int found = 0;
+
+        while (!found && i < v.size()) {
+            if (v[i] == key) {
+                found = 1;
+                index = i;
+            } else {
+                i++;
+            }
+        }
+
+        if (!found) {
+            index = -1;
+        }
+    }
+};
+
+SC_MODULE(testbench) {
+    sc_in<int> key;
+    sc_out<int> index;
+    sc_vector<sc_in<int>, 10> data;
+
+    sc_linear_search search;
+
+    SC_CTOR(testbench) {
+        SC_CTHREAD(main, 1);
+    }
+
+    void main() {
+        data.write(0, 1);
+        data.write(1, 2);
+        data.write(2, 3);
+        data.write(3, 4);
+        data.write(4, 5);
+        data.write(5, 8);
+        data.write(6, 9);
+        data.write(7, 11);
+
+        key.write(8);
+
+        search.v = data.read();
+        search.key = key.read();
+        search.search();
+
+        if (search.index == -1) {
+            cout << key.read() << " not found." << endl;
+        } else {
+            cout << "Found at position " << search.index.read() << endl;
+        }
+    }
+};
+```
+Note: In the SystemC code, the signals defined above are used to preserve the logic of the original code.

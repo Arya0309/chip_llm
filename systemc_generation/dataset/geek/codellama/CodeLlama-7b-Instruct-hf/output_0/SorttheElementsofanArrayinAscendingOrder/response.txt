@@ -1,0 +1,90 @@
+  **Analysis of the provided C++/C code**
+
+The provided code is a C++ program that implements the bubble sort algorithm to sort an array of integers in ascending order. The program has the following inputs and outputs:
+
+Inputs:
+
+* The array of integers to be sorted.
+* The length of the array.
+
+Outputs:
+
+* A sorted array of integers.
+
+The code has the following major components:
+
+1. **sort** function: This function takes an array of integers and its length as input, and sorts the array using the bubble sort algorithm. The function iterates over the array, comparing consecutive elements and swapping them if the current element is greater than the previous one. The function terminates when there are no swaps, indicating that the array is sorted.
+2. **swapNums** function: This function takes two integers and swaps them in the array.
+3. **main** function: This function is the entry point of the program. It declares an array of integers and initializes it with some values. It then calls the **sort** function to sort the array, and finally prints the sorted array.
+
+**Natural language summary**
+
+The provided C++/C code sorts an array of integers using the bubble sort algorithm. The code declares an array and initializes it with some values. It then calls a **sort** function to sort the array, which iterates over the array, comparing consecutive elements and swapping them if the current element is greater than the previous one. The **swapNums** function is used to swap two elements in the array. Finally, the code prints the sorted array.
+
+**SystemC code snippet**
+
+The following is an equivalent SystemC code snippet that preserves the logic of the original C++/C source:
+```c
+#include <systemc.h>
+
+SC_MODULE(BubbleSort) {
+  // Inputs
+  sc_in<bool> clock;     // Clock signal
+  sc_in<bool> start;     // Start signal
+  sc_in<bool> done;      // Done signal
+  sc_in<int> elements[10]; // Array of integers
+  sc_out<int> sorted_elements[10]; // Sorted array of integers
+
+  // Local variables
+  int len;              // Length of the array
+  int i, j;             // Loop counters
+  bool isSwapped;       // Swap indicator
+
+  // Constructor
+  BubbleSort(sc_module_name name) : sc_module(name) {
+    #pragma hls_unroll yes
+    for (int i = 0; i < 10; i++) {
+      sorted_elements[i] = elements[i];
+    }
+  }
+
+  void sort() {
+    // Perform bubble sort
+    #pragma hls_unroll yes
+    for (int i = 0; i < len; i++) {
+      isSwapped = false;
+      for (int j = 1; j < len - i; j++) {
+        if (sorted_elements[j] < sorted_elements[j - 1]) {
+          swap_elements(j, j - 1);
+          isSwapped = true;
+        }
+      }
+      if (!isSwapped) {
+        break;
+      }
+    }
+  }
+
+  void swap_elements(int first, int second) {
+    int temp = sorted_elements[first];
+    sorted_elements[first] = sorted_elements[second];
+    sorted_elements[second] = temp;
+  }
+};
+
+int sc_main(int argc, char** argv) {
+  // Instantiate module
+  BubbleSort bubbleSort("BubbleSort");
+
+  // Bind ports
+  sc_spawn(sc_bind(&BubbleSort::sort, &bubbleSort));
+
+  // Run
+  sc_start();
+
+  return 0;
+}
+```
+This SystemC code defines a module named `BubbleSort` that has input ports `clock`, `start`, `done`, and `elements`, and output ports `sorted_elements`. The code defines a constructor that populates the `sorted_elements` array with the contents of the `elements` array. The `sort` function performs the bubble sort algorithm, using the `swap_elements` function to swap neighboring elements if the current element is greater than the previous one. The `sc_start` function is used to run the `sort` function.
+
+The above SystemC code preserves the logic of the original C++/C source, allowing for a smooth integration with the provided testbench.

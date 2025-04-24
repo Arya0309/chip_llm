@@ -1,0 +1,189 @@
+### C++/C Code Analysis
+
+#### Inputs and Outputs
+- **Inputs**: An array of integers (`arr`) and the size of the array (`n`).
+- **Outputs**: The minimum and maximum values in the array.
+
+#### Detailed Explanation
+
+1. **Header and Namespace Declaration**
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - `#include <bits/stdc++.h>`: This includes all standard libraries.
+   - `using namespace std;`: This allows us to use standard library functions without prefixing them with `std::`.
+
+2. **Function to Get Minimum Element**
+   ```cpp
+   int getMin(int arr[], int n) 
+   { 
+       return *min_element(arr, arr + n); 
+   } 
+   ```
+   - `getMin` function takes an array `arr` and its size `n`.
+   - It uses the `min_element` function from the `<algorithm>` library to find the minimum element in the array.
+   - `*min_element(arr, arr + n)` returns a pointer to the minimum element, which is dereferenced to get the value.
+
+3. **Function to Get Maximum Element**
+   ```cpp
+   int getMax(int arr[], int n) 
+   { 
+       return *max_element(arr, arr + n); 
+   } 
+   ```
+   - `getMax` function takes an array `arr` and its size `n`.
+   - It uses the `max_element` function from the `<algorithm>` library to find the maximum element in the array.
+   - `*max_element(arr, arr + n)` returns a pointer to the maximum element, which is dereferenced to get the value.
+
+4. **Main Function**
+   ```cpp
+   int main() 
+   { 
+       int arr[] = { 12, 1234, 45, 67, 1 }; 
+       int n = sizeof(arr) / sizeof(arr[0]); 
+       cout << "Minimum element of array: " << getMin(arr, n) << " "; 
+       cout << "Maximum element of array: " << getMax(arr, n); 
+       return 0; 
+   } 
+   ```
+   - `int arr[] = { 12, 1234, 45, 67, 1 };`: Initializes an array with elements.
+   - `int n = sizeof(arr) / sizeof(arr[0]);`: Calculates the size of the array.
+   - `cout << "Minimum element of array: " << getMin(arr, n) << " ";`: Calls `getMin` and prints the result.
+   - `cout << "Maximum element of array: " << getMax(arr, n);`: Calls `getMax` and prints the result.
+
+### SystemC Code Snippet
+
+Here's the equivalent SystemC code that integrates with the provided signals:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayMinMax) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_out<int> min_val;      // Output for minimum value
+    sc_out<int> max_val;      // Output for maximum value
+
+    int arr[5] = {12, 1234, 45, 67, 1}; // Array of integers
+    int n = sizeof(arr) / sizeof(arr[0]); // Size of the array
+    int current_min = INT_MAX;
+    int current_max = INT_MIN;
+
+    // Constructor
+    SC_CTOR(ArrayMinMax) {
+        // Process to handle start signal and compute min/max
+        SC_METHOD(compute_min_max);
+        sensitive << clk.pos();
+        async_reset_signal_is(clk, false);
+
+        // Process to update outputs when done
+        SC_METHOD(update_outputs);
+        sensitive << done;
+    }
+
+    // Method to compute minimum and maximum values
+    void compute_min_max() {
+        if (start.read()) {
+            current_min = INT_MAX;
+            current_max = INT_MIN;
+            for (int i = 0; i < n; i++) {
+                if (arr[i] < current_min) {
+                    current_min = arr[i];
+                }
+                if (arr[i] > current_max) {
+                    current_max = arr[i];
+                }
+            }
+            done.write(true);
+        }
+    }
+
+    // Method to update outputs
+    void update_outputs() {
+        if (done.read()) {
+            min_val.write(current_min);
+            max_val.write(current_max);
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(ArrayMinMax) {
+   ```
+   - Declares a SystemC module named `ArrayMinMax`.
+
+2. **Signals and Variables**
+   ```cpp
+   sc_in<bool> clk;          // Clock signal
+   sc_in<bool> start;        // Start signal
+   sc_out<bool> done;        // Done signal
+   sc_out<int> min_val;      // Output for minimum value
+   sc_out<int> max_val;      // Output for maximum value
+
+   int arr[5] = {12, 1234, 45, 67, 1}; // Array of integers
+   int n = sizeof(arr) / sizeof(arr[0]); // Size of the array
+   int current_min = INT_MAX;
+   int current_max = INT_MIN;
+   ```
+   - Defines the input and output signals.
+   - Initializes the array and variables for minimum and maximum values.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(ArrayMinMax) {
+       // Process to handle start signal and compute min/max
+       SC_METHOD(compute_min_max);
+       sensitive << clk.pos();
+       async_reset_signal_is(clk, false);
+
+       // Process to update outputs when done
+       SC_METHOD(update_outputs);
+       sensitive << done;
+   }
+   ```
+   - Registers the `compute_min_max` method to be sensitive to the positive edge of the clock.
+   - Registers the `update_outputs` method to be sensitive to the `done` signal.
+
+4. **Method to Compute Minimum and Maximum Values**
+   ```cpp
+   void compute_min_max() {
+       if (start.read()) {
+           current_min = INT_MAX;
+           current_max = INT_MIN;
+           for (int i = 0; i < n; i++) {
+               if (arr[i] < current_min) {
+                   current_min = arr[i];
+               }
+               if (arr[i] > current_max) {
+                   current_max = arr[i];
+               }
+           }
+           done.write(true);
+       }
+   }
+   ```
+   - When `start` is high, initializes `current_min` and `current_max`.
+   - Iterates through the array to find the minimum and maximum values.
+   - Sets `done` to high once computation is complete.
+
+5. **Method to Update Outputs**
+   ```cpp
+   void update_outputs() {
+       if (done.read()) {
+           min_val.write(current_min);
+           max_val.write(current_max);
+           done.write(false);
+       }
+   }
+   ```
+   - When `done` is high, writes the computed minimum and maximum values to the respective outputs.
+   - Resets `done` to low after updating the outputs.
+
+This SystemC code captures the logic of the original C++/C program and can be integrated into a high-level synthesis flow.

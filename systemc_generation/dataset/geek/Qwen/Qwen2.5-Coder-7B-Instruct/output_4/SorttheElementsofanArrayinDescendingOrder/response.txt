@@ -1,0 +1,111 @@
+### C++/C Code Analysis
+
+#### Inputs and Outputs
+- **Inputs**:
+  - None (the array is hard-coded within the code)
+- **Outputs**:
+  - The sorted array printed to the console before and after sorting.
+
+#### Detailed Explanation
+
+1. **Initialization**:
+   - `nums[] = {1, 12, 6, 8, 10};`: Initializes an array of integers.
+   - `size_nums = (sizeof(nums) / sizeof(nums[0]));`: Calculates the size of the array.
+
+2. **Output Before Sorting**:
+   - Iterates through the array and prints each element.
+
+3. **Sorting Function (`sort`)**:
+   - Uses the Bubble Sort algorithm to sort the array.
+   - Outer loop runs `len` times (where `len` is the size of the array).
+   - Inner loop compares adjacent elements and swaps them if they are in the wrong order.
+   - `isSwapped` flag is used to optimize the algorithm by breaking out early if no swaps are made in a pass.
+
+4. **Swap Function (`swapNums`)**:
+   - Swaps two elements in the array.
+
+5. **Output After Sorting**:
+   - Iterates through the sorted array and prints each element.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that replicates the functionality of the provided C++ code:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(Sorter) {
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;     // Done signal
+    sc_out<int> sorted[5]; // Output array for sorted elements
+
+    int nums[5] = {1, 12, 6, 8, 10}; // Hard-coded array
+    bool isSwapped;
+    int size_nums = 5; // Size of the array
+
+    // Constructor
+    SC_CTOR(Sorter) {
+        SC_METHOD(sort);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    // Method to sort the array
+    void sort() {
+        if (start.read()) {
+            for (int i = 0; i < size_nums; i++) {
+                isSwapped = false;
+                for (int j = 1; j < size_nums - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        swapNums(j, j - 1);
+                        isSwapped = true;
+                    }
+                }
+                if (!isSwapped) {
+                    break;
+                }
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+
+        // Output the sorted array
+        for (int i = 0; i < size_nums; i++) {
+            sorted[i].write(nums[i]);
+        }
+    }
+
+    // Method to swap two elements in the array
+    void swapNums(int first, int second) {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Inputs and Outputs**:
+   - `clk`: Clock signal.
+   - `start`: Start signal to initiate sorting.
+   - `done`: Done signal to indicate when sorting is complete.
+   - `sorted[5]`: Output array for the sorted elements.
+
+2. **Initialization**:
+   - `nums[5] = {1, 12, 6, 8, 10};`: Hard-coded array.
+   - `size_nums = 5;`: Size of the array.
+
+3. **Sorting Function (`sort`)**:
+   - The `sort` method is sensitive to the positive edge of the clock signal.
+   - When `start` is true, it sorts the array using the Bubble Sort algorithm.
+   - The `isSwapped` flag optimizes the algorithm by breaking out early if no swaps are made in a pass.
+   - Once sorting is complete, the `done` signal is set to true.
+   - The sorted array is written to the `sorted` output array.
+
+4. **Swap Function (`swapNums`)**:
+   - Swaps two elements in the `nums` array.
+
+This SystemC code integrates seamlessly with the provided signals and replicates the functionality of the original C++ code.

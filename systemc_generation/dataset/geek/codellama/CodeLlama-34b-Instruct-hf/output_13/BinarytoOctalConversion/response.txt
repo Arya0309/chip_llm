@@ -1,0 +1,54 @@
+  **Inputs:**
+
+* `octal_input`: The input octal number to be converted to decimal.
+
+**Outputs:**
+
+* `decimal_output`: The output decimal number resulting from the conversion of the input octal number.
+
+**Summary:**
+
+The provided C++/C code defines a function `octalToDecimal` that accepts an integer input (`n`) and returns an integer output (the decimal equivalent of the input octal number). The function works by iterating over the digits of the input octal number, extracting the last digit at each iteration, converting it to decimal, and adding it to the total decimal value.
+
+The main function simply calls the `octalToDecimal` function with an input value of 67 and displays the resulting decimal number on the console.
+
+In SystemC, we can model this behavior using the `octal_input` and `decimal_output` signals defined in the given snippet. We can use the `o1.read()` and `o2.write()` methods to read and write to these signals, respectively.
+
+Here's an equivalent SystemC code snippet that preserves the logic of the original C++/C source:
+```scss
+#include <systemc.h>
+
+SC_MODULE(OctalToDecimal) {
+    sc_in<int> octal_input;
+    sc_out<int> decimal_output;
+
+    SC_CTOR(OctalToDecimal) {
+        // Iterate over the digits of the input octal number
+        for (i = 0; i < 8; i++) {
+            // Extract the last digit of the octal number
+            int last_digit = octal_input.read() % 10;
+
+            // Convert the last digit to decimal
+            int decimal_value = 0;
+            for (j = 0; j < last_digit; j++) {
+                decimal_value = (decimal_value << 3) + last_digit - j;
+            }
+
+            // Add the decimal value to the total decimal value
+            decimal_output.write(decimal_output.read() + decimal_value);
+        }
+    }
+};
+
+int sc_main(int argc, char** argv) {
+    OctalToDecimal otd(octal_input, decimal_output);
+    otd.octal_input.write(67);
+    sc_start();
+    return 0;
+}
+```
+In this code, we define a `OctalToDecimal` module that takes two signals as input - the `octal_input` signal and the `decimal_output` signal. The module contains a `SC_CTOR` that initializes the signals and iterates over the digits of the input octal number using a loop.
+
+For each iteration, we extract the last digit of the octal number using the `% 10` operator and convert it to decimal using another loop that iterates over the decimal value of the digit. We then add the decimal value of the digit to the total decimal value of the input octal number, which is stored in the `decimal_output` signal.
+
+In the `sc_main` function, we create an instance of the `OctalToDecimal` module and write the input octal value of 67 to the `octal_input` signal. We then start the simulation and read the resulting converted decimal value from the `decimal_output` signal.

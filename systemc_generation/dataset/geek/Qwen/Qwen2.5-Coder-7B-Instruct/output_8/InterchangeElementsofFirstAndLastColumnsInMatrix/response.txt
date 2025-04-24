@@ -1,0 +1,141 @@
+### Inputs and Outputs
+
+**Inputs**:
+- A 2D integer array `m` of size `n x n`.
+
+**Outputs**:
+- The modified 2D integer array `m` after swapping the elements of the first and last rows.
+
+### Detailed Explanation
+
+The provided C++ code performs the following operations:
+
+1. **Declaration and Initialization**:
+   ```cpp
+   #include <iostream> 
+   using namespace std; 
+
+   #define n 4 
+   ```
+   - The constant `n` is defined as 4, indicating the size of the 2D array.
+   - The `iostream` library is included for input/output operations.
+
+2. **Function Declaration**:
+   ```cpp
+   void interchangeFirstLast(int m[][n]) 
+   ```
+   - The function `interchangeFirstLast` takes a 2D integer array `m` of size `n x n` as input.
+
+3. **Swapping Elements**:
+   ```cpp
+   int rows = n; 
+   for (int i = 0; i < n; i++) 
+   { 
+       int t = m[0][i]; 
+       m[0][i] = m[rows - 1][i]; 
+       m[rows - 1][i] = t; 
+   } 
+   ```
+   - The variable `rows` is initialized to `n`, representing the number of rows in the array.
+   - A loop runs from `0` to `n-1` to iterate over each column index.
+   - For each column, the element at the first row (`m[0][i]`) is swapped with the element at the last row (`m[rows - 1][i]`).
+
+4. **Main Function**:
+   ```cpp
+   int main() 
+   { 
+       int m[n][n] = {{8, 9, 7, 6}, 
+                    {4, 7, 6, 5}, 
+                    {3, 2, 1, 8}, 
+                    {9, 9, 7, 7}}; 
+       interchangeFirstLast(m); 
+       for (int i = 0; i < n; i++) 
+       { 
+           for (int j = 0; j < n; j++) 
+               cout << m[i][j] << " "; 
+           cout << endl; 
+       } 
+   } 
+   ```
+   - A 4x4 integer array `m` is initialized with specific values.
+   - The `interchangeFirstLast` function is called with the array `m`.
+   - The modified array `m` is printed to the console.
+
+### SystemC Code Snippet
+
+Here is the equivalent SystemC code that integrates with the provided signals (`in` and `out`):
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixSwap) {
+    sc_in<int> in[4][4];  // Input port for the 4x4 matrix
+    sc_out<int> out[4][4]; // Output port for the modified 4x4 matrix
+
+    // Constructor
+    SC_CTOR(MatrixSwap) {
+        // Process to perform matrix row swap
+        SC_METHOD(swapRows);
+        sensitive << in;
+    }
+
+    // Method to swap the first and last rows of the matrix
+    void swapRows() {
+        for (int i = 0; i < 4; i++) {
+            int temp = in[0][i].read();
+            out[0][i].write(in[3][i].read());
+            out[3][i].write(temp);
+        }
+        for (int i = 1; i < 3; i++) {
+            for (int j = 0; j < 4; j++) {
+                out[i][j].write(in[i][j].read());
+            }
+        }
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(MatrixSwap) {
+   ```
+   - The module `MatrixSwap` is declared.
+
+2. **Input and Output Ports**:
+   ```cpp
+   sc_in<int> in[4][4];  // Input port for the 4x4 matrix
+   sc_out<int> out[4][4]; // Output port for the modified 4x4 matrix
+   ```
+   - Two 4x4 arrays of `sc_in` and `sc_out` ports are declared to handle the input and output matrices.
+
+3. **Constructor**:
+   ```cpp
+   SC_CTOR(MatrixSwap) {
+       SC_METHOD(swapRows);
+       sensitive << in;
+   }
+   ```
+   - The constructor initializes the `swapRows` method to be sensitive to changes in the input matrix.
+
+4. **Method to Swap Rows**:
+   ```cpp
+   void swapRows() {
+       for (int i = 0; i < 4; i++) {
+           int temp = in[0][i].read();
+           out[0][i].write(in[3][i].read());
+           out[3][i].write(temp);
+       }
+       for (int i = 1; i < 3; i++) {
+           for (int j = 0; j < 4; j++) {
+               out[i][j].write(in[i][j].read());
+           }
+       }
+   }
+   ```
+   - The `swapRows` method swaps the first and last rows of the input matrix and writes the result to the output matrix.
+   - The first and last rows are swapped using a temporary variable.
+   - The remaining rows are copied directly from the input to the output.
+
+This SystemC code snippet preserves the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

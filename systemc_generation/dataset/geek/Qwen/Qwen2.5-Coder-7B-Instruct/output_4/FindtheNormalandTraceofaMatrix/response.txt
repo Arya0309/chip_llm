@@ -1,0 +1,150 @@
+### Analysis of the C++/C Code
+
+**Inputs:**
+- A 2D integer array `mat` of size `n x n`.
+- An integer `n` representing the size of the matrix.
+
+**Outputs:**
+- The trace of the matrix.
+- The normal (Euclidean norm) of the matrix.
+
+**Explanation:**
+
+1. **Constants and Declarations:**
+   ```cpp
+   const int MAX = 100;  // Maximum size of the matrix
+   ```
+   - `MAX` is defined as 100, which sets the maximum allowable size of the matrix.
+
+2. **Function `findNormal`:**
+   ```cpp
+   int findNormal(int mat[][MAX], int n) 
+   { 
+       int sum = 0; 
+       for (int i = 0; i < n; i++) 
+           for (int j = 0; j < n; j++) 
+               sum += mat[i][j] * mat[i][j]; 
+       return sqrt(sum); 
+   } 
+   ```
+   - This function calculates the Euclidean norm of the matrix.
+   - It iterates over each element of the matrix, squares it, and accumulates the sum.
+   - The square root of the sum is returned, which is the norm of the matrix.
+
+3. **Function `findTrace`:**
+   ```cpp
+   int findTrace(int mat[][MAX], int n) 
+   { 
+       int sum = 0; 
+       for (int i = 0; i < n; i++) 
+           sum += mat[i][i]; 
+       return sum; 
+   } 
+   ```
+   - This function calculates the trace of the matrix.
+   - It iterates over the diagonal elements of the matrix and sums them up.
+   - The sum is returned, which is the trace of the matrix.
+
+4. **Main Function:**
+   ```cpp
+   int main() 
+   { 
+       int mat[][MAX] = {{1, 1, 1, 1, 1}, 
+           {2, 2, 2, 2, 2}, 
+           {3, 3, 3, 3, 3}, 
+           {4, 4, 4, 4, 4}, 
+           {5, 5, 5, 5, 5}}; 
+       cout << "Trace of Matrix = " << 
+               findTrace(mat, 5) << endl; 
+       cout << "Normal of Matrix = " << 
+               findNormal(mat, 5) << endl; 
+       return 0; 
+   } 
+   ```
+   - The main function initializes a 5x5 matrix and calls the `findTrace` and `findNormal` functions to compute and print the trace and norm of the matrix.
+
+### SystemC Code Snippet
+
+To integrate this logic into a SystemC environment, we need to create a module that takes the matrix as input and produces the trace and norm as output. Here's how you can do it:
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(MatrixStats) {
+    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
+    sc_out<int> trace;             // Output port for the trace
+    sc_out<int> norm;              // Output port for the norm
+
+    // Constructor
+    SC_CTOR(MatrixStats) {
+        // Process to calculate trace and norm
+        SC_THREAD(calculate_stats);
+    }
+
+    // Method to calculate trace and norm
+    void calculate_stats() {
+        int n = 5;  // Assuming the matrix size is always 5x5
+        int trace_sum = 0;
+        int norm_sum = 0;
+
+        // Calculate trace
+        for (int i = 0; i < n; i++) {
+            trace_sum += matrix[i][i].read();
+        }
+        trace.write(trace_sum);
+
+        // Calculate norm
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                norm_sum += matrix[i][j].read() * matrix[i][j].read();
+            }
+        }
+        norm.write(sqrt(norm_sum));
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(MatrixStats) {
+       sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
+       sc_out<int> trace;             // Output port for the trace
+       sc_out<int> norm;              // Output port for the norm
+   ```
+   - The `MatrixStats` module has a 2D input port `matrix` and two output ports `trace` and `norm`.
+
+2. **Constructor:**
+   ```cpp
+   SC_CTOR(MatrixStats) {
+       SC_THREAD(calculate_stats);
+   }
+   ```
+   - The constructor registers the `calculate_stats` method as a thread that will be executed when the module starts.
+
+3. **Method `calculate_stats`:**
+   ```cpp
+   void calculate_stats() {
+       int n = 5;  // Assuming the matrix size is always 5x5
+       int trace_sum = 0;
+       int norm_sum = 0;
+
+       // Calculate trace
+       for (int i = 0; i < n; i++) {
+           trace_sum += matrix[i][i].read();
+       }
+       trace.write(trace_sum);
+
+       // Calculate norm
+       for (int i = 0; i < n; i++) {
+           for (int j = 0; j < n; j++) {
+               norm_sum += matrix[i][j].read() * matrix[i][j].read();
+           }
+       }
+       norm.write(sqrt(norm_sum));
+   }
+   ```
+   - The `calculate_stats` method reads the matrix elements, computes the trace and norm, and writes the results to the respective output ports.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

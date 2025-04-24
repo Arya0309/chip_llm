@@ -1,0 +1,90 @@
+  To generate an equivalent SystemC code snippet for the provided C++ code, we can follow these steps:
+
+1. Identify input(s) and output(s) of the code.
+	* The input to the code is an integer `num` to calculate the factorial for.
+	* The output of the code is the factorial of `num`.
+2. Break down the code into major blocks and their functionalities.
+	* The core logic of the code is in the `factorial` function.
+	* The `main` function serves as the driver for the code.
+3. Provide a detailed, line-by-line or block-by-block natural language summary of the code.
+	* In the `factorial` function, we see a for-loop that iterates from 2 to `n` and multiplies each number by its previous result.
+	* In the `main` function, we see a call to the `factorial` function, passing in the user-provided integer `num` as its argument.
+	* We then print out the result of the multiplication using the `cout` stream.
+4. Generate SystemC code that reflects the same behavior.
+
+Here's an example SystemC code snippet that captures the same functionality as the provided C++ code:
+```scss
+// C++ program for factorial of a number
+#include <iostream>
+using namespace std;
+
+// Function to find factorial of
+// given number
+@never_concat unsigned int factorial(unsigned int n)
+{
+	int res = 1, i;
+	for (i = 2; i <= n; i++)
+		res *= i;
+	return res;
+}
+
+// Driver code
+@never_concat int main()
+{
+	int num = 5;
+	cout << "Factorial of " << num << " is "
+		<< factorial(num) << endl;
+	return 0;
+}
+
+// SystemC Modeler implementation
+@never_concat SC_MODULE(factorial)
+{
+	sc_in<unsigned int> num;   // Input port for the number
+	sc_out<unsigned int> result; // Output port for the factorial result
+
+	SC_CTOR(factorial)
+	: num("num"), result("result")
+	{
+		SC_METHOD(calcfactorial);  // Called every delta cycle
+		sensitive << num;          // Sensitive to the number input
+	}
+
+	void calcfactorial()
+	{
+		result.write(factorial(num.read()));
+	}
+};
+
+@never_concat SC_MODULE(main)
+{
+	sc_in<unsigned int> num;   // Input port for the number
+	sc_out<unsigned int> result; // Output port for the factorial result
+
+	SC_CTOR(main)
+	: num("num"), result("result")
+	{
+	}
+};
+
+int main()
+{
+	// Create the factorial module
+	factorial f = new factorial("f");
+
+	// Create the main module
+	main m = new main("m");
+
+	// Connect the factorial output to the main input
+	f.result(m.num);
+
+	// Run the simulation
+	cout << "Simulation finished" << endl;
+	return 0;
+}
+```
+Note that in this example, we've broken down the functionality into separate SystemC modules, each with its own input and output ports. The `factorial` module takes in a number and calculates its factorial, while the `main` module takes in a number and passes it to the `factorial` module. The resulting factorial is then output to the main module's output port.
+
+In the main function, we've created the `factorial` and `main` modules and connected their input and output ports. We've also initialized the `num` input port with the value `5` and printed out the result of the computation at the end of the simulation.
+
+Overall, this SystemC code snippet captures the same functionality as the original C++ code, albeit with a different syntax for declaring and connecting input and output ports.

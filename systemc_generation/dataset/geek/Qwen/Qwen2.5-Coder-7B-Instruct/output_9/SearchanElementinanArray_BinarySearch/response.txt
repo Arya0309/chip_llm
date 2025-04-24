@@ -1,0 +1,138 @@
+### C++/C Code Analysis
+
+#### Inputs and Outputs
+- **Inputs**:
+  - `vector<int>& v`: A reference to a vector of integers representing the sorted array to be searched.
+  - `int target`: An integer representing the target value to search for within the vector.
+- **Outputs**:
+  - `bool`: Returns `true` if the target is found in the vector, otherwise returns `false`.
+
+#### Detailed Explanation
+
+1. **Function Declaration and Initialization**:
+   ```cpp
+   bool binarySearch(vector<int>& v, int target) {
+       int low = 0, high = v.size() - 1;
+   ```
+   - The function `binarySearch` takes a vector `v` and an integer `target` as parameters.
+   - It initializes two pointers, `low` and `high`, to the start and end of the vector, respectively.
+
+2. **Binary Search Loop**:
+   ```cpp
+   while (low <= high) {
+       int mid = ((high - low) / 2) + low;
+       if (v[mid] == target) {
+           return true;
+       } else if (v[mid] > target) {
+           high = mid - 1;
+       } else {
+           low = mid + 1;
+       }
+   }
+   ```
+   - The loop continues as long as `low` is less than or equal to `high`.
+   - It calculates the middle index `mid` using the formula `((high - low) / 2) + low`.
+   - If the element at `mid` is equal to the target, it returns `true`.
+   - If the element at `mid` is greater than the target, it adjusts the `high` pointer to `mid - 1`.
+   - If the element at `mid` is less than the target, it adjusts the `low` pointer to `mid + 1`.
+
+3. **Return Statement**:
+   ```cpp
+   return false;
+   ```
+   - If the loop exits without finding the target, it returns `false`.
+
+4. **Main Function**:
+   ```cpp
+   int main() {
+       vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
+       int target = 8;
+       if (binarySearch(v, target)) {
+           cout << target << " found.";
+       } else {
+           cout << target << " NOT found.";
+       }
+       return 0;
+   }
+   ```
+   - The `main` function initializes a vector `v` and a target value `target`.
+   - It calls `binarySearch` and prints whether the target was found or not.
+
+### SystemC Code Snippet
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(BinarySearch) {
+    sc_in<int> target;  // Input port for the target value
+    sc_out<bool> found; // Output port indicating if the target is found
+    sc_vector<sc_in<int>> v; // Vector of integers representing the sorted array
+
+    // Constructor
+    SC_CTOR(BinarySearch) {
+        // Process to perform binary search
+        SC_METHOD(search);
+        sensitive << v << target;
+    }
+
+    // Method to perform binary search
+    void search() {
+        int low = 0, high = v.size() - 1;
+        while (low <= high) {
+            int mid = ((high - low) / 2) + low;
+            if (v[mid].read() == target.read()) {
+                found.write(true);
+                return;
+            } else if (v[mid].read() > target.read()) {
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+        }
+        found.write(false);
+    }
+};
+```
+
+### Explanation of SystemC Code
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(BinarySearch) {
+       sc_in<int> target;
+       sc_out<bool> found;
+       sc_vector<sc_in<int>> v;
+   ```
+   - A SystemC module `BinarySearch` is declared with input `target`, output `found`, and a vector of inputs `v`.
+
+2. **Constructor**:
+   ```cpp
+   SC_CTOR(BinarySearch) {
+       SC_METHOD(search);
+       sensitive << v << target;
+   }
+   ```
+   - The constructor connects the `search` method to the input ports `v` and `target`.
+
+3. **Method to Perform Binary Search**:
+   ```cpp
+   void search() {
+       int low = 0, high = v.size() - 1;
+       while (low <= high) {
+           int mid = ((high - low) / 2) + low;
+           if (v[mid].read() == target.read()) {
+               found.write(true);
+               return;
+           } else if (v[mid].read() > target.read()) {
+               high = mid - 1;
+           } else {
+               low = mid + 1;
+           }
+       }
+       found.write(false);
+   }
+   ```
+   - The `search` method performs the binary search logic.
+   - It reads the values from the vector and the target, updates the `found` output based on the search result, and exits early if the target is found.
+
+This SystemC code snippet accurately captures the logic of the original C++/C code and can be integrated with the provided signals.

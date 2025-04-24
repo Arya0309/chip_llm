@@ -1,0 +1,85 @@
+  The C++/C code provided in the question defines a simple program that calculates the quotient and remainder of two integers. The inputs to the program are Dividend and Divisor, which are read from the user using the standard input stream cin. The outputs are Quotient and Remainder, which are stored in the corresponding variables in the program. The program then checks if the Divisor is zero, and if not, it calculates the Quotient and Remainder using the '/' and '%' operators. Finally, the program prints the Quotient and Remainder to the standard output stream cout.
+
+The block-by-block natural language explanation of the program is as follows:
+
+The program starts by including the necessary header files and using the std namespace.
+
+The main function is then defined, which is the entry point for the program. Here, we declare four variables of type int: Dividend, Quotient, Divisor, and Remainder. These variables will be used to store the input dividend, the output quotient, the input divisor, and the output remainder, respectively.
+
+The program then reads the Dividend and Divisor from the user using the cin operator. The output of the program will be printed to the console using the cout operator.
+
+The program then checks if the Divisor is zero. If it is, the program outputs an error message and exits. If the Divisor is non-zero, the program calculates the Quotient and Remainder using the '/' and '%' operators, respectively.
+
+Finally, the program prints the Quotient and Remainder to the console.
+
+Based on this natural language explanation, here is a SystemC code snippet that preserves the logic of the original C++/C source and can be used in a high-level synthesis flow:
+```c
+#include <systemc.h>
+
+SC_MODULE(Divider) {
+    sc_in<int> Dividend;  // Input port for the dividend
+    sc_in<int> Divisor;  // Input port for the divisor
+    sc_out<int> Quotient;  // Output port for the quotient
+    sc_out<int> Remainder;  // Output port for the remainder
+    sc_out<bool> Error;  // Output port for the error flag
+
+    SC_CTOR(Divider) {
+        SC_METHOD(compute);  // Method to compute the quotient and remainder
+        sensitive << Dividend << Divisor;  // Sensitive to changes in the input ports
+    }
+
+    void compute() {
+        // Check if the divisor is zero
+        if (Divisor != 0) {
+            Quotient.write(Dividend / Divisor);  // Calculate the quotient
+            Remainder.write(Dividend % Divisor);  // Calculate the remainder
+        } else {
+            Error.write(true);  // Set the error flag to true
+        }
+    }
+};
+```
+In the SystemC code, we have defined a Divider module with four input ports (Dividend, Divisor) and four output ports (Quotient, Remainder, Error). We have also defined a compute method that is sensitive to changes in the input ports and calculates the quotient and remainder using the '/' and '%' operators, respectively. The Error output is set to true if the Divisor is zero.
+
+To integrate this SystemC code with our existing testbench that uses the sc_in and sc_out signals, we need to modify the testbench to use the appropriate signals (Dividend, Divisor, Quotient, Remainder, Error) and add the necessary input and output ports to the testbench. Here is an example of how this can be done:
+```c
+#include <systemc.h>
+
+// Define the testbench module
+SC_MODULE(DividerTestbench) {
+    // Define the inputs and outputs for the divider module
+    sc_in<int> Dividend;
+    sc_in<int> Divisor;
+    sc_out<int> Quotient;
+    sc_out<int> Remainder;
+    sc_out<bool> Error;
+
+    Divider divider;  // Instantiate the divider module
+
+    // Define the testbench stimulus signals
+    sc_signal<int> stimulusDividend;
+    sc_signal<int> stimulusDivisor;
+
+    // Define the testbench result signals
+    sc_signal<int> resultQuotient;
+    sc_signal<int> resultRemainder;
+    sc_signal<bool> resultError;
+
+    SC_CTOR(DividerTestbench) {
+        // Connect the testbench signals to the divider module
+        divider.Dividend(stimulusDividend);
+        divider.Divisor(stimulusDivisor);
+        divider.Quotient(resultQuotient);
+        divider.Remainder(resultRemainder);
+        divider.Error(resultError);
+
+        // Define the testbench stimulus and result signals
+        stimulusDividend = 12;
+        stimulusDivisor = 4;
+        resultQuotient = 3;
+        resultRemainder = 0;
+        resultError = false;
+    }
+};
+```
+In the testbench code, we have defined the inputs and outputs for the divider module as signals. We have also instantiated the divider module and connected its input and output ports to the corresponding testbench signals. We have also defined the testbench stimulus and result signals, which will be used to drive the divider module and capture its output. The testbench implementation can be expanded to include more input and output combinations, as well as additional stimulus and result signals, as needed.

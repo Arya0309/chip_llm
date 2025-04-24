@@ -1,0 +1,174 @@
+### Input and Output Analysis
+
+The provided C++/C code is a simple program to find the minimum and maximum elements in an array. It does not take any external inputs from the user; instead, it uses a predefined array. The outputs are the minimum and maximum values found in the array.
+
+#### Inputs:
+- None (the array is hardcoded within the code)
+
+#### Outputs:
+- `min_val`: The minimum value in the array.
+- `max_val`: The maximum value in the array.
+
+### Detailed Explanation of the Code
+
+1. **Header File and Namespace Declaration**:
+   ```cpp
+   #include <bits/stdc++.h>
+   using namespace std;
+   ```
+   - This includes the standard library header file and uses the standard namespace for convenience.
+
+2. **Function to Find Minimum Element**:
+   ```cpp
+   int getMin(int arr[], int n) {
+       return *min_element(arr, arr + n);
+   }
+   ```
+   - This function takes an array `arr` and its size `n` as parameters.
+   - It uses the `std::min_element` function from the `<algorithm>` library to find the minimum element in the array.
+   - The `*min_element` function returns an iterator pointing to the minimum element, which is then dereferenced to get the value.
+
+3. **Function to Find Maximum Element**:
+   ```cpp
+   int getMax(int arr[], int n) {
+       return *max_element(arr, arr + n);
+   }
+   ```
+   - This function takes an array `arr` and its size `n` as parameters.
+   - It uses the `std::max_element` function from the `<algorithm>` library to find the maximum element in the array.
+   - The `*max_element` function returns an iterator pointing to the maximum element, which is then dereferenced to get the value.
+
+4. **Main Function**:
+   ```cpp
+   int main() {
+       int arr[] = {12, 1234, 45, 67, 1};
+       int n = sizeof(arr) / sizeof(arr[0]);
+       cout << "Minimum element of array: " << getMin(arr, n) << " ";
+       cout << "Maximum element of array: " << getMax(arr, n);
+       return 0;
+   }
+   ```
+   - This is the entry point of the program.
+   - A hardcoded array `arr` is defined.
+   - The size of the array `n` is calculated.
+   - The `getMin` and `getMax` functions are called to find the minimum and maximum values.
+   - The results are printed to the console.
+
+### Equivalent SystemC Code
+
+To integrate this logic into a SystemC environment, we need to create a module that takes no inputs and outputs the minimum and maximum values through the provided signals.
+
+```cpp
+#include <systemc.h>
+
+SC_MODULE(ArrayAnalyzer) {
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_out<int> min_val;      // Minimum value output
+    sc_out<int> max_val;      // Maximum value output
+
+    int arr[] = {12, 1234, 45, 67, 1};  // Hardcoded array
+    int n = sizeof(arr) / sizeof(arr[0]); // Size of the array
+
+    int min_val_calc = INT_MAX;  // Initialize minimum value to maximum possible integer
+    int max_val_calc = INT_MIN;  // Initialize maximum value to minimum possible integer
+
+    SC_CTOR(ArrayAnalyzer) {
+        // Process to handle start signal and calculate min/max values
+        SC_METHOD(calculate_min_max);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
+
+    void calculate_min_max() {
+        if (start.read()) {
+            min_val_calc = INT_MAX;
+            max_val_calc = INT_MIN;
+            for (int i = 0; i < n; ++i) {
+                if (arr[i] < min_val_calc) {
+                    min_val_calc = arr[i];
+                }
+                if (arr[i] > max_val_calc) {
+                    max_val_calc = arr[i];
+                }
+            }
+            min_val.write(min_val_calc);
+            max_val.write(max_val_calc);
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+};
+```
+
+### Explanation of the SystemC Code
+
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(ArrayAnalyzer) {
+   ```
+   - Defines a SystemC module named `ArrayAnalyzer`.
+
+2. **Signals**:
+   ```cpp
+   sc_in<bool> clk;
+   sc_in<bool> start;
+   sc_out<bool> done;
+   sc_out<int> min_val;
+   sc_out<int> max_val;
+   ```
+   - Declares the input and output signals as specified.
+
+3. **Array and Initialization**:
+   ```cpp
+   int arr[] = {12, 1234, 45, 67, 1};
+   int n = sizeof(arr) / sizeof(arr[0]);
+   int min_val_calc = INT_MAX;
+   int max_val_calc = INT_MIN;
+   ```
+   - Initializes the array and calculates its size.
+   - Initializes `min_val_calc` to the maximum possible integer and `max_val_calc` to the minimum possible integer.
+
+4. **Constructor**:
+   ```cpp
+   SC_CTOR(ArrayAnalyzer) {
+       SC_METHOD(calculate_min_max);
+       sensitive << clk.pos();
+       dont_initialize();
+   }
+   ```
+   - Registers the `calculate_min_max` method to be sensitive to the positive edge of the clock.
+   - Calls `dont_initialize()` to prevent initialization at simulation startup.
+
+5. **Method to Calculate Min/Max Values**:
+   ```cpp
+   void calculate_min_max() {
+       if (start.read()) {
+           min_val_calc = INT_MAX;
+           max_val_calc = INT_MIN;
+           for (int i = 0; i < n; ++i) {
+               if (arr[i] < min_val_calc) {
+                   min_val_calc = arr[i];
+               }
+               if (arr[i] > max_val_calc) {
+                   max_val_calc = arr[i];
+               }
+           }
+           min_val.write(min_val_calc);
+           max_val.write(max_val_calc);
+           done.write(true);
+       } else {
+           done.write(false);
+       }
+   }
+   ```
+   - Checks if the `start` signal is high.
+   - Resets `min_val_calc` and `max_val_calc` to their initial values.
+   - Iterates through the array to find the minimum and maximum values.
+   - Writes the calculated values to the `min_val` and `max_val` outputs.
+   - Sets the `done` signal to high to indicate completion.
+   - If `start` is low, sets the `done` signal to low.
+
+This SystemC code faithfully captures the logic of the original C++/C program and can be integrated into a high-level synthesis flow.

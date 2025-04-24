@@ -1,0 +1,131 @@
+  Given the following C++/C source code for computing the determinant of a square matrix:
+```
+#include <iostream>
+#include <cmath>
+
+using namespace std;
+
+const int MAXN = 105;
+double a[MAXN][MAXN];
+
+double determinant(int n) {
+	double det = 1.0;
+	for (int i = 0; i < n; i++) {
+		int pivot = i;
+		for (int j = i + 1; j < n; j++) {
+			if (abs(a[j][i]) > abs(a[pivot][i])) {
+				pivot = j;
+			}
+		}
+		if (pivot != i) {
+			swap(a[i], a[pivot]);
+			det *= -1;
+		}
+		if (a[i][i] == 0) {
+			return 0;
+		}
+		det *= a[i][i];
+		for (int j = i + 1; j < n; j++) {
+			double factor = a[j][i] / a[i][i];
+			for (int k = i + 1; k < n; k++) {
+				a[j][k] -= factor * a[i][k];
+			}
+		}
+	}
+	return det;
+}
+
+int main() {
+	int n = 4;
+	double matrix[4][4] = {{1, 0, 2, -1},
+						{3, 0, 0, 5},
+						{2, 1, 4, -3},
+						{1, 0, 5, 0}};
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			a[i][j] = matrix[i][j];
+		}
+	}
+	double det = determinant(n);
+	cout << "Determinant = " << det << endl;
+	return 0;
+}
+```
+
+The inputs of this code are:
+
+* A square matrix `matrix` of size `n` as a 2D array of doubles
+* The number of rows and columns of the matrix `n`
+
+The outputs of this code are:
+
+* The determinant of the input matrix
+* The computed matrix after Gaussian elimination
+
+The code performs the following operations:
+
+1. Initializes a 2D array `a` of size `n` x `n` to store the values of the input matrix `matrix`.
+2. Iterates through each row and column of the matrix, starting from the top-left corner, and performs the following operations:
+	* Determines the pivot element `pivot` in each row for the Gaussian elimination by finding the maximum absolute value element in the row.
+	* Swaps the `i`-th row with the `pivot`-th row if `pivot != i`.
+	* Computes the determinant `det` by multiplying the current element `a[i][i]` by a factor `factor` based on the Gaussian elimination and the current row.
+	* Updates the rest of the elements in the current row by subtracting the `factor` times the current element from the rest of the elements on the same row.
+3. Computes the determinant of the input matrix `det` using the computed values in `a`.
+4. Prints the computed determinant.
+
+In terms of SystemC code, we need to generate code that implements the above algorithm and uses the `sc_in<double> matrix[SIZE]` and `sc_out<double> det` signals for input and output, respectively, to integrate with our existing testbench. Here's a possible implementation:
+```scss
+#include <systemc.h>
+
+SC_MODULE(Determinant) {
+  sc_in<double> matrix[SIZE]; // Input for the matrix
+  sc_out<double> det; // Output for the determinant
+
+  void determinant() {
+    double det_local = 1.0;
+    int n = SIZE;
+
+    for (int i = 0; i < n; i++) {
+      int pivot = i;
+      for (int j = i + 1; j < n; j++) {
+        if (abs(matrix[j][i]) > abs(matrix[pivot][i])) {
+          pivot = j;
+        }
+      }
+
+      if (pivot != i) {
+        matrix[i] = matrix[i] + matrix[pivot];
+        det_local *= -1;
+      }
+
+      if (matrix[i][i] == 0) {
+        det = 0;
+        return;
+      }
+
+      det_local *= matrix[i][i];
+      for (int j = i + 1; j < n; j++) {
+        double factor = matrix[j][i] / matrix[i][i];
+        for (int k = i + 1; k < n; k++) {
+          matrix[j][k] -= factor * matrix[i][k];
+        }
+      }
+    }
+
+    det = det_local;
+  }
+
+  SC_CTOR(Determinant) {
+    SC_THREAD(determinant);
+  }
+};
+
+int sc_main(int argc, char *argv[]) {
+  Determinant det_module;
+  det_module.run();
+  return 0;
+}
+```
+In the above code, we define a `Determinant` module that contains a `determinant` method that implements the algorithm described above. The method takes as input the matrix `matrix` and writes the determinant `det` to the output port `det`. The `SC_MODULE` is used to mark the module and the `SC_CTOR` is used to define the constructor method. The `SC_THREAD` method is used to run the determinant function in a separate thread. Finally, we define a `sc_main` function that initializes the `det_module` and instantiates the `sc_run` method.
+
+The code uses `sc_in<double> matrix[SIZE]` and `sc_out<double> det` signals to obtain the input and output for the code, respectively. As mentioned earlier, these signals must be integrated with our existing testbench, so the SystemC code must use equivalent ports with the same names in the testbench.
