@@ -51,7 +51,10 @@ def parse_args():
         "--generation_config",
         type=str,
         default=os.path.join(
-            current_dir, "config", "generation_config", "{model_name}.yaml"
+            current_dir,
+            "config",
+            "generation_config",
+            "{model_name}.yaml",
         ),
     )
 

@@ -82,6 +82,9 @@ class SystemCGenerator:
             module_names = batch["module_name"]
             testbenches = batch["testbench"]
 
+            # print(inputs)
+            # exit()
+
             outputs = model.generate(inputs, params)
 
             for task_id, task, testbench, module_name, result in zip(
@@ -138,8 +141,6 @@ class SystemCGenerator:
         pattern_1 = r"```cpp(.*?)```"
         pattern_2 = r"```(.*?)```"
 
-        "TODO: If use 'pattern_2', delete anything before the first '#include <systemc.h>' and '```'"
-
         def pattern_extractor(pattern, response):
             matches = re.findall(pattern, response, re.DOTALL)
             matches = [m for m in matches if "#include <systemc.h>" in m]
@@ -148,11 +149,8 @@ class SystemCGenerator:
                 warnings.warn("Warning: No SystemC code snippet found in the response.")
                 # print(response)
                 return ""
-            elif len(matches) != 1:
-                code_snippet = matches[-1]
-            else:
-                code_snippet = matches[0]
-
+            # Extract the match that is longest in length
+            code_snippet = max(matches, key=len)
             modules = re.split(r"(SC_MODULE|int sc_main)", code_snippet)
             if len(modules) <= 1:
                 warnings.warn(
