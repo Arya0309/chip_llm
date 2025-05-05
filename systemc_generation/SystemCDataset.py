@@ -87,8 +87,8 @@ class SystemCDataset(Dataset):
         self.df = self.df[self.df["unit_test_pass"] == False]
 
         def make_prompt(x):
-            if len(x["error_msg"]) > 15000:  # 32768 token limit
-                x["error_msg"] = "error_msg too long"
+            if len(x["error_msg"]) > 2000:  # 32768 token limit
+                x["error_msg"] = x["error_msg"][:2000]
             status = x["status"]
             if status == "compile_error":
                 return prompt_compile_error(x["generated_code"], x["error_msg"])
