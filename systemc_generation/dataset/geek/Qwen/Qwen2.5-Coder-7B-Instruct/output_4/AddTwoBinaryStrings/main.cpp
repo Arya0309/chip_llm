@@ -1,63 +1,61 @@
 
 #include <systemc.h>
 
-// Module that adds two binary strings
 
 SC_MODULE(BinaryAdder) {
-    sc_in<std::string> A;  // Input port for the first binary string
-    sc_in<std::string> B;  // Input port for the second binary string
-    sc_out<std::string> sum; // Output port for the sum of the binary strings
+    sc_in<sc_dt::sc_string> A;  // Input port for the first binary string
+    sc_in<sc_dt::sc_string> B;  // Input port for the second binary string
+    sc_out<sc_dt::sc_string> sum; // Output port for the sum of the two binary strings
 
-    // Constructor
     SC_CTOR(BinaryAdder) {
-        // Process to perform binary addition
-        SC_METHOD(add_binary);
+        SC_THREAD(add_binary);
         sensitive << A << B;
     }
 
-    // Method to add the two binary strings
     void add_binary() {
-        std::string a = A.read();
-        std::string b = B.read();
+        std::string a = A.read().to_string();
+        std::string b = B.read().to_string();
 
-        // If the length of string A is greater than the length of B, swap them
+        // If the length of string A is greater than the length of B then just swap
         if (a.length() > b.length()) {
             std::swap(a, b);
         }
 
-        // Calculate the difference in lengths and pad A with zeros
+        // Calculate the difference between the length of the two strings
         int diff = b.length() - a.length();
-        std::string padding(diff, '0');
+        std::string padding;
+        for (int i = 0; i < diff; i++)
+            padding += "0";
         a = padding + a;
 
         std::string res;
         char carry = '0';
 
-        // Main addition loop
+        // Binary addition loop
         for (int i = a.length() - 1; i >= 0; i--) {
             if (a[i] == '1' && b[i] == '1') {
                 if (carry == '1')
-                    res.push_back('1'), carry = '1';
+                    res += "1", carry = '1';
                 else
-                    res.push_back('0'), carry = '1';
+                    res += "0", carry = '1';
             } else if (a[i] == '0' && b[i] == '0') {
                 if (carry == '1')
-                    res.push_back('1'), carry = '0';
+                    res += "1", carry = '0';
                 else
-                    res.push_back('0'), carry = '0';
+                    res += "0", carry = '0';
             } else if (a[i] != b[i]) {
                 if (carry == '1')
-                    res.push_back('0'), carry = '1';
+                    res += "0", carry = '1';
                 else
-                    res.push_back('1'), carry = '0';
+                    res += "1", carry = '0';
             }
         }
 
         // Handle final carry
         if (carry == '1')
-            res.push_back(carry);
+            res += "1";
 
-        // Reverse the result and remove leading zeros
+        // Reverse result and remove leading zeros
         std::reverse(res.begin(), res.end());
         int index = 0;
         while (index + 1 < res.length() && res[index] == '0')
@@ -65,6 +63,7 @@ SC_MODULE(BinaryAdder) {
         sum.write(res.substr(index));
     }
 };
+
 
 
 SC_MODULE(Testbench) {

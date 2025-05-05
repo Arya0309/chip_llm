@@ -4,7 +4,7 @@
 
 SC_MODULE(OctalToDecimalConverter) {
     sc_in<int> octal_input;  // Input port for the octal number
-    sc_out<int> decimal_output; // Output port for the decimal equivalent
+    sc_out<int> decimal_output;  // Output port for the decimal number
 
     // Constructor
     SC_CTOR(OctalToDecimalConverter) {

@@ -1,74 +1,67 @@
 
 #include <systemc.h>
+#include <vector>
+#include <algorithm>
+
+class BinaryNumber {
+public:
+    std::vector<bool> digits;
+
+    BinaryNumber(const std::string& str) {
+        for (char c : str) {
+            digits.push_back(c == '1');
+        }
+    }
+
+    BinaryNumber operator+(const BinaryNumber& other) const {
+        BinaryNumber result;
+        int maxSize = std::max(digits.size(), other.digits.size());
+        bool carry = false;
+
+        for (int i = 0; i < maxSize || carry; ++i) {
+            bool bitA = i < digits.size() ? digits[i] : false;
+            bool bitB = i < other.digits.size() ? other.digits[i] : false;
+            bool sumBit = bitA ^ bitB ^ carry;
+            carry = (bitA && bitB) || (bitA && carry) || (bitB && carry);
+            result.digits.push_back(sumBit);
+        }
+
+        return result;
+    }
+
+    std::string toString() const {
+        std::string str;
+        for (bool digit : digits) {
+            str += digit ? '1' : '0';
+        }
+        std::reverse(str.begin(), str.end());
+        size_t pos = str.find_first_not_of('0');
+        if (pos != std::string::npos) {
+            return str.substr(pos);
+        }
+        return "0";
+    }
+};
 
 
 SC_MODULE(BinaryAdder) {
-    sc_in<sc_string> A;  // Input port for the first binary string
-    sc_in<sc_string> B;  // Input port for the second binary string
-    sc_out<sc_string> sum; // Output port for the sum
+    sc_in<std::string> A;  // Input port for the first binary string
+    sc_in<std::string> B;  // Input port for the second binary string
+    sc_out<std::string> sum; // Output port for the sum of the binary strings
 
     // Constructor
     SC_CTOR(BinaryAdder) {
         // Process to perform binary addition
-        SC_METHOD(add);
+        SC_METHOD(addBinary);
         sensitive << A << B;
     }
 
     // Method to add the two binary strings
-    void add() {
-        std::string a = A.read().to_string();
-        std::string b = B.read().to_string();
-
-        if (a.length() > b.length()) {
-            std::swap(a, b);
-        }
-
-        int diff = b.length() - a.length();
-        std::string padding(diff, '0');
-        a = padding + a;
-
-        std::string res;
-        char carry = '0';
-
-        for (int i = a.length() - 1; i >= 0; i--) {
-            if (a[i] == '1' && b[i] == '1') {
-                if (carry == '1') {
-                    res.push_back('1');
-                    carry = '1';
-                } else {
-                    res.push_back('0');
-                    carry = '1';
-                }
-            } else if (a[i] == '0' && b[i] == '0') {
-                if (carry == '1') {
-                    res.push_back('1');
-                    carry = '0';
-                } else {
-                    res.push_back('0');
-                    carry = '0';
-                }
-            } else if (a[i] != b[i]) {
-                if (carry == '1') {
-                    res.push_back('0');
-                    carry = '1';
-                } else {
-                    res.push_back('1');
-                    carry = '0';
-                }
-            }
-        }
-
-        if (carry == '1') {
-            res.push_back(carry);
-        }
-
-        reverse(res.begin(), res.end());
-        int index = 0;
-        while (index + 1 < res.length() && res[index] == '0') {
-            index++;
-        }
-
-        sum.write(res.substr(index));
+    void addBinary() {
+        BinaryNumber numA(A.read());
+        BinaryNumber numB(B.read());
+        BinaryNumber result = numA + numB;
+        sum.write(result.toString());
     }
 };
 

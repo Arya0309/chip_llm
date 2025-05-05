@@ -5,41 +5,57 @@
 SC_MODULE(Rotator) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> rst;  // Reset signal
-    sc_in<int> d;     // Number of positions to rotate
+    sc_in<int> d;      // Number of positions to rotate
     sc_in<int> in_array[7];  // Input array
     sc_out<int> out_array[7];  // Output array
 
-    // Temporary array to store rotated elements
+    // Temporary array to store the rotated elements
     int temp[7];
 
     // Constructor
     SC_CTOR(Rotator) {
+        // Initialize temporary array to zero
+        for (int i = 0; i < 7; i++) {
+            temp[i] = 0;
+        }
+
         // Process to perform rotation
         SC_METHOD(rotate);
-        sensitive << clk.pos();  // Sensitive to positive edge of clock
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to update the output array
+        SC_METHOD(update_output);
+        sensitive << clk.pos();
         dont_initialize();
     }
 
     // Method to rotate the array
     void rotate() {
         if (rst.read()) {
-            // Reset the output array
+            // Reset the temporary array to zero
             for (int i = 0; i < 7; i++) {
-                out_array[i].write(0);
+                temp[i] = 0;
             }
         } else {
-            int k = 0;
-            // Storing the n - d elements of array in_array[] to the front of temp[]
-            for (int i = d; i < 7; i++) {
-                temp[k] = in_array[i].read();
-                k++;
+            // Copy the input array to the temporary array
+            for (int i = 0; i < 7; i++) {
+                temp[i] = in_array[i];
             }
-            // Storing the first d elements of array in_array[] into temp
-            for (int i = 0; i < d; i++) {
-                temp[k] = in_array[i].read();
-                k++;
+
+            // Manually rotate the array
+            int n = 7;
+            int actual_shifts = d % n;  // Handle cases where d > n
+            for (int i = 0; i < n; i++) {
+                temp[(i + actual_shifts) % n] = in_array[i];
             }
-            // Copying the elements of temp[] in out_array[] to get the final rotated array
+        }
+    }
+
+    // Method to update the output array
+    void update_output() {
+        if (!rst.read()) {
+            // Copy the elements from temp back to out_array
             for (int i = 0; i < 7; i++) {
                 out_array[i].write(temp[i]);
             }

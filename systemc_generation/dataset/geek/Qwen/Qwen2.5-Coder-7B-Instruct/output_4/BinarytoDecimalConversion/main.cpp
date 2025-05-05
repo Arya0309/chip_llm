@@ -4,7 +4,7 @@
 
 SC_MODULE(BinaryToDecimalConverter) {
     sc_in<int> binary_in;  // Input port for the binary number
-    sc_out<int> decimal_out;  // Output port for the decimal value
+    sc_out<int> decimal_out; // Output port for the decimal number
 
     // Constructor
     SC_CTOR(BinaryToDecimalConverter) {

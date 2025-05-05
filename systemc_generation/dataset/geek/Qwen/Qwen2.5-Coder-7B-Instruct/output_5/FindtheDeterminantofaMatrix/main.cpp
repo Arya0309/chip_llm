@@ -3,52 +3,64 @@
 
 
 SC_MODULE(DeterminantCalculator) {
-    sc_in<double> matrix[SIZE]; // Input port for the matrix elements
-    sc_out<double> det; // Output port for the determinant
+    sc_in<double> matrix[4][4];  // Input port for the matrix
+    sc_out<double> det;          // Output port for the determinant
 
     SC_CTOR(DeterminantCalculator) {
-        SC_METHOD(calculate_determinant);
-        sensitive << matrix;
+        SC_THREAD(calculate_determinant);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                sensitive << matrix[i][j];
+            }
+        }
     }
 
     void calculate_determinant() {
-        double a[SIZE][SIZE];
-        double det = 1.0;
+        const int MAXN = 105;  // Define MAXN within the module
+        double a[MAXN][MAXN];
+        int n = 4;  // Define n within the method
 
-        // Copy matrix elements from input ports to local array
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
                 a[i][j] = matrix[i][j].read();
             }
         }
+        double det_val = determinant(n, a);
+        det.write(det_val);
+    }
 
-        for (int i = 0; i < SIZE; i++) {
+    double determinant(int n, double a[MAXN][MAXN]) {
+        double det = 1.0;
+        for (int i = 0; i < n; i++) {
             int pivot = i;
-            for (int j = i + 1; j < SIZE; j++) {
-                if (fabs(a[j][i]) > fabs(a[pivot][i])) {
+            for (int j = i + 1; j < n; j++) {
+                if (abs(a[j][i]) > abs(a[pivot][i])) {
                     pivot = j;
                 }
             }
             if (pivot != i) {
-                swap(a[i], a[pivot]);
+                for (int k = 0; k < n; k++) {
+                    double temp = a[i][k];
+                    a[i][k] = a[pivot][k];
+                    a[pivot][k] = temp;
+                }
                 det *= -1;
             }
             if (a[i][i] == 0) {
-                det = 0;
-                break;
+                return 0;
             }
             det *= a[i][i];
-            for (int j = i + 1; j < SIZE; j++) {
+            for (int j = i + 1; j < n; j++) {
                 double factor = a[j][i] / a[i][i];
-                for (int k = i + 1; k < SIZE; k++) {
+                for (int k = i + 1; k < n; k++) {
                     a[j][k] -= factor * a[i][k];
                 }
             }
         }
-
-        det.write(det);
+        return det;
     }
 };
+
 
 
 SC_MODULE(Testbench) {

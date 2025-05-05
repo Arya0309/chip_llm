@@ -1,39 +1,41 @@
-### Analysis of the C++/C Code
+### Input and Output Summary
 
-#### Inputs and Outputs
-- **Inputs**:
-  - `Dividend`: The number to be divided.
-  - `Divisor`: The number by which the dividend is to be divided.
-- **Outputs**:
-  - `Quotient`: The result of the division of the dividend by the divisor.
-  - `Remainder`: The remainder when the dividend is divided by the divisor.
-  - `Error`: A boolean flag indicating whether an error occurred during the division (true if the divisor is zero).
+**Inputs:**
+- `Dividend`: The number to be divided.
+- `Divisor`: The number by which the dividend is to be divided.
 
-#### Detailed Explanation
+**Outputs:**
+- `Quotient`: The result of the division of the dividend by the divisor.
+- `Remainder`: The remainder after the division of the dividend by the divisor.
+- `Error`: A boolean signal indicating whether an error occurred during the division (i.e., if the divisor is zero).
 
-1. **Include Header and Namespace Declaration**
+### Detailed Explanation
+
+#### Line-by-Line Explanation
+
+1. **Include Statements and Namespace Declaration:**
    ```cpp
    #include <iostream>
    using namespace std;
    ```
-   - This includes the standard input-output stream library and uses the `std` namespace to avoid prefixing standard library functions with `std::`.
+   - This includes the iostream library for input/output operations and uses the standard namespace.
 
-2. **Main Function**
+2. **Main Function:**
    ```cpp
    int main()
    {
        int Dividend, Quotient, Divisor, Remainder;
    ```
-   - Declares variables for the dividend, quotient, divisor, and remainder.
+   - The `main` function is the entry point of the program. It declares four integer variables: `Dividend`, `Quotient`, `Divisor`, and `Remainder`.
 
-3. **Input Prompt**
+3. **User Input:**
    ```cpp
    cout << "Enter Dividend & Divisor: ";
    cin >> Dividend >> Divisor;
    ```
-   - Prompts the user to enter the dividend and divisor and reads the values from the standard input.
+   - Prompts the user to enter the dividend and divisor, then reads these values from the standard input.
 
-4. **Division by Zero Check**
+4. **Division by Zero Check:**
    ```cpp
    if (Divisor == 0) {
        cout << "Error: Divisor cannot be zero." << endl;
@@ -41,26 +43,25 @@
        Quotient = Dividend / Divisor;
        Remainder = Dividend % Divisor;
    ```
-   - Checks if the divisor is zero. If it is, an error message is printed. Otherwise, the quotient and remainder are calculated using integer division and modulus operations.
+   - Checks if the divisor is zero. If it is, an error message is printed. Otherwise, the quotient and remainder are calculated using the division and modulus operators.
 
-5. **Output Results**
+5. **Output Results:**
    ```cpp
        cout << "The Quotient = " << Quotient << endl;
        cout << "The Remainder = " << Remainder << endl;
    }
    ```
-   - Prints the calculated quotient and remainder.
+   - Prints the calculated quotient and remainder to the standard output.
 
-6. **Return Statement**
+6. **Return Statement:**
    ```cpp
    return 0;
-   }
    ```
-   - Returns 0 indicating successful execution.
+   - Returns 0 to indicate successful execution of the program.
 
-### Equivalent SystemC Code
+### SystemC Code Snippet
 
-To integrate this logic into a SystemC design, we need to create a module that takes `Dividend` and `Divisor` as inputs and produces `Quotient`, `Remainder`, and `Error` as outputs. Here's how you can do it:
+Below is the equivalent SystemC code that integrates the logic of the provided C++ code:
 
 ```cpp
 #include <systemc.h>
@@ -68,18 +69,18 @@ To integrate this logic into a SystemC design, we need to create a module that t
 SC_MODULE(Divider) {
     sc_in<int> Dividend;  // Input port for the dividend
     sc_in<int> Divisor;   // Input port for the divisor
-    sc_out<int> Quotient; // Output port for the quotient
-    sc_out<int> Remainder;// Output port for the remainder
-    sc_out<bool> Error;  // Output port for the error flag
+    sc_out<int> Quotient;  // Output port for the quotient
+    sc_out<int> Remainder; // Output port for the remainder
+    sc_out<bool> Error;   // Output port for the error signal
 
     // Constructor
     SC_CTOR(Divider) {
-        // Process to perform division
+        // Process to handle division
         SC_METHOD(divide);
         sensitive << Dividend << Divisor;
     }
 
-    // Method to divide the two numbers
+    // Method to perform division
     void divide() {
         if (Divisor.read() == 0) {
             Error.write(true);
@@ -94,54 +95,47 @@ SC_MODULE(Divider) {
 };
 ```
 
-### Explanation of the SystemC Code
+### Explanation of SystemC Code
 
-- **Module Declaration**:
-  ```cpp
-  SC_MODULE(Divider) {
-      sc_in<int> Dividend;
-      sc_in<int> Divisor;
-      sc_out<int> Quotient;
-      sc_out<int> Remainder;
-      sc_out<bool> Error;
+1. **Module Declaration:**
+   ```cpp
+   SC_MODULE(Divider) {
+   ```
+   - Defines a SystemC module named `Divider`.
 
-      SC_CTOR(Divider) {
-          SC_METHOD(divide);
-          sensitive << Dividend << Divisor;
-      }
+2. **Input and Output Ports:**
+   ```cpp
+   sc_in<int> Dividend;
+   sc_in<int> Divisor;
+   sc_out<int> Quotient;
+   sc_out<int> Remainder;
+   sc_out<bool> Error;
+   ```
+   - Declares input ports `Dividend` and `Divisor` and output ports `Quotient`, `Remainder`, and `Error`.
 
-      void divide() {
-          if (Divisor.read() == 0) {
-              Error.write(true);
-              Quotient.write(0);
-              Remainder.write(0);
-          } else {
-              Error.write(false);
-              Quotient.write(Dividend.read() / Divisor.read());
-              Remainder.write(Dividend.read() % Divisor.read());
-          }
-      }
-  };
-  ```
-  - Defines a SystemC module named `Divider`.
-  - Declares input ports `Dividend` and `Divisor`, and output ports `Quotient`, `Remainder`, and `Error`.
-  - Constructs the module and binds the `divide` method to the inputs `Dividend` and `Divisor`.
+3. **Constructor:**
+   ```cpp
+   SC_CTOR(Divider) {
+       SC_METHOD(divide);
+       sensitive << Dividend << Divisor;
+   }
+   ```
+   - Constructs the `Divider` module and binds the `divide` method to the input ports `Dividend` and `Divisor`.
 
-- **Division Logic**:
-  ```cpp
-  void divide() {
-      if (Divisor.read() == 0) {
-          Error.write(true);
-          Quotient.write(0);
-          Remainder.write(0);
-      } else {
-          Error.write(false);
-          Quotient.write(Dividend.read() / Divisor.read());
-          Remainder.write(Dividend.read() % Divisor.read());
-      }
-  }
-  ```
-  - Checks if the divisor is zero. If it is, sets the `Error` flag to true and writes 0 to both `Quotient` and `Remainder`.
-  - If the divisor is not zero, sets the `Error` flag to false and calculates the quotient and remainder using integer division and modulus operations.
+4. **Division Method:**
+   ```cpp
+   void divide() {
+       if (Divisor.read() == 0) {
+           Error.write(true);
+           Quotient.write(0);
+           Remainder.write(0);
+       } else {
+           Error.write(false);
+           Quotient.write(Dividend.read() / Divisor.read());
+           Remainder.write(Dividend.read() % Divisor.read());
+       }
+   }
+   ```
+   - Checks if the divisor is zero. If it is, sets the `Error` signal to true and writes 0 to both `Quotient` and `Remainder`. Otherwise, it sets the `Error` signal to false and calculates the quotient and remainder, writing them to their respective output ports.
 
-This SystemC code faithfully captures the logic of the original C++/C source code and can be integrated into a high-level synthesis flow.
+This SystemC code preserves the logic of the original C++ code and can be integrated into a high-level synthesis flow.

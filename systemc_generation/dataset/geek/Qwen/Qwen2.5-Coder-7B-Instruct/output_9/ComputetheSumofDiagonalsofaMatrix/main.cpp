@@ -3,25 +3,29 @@
 
 
 SC_MODULE(DiagonalSum) {
-    sc_in<int> matrix[4][4];  // Input ports for the matrix elements
-    sc_out<int> principal;    // Output port for the sum of the principal diagonal
-    sc_out<int> secondary;    // Output port for the sum of the secondary diagonal
+    sc_in<int> matrix[4][4];
+    sc_out<int> principal;
+    sc_out<int> secondary;
 
     SC_CTOR(DiagonalSum) {
-        SC_METHOD(calculate_diagonals);
-        sensitive << matrix;
+        SC_METHOD(calculateDiagonals);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                sensitive << matrix[i][j];
+            }
+        }
     }
 
-    void calculate_diagonals() {
+    void calculateDiagonals() {
         int principal_sum = 0, secondary_sum = 0;
 
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 if (i == j) {
-                    principal_sum += matrix[i][j];
+                    principal_sum += matrix[i][j].read();
                 }
                 if ((i + j) == (4 - 1)) {
-                    secondary_sum += matrix[i][j];
+                    secondary_sum += matrix[i][j].read();
                 }
             }
         }
@@ -30,6 +34,7 @@ SC_MODULE(DiagonalSum) {
         secondary.write(secondary_sum);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

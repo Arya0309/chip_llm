@@ -1,7 +1,6 @@
 
 #include <systemc.h>
 
-// Module that calculates the GcdCalculator of two integers
 
 SC_MODULE(GcdCalculator) {
     sc_in<int> a;  // Input port for the first number
@@ -10,19 +9,21 @@ SC_MODULE(GcdCalculator) {
 
     // Constructor
     SC_CTOR(GcdCalculator) {
-        // Process to calculate the GcdCalculator
-        SC_METHOD(calculate_gcd);
+        // Process to compute the GcdCalculator
+        SC_METHOD(compute_gcd);
         sensitive << a << b;
     }
 
-    // Method to calculate the GcdCalculator
-    void calculate_gcd() {
+    // Method to compute the GcdCalculator
+    void compute_gcd() {
         int res = std::min(a.read(), b.read());
+
         while (res > 1) {
             if (a.read() % res == 0 && b.read() % res == 0)
                 break;
             res--;
         }
+
         gcd_result.write(res);
     }
 };

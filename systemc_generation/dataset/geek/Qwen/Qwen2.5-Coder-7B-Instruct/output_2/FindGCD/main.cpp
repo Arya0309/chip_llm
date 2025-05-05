@@ -1,32 +1,33 @@
 
 #include <systemc.h>
+#include <algorithm> // Include the algorithm header for std::min
+
+// Module to calculate the GcdCalculator of two integers
 
 
 SC_MODULE(GcdCalculator) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
-    sc_out<int> gcd_result; // Output port for the GCD
+    sc_out<int> gcd_result; // Output port for the GcdCalculator result
 
     // Constructor
     SC_CTOR(GcdCalculator) {
-        // Process to calculate GCD
+        // Process to calculate GcdCalculator
         SC_METHOD(calculate_gcd);
         sensitive << a << b;
     }
 
-    // Method to calculate GCD
+    // Method to calculate the GcdCalculator
     void calculate_gcd() {
-        int res = std::min(a.read(), b.read()); // Find minimum of a and b
-
-        // Loop to find GCD
+        int res = std::min(a.read(), b.read()); // Use std::min instead of min
         while (res > 1) {
+            // If any number divide both a and b, so we
+            // got the answer
             if (a.read() % res == 0 && b.read() % res == 0)
                 break;
             res--;
         }
-
-        // Write the GCD to the output port
-        gcd_result.write(res);
+        gcd_result.write(res); // Write the GcdCalculator result to the output port
     }
 };
 

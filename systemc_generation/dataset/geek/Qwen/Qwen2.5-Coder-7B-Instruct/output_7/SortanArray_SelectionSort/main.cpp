@@ -5,53 +5,77 @@
 SC_MODULE(SelectionSort) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_in<sc_vector<int>> arr;  // Input array
-    sc_out<sc_vector<int>> sorted_arr;  // Output sorted array
+    sc_out<bool> done; // Done signal
 
-    int n;  // Size of the array
+    int arr[5];  // Array to be sorted
+    int n;       // Size of the array
+    sc_signal<bool> sort_flag;  // Flag to control sorting
+    sc_signal<bool> sort_complete;  // Flag to indicate sorting is complete
 
     // Constructor
     SC_CTOR(SelectionSort) {
-        SC_THREAD(sort_process);
+        n = 5;  // Initialize array size
+        arr[0] = 64; arr[1] = 25; arr[2] = 12; arr[3] = 22; arr[4] = 11;
+        sort_flag.write(false);
+        sort_complete.write(false);
+
+        // Process to handle the sorting logic
+        SC_METHOD(sort);
         sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to handle the start and done signals
+        SC_METHOD(start_done);
+        sensitive << start;
         dont_initialize();
     }
 
-    void sort_process() {
-        while (true) {
-            wait();  // Wait for the clock edge
-
-            if (start.read()) {
-                n = arr.size();
-                selectionSort(arr, n);
-                done.write(true);
-            } else {
-                done.write(false);
+    // Method to sort the array
+    void sort() {
+        if (sort_flag.read()) {
+            for (int i = 0; i < n-1; i++) {
+                int min_idx = i;
+                for (int j = i+1; j < n; j++)
+                    if (arr[j] < arr[min_idx])
+                        min_idx = j;
+                swap(&arr[min_idx], &arr[i]);
             }
+            sort_complete.write(true);  // Set a flag indicating sorting is complete
         }
     }
 
-    void selectionSort(sc_vector<int>& arr, int n) {
-        int i, j, min_idx;
-
-        for (i = 0; i < n-1; i++) {
-            min_idx = i;
-            for (j = i+1; j < n; j++)
-                if (arr[j] < arr[min_idx])
-                    min_idx = j;
-
-            swap(arr[min_idx], arr[i]);
+    // Method to handle start and done signals
+    void start_done() {
+        if (start.read() && !sort_flag.read()) {
+            sort_flag.write(true);
+        } else if (sort_complete.read()) {
+            done.write(true);
+            sort_flag.write(false);
+            sort_complete.write(false);  // Reset the flag after signaling done
         }
     }
 
-    void swap(sc_vector<int>& arr, int min_idx, int i) {
-        int temp = arr[min_idx];
-        arr[min_idx] = arr[i];
-        arr[i] = temp;
+    // Method to load input array
+    void load_array(const int input[]) {
+        for (int i = 0; i < n; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    // Method to read output array
+    void read_array(int output[]) {
+        for (int i = 0; i < n; i++) {
+            output[i] = arr[i];
+        }
+    }
+
+    // Helper function to swap elements
+    void swap(int *xp, int *yp) {
+        int temp = *xp;
+        *xp = *yp;
+        *yp = temp;
     }
 };
-
 
 
 SC_MODULE(Testbench) {

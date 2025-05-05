@@ -1,46 +1,55 @@
 
 #include <systemc.h>
+#include <vector>
 
 
 SC_MODULE(MinMax) {
-    sc_in<bool> clk;      // Clock signal
-    sc_in<bool> start;    // Start signal
-    sc_out<bool> done;    // Done signal
-    sc_out<int> min_val;   // Minimum value output
-    sc_out<int> max_val;   // Maximum value output
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_out<int> min_val;      // Minimum value output
+    sc_out<int> max_val;      // Maximum value output
 
-    int arr[5] = { 12, 1234, 45, 67, 1 };  // Array of integers
-    int n = sizeof(arr) / sizeof(arr[0]);  // Size of the array
-    int min_val_int, max_val_int;           // Variables to store the minimum and maximum values
+    std::vector<int> arr;     // Vector to store the array elements
 
+    // Constructor
     SC_CTOR(MinMax) {
-        // Process to handle the start signal
-        SC_METHOD(find_min_max);
-        sensitive << start.pos();
+        // Process to handle start signal and compute min/max
+        SC_METHOD(compute_min_max);
+        sensitive << clk.pos();
+        dont_initialize();
     }
 
-    void find_min_max() {
+    // Method to load an array into the module
+    void load_array(const std::vector<int>& input_arr) {
+        arr = input_arr;
+    }
+
+    // Method to compute minimum and maximum values
+    void compute_min_max() {
         if (start.read()) {
-            min_val_int = *min_element(arr, arr + n);
-            max_val_int = *max_element(arr, arr + n);
+            if (arr.empty()) {
+                min_val.write(0);
+                max_val.write(0);
+                done.write(true);
+                return;
+            }
 
-            // Wait for one clock cycle to ensure the signals are updated
-            wait();
+            // Find minimum and maximum values
+            int min_value = *std::min_element(arr.begin(), arr.end());
+            int max_value = *std::max_element(arr.begin(), arr.end());
 
-            // Assign the results to the output signals
-            min_val.write(min_val_int);
-            max_val.write(max_val_int);
+            // Write results to output ports
+            min_val.write(min_value);
+            max_val.write(max_value);
 
-            // Set the done signal
             done.write(true);
-
-            // Wait for one clock cycle before clearing the done signal
-            wait();
-
+        } else {
             done.write(false);
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

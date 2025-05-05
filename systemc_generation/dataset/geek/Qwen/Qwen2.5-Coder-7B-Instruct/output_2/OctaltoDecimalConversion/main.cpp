@@ -8,7 +8,7 @@ SC_MODULE(OctalToDecimalConverter) {
 
     // Constructor
     SC_CTOR(OctalToDecimalConverter) {
-        // Process to perform conversion
+        // Process to perform the conversion
         SC_METHOD(convert);
         sensitive << octal_input;
     }
@@ -22,9 +22,9 @@ SC_MODULE(OctalToDecimalConverter) {
 
         while (temp) {
             int last_digit = temp % 10;
-            temp = temp / 10;
+            temp /= 10;
             dec_value += last_digit * base;
-            base = base * 8;
+            base *= 8;
         }
 
         decimal_output.write(dec_value);

@@ -3,32 +3,33 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;      // Clock signal
-    sc_in<bool> start;    // Start signal
-    sc_out<bool> done;     // Done signal
-    sc_out<int> sorted[5]; // Output array for sorted values
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
 
-    int nums[5] = {1, 12, 6, 8, 10}; // Hardcoded array
+    sc_inout<int> nums[5];  // Array of integers to be sorted
+
     bool isSwapped;
-    int temp;
 
-    // Constructor
     SC_CTOR(BubbleSort) {
-        SC_METHOD(sortArray);
+        SC_METHOD(sort_array);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        SC_METHOD(check_done);
         sensitive << clk.pos();
         dont_initialize();
     }
 
-    // Method to sort the array
-    void sortArray() {
+    void sort_array() {
         if (start.read()) {
             for (int i = 0; i < 5; i++) {
                 isSwapped = false;
                 for (int j = 1; j < 5 - i; j++) {
-                    if (nums[j] < nums[j - 1]) {
-                        temp = nums[j];
-                        nums[j] = nums[j - 1];
-                        nums[j - 1] = temp;
+                    if (nums[j].read() < nums[j - 1].read()) {
+                        int temp = nums[j].read();
+                        nums[j].write(nums[j - 1].read());
+                        nums[j - 1].write(temp);
                         isSwapped = true;
                     }
                 }
@@ -42,17 +43,28 @@ SC_MODULE(BubbleSort) {
         }
     }
 
-    // Method to output sorted array
-    SC_METHOD(outputSortedArray);
-    sensitive << done.pos();
+    void check_done() {
+        if (done.read()) {
+            cout << "After sorting the array is: \n";
+            for (int i = 0; i < 5; i++) {
+                cout << nums[i].read() << " ";
+            }
+            cout << "\n";
+        }
+    }
 
-    void outputSortedArray() {
+    void load_array(int arr[]) {
         for (int i = 0; i < 5; i++) {
-            sorted[i].write(nums[i]);
+            nums[i].write(arr[i]);
+        }
+    }
+
+    void read_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = nums[i].read();
         }
     }
 };
-
 
 
 SC_MODULE(Testbench) {

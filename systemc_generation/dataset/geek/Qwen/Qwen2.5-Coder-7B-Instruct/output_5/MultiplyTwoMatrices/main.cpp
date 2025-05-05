@@ -1,41 +1,40 @@
 
-#include <systemc.h>
+   #include <systemc.h>
 
-
+   
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[2];  // Input ports for Matrix-1
-    sc_in<int> B[2];  // Input ports for Matrix-2
-    sc_out<int> C[2]; // Output ports for the result
+       sc_in<int> A[2][2];  // Input ports for Matrix-1
+       sc_in<int> B[2][2];  // Input ports for Matrix-2
+       sc_out<int> C[2][3]; // Output ports for the result matrix
 
-    SC_CTOR(MatrixMultiplier) {
-        // Process to perform matrix multiplication
-        SC_METHOD(mulMat);
-        sensitive << A << B;
-    }
+       SC_CTOR(MatrixMultiplier) {
+           // Process to perform matrix multiplication
+           SC_METHOD(mulMat);
+           for (int i = 0; i < 2; i++) {
+               for (int j = 0; j < 2; j++) {
+                   sensitive << A[i][j];
+               }
+               for (int j = 0; j < 2; j++) {
+                   sensitive << B[i][j];
+               }
+           }
+       }
 
-    void mulMat() {
-        int mat1[2][2] = {{A[0].read(), A[1].read()}, {A[2].read(), A[3].read()}};
-        int mat2[2][3] = {{B[0].read(), B[1].read(), B[2].read()}, {B[3].read(), B[4].read(), B[5].read()}};
-        int rslt[2][3] = {{0, 0, 0}, {0, 0, 0}};
+       void mulMat() {
+           int rslt[2][3] = {0}; // Resultant matrix
 
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < 3; j++) {
-                rslt[i][j] = 0;
-                for (int k = 0; k < 2; k++) {
-                    rslt[i][j] += mat1[i][k] * mat2[k][j];
-                }
-            }
-        }
+           for (int i = 0; i < 2; i++) {
+               for (int j = 0; j < 3; j++) {
+                   for (int k = 0; k < 2; k++) {
+                       rslt[i][j] += A[i][k].read() * B[k][j].read();
+                   }
+                   C[i][j].write(rslt[i][j]);
+               }
+           }
+       }
+   };
 
-        C[0].write(rslt[0][0]);
-        C[1].write(rslt[0][1]);
-        C[2].write(rslt[0][2]);
-        C[3].write(rslt[1][0]);
-        C[4].write(rslt[1][1]);
-        C[5].write(rslt[1][2]);
-    }
-};
-
+   
 
 SC_MODULE(Testbench) {
     // Use static const for matrix dimensions

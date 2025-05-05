@@ -3,18 +3,15 @@
 
 
 SC_MODULE(FibonacciCalculator) {
-    sc_in<int> n;  // Input port for the position of the FibonacciCalculator number
-    sc_out<int> result; // Output port for the FibonacciCalculator number
+    sc_in<int> n;  // Input port for the position in the FibonacciCalculator sequence
+    sc_out<int> result;  // Output port for the nth FibonacciCalculator number
 
-    // Constructor
     SC_CTOR(FibonacciCalculator) {
-        // Process to calculate FibonacciCalculator number
-        SC_METHOD(calculateFib);
+        SC_METHOD(calculate_fib);
         sensitive << n;
     }
 
-    // Method to calculate the FibonacciCalculator number
-    void calculateFib() {
+    void calculate_fib() {
         if (n.read() <= 1) {
             result.write(n.read());
         } else {

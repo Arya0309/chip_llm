@@ -8,7 +8,7 @@ SC_MODULE(SumCalculator) {
 
     // Constructor
     SC_CTOR(SumCalculator) {
-        // Process to calculate the sum of the first n natural numbers
+        // Process to calculate the sum of first n natural numbers
         SC_METHOD(calculateSum);
         sensitive << n;
     }
@@ -22,7 +22,6 @@ SC_MODULE(SumCalculator) {
         result.write(sum);
     }
 };
-
 
 
 SC_MODULE(Testbench) {

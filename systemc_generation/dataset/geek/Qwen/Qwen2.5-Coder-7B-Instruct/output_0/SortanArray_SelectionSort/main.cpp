@@ -3,47 +3,62 @@
 
 
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;       // Done signal
+    sc_inout<int> arr[5];     // Input/Output array of integers (size 5)
 
-    sc_inout<int> arr[5];  // Input/output array of size 5
+    int n = 5;                // Size of the array
 
-    // Constructor
     SC_CTOR(SelectionSort) {
-        SC_METHOD(sort);
+        SC_THREAD(sort_process);
         sensitive << clk.pos();
-        dont_initialize();
     }
 
-    // Method to perform selection sort
-    void sort() {
-        static int n = 5;  // Size of the array
-        static int i = 0;  // Outer loop index
-        static int j = 0;  // Inner loop index
-        static int min_idx = 0;  // Minimum index
-
-        if (start.read()) {
-            for (; i < n-1; i++) {
-                min_idx = i;
-                for (j = i+1; j < n; j++) {
-                    if (arr[j].read() < arr[min_idx].read()) {
-                        min_idx = j;
-                    }
-                }
-                swap(&arr[min_idx].write(), &arr[i].write());
-            }
-            done.write(true);
-        } else {
-            done.write(false);
+    void load_array(int input[]) {
+        for (int i = 0; i < n; i++) {
+            arr[i].write(input[i]);
         }
     }
 
-    // Swap function for SystemC
-    void swap(int *xp, int *yp) {
-        int temp = *xp;
-        *xp = *yp;
-        *yp = temp;
+    void read_array(int output[]) {
+        for (int i = 0; i < n; i++) {
+            output[i] = arr[i].read();
+        }
+    }
+
+    void sort_process() {
+        while (true) {
+            wait();  // Wait for the clock edge
+
+            if (start.read()) {
+                // Perform selection sort
+                for (int i = 0; i < n-1; i++) {
+                    int min_idx = i;
+                    for (int j = i+1; j < n; j++) {
+                        if (arr[j].read() < arr[min_idx].read()) {
+                            min_idx = j;
+                        }
+                    }
+                    swap(&arr[min_idx], &arr[i]);
+                }
+
+                // Set the done signal
+                done.write(true);
+
+                // Wait for the next cycle
+                wait();
+
+                // Reset the done signal
+                done.write(false);
+            }
+        }
+    }
+
+    void swap(sc_inout<int> *xp, sc_inout<int> *yp) {
+        int temp = xp->read();
+        xp->write(yp->read());
+        yp->write(temp);
     }
 };
 

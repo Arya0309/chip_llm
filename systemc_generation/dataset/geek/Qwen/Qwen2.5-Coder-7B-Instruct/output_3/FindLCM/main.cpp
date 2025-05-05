@@ -5,28 +5,35 @@
 SC_MODULE(LcmCalculator) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
-    sc_out<int> lcm_result;  // Output port for the LCM result
+    sc_out<int> lcm_result; // Output port for the LCM
 
     // Constructor
     SC_CTOR(LcmCalculator) {
-        // Process to calculate LCM
-        SC_METHOD(calculate_lcm);
+        // Process to find the LCM
+        SC_METHOD(find_lcm);
         sensitive << a << b;
     }
 
-    // Method to calculate the LCM
-    void calculate_lcm() {
-        int max_num = (a.read() > b.read()) ? a.read() : b.read();
-        int flag = 1;
-
-        while (flag) {
-            if (max_num % a.read() == 0 && max_num % b.read() == 0) {
-                lcm_result.write(max_num);
-                flag = 0;  // Break the loop
-            } else {
-                ++max_num;
-            }
+    // Method to find the LCM
+    void find_lcm() {
+        if (a.read() <= 0 || b.read() <= 0) {
+            lcm_result.write(0); // Return 0 if either a or b is non-positive
+            return;
         }
+
+        int gcd = calculate_gcd(a.read(), b.read()); // Function to calculate GCD
+        int lcm = (a.read() * b.read()) / gcd; // Calculate LCM using GCD
+        lcm_result.write(lcm);
+    }
+
+    // Helper function to calculate GCD using Euclidean algorithm
+    int calculate_gcd(int a, int b) {
+        while (b != 0) {
+            int temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
     }
 };
 

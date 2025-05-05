@@ -3,47 +3,55 @@
 
 
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_out<int> original_array[5];  // Output for original array
-    sc_out<int> copied_array[5];  // Output for copied array
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
+    sc_out<bool> done;    // Done signal
 
-    int original_arr[5] = {1, 2, 3, 4, 5};
-    int len = sizeof(original_arr) / sizeof(original_arr[0]);
-    int copied_arr[5];
+    sc_in<int> original_arr[5];  // Input array
+    sc_out<int> copied_arr[5];   // Output array
+
+    int len = 5;  // Length of the array
+    int original_copy[5];
 
     // Constructor
     SC_CTOR(ArrayReverse) {
-        // Process to handle the copying logic
-        SC_METHOD(copy_arrays);
-        sensitive << clk.pos();
-        dont_initialize();
-
-        // Process to handle the done signal
-        SC_METHOD(set_done);
-        sensitive << clk.pos();
+        // Process to handle the array reversal
+        SC_METHOD(reverse_array);
+        sensitive << clk.pos();  // Sensitive to positive edge of clock
         dont_initialize();
     }
 
-    // Method to copy arrays in reverse order
-    void copy_arrays() {
-        if (start.read()) {
-            for (int i = 0; i < len; i++) {
-                copied_arr[i] = original_arr[len - i - 1];
-            }
-            done.write(false);
+    // Method to load the original array
+    void load_array(const int original[5]) {
+        for (int i = 0; i < len; i++) {
+            original_copy[i] = original[i];
         }
     }
 
-    // Method to set the done signal
-    void set_done() {
+    // Method to reverse the array
+    void reverse_array() {
         if (start.read()) {
-            done.write(true);
+            int temp[5];
+            for (int i = 0; i < len; i++) {
+                temp[i] = original_arr[i].read();
+            }
+            load_array(temp);  // Load the original array
+            for (int i = 0; i < len; i++) {
+                copied_arr[i].write(original_copy[len - i - 1]);
+            }
+            done.write(true);  // Set done signal high
+        } else {
+            done.write(false);  // Reset done signal low
+        }
+    }
+
+    // Method to read the reversed array
+    void read_array(int result[5]) {
+        for (int i = 0; i < len; i++) {
+            result[i] = copied_arr[i].read();
         }
     }
 };
-
 
 
 SC_MODULE(Testbench) {

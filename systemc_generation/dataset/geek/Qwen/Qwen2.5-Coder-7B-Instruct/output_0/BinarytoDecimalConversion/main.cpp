@@ -4,22 +4,22 @@
 
 SC_MODULE(BinaryToDecimalConverter) {
     sc_in<int> binary_in;  // Input port for the binary number
-    sc_out<int> decimal_out; // Output port for the decimal equivalent
+    sc_out<int> decimal_out; // Output port for the decimal number
 
     // Constructor
     SC_CTOR(BinaryToDecimalConverter) {
-        // Process to perform binary to decimal conversion
-        SC_METHOD(convert);
+        // Process to perform the conversion
+        SC_METHOD(convert_binary_to_decimal);
         sensitive << binary_in;
     }
 
     // Method to convert binary to decimal
-    void convert() {
+    void convert_binary_to_decimal() {
         int num = binary_in.read();
         int dec_value = 0;
         int base = 1;
-        int temp = num;
 
+        int temp = num;
         while (temp) {
             int last_digit = temp % 10;
             temp = temp / 10;

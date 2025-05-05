@@ -1,38 +1,49 @@
 
 #include <systemc.h>
+#include <cmath>
+
+#define MAX 100  // Define MAX here so it is accessible throughout the module
 
 
 SC_MODULE(MatrixOperations) {
-    sc_in<int> matrix[SIZE];  // Input port for the matrix elements
-    sc_out<int> trace;         // Output port for the trace
-    sc_out<int> norm;          // Output port for the normal
+    sc_in<int> matrix[MAX][MAX];  // Input matrix
+    sc_out<int> trace;            // Output for trace
+    sc_out<int> norm;             // Output for norm
 
+    // Constructor
     SC_CTOR(MatrixOperations) {
         // Process to calculate trace
-        SC_METHOD(calculate_trace);
+        SC_METHOD(calculateTrace);
         sensitive << matrix;
 
-        // Process to calculate normal
-        SC_METHOD(calculate_norm);
+        // Process to calculate norm
+        SC_METHOD(calculateNorm);
         sensitive << matrix;
     }
 
-    void calculate_trace() {
+    // Method to calculate trace of the matrix
+    void calculateTrace() {
         int sum = 0;
-        for (int i = 0; i < SIZE; i++) {
-            sum += matrix[i].read();
-        }
-        trace.write(sum);
-    }
-
-    void calculate_norm() {
-        int sum = 0;
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                sum += matrix[i*SIZE + j].read() * matrix[i*SIZE + j].read();
+        for (int i = 0; i < MAX; i++) {
+            if (matrix[i][i] != 0) {
+                sum += matrix[i][i];
             }
         }
-        norm.write(sqrt(sum));
+        trace.write(sum);  // Directly write the integer value to the port
+    }
+
+    // Method to calculate norm of the matrix
+    void calculateNorm() {
+        int sum = 0;
+        for (int i = 0; i < MAX; i++) {
+            for (int j = 0; j < MAX; j++) {
+                if (matrix[i][j] != 0) {
+                    sum += matrix[i][j] * matrix[i][j];
+                }
+            }
+        }
+        double normValue = sqrt(sum);
+        norm.write(static_cast<int>(normValue));  // Convert double to int and write to port
     }
 };
 

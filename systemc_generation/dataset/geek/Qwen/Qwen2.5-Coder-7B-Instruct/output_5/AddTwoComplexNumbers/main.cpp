@@ -19,8 +19,10 @@ SC_MODULE(ComplexAdder) {
 
     // Method to add the two complex numbers
     void add() {
-        real_sum.write(real1.read() + real2.read());
-        imag_sum.write(imag1.read() + imag2.read());
+        int sum_real = real1.read() + real2.read();
+        int sum_imag = imag1.read() + imag2.read();
+        real_sum.write(sum_real);
+        imag_sum.write(sum_imag);
     }
 };
 

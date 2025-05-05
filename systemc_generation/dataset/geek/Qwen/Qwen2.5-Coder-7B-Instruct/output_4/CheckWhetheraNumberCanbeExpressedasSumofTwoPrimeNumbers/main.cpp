@@ -3,55 +3,37 @@
 
 
 SC_MODULE(PrimeSumChecker) {
-    sc_in<int> n_in;          // Input port for the number to be checked
-    sc_out<bool> result_out; // Output port indicating the result
+    sc_in<int> n_in;  // Input port for the number to be checked
+    sc_out<bool> result_out; // Output port indicating if the number can be expressed as the sum of two primes
 
     // Constructor
     SC_CTOR(PrimeSumChecker) {
         // Process to check if the number can be expressed as the sum of two primes
-        SC_METHOD(check_sum_of_primes);
+        SC_METHOD(check_sum);
         sensitive << n_in;
     }
 
     // Method to check if the number can be expressed as the sum of two primes
-    void check_sum_of_primes() {
+    void check_sum() {
         int n = n_in.read();
-        bool is_n_prime = true;
-        bool is_n_minus_2_prime = true;
+        bool is_n_prime = isPrime(n);
+        bool is_n_minus_2_prime = isPrime(n - 2);
+        result_out.write(is_n_prime && is_n_minus_2_prime);
+    }
 
-        // Check if n is prime
+    // Helper function to check if a number is prime
+    bool isPrime(int n) {
         if (n <= 1) {
-            is_n_prime = false;
-        } else {
-            for (int i = 2; i <= sqrt(n); i++) {
-                if (n % i == 0) {
-                    is_n_prime = false;
-                    break;
-                }
+            return false;
+        }
+        for (int i = 2; i <= sqrt(n); i++) {
+            if (n % i == 0) {
+                return false;
             }
         }
-
-        // Check if n-2 is prime
-        if (n - 2 <= 1) {
-            is_n_minus_2_prime = false;
-        } else {
-            for (int i = 2; i <= sqrt(n - 2); i++) {
-                if ((n - 2) % i == 0) {
-                    is_n_minus_2_prime = false;
-                    break;
-                }
-            }
-        }
-
-        // Determine the result
-        if (is_n_prime && is_n_minus_2_prime) {
-            result_out.write(true);
-        } else {
-            result_out.write(false);
-        }
+        return true;
     }
 };
-
 
 
 SC_MODULE(Testbench) {

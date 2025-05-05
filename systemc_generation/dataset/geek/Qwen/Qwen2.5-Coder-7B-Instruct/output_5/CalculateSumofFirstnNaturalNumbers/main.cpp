@@ -3,7 +3,7 @@
 
 
 SC_MODULE(SumCalculator) {
-    sc_in<unsigned int> n;  // Input port for the number of terms
+    sc_in<unsigned int> n;  // Input port for the number of natural numbers
     sc_out<unsigned int> result; // Output port for the sum
 
     // Constructor

@@ -1,38 +1,45 @@
 
 #include <systemc.h>
+#include <cmath>
+
+const int MAX = 100;
 
 
 SC_MODULE(MatrixOperations) {
-    sc_in<int> matrix[SIZE]; // Input port for the matrix
-    sc_out<int> trace;       // Output port for the trace
-    sc_out<int> norm;        // Output port for the normal
+    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
+    sc_out<int> trace; // Output port for the trace
+    sc_out<int> norm; // Output port for the normal
 
     // Constructor
     SC_CTOR(MatrixOperations) {
         // Process to calculate trace and normal
-        SC_METHOD(calculate);
-        sensitive << matrix;
+        SC_THREAD(calculate);
+        for (int i = 0; i < MAX; i++) {
+            for (int j = 0; j < MAX; j++) {
+                sensitive << matrix[i][j];
+            }
+        }
     }
 
     // Method to calculate trace and normal
     void calculate() {
-        int n = SIZE; // Assuming SIZE is defined somewhere in the system
-        int sum_trace = 0;
-        int sum_norm = 0;
+        int trace_val = 0;
+        int norm_val = 0;
 
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                sum_norm += matrix[i][j] * matrix[i][j];
+        for (int i = 0; i < MAX; i++) {
+            for (int j = 0; j < MAX; j++) {
                 if (i == j) {
-                    sum_trace += matrix[i][j];
+                    trace_val += matrix[i][j].read();
                 }
+                norm_val += matrix[i][j].read() * matrix[i][j].read();
             }
         }
 
-        trace.write(sum_trace);
-        norm.write(sqrt(sum_norm));
+        norm.write(sqrt(norm_val));
+        trace.write(trace_val);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

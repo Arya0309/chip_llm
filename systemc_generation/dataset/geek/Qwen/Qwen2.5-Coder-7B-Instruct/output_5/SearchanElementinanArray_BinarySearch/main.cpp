@@ -1,35 +1,56 @@
 
 #include <systemc.h>
+#include <string>
 
 
 SC_MODULE(BinarySearchModule) {
     sc_in<int> target;  // Input port for the target element
-    sc_out<bool> found; // Output port indicating whether the target was found
-    sc_vector<sc_in<int>> v; // Input vector of integers
+    sc_out<bool> found; // Output port for whether the target is found
+    sc_vector<sc_in<int>> v; // Input port for the vector elements
 
     // Constructor
     SC_CTOR(BinarySearchModule) {
+        // Initialize the vector with some values
+        v.push_back(sc_in<int>("v_0"));
+        v.push_back(sc_in<int>("v_1"));
+        v.push_back(sc_in<int>("v_2"));
+        v.push_back(sc_in<int>("v_3"));
+        v.push_back(sc_in<int>("v_4"));
+        v.push_back(sc_in<int>("v_5"));
+        v.push_back(sc_in<int>("v_6"));
+        v.push_back(sc_in<int>("v_7"));
+
+        // Register each signal in the vector as sensitive
+        for (int i = 0; i < v.size(); ++i) {
+            sensitive << v[i];
+        }
+
         // Process to perform binary search
         SC_METHOD(search);
-        sensitive << v << target;
+        sensitive << target;
     }
 
     // Method to perform binary search
     void search() {
         int low = 0, high = v.size() - 1;
-        found.write(false); // Initialize found to false
+        bool result = false;
 
         while (low <= high) {
             int mid = ((high - low) / 2) + low;
-            if (v[mid].read() == target.read()) {
-                found.write(true);
-                return;
-            } else if (v[mid].read() > target.read()) {
-                high = mid - 1;
-            } else {
-                low = mid + 1;
+            int mid_value = v[mid].read();
+            int target_value = target.read();
+
+            if (mid_value == target_value) {
+                result = true;
+                break;
             }
+            if (mid_value > target_value)
+                high = mid - 1;
+            else
+                low = mid + 1;
         }
+
+        found.write(result);
     }
 };
 

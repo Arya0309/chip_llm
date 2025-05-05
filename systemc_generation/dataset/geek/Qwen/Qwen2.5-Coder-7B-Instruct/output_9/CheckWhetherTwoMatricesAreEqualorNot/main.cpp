@@ -1,35 +1,36 @@
 
 #include <systemc.h>
 
-// Module to compare two matrices
+// Module that checks if two matrices are identical
 
 SC_MODULE(MatrixComparator) {
-    sc_in<int> A[4][4];  // Input ports for the first matrix
-    sc_in<int> B[4][4];  // Input ports for the second matrix
-    sc_out<bool> identical; // Output port indicating if matrices are identical
+    sc_in<int> A[SIZE];  // Input port for matrix A
+    sc_in<int> B[SIZE];  // Input port for matrix B
+    sc_out<bool> identical; // Output port for the comparison result
 
     // Constructor
     SC_CTOR(MatrixComparator) {
         // Process to compare the matrices
-        SC_METHOD(compare_matrices);
-        sensitive << A << B;
+        SC_THREAD(compare_matrices);
     }
 
-    // Method to compare the two matrices
+    // Thread to compare the matrices
     void compare_matrices() {
-        bool identical_flag = true;
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (A[i][j].read() != B[i][j].read()) {
-                    identical_flag = false;
+        bool result = true;
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (A[i].read() != B[i].read()) {
+                    result = false;
                     break;
                 }
             }
-            if (!identical_flag) break;
+            if (!result) break;
         }
-        identical.write(identical_flag);
+        identical.write(result);
     }
 };
+
+// Testbench module to drive the MatrixComparator
 
 
 SC_MODULE(Testbench) {

@@ -5,7 +5,7 @@
 SC_MODULE(CompoundInterestCalculator) {
     sc_in<double> principal;  // Input port for the principal amount
     sc_in<double> rate;       // Input port for the interest rate
-    sc_in<double> time;       // Input port for the time period
+    sc_in<double> time;       // Input port for the time duration
     sc_out<double> ci;         // Output port for the compound interest
 
     // Constructor

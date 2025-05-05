@@ -1,74 +1,73 @@
 
 #include <systemc.h>
 
-// Module that adds two binary strings
 
 SC_MODULE(BinaryAdder) {
     sc_in<std::string> A;  // Input port for the first binary string
     sc_in<std::string> B;  // Input port for the second binary string
     sc_out<std::string> sum; // Output port for the sum of the two binary strings
 
-    // Constructor
     SC_CTOR(BinaryAdder) {
-        // Process to perform addition
-        SC_METHOD(add);
+        SC_THREAD(add);
         sensitive << A << B;
     }
 
-    // Method to add the two binary strings
     void add() {
-        std::string res;
-        char carry = '0';
-
-        // Ensure A is the shorter string
-        if (A.length() > B.length()) {
-            std::swap(A, B);
+        std::string a = A.read();
+        std::string b = B.read();
+        
+        // Ensure a is the shorter string
+        if (a.length() > b.length()) {
+            std::swap(a, b);
         }
-
-        int diff = B.length() - A.length();
+        
+        int diff = b.length() - a.length();
         std::string padding(diff, '0');
-        A = padding + A;
-
-        for (int i = A.length() - 1; i >= 0; i--) {
-            if (A[i] == '1' && B[i] == '1') {
+        a = padding + a;
+        
+        std::string res(a.length(), '0');
+        char carry = '0';
+        
+        for (int i = a.length() - 1; i >= 0; i--) {
+            int bit_a = a[i] - '0';
+            int bit_b = b[i] - '0';
+            
+            if (bit_a == 1 && bit_b == 1) {
                 if (carry == '1') {
-                    res.push_back('1');
-                    carry = '1';
+                    res[i] = '1';
                 } else {
-                    res.push_back('0');
-                    carry = '1';
+                    res[i] = '0';
                 }
-            } else if (A[i] == '0' && B[i] == '0') {
+                carry = '1';
+            } else if (bit_a == 0 && bit_b == 0) {
                 if (carry == '1') {
-                    res.push_back('1');
+                    res[i] = '1';
                     carry = '0';
                 } else {
-                    res.push_back('0');
-                    carry = '0';
+                    res[i] = '0';
                 }
-            } else {
+            } else {  // bit_a != bit_b
                 if (carry == '1') {
-                    res.push_back('0');
-                    carry = '1';
+                    res[i] = '0';
                 } else {
-                    res.push_back('1');
-                    carry = '0';
+                    res[i] = '1';
                 }
             }
         }
-
+        
         if (carry == '1') {
-            res.push_back(carry);
+            res = '1' + res;
         }
-
-        reverse(res.begin(), res.end());
-
-        int index = 0;
-        while (index + 1 < res.length() && res[index] == '0') {
-            index++;
+        
+        // Remove leading zeros
+        size_t first_non_zero = res.find_first_not_of('0');
+        if (first_non_zero != std::string::npos) {
+            res = res.substr(first_non_zero);
+        } else {
+            res = "0";  // If all characters were zero, the result should be "0"
         }
-
-        sum.write(res.substr(index));
+        
+        sum.write(res);
     }
 };
 

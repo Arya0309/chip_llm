@@ -1,33 +1,61 @@
 
 #include <systemc.h>
 
-// Module to check if two matrices are identical
 
 SC_MODULE(MatrixComparator) {
-    sc_in<int> A[SIZE];  // Input port for the first matrix
-    sc_in<int> B[SIZE];  // Input port for the second matrix
-    sc_out<bool> identical; // Output port for the result
+    sc_in<sc_vector<sc_vector<int>>> A;  // Input port for the first matrix
+    sc_in<sc_vector<sc_vector<int>>> B;  // Input port for the second matrix
+    sc_out<bool> identical;              // Output port for the result
 
     // Constructor
     SC_CTOR(MatrixComparator) {
-        // Process to compare the matrices
-        SC_METHOD(compare_matrices);
-        sensitive << A << B;
+        num_rows = A.size();
+        for (int i = 0; i < num_rows; i++) {
+            SC_THREAD(compare_row);
+            sensitive << A[i] << B[i];
+            compare_row(i);
+        }
+
+        SC_THREAD(aggregate_results);
     }
 
-    // Method to compare the matrices
-    void compare_matrices() {
-        bool is_identical = true;
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                if (A[i].read() != B[j].read()) {
-                    is_identical = false;
-                    break;
-                }
+    // Method to compare a single row of the matrices
+    void compare_row(int row_index) {
+        bool are_identical = true;
+        for (int j = 0; j < A[row_index].size(); j++) {
+            if (A[row_index][j] != B[row_index][j]) {
+                are_identical = false;
+                break;
             }
-            if (!is_identical) break;
         }
-        identical.write(is_identical);
+        row_compare_done.write(true);
+        row_result.write(are_identical);
+    }
+
+private:
+    int num_rows;
+    sc_signal<bool> row_compare_done;
+    sc_signal<bool> row_result;
+    sc_signal<int> num_completed_rows;
+    sc_signal<bool> has_error;
+
+    void aggregate_results() {
+        while (true) {
+            wait(row_compare_done.posedge());
+            num_completed_rows.write(num_completed_rows.read() + (row_result.read() ? 1 : 0));
+
+            // Check if any row comparison failed
+            if (!row_result.read()) {
+                has_error.write(true);
+                break;
+            }
+
+            // Check if all rows have been compared
+            if (num_completed_rows.read() == num_rows) {
+                identical.write(!has_error.read());
+                break;
+            }
+        }
     }
 };
 

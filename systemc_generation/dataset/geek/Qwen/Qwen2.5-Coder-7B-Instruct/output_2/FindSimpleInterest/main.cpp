@@ -1,30 +1,25 @@
 
 #include <systemc.h>
 
-// SystemC module to calculate simple interest
 
 SC_MODULE(SimpleInterestCalculator) {
-    // Input ports
-    sc_in<float> P;
-    sc_in<float> R;
-    sc_in<float> T;
-
-    // Output port
-    sc_out<float> SI;
+    sc_in<float> P;  // Input port for the principal amount
+    sc_in<float> R;  // Input port for the rate of interest
+    sc_in<float> T;  // Input port for the time
+    sc_out<float> SI; // Output port for the simple interest
 
     // Constructor
     SC_CTOR(SimpleInterestCalculator) {
         // Process to calculate simple interest
-        SC_METHOD(calculate_simple_interest);
+        SC_METHOD(calculateSI);
         sensitive << P << R << T;
     }
 
     // Method to calculate simple interest
-    void calculate_simple_interest() {
+    void calculateSI() {
         SI.write((P.read() * T.read() * R.read()) / 100);
     }
 };
-
 
 
 SC_MODULE(Testbench) {

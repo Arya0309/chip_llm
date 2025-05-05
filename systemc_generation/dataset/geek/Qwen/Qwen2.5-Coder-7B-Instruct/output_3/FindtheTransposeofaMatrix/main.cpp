@@ -1,26 +1,31 @@
 
 #include <systemc.h>
 
+// Define the size of the matrix
+const int SIZE = 4;
+
+// Module that transposes a matrix
 
 SC_MODULE(MatrixTranspose) {
     sc_in<int> A[SIZE];  // Input ports for the matrix A
-    sc_out<int> B[SIZE]; // Output ports for the transposed matrix B
+    sc_out<int> B[SIZE]; // Output ports for the matrix B
 
     SC_CTOR(MatrixTranspose) {
-        // Process to compute the transpose
-        SC_METHOD(compute_transpose);
+        SC_METHOD(computeTranspose);
         sensitive << A;
     }
 
-    void compute_transpose() {
+    void computeTranspose() {
         int i, j;
         for (i = 0; i < SIZE; i++) {
             for (j = 0; j < SIZE; j++) {
-                B[i].write(A[j].read());
+                B[i * SIZE + j].write(A[j * SIZE + i].read());
             }
         }
     }
 };
+
+// Testbench module
 
 
 SC_MODULE(Testbench) {

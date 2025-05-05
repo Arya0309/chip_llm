@@ -3,17 +3,18 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;      // Clock signal
-    sc_in<bool> start;    // Start signal
-    sc_out<bool> done;    // Done signal
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;     // Done signal
+    sc_in<int> input[5];   // Input array
+    sc_out<int> output[5]; // Output array
 
-    sc_in<int> nums[5];   // Input array of integers
-    sc_out<int> sorted_nums[5]; // Output sorted array of integers
-
+    int nums[5];            // Internal array for sorting
+    int size_nums = 5;      // Size of the array
     bool isSwapped;
 
     SC_CTOR(BubbleSort) {
-        SC_METHOD(sort);
+        SC_METHOD(sort_array);
         sensitive << clk.pos();
         dont_initialize();
 
@@ -22,15 +23,14 @@ SC_MODULE(BubbleSort) {
         dont_initialize();
     }
 
-    void sort() {
+    void sort_array() {
         if (start.read()) {
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < size_nums; i++) {
+                nums[i] = input[i].read();
                 isSwapped = false;
-                for (int j = 1; j < 5 - i; j++) {
-                    if (nums[j].read() < nums[j - 1].read()) {
-                        int curr = nums[j].read();
-                        nums[j].write(nums[j - 1].read());
-                        nums[j - 1].write(curr);
+                for (int j = 1; j < size_nums - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        swapNums(j, j - 1);
                         isSwapped = true;
                     }
                 }
@@ -39,19 +39,24 @@ SC_MODULE(BubbleSort) {
                 }
             }
             done.write(true);
-        } else {
-            done.write(false);
         }
     }
 
     void check_done() {
         if (done.read()) {
-            for (int i = 0; i < 5; i++) {
-                sorted_nums[i].write(nums[i].read());
+            for (int i = 0; i < size_nums; i++) {
+                output[i].write(nums[i]);
             }
         }
     }
+
+    void swapNums(int first, int second) {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
 };
+
 
 
 SC_MODULE(Testbench) {

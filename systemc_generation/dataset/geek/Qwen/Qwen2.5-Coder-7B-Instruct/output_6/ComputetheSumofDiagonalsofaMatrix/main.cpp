@@ -1,38 +1,40 @@
 
 #include <systemc.h>
 
+#define MAX 100
+
 
 SC_MODULE(DiagonalSum) {
-    sc_in<int> matrix[SIZE];  // Input port for the matrix
-    sc_out<int> principal;   // Output port for the principal diagonal sum
-    sc_out<int> secondary;   // Output port for the secondary diagonal sum
+    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
+    sc_in<int> size;              // Input port for the size of the matrix
+    sc_out<int> principal;       // Output port for the sum of the principal diagonal
+    sc_out<int> secondary;       // Output port for the sum of the secondary diagonal
 
-    int mat[MAX][MAX];  // Internal storage for the matrix
-    int principal_sum, secondary_sum;  // Internal storage for the sums
-
+    // Constructor
     SC_CTOR(DiagonalSum) {
-        SC_METHOD(calculate_diagonals);
-        sensitive << matrix;
+        // Process to calculate diagonal sums
+        SC_METHOD(calculateDiagonals);
+        sensitive << matrix << size;
     }
 
-    void calculate_diagonals() {
-        principal_sum = 0;
-        secondary_sum = 0;
-
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                mat[i][j] = matrix[i].read();
-                if (i == j) 
-                    principal_sum += mat[i][j];
-                if ((i + j) == (SIZE - 1)) 
-                    secondary_sum += mat[i][j];
+    // Method to calculate the sums of the diagonals
+    void calculateDiagonals() {
+        int principal_sum = 0, secondary_sum = 0;
+        for (int i = 0; i < size.read(); i++) {
+            for (int j = 0; j < size.read(); j++) {
+                if (i == j) {
+                    principal_sum += matrix[i][j].read();
+                }
+                if ((i + j) == (size.read() - 1)) {
+                    secondary_sum += matrix[i][j].read();
+                }
             }
         }
-
         principal.write(principal_sum);
         secondary.write(secondary_sum);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

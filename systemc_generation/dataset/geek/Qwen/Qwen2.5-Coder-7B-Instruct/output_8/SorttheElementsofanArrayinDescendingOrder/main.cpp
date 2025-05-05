@@ -3,66 +3,59 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;      // Clock signal
-    sc_in<bool> start;    // Start signal
-    sc_out<bool> done;     // Done signal
-    sc_out<int> sorted_nums[5]; // Output array of sorted numbers
-
-    int nums[5] = {1, 12, 6, 8, 10}; // Array to be sorted
-    int size_nums = 5; // Size of the array
-
-    bool isSwapped;
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_inout<int> nums[5];    // Array of integers to be sorted
 
     // Constructor
     SC_CTOR(BubbleSort) {
-        // Process to handle the sorting logic
         SC_METHOD(sort);
-        sensitive << clk.pos();
-        async_reset_signal_is(clk, false);
-
-        // Process to update the output
-        SC_METHOD(update_output);
-        sensitive << done;
+        sensitive << clk.pos();  // Trigger on positive edge of clock
+        async_reset_signal_is(clk, false);  // Reset on low level
     }
 
-    // Method to perform sorting
+    // Method to sort the array
     void sort() {
-        while (true) {
-            wait(clk.pos());
-            if (start.read()) {
-                for (int i = 0; i < size_nums; i++) {
-                    isSwapped = false;
-                    for (int j = 1; j < size_nums - i; j++) {
-                        if (nums[j] < nums[j - 1]) {
-                            swapNums(j, j - 1);
-                            isSwapped = true;
-                        }
-                    }
-                    if (!isSwapped) {
-                        break;
+        static bool isSwapped;
+        static int size_nums = 5;  // Size of the array
+
+        if (start.read()) {
+            for (int i = 0; i < size_nums; i++) {
+                isSwapped = false;
+                for (int j = 1; j < size_nums - i; j++) {
+                    if (nums[j].read() < nums[j - 1].read()) {
+                        int temp = nums[j].read();
+                        nums[j].write(nums[j - 1].read());
+                        nums[j - 1].write(temp);
+                        isSwapped = true;
                     }
                 }
-                done.write(true);
+                if (!isSwapped) {
+                    break;
+                }
             }
+            done.write(true);  // Set done signal after sorting
+        } else {
+            done.write(false);  // Reset done signal if start is not active
         }
     }
 
-    // Method to swap two numbers in the array
-    void swapNums(int first, int second) {
-        int curr = nums[first];
-        nums[first] = nums[second];
-        nums[second] = curr;
+    // Method to load the array
+    void load_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            nums[i].write(arr[i]);
+        }
     }
 
-    // Method to update the output array
-    void update_output() {
-        if (done.read()) {
-            for (int i = 0; i < size_nums; i++) {
-                sorted_nums[i].write(nums[i]);
-            }
+    // Method to read the array
+    void read_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = nums[i].read();
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

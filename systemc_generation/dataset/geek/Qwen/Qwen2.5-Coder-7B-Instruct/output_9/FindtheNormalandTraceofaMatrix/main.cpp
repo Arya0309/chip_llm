@@ -1,41 +1,66 @@
 
 #include <systemc.h>
+#include <vector>
+#include <cmath> // For sqrt function
 
 
 SC_MODULE(MatrixOperations) {
-    sc_in<int> matrix[SIZE];  // Input port for the matrix
-    sc_out<int> trace;        // Output port for the trace
-    sc_out<int> norm;         // Output port for the normal
+    sc_in_clk clk;  // Clock input
+    sc_in<bool> rst;  // Reset input
+    sc_out<int> trace;            // Output port for the trace
+    sc_out<int> norm;             // Output port for the normal
 
     // Constructor
     SC_CTOR(MatrixOperations) {
-        // Process to calculate trace
-        SC_METHOD(calculateTrace);
-        sensitive << matrix;
+        // Process to compute trace
+        SC_METHOD(computeTrace);
+        sensitive << clk.pos();
+        async_reset_signal_is(rst, true);
 
-        // Process to calculate normal
-        SC_METHOD(calculateNormal);
-        sensitive << matrix;
+        // Process to compute normal
+        SC_METHOD(computeNorm);
+        sensitive << clk.pos();
+        async_reset_signal_is(rst, true);
     }
 
-    // Method to calculate the trace of the matrix
-    void calculateTrace() {
-        int sum = 0;
-        for (int i = 0; i < SIZE; i++) {
-            sum += matrix[i].read();
+    // Method to compute the trace of the matrix
+    void computeTrace() {
+        if (!rst.read()) {
+            int sum = 0;
+            for (int i = 0; i < MAX; i++) {
+                sum += matrix[i][i];
+            }
+            trace.write(sum);
         }
-        trace.write(sum);
     }
 
-    // Method to calculate the normal of the matrix
-    void calculateNormal() {
-        int sum = 0;
-        for (int i = 0; i < SIZE; i++) {
-            sum += matrix[i].read() * matrix[i].read();
+    // Method to compute the normal of the matrix
+    void computeNorm() {
+        if (!rst.read()) {
+            int sum = 0;
+            for (int i = 0; i < MAX; i++) {
+                for (int j = 0; j < MAX; j++) {
+                    sum += matrix[i][j] * matrix[i][j];
+                }
+            }
+            norm.write(sqrt(sum));
         }
-        norm.write(sqrt(sum));
     }
+
+    // Method to set the matrix values
+    void setMatrix(const std::vector<std::vector<int>>& mat) {
+        for (int i = 0; i < MAX; i++) {
+            for (int j = 0; j < MAX; j++) {
+                matrix[i][j] = mat[i][j];
+            }
+        }
+    }
+
+private:
+    const int MAX = 100;  // Define the maximum size of the matrix
+    std::vector<std::vector<int>> matrix;  // 2D vector to represent the matrix
 };
+
 
 
 SC_MODULE(Testbench) {

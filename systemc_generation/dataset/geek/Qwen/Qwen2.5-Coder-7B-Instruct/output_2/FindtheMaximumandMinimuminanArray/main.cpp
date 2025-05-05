@@ -1,5 +1,6 @@
 
 #include <systemc.h>
+#include <algorithm> // Include algorithm for std::min_element and std::max_element
 
 
 SC_MODULE(MinMax) {
@@ -9,41 +10,38 @@ SC_MODULE(MinMax) {
     sc_out<int> min_val;      // Output for minimum value
     sc_out<int> max_val;      // Output for maximum value
 
-    int arr[] = { 12, 1234, 45, 67, 1 };  // Hardcoded array
-    int n = sizeof(arr) / sizeof(arr[0]);  // Size of the array
-    bool found_min = false;
-    bool found_max = false;
-    int current_min = INT_MAX;
-    int current_max = INT_MIN;
+    int arr[5];               // Array to store input values
+    int n = sizeof(arr) / sizeof(arr[0]); // Size of the array
+    bool processing = false;
 
     SC_CTOR(MinMax) {
         SC_METHOD(find_min_max);
         sensitive << clk.pos();
-        dont_initialize();
     }
 
+    // Method to find minimum and maximum values
     void find_min_max() {
-        if (start.read()) {
-            for (int i = 0; i < n; i++) {
-                if (arr[i] < current_min) {
-                    current_min = arr[i];
-                    found_min = true;
-                }
-                if (arr[i] > current_max) {
-                    current_max = arr[i];
-                    found_max = true;
-                }
-            }
-            if (found_min && found_max) {
-                min_val.write(current_min);
-                max_val.write(current_max);
-                done.write(true);
-            }
-        } else {
+        if (start.read() && !processing) {
+            processing = true;
+            int min_value = *std::min_element(arr, arr + n);
+            int max_value = *std::max_element(arr, arr + n);
+            min_val.write(min_value);
+            max_val.write(max_value);
+            done.write(true);
+            processing = false;
+        } else if (!start.read()) {
             done.write(false);
         }
     }
+
+    // Method to load array with input data
+    void load_array(const int* input_arr) {
+        for (int i = 0; i < n; ++i) {
+            arr[i] = input_arr[i];
+        }
+    }
 };
+
 
 
 SC_MODULE(Testbench) {

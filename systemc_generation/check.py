@@ -38,11 +38,13 @@ class GenCodeChecker:
             self.recorder.append(
                 {
                     "dir": dir,
+                    "task": os.path.basename(dir),
                     "compilable": False,
                     "execution_pass": False,
                     "unit_test_pass": False,
                     "status": self.status,
                     "error_msg": self.compile_result.stderr.decode("utf-8", "ignore"),
+                    "generated_code": None,
                 }
             )
             return
@@ -57,6 +59,7 @@ class GenCodeChecker:
             self.recorder.append(
                 {
                     "dir": dir,
+                    "task": os.path.basename(dir),
                     "compilable": True,
                     "execution_pass": False,
                     "unit_test_pass": False,
@@ -67,6 +70,7 @@ class GenCodeChecker:
                         and isinstance(self.unit_test_result.stdout, bytes)
                         else ""
                     ),
+                    "generated_code": None,
                 }
             )
         elif test_status == "unit_test_fail":
@@ -76,11 +80,13 @@ class GenCodeChecker:
             self.recorder.append(
                 {
                     "dir": dir,
+                    "task": os.path.basename(dir),
                     "compilable": True,
                     "execution_pass": True,
                     "unit_test_pass": False,
                     "status": self.status,
                     "error_msg": self.unit_test_result.stdout.decode("utf-8", "ignore"),
+                    "generated_code": None,
                 }
             )
         elif test_status == "unit_test_success":
@@ -90,11 +96,13 @@ class GenCodeChecker:
             self.recorder.append(
                 {
                     "dir": dir,
+                    "task": os.path.basename(dir),
                     "compilable": True,
                     "execution_pass": True,
                     "unit_test_pass": True,
                     "status": self.status,
                     "error_msg": self.unit_test_result.stdout.decode("utf-8", "ignore"),
+                    "generated_code": None,
                 }
             )
         return
@@ -145,7 +153,7 @@ class GenCodeChecker:
                 cwd=dir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=5,  # Increase if necessary, e.g., timeout=10
+                timeout=self.timeout,  # Increase if necessary, e.g., timeout=10
             )
         except subprocess.TimeoutExpired as e:
             print(Fore.RED + f"Timeout expired: {e}")
@@ -218,11 +226,12 @@ class GenCodeChecker:
         ) as f:
             json.dump(self.recorder, f, indent=4, ensure_ascii=False, default=str)
 
-    def recursive_check(self, file_dir, type: str = "cpp", log_dir="./"):
+    def recursive_check(self, file_dir, type: str = "cpp", log_dir="./", timeout=5):
         if not os.path.isdir(file_dir):
             print(Fore.RED + "Error: directory not exist")
             return False
 
+        self.timeout = timeout
         self.file_dir = file_dir
         self.log_dir = log_dir
         for root, _, files in os.walk(self.file_dir):
@@ -259,14 +268,20 @@ if __name__ == "__main__":
         help="The directory to save the log",
     )
     parser.add_argument(
-        "-t",
         "--type",
         metavar="",
         type=str,
         default="cpp",
         help="The type of the compilation, either cpp or make",
     )
+    parser.add_argument(
+        "-t",
+        "--timeout",
+        type=int,
+        default=5,
+        help="The timeout for the unit test",
+    )
 
     args = parser.parse_args()
     ckr = GenCodeChecker()
-    ckr.recursive_check(args.file_dir, args.type, args.log_dir)
+    ckr.recursive_check(args.file_dir, args.type, args.log_dir, args.timeout)

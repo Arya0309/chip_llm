@@ -3,35 +3,34 @@
 
 
 SC_MODULE(DiagonalSum) {
-    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
-    sc_out<int> principal;        // Output port for the principal diagonal sum
-    sc_out<int> secondary;        // Output port for the secondary diagonal sum
+    sc_in<int> matrix[4][4];
+    sc_out<int> principal;
+    sc_out<int> secondary;
 
-    // Constructor
     SC_CTOR(DiagonalSum) {
-        // Process to calculate diagonal sums
-        SC_METHOD(calculate_sums);
-        sensitive << matrix;
-    }
-
-    // Method to calculate and write the sums of the diagonals
-    void calculate_sums() {
-        int principal_sum = 0, secondary_sum = 0;
-        int n = sizeof(matrix) / sizeof(matrix[0]);  // Assuming square matrix
-
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                if (i == j)
-                    principal_sum += matrix[i][j];
-                if ((i + j) == (n - 1))
-                    secondary_sum += matrix[i][j];
+        SC_METHOD(calculateDiagonals);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                sensitive << matrix[i][j];
             }
         }
+    }
 
-        principal.write(principal_sum);
-        secondary.write(secondary_sum);
+    void calculateDiagonals() {
+        int principalSum = 0, secondarySum = 0;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (i == j)
+                    principalSum += matrix[i][j].read();
+                if ((i + j) == (4 - 1))
+                    secondarySum += matrix[i][j].read();
+            }
+        }
+        principal.write(principalSum);
+        secondary.write(secondarySum);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

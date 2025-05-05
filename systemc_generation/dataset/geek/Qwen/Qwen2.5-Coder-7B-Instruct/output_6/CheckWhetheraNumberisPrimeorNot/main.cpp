@@ -8,7 +8,7 @@ SC_MODULE(PrimeChecker) {
 
     // Constructor
     SC_CTOR(PrimeChecker) {
-        // Process to perform prime checking
+        // Process to check if the number is prime
         SC_METHOD(check_prime);
         sensitive << n;
     }
@@ -16,14 +16,19 @@ SC_MODULE(PrimeChecker) {
     // Method to check if the number is prime
     void check_prime() {
         int cnt = 0;
+
+        // If number is less than/equal to 1, it is not prime
         if (n.read() <= 1) {
             is_prime.write(false);
         } else {
+            // Check for divisors from 1 to n
             for (int i = 1; i <= n.read(); i++) {
                 if (n.read() % i == 0) {
                     cnt++;
                 }
             }
+
+            // If n is divisible by more than 2 numbers, then it is not prime
             if (cnt > 2) {
                 is_prime.write(false);
             } else {

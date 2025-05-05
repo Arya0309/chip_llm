@@ -6,56 +6,43 @@ SC_MODULE(RowWiseSorter) {
     sc_in<bool> clk;      // Clock signal
     sc_in<bool> start;    // Start signal
     sc_out<bool> done;   // Done signal
+    sc_out<int> sorted_row[4]; // Output port for the sorted matrix rows
 
-    int m[4][4] = {{9, 8, 7, 1},
-                  {7, 3, 0, 2},
-                  {9, 5, 3, 2},
-                  {6, 3, 1, 2}};
-    int r = 4;
-    int c = 4;
+    // Constructor
+    SC_CTOR(RowWiseSorter) {
+        SC_METHOD(sort_rows);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
 
-    void sortRowWise() {
-        // Sorting each row of the matrix
-        for (int i = 0; i < r; i++) {
-            for (int j = 0; j < c; j++) {
-                for (int k = 0; k < c - j - 1; k++) {
+    // Method to sort rows of the matrix
+    void sort_rows() {
+        if (start.read()) {
+            int m[4][4] = {{9, 8, 7, 1},
+                          {7, 3, 0, 2},
+                          {9, 5, 3, 2},
+                          {6, 3, 1, 2}};
+            int r = 4;
+            int c = 4;
+
+            for (int i = 0; i < r; i++) {
+                for (int k = 0; k < c - 1; k++) {
                     if (m[i][k] > m[i][k + 1]) {
-                        // Swapping of elements
                         int temp = m[i][k];
                         m[i][k] = m[i][k + 1];
                         m[i][k + 1] = temp;
                     }
                 }
             }
-        }
-    }
 
-    void printMatrix() {
-        // Printing the sorted matrix
-        for (int i = 0; i < r; i++) {
-            for (int j = 0; j < c; j++)
-                cout << m[i][j] << " ";
-            cout << endl;
-        }
-    }
+            // Write each sorted row individually
+            for (int i = 0; i < r; i++) {
+                for (int j = 0; j < c; j++) {
+                    sorted_row[j].write(m[i][j]);
+                }
+            }
 
-    SC_CTOR(RowWiseSorter) {
-        SC_THREAD(sort_and_print);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
-
-    void sort_and_print() {
-        while (true) {
-            wait(start.pos());  // Wait for the start signal
-
-            sortRowWise();  // Sort the matrix
-
-            printMatrix();  // Print the sorted matrix
-
-            done.write(true);  // Set the done signal
-            wait(1, SC_NS);    // Hold the done signal for 1 ns
-            done.write(false); // Clear the done signal
+            done.write(true);
         }
     }
 };

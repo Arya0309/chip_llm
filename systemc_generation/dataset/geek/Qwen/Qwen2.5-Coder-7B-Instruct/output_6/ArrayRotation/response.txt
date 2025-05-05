@@ -1,36 +1,34 @@
-### Analysis of the C++/C Code
+### Analysis of Provided C++/C Code
 
 #### Inputs and Outputs
 - **Inputs**:
-  - `arr[]`: An array of integers.
-  - `d`: An integer representing the number of positions to rotate the array to the left.
-  - `n`: The size of the array.
+  - `arr[]`: An integer array containing the elements to be rotated.
+  - `d`: The number of positions to rotate the array to the left.
 - **Outputs**:
-  - The rotated array is printed to the console.
+  - The rotated array is printed to the standard output.
 
-#### Detailed Explanation
+#### Detailed Explanation of the Code
 
 1. **Function: `Rotate`**
-   - This function takes three parameters: an array `arr`, an integer `d` (the number of positions to rotate), and an integer `n` (the size of the array).
-   - It creates a temporary array `temp` of size `n`.
-   - The first loop copies the elements from `arr[d]` to `arr[n-1]` into `temp`.
-   - The second loop copies the elements from `arr[0]` to `arr[d-1]` into `temp`.
-   - The third loop copies the elements from `temp` back into `arr`.
+   - This function takes three parameters: an integer array `arr`, the number of positions to rotate `d`, and the size of the array `n`.
+   - It creates a temporary array `temp` to store the rotated version of the input array.
+   - The first loop copies the elements from index `d` to `n-1` to the beginning of `temp`.
+   - The second loop copies the elements from index `0` to `d-1` to the end of `temp`.
+   - The third loop copies the elements from `temp` back to the original array `arr`.
 
 2. **Function: `PrintTheArray`**
-   - This function takes an array `arr` and its size `n` as parameters.
-   - It prints each element of the array followed by a space.
+   - This function takes an integer array `arr` and its size `n` as parameters.
+   - It iterates through the array and prints each element followed by a space.
 
 3. **Main Function**
-   - Initializes an array `arr` with values `{1, 2, 3, 4, 5, 6, 7}`.
-   - Calculates the size of the array `N`.
-   - Sets `d` to `2`.
-   - Calls the `Rotate` function with the array, `d`, and `N`.
-   - Calls the `PrintTheArray` function with the rotated array and `N`.
+   - The main function initializes an array `arr` with values `{1, 2, 3, 4, 5, 6, 7}`.
+   - It calculates the size of the array `N`.
+   - It calls the `Rotate` function to rotate the array by `2` positions.
+   - It calls the `PrintTheArray` function to print the rotated array.
 
-### Equivalent SystemC Code
+### SystemC Code Snippet
 
-To convert this C++/C code into SystemC, we need to define a module that handles the rotation and printing operations using SystemC signals.
+Below is the SystemC code that replicates the logic of the provided C++/C code. It uses the signals defined in the problem statement.
 
 ```cpp
 #include <systemc.h>
@@ -40,77 +38,65 @@ SC_MODULE(Rotator) {
     sc_in<bool> rst;  // Reset signal
     sc_in<int> d;     // Number of positions to rotate
     sc_in<int> in_array[7];  // Input array
-    sc_out<int> out_array[7]; // Output array
+    sc_out<int> out_array[7];  // Output array
 
     // Temporary array for rotation
     int temp[7];
 
     // Constructor
     SC_CTOR(Rotator) {
-        // Process to perform rotation
-        SC_METHOD(rotate);
-        sensitive << clk.pos();  // Sensitive to positive edge of clock
-        async_reset_signal_is(rst, true);  // Reset active high
-
-        // Process to print the array
-        SC_METHOD(print_array);
-        sensitive << clk.pos();  // Sensitive to positive edge of clock
-        async_reset_signal_is(rst, true);  // Reset active high
+        // Process to handle the rotation
+        SC_METHOD(handle_rotation);
+        sensitive << clk.pos();
+        async_reset_signal_is(rst, true);
     }
 
-    // Method to rotate the array
-    void rotate() {
-        if (!rst.read()) {
-            // Clear the temporary array
+    // Method to handle the rotation logic
+    void handle_rotation() {
+        if (rst.read()) {
+            // Reset the output array to zero
             for (int i = 0; i < 7; i++) {
-                temp[i] = 0;
+                out_array[i].write(0);
+            }
+        } else {
+            // Perform the rotation
+            int n = 7;  // Size of the array
+            int k = 0;
+
+            // Copy the elements from d to n-1 to the beginning of temp
+            for (int i = d; i < n; i++) {
+                temp[k++] = in_array[i].read();
             }
 
-            // Copy elements from in_array to temp
-            for (int i = d; i < 7; i++) {
-                temp[i - d] = in_array[i];
-            }
+            // Copy the elements from 0 to d-1 to the end of temp
             for (int i = 0; i < d; i++) {
-                temp[7 - d + i] = in_array[i];
+                temp[k++] = in_array[i].read();
             }
 
-            // Copy elements from temp back to out_array
-            for (int i = 0; i < 7; i++) {
+            // Copy the elements from temp back to the output array
+            for (int i = 0; i < n; i++) {
                 out_array[i].write(temp[i]);
             }
-        }
-    }
-
-    // Method to print the array (not directly executable in SystemC, just for demonstration)
-    void print_array() {
-        if (!rst.read()) {
-            cout << "Rotated Array: ";
-            for (int i = 0; i < 7; i++) {
-                cout << out_array[i].read() << " ";
-            }
-            cout << endl;
         }
     }
 };
 ```
 
-### Explanation of SystemC Code
+### Explanation of the SystemC Code
 
-1. **Module Definition**:
-   - `Rotator` is a SystemC module that takes `clk`, `rst`, `d`, and `in_array` as inputs and outputs `out_array`.
+- **Inputs and Outputs**:
+  - `clk`: Clock signal.
+  - `rst`: Reset signal.
+  - `d`: Number of positions to rotate.
+  - `in_array[7]`: Input array.
+  - `out_array[7]`: Output array.
 
-2. **Temporary Array**:
-   - A temporary array `temp` of size 7 is used to store the rotated elements.
+- **Process `handle_rotation`**:
+  - The process is sensitive to positive edges of the clock (`clk.pos()`).
+  - If the reset signal (`rst`) is active (`true`), the output array is reset to zero.
+  - Otherwise, the rotation logic is executed:
+    - Elements from index `d` to `n-1` are copied to the beginning of `temp`.
+    - Elements from index `0` to `d-1` are copied to the end of `temp`.
+    - Elements from `temp` are copied back to the output array `out_array`.
 
-3. **Constructor**:
-   - Two processes (`rotate` and `print_array`) are declared and made sensitive to the positive edge of the clock.
-   - Asynchronous reset is handled with `async_reset_signal_is`.
-
-4. **Rotation Process**:
-   - The `rotate` method performs the rotation operation when the reset is inactive.
-   - Elements are copied from `in_array` to `temp` and then from `temp` back to `out_array`.
-
-5. **Print Array Process**:
-   - The `print_array` method is intended to print the array, but it's not executable in SystemC. It's included for demonstration purposes.
-
-This SystemC code should integrate seamlessly with the provided signals and can be used in a high-level synthesis flow.
+This SystemC code snippet accurately captures the logic of the provided C++/C code and can be integrated into a high-level synthesis flow.

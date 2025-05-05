@@ -1,27 +1,34 @@
 
-#include <systemc.h>
+   #include <systemc.h>
 
-
+   
 SC_MODULE(MatrixSwapper) {
-    sc_in<int> in[4][4];  // Input ports for the matrix
-    sc_out<int> out[4][4]; // Output ports for the modified matrix
+       sc_in<int> in[4][4];  // Input ports for the 4x4 matrix
+       sc_out<int> out[4][4]; // Output ports for the modified matrix
 
-    SC_CTOR(MatrixSwapper) {
-        // Process to perform the column swap
-        SC_METHOD(interchangeColumns);
-        sensitive << in;
-    }
+       // Constructor
+       SC_CTOR(MatrixSwapper) {
+           // Iterate over each row and make the process sensitive to each input port
+           for (int i = 0; i < 4; i++) {
+               SC_METHOD(interchangeFirstLast);
+               sensitive << in[i][0];
+               sensitive << in[i][1];
+               sensitive << in[i][2];
+               sensitive << in[i][3];
+           }
+       }
 
-    void interchangeColumns() {
-        // Swapping the first and last columns
-        for (int i = 0; i < 4; i++) {
-            int t = in[i][0].read();
-            out[i][0].write(in[i][3].read());
-            out[i][3].write(t);
-        }
-    }
-};
+       // Method to interchange the first and last columns of the matrix
+       void interchangeFirstLast() {
+           for (int i = 0; i < 4; i++) {
+               int t = in[i][0].read();
+               out[i][0].write(in[i][3].read());
+               out[i][3].write(t);
+           }
+       }
+   };
 
+   
 
 SC_MODULE(Testbench) {
     // Use static const for constants instead of #define

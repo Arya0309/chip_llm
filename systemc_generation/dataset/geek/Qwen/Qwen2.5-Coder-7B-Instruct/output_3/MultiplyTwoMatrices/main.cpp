@@ -3,30 +3,62 @@
 
 
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[2][2];  // Input ports for the first matrix
-    sc_in<int> B[2][3];  // Input ports for the second matrix
-    sc_out<int> C[2][3]; // Output ports for the result matrix
+    // Constants for matrix dimensions
+    static const int SIZE_A = 2;
+    static const int SIZE_B = 2;
+    static const int SIZE_RESULT = 3;
+
+    // Input ports for the first matrix
+    sc_in<int> A[SIZE_A * SIZE_B];
+
+    // Input ports for the second matrix
+    sc_in<int> B[SIZE_B * SIZE_RESULT];
+
+    // Output ports for the result matrix
+    sc_out<int> C[SIZE_A * SIZE_RESULT];
 
     // Constructor
     SC_CTOR(MatrixMultiplier) {
         // Process to perform matrix multiplication
-        SC_METHOD(mulMat);
-        sensitive << A << B;
+        SC_METHOD(multiply);
+        for (int i = 0; i < SIZE_A * SIZE_B; ++i) {
+            sensitive << A[i];
+        }
+        for (int i = 0; i < SIZE_B * SIZE_RESULT; ++i) {
+            sensitive << B[i];
+        }
     }
 
-    // Method to multiply the two matrices
-    void mulMat() {
-        int rslt[2][3] = { { 0, 0, 0 }, { 0, 0, 0 } };
+    // Method to multiply the matrices
+    void multiply() {
+        int R1 = SIZE_A, C1 = SIZE_B, R2 = SIZE_B, C2 = SIZE_RESULT; // Define dimensions
+        int rslt[R1][C2] = {0}; // Initialize result array
 
-        for (int i = 0; i < 2; i++) {
-            for (int j = 0; j < 3; j++) {
+        // Check dimension compatibility
+        if (C1 != R2) {
+            cout << "The number of columns in Matrix-1 must "
+                 "be equal to the number of rows in "
+                 "Matrix-2"
+                 << endl;
+            cout << "Please update SIZE_A, SIZE_B, and SIZE_RESULT accordingly"
+                 << endl;
+            return;
+        }
+
+        // Nested loops for multiplication
+        for (int i = 0; i < R1; i++) {
+            for (int j = 0; j < C2; j++) {
                 rslt[i][j] = 0;
-
-                for (int k = 0; k < 2; k++) {
-                    rslt[i][j] += A[i][k] * B[k][j];
+                for (int k = 0; k < R2; k++) {
+                    rslt[i][j] += A[i * C1 + k].read() * B[k * C2 + j].read();
                 }
+            }
+        }
 
-                C[i][j].write(rslt[i][j]);
+        // Write result to output ports
+        for (int i = 0; i < R1; i++) {
+            for (int j = 0; j < C2; j++) {
+                C[i * C2 + j].write(rslt[i][j]);
             }
         }
     }

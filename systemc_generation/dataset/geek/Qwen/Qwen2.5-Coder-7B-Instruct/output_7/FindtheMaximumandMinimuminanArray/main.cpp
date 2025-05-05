@@ -1,59 +1,59 @@
 
 #include <systemc.h>
+#include <vector>
 
 
 SC_MODULE(MinMax) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> start;  // Start signal
     sc_out<bool> done;  // Done signal
-    sc_out<int> min_val;  // Output for minimum value
-    sc_out<int> max_val;  // Output for maximum value
+    sc_out<int> min_val;  // Output port for minimum value
+    sc_out<int> max_val;  // Output port for maximum value
 
-    int arr[10];  // Array to store input values
+    std::vector<int> arr;  // Dynamic array to store input values
     int n;  // Size of the array
-    int min_element;  // Variable to store the minimum element
-    int max_element;  // Variable to store the maximum element
+    int current_min;  // Current minimum value
+    int current_max;  // Current maximum value
 
     // Constructor
     SC_CTOR(MinMax) {
-        // Process to handle the start signal
-        SC_METHOD(handle_start);
-        sensitive << start.pos();
+        SC_METHOD(find_min_max);
+        sensitive << clk.pos();  // Sensitive to positive edge of the clock
+        dont_initialize();
     }
 
-    // Method to handle the start signal
-    void handle_start() {
+    // Method to load the array into the module
+    void load_array(int input_arr[], int size) {
+        arr.clear();
+        arr.assign(input_arr, input_arr + size);
+        n = size;
+    }
+
+    // Method to find minimum and maximum values
+    void find_min_max() {
         if (start.read()) {
-            // Reset outputs
-            min_val.write(0);
-            max_val.write(0);
-            done.write(false);
+            current_min = INT_MAX;
+            current_max = INT_MIN;
 
-            // Copy input array to local array
-            for (int i = 0; i < 10; i++) {
-                arr[i] = rand() % 1000;  // Example: Random values for demonstration
-            }
-            n = 10;
-
-            // Find minimum and maximum elements
-            min_element = arr[0];
-            max_element = arr[0];
-            for (int i = 1; i < n; i++) {
-                if (arr[i] < min_element) {
-                    min_element = arr[i];
+            for (int i = 0; i < n; i++) {
+                if (arr[i] < current_min) {
+                    current_min = arr[i];
                 }
-                if (arr[i] > max_element) {
-                    max_element = arr[i];
+                if (arr[i] > current_max) {
+                    current_max = arr[i];
                 }
             }
 
-            // Write results to outputs
-            min_val.write(min_element);
-            max_val.write(max_element);
+            min_val.write(current_min);
+            max_val.write(current_max);
             done.write(true);
+        } else {
+            done.write(false);
         }
     }
 };
+
+// Testbench module
 
 
 SC_MODULE(Testbench) {

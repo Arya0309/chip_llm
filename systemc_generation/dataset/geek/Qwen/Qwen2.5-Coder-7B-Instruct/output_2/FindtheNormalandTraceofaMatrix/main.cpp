@@ -1,25 +1,28 @@
 
 #include <systemc.h>
+#include <cmath>
 
 
 SC_MODULE(MatrixOperations) {
+    static const int SIZE = 5;  // Define the size of the matrix
+
     sc_in<int> matrix[SIZE];  // Input port for the matrix
-    sc_out<int> trace;       // Output port for the trace
-    sc_out<int> norm;        // Output port for the norm
+    sc_out<int> trace;        // Output port for the trace
+    sc_out<int> norm;         // Output port for the normal
 
     // Constructor
     SC_CTOR(MatrixOperations) {
-        // Process to compute trace
-        SC_METHOD(compute_trace);
+        // Process to calculate trace
+        SC_METHOD(calculateTrace);
         sensitive << matrix;
 
-        // Process to compute norm
-        SC_METHOD(compute_norm);
+        // Process to calculate normal
+        SC_METHOD(calculateNorm);
         sensitive << matrix;
     }
 
-    // Method to compute the trace of the matrix
-    void compute_trace() {
+    // Method to calculate the trace of the matrix
+    void calculateTrace() {
         int sum = 0;
         for (int i = 0; i < SIZE; i++) {
             sum += matrix[i].read();
@@ -27,13 +30,15 @@ SC_MODULE(MatrixOperations) {
         trace.write(sum);
     }
 
-    // Method to compute the norm of the matrix
-    void compute_norm() {
+    // Method to calculate the normal of the matrix
+    void calculateNorm() {
         int sum = 0;
         for (int i = 0; i < SIZE; i++) {
-            sum += matrix[i].read() * matrix[i].read();
+            for (int j = 0; j < SIZE; j++) {
+                sum += matrix[i].read() * matrix[j].read();
+            }
         }
-        norm.write(sqrt(sum));
+        norm.write(static_cast<int>(std::sqrt(static_cast<double>(sum))));
     }
 };
 

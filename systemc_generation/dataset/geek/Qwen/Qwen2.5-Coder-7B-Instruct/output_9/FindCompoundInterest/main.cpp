@@ -6,7 +6,7 @@ SC_MODULE(CompoundInterestCalculator) {
     sc_in<double> principal;  // Input port for the principal amount
     sc_in<double> rate;       // Input port for the interest rate
     sc_in<double> time;       // Input port for the time period
-    sc_out<double> ci;         // Output port for the compound interest
+    sc_out<double> ci;        // Output port for the compound interest
 
     // Constructor
     SC_CTOR(CompoundInterestCalculator) {
@@ -22,7 +22,6 @@ SC_MODULE(CompoundInterestCalculator) {
         ci.write(CI);
     }
 };
-
 
 
 SC_MODULE(Testbench) {

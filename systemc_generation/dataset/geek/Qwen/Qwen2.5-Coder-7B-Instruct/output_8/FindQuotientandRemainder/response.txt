@@ -1,66 +1,42 @@
 ### Analysis of the C++ Code
 
 #### Inputs and Outputs
-- **Inputs**:
-  - `Dividend`: The number to be divided.
-  - `Divisor`: The number by which the dividend is divided.
-- **Outputs**:
-  - `Quotient`: The result of the division.
-  - `Remainder`: The remainder of the division.
-  - `Error`: A boolean flag indicating whether there was an error (division by zero).
+- **Inputs**: `Dividend` and `Divisor`
+- **Outputs**: `Quotient`, `Remainder`, and `Error`
 
-#### Line-by-Line Explanation
+#### Detailed Explanation
 
-1. **Header and Namespace Declaration**
+1. **Variable Declarations**
    ```cpp
-   #include <iostream>
-   using namespace std;
+   int Dividend, Quotient, Divisor, Remainder;
    ```
-   - Includes the standard input-output stream library and uses the standard namespace for convenience.
+   - This block declares four integer variables: `Dividend`, `Quotient`, `Divisor`, and `Remainder`.
 
-2. **Main Function**
+2. **Input Prompt**
    ```cpp
-   int main()
-   {
-       int Dividend, Quotient, Divisor, Remainder;
+   cout << "Enter Dividend & Divisor: ";
+   cin >> Dividend >> Divisor;
    ```
-   - Declares variables for the dividend, divisor, quotient, and remainder.
+   - This line prompts the user to enter the dividend and divisor values.
 
-3. **User Input**
+3. **Division by Zero Check**
    ```cpp
-       cout << "Enter Dividend & Divisor: ";
-       cin >> Dividend >> Divisor;
-   ```
-   - Prompts the user to enter the dividend and divisor and reads them from the standard input.
-
-4. **Division by Zero Check**
-   ```cpp
-       if (Divisor == 0) {
-           cout << "Error: Divisor cannot be zero." << endl;
-       } else {
-   ```
-   - Checks if the divisor is zero. If it is, an error message is printed. Otherwise, the division proceeds.
-
-5. **Calculation of Quotient and Remainder**
-   ```cpp
-           Quotient = Dividend / Divisor;
-           Remainder = Dividend % Divisor;
-   ```
-   - Calculates the quotient and remainder of the division.
-
-6. **Output Results**
-   ```cpp
-           cout << "The Quotient = " << Quotient << endl;
-           cout << "The Remainder = " << Remainder << endl;
-       }
-       return 0;
+   if (Divisor == 0) {
+       cout << "Error: Divisor cannot be zero." << endl;
+   } else {
+       Quotient = Dividend / Divisor;
+       Remainder = Dividend % Divisor;
+       cout << "The Quotient = " << Quotient << endl;
+       cout << "The Remainder = " << Remainder << endl;
    }
    ```
-   - Prints the quotient and remainder. If there was an error, no further output is printed.
+   - If the divisor is zero, an error message is printed.
+   - If the divisor is not zero, the quotient and remainder are calculated using the `/` and `%` operators, respectively.
+   - The results are then printed.
 
 ### SystemC Code
 
-Below is the equivalent SystemC code that replicates the functionality of the provided C++ code. It utilizes the provided signals (`Dividend`, `Divisor`, `Quotient`, `Remainder`, and `Error`).
+To create a SystemC version of the above C++ code, we need to use the provided signals (`Dividend`, `Divisor`, `Quotient`, `Remainder`, and `Error`). Here is the equivalent SystemC code:
 
 ```cpp
 #include <systemc.h>
@@ -69,8 +45,8 @@ SC_MODULE(Divider) {
     sc_in<int> Dividend;  // Input port for the dividend
     sc_in<int> Divisor;   // Input port for the divisor
     sc_out<int> Quotient; // Output port for the quotient
-    sc_out<int> Remainder;// Output port for the remainder
-    sc_out<bool> Error;   // Output port for error flag
+    sc_out<int> Remainder; // Output port for the remainder
+    sc_out<bool> Error; // Output port for error flag
 
     // Constructor
     SC_CTOR(Divider) {
@@ -96,10 +72,46 @@ SC_MODULE(Divider) {
 
 ### Explanation of the SystemC Code
 
-- **Module Declaration**: The `Divider` module is declared, which includes input ports for the dividend and divisor and output ports for the quotient, remainder, and error flag.
-  
-- **Constructor**: The constructor initializes the module and binds the `divide` method to the inputs `Dividend` and `Divisor`.
+1. **Module Declaration**
+   ```cpp
+   SC_MODULE(Divider) {
+   ```
+   - This line declares a SystemC module named `Divider`.
 
-- **Division Method**: The `divide` method checks if the divisor is zero. If it is, the error flag is set to `true`, and both the quotient and remainder are set to zero. Otherwise, the error flag is set to `false`, and the quotient and remainder are calculated and assigned to their respective output ports.
+2. **Input and Output Ports**
+   ```cpp
+   sc_in<int> Dividend;
+   sc_in<int> Divisor;
+   sc_out<int> Quotient;
+   sc_out<int> Remainder;
+   sc_out<bool> Error;
+   ```
+   - These lines define the input and output ports for the module.
+
+3. **Constructor**
+   ```cpp
+   SC_CTOR(Divider) {
+       SC_METHOD(divide);
+       sensitive << Dividend << Divisor;
+   }
+   ```
+   - This constructor initializes the module and binds the `divide` method to the input signals `Dividend` and `Divisor`.
+
+4. **Division Method**
+   ```cpp
+   void divide() {
+       if (Divisor.read() == 0) {
+           Error.write(true);
+           Quotient.write(0);
+           Remainder.write(0);
+       } else {
+           Error.write(false);
+           Quotient.write(Dividend.read() / Divisor.read());
+           Remainder.write(Dividend.read() % Divisor.read());
+       }
+   }
+   ```
+   - This method checks if the divisor is zero. If it is, it sets the `Error` signal to `true` and both `Quotient` and `Remainder` to zero.
+   - If the divisor is not zero, it sets the `Error` signal to `false` and calculates the quotient and remainder, then writes them to the respective output ports.
 
 This SystemC code accurately reflects the logic of the original C++ code and can be integrated into a high-level synthesis flow.

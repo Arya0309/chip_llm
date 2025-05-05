@@ -3,13 +3,18 @@
 
 
 SC_MODULE(DeterminantCalculator) {
-    sc_in<double> matrix[4]; // Input port for the matrix elements
-    sc_out<double> det;      // Output port for the determinant
+    sc_in<double> matrix[4][4];  // Input port for the matrix
+    sc_out<double> det;          // Output port for the determinant
 
     // Constructor
     SC_CTOR(DeterminantCalculator) {
-        SC_THREAD(calculate_determinant);
-        sensitive << matrix[0] << matrix[1] << matrix[2] << matrix[3];
+        // Process to calculate the determinant
+        SC_METHOD(calculate_determinant);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                sensitive << matrix[i][j];
+            }
+        }
     }
 
     // Method to calculate the determinant
@@ -17,7 +22,7 @@ SC_MODULE(DeterminantCalculator) {
         double a[4][4];
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                a[i][j] = matrix[i].read();
+                a[i][j] = matrix[i][j].read();
             }
         }
 
@@ -25,14 +30,12 @@ SC_MODULE(DeterminantCalculator) {
         for (int i = 0; i < 4; i++) {
             int pivot = i;
             for (int j = i + 1; j < 4; j++) {
-                if (fabs(a[j][i]) > fabs(a[pivot][i])) {
+                if (abs(a[j][i]) > abs(a[pivot][i])) {
                     pivot = j;
                 }
             }
             if (pivot != i) {
-                for (int k = 0; k < 4; k++) {
-                    swap(a[i][k], a[pivot][k]);
-                }
+                std::swap(a[i], a[pivot]);
                 det *= -1;
             }
             if (a[i][i] == 0) {
@@ -48,9 +51,10 @@ SC_MODULE(DeterminantCalculator) {
             }
         }
 
-        this->det.write(det);
+        det.write(det);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

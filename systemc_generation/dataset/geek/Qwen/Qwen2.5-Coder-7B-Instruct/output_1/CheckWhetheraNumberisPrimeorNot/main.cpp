@@ -3,17 +3,17 @@
 
 
 SC_MODULE(PrimeChecker) {
-    sc_in<int> n;  // Input port for the number to check
+    sc_in<int> n;          // Input port for the number to check
     sc_out<bool> is_prime; // Output port indicating if the number is prime
 
     // Constructor
     SC_CTOR(PrimeChecker) {
-        // Process to check if the number is prime
+        // Process to determine if the number is prime
         SC_METHOD(check_prime);
         sensitive << n;
     }
 
-    // Method to check if the number is prime
+    // Method to determine if the number is prime
     void check_prime() {
         int cnt = 0;
         if (n.read() <= 1) {

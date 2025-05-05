@@ -5,37 +5,63 @@
 SC_MODULE(RowWiseSorter) {
     sc_in<bool> clk;          // Clock signal
     sc_in<bool> start;        // Start signal
-    sc_out<bool> done;       // Done signal
-    sc_inout<sc_vector<sc_vector<int>>*> matrix; // Input/Output matrix
+    sc_out<bool> done;        // Done signal
+    sc_inout<int> matrix[4][4]; // Input/Output matrix
+    sc_out<int> sorted_matrix[4][4]; // Output sorted matrix
 
-    SC_CTOR(RowWiseSorter) {
-        SC_METHOD(sortMatrix);
+    // Variables to store matrix dimensions
+    sc_signal<int> rows;
+    sc_signal<int> cols;
+
+    // Constructor
+    SC_CTOR(RowWiseSorter) : rows(0), cols(0) {
+        // Initialize signals
+        SC_METHOD(sortRowsMethod);
         sensitive << clk.pos();
         dont_initialize();
     }
 
-    void sortMatrix() {
+    // Method to sort rows of the matrix
+    void sortRowsMethod() {
         if (start.read()) {
-            int r = matrix->size();
-            int c = (*matrix)[0].size();
-
-            for (int i = 0; i < r; i++) {
-                for (int j = 0; j < c; j++) {
-                    for (int k = 0; k < c - j - 1; k++) {
-                        if ((*matrix)[i][k] > (*matrix)[i][k + 1]) {
-                            swap((*matrix)[i][k], (*matrix)[i][k + 1]);
+            for (int i = 0; i < rows.read(); i++) {
+                for (int j = 0; j < cols.read(); j++) {
+                    for (int k = 0; k < cols.read() - j - 1; k++) {
+                        if (matrix[i][k].read() > matrix[i][k + 1].read()) {
+                            int temp = matrix[i][k].read();
+                            matrix[i][k].write(matrix[i][k + 1].read());
+                            matrix[i][k + 1].write(temp);
                         }
                     }
                 }
             }
-
+            for (int i = 0; i < rows.read(); i++) {
+                for (int j = 0; j < cols.read(); j++) {
+                    sorted_matrix[i][j].write(matrix[i][j].read());
+                }
+            }
             done.write(true);
-        } else {
-            done.write(false);
+        }
+    }
+
+    // Method to load matrix
+    void load_matrix(int input_matrix[4][4]) {
+        for (int i = 0; i < rows.read(); i++) {
+            for (int j = 0; j < cols.read(); j++) {
+                matrix[i][j].write(input_matrix[i][j]);
+            }
+        }
+    }
+
+    // Method to read sorted matrix
+    void read_matrix(int output_matrix[4][4]) {
+        for (int i = 0; i < rows.read(); i++) {
+            for (int j = 0; j < cols.read(); j++) {
+                output_matrix[i][j] = sorted_matrix[i][j].read();
+            }
         }
     }
 };
-
 
 
 SC_MODULE(Testbench) {

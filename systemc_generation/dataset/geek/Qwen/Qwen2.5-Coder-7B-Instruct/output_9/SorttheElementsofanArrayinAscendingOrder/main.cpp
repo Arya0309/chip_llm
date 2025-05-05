@@ -3,33 +3,37 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;       // Clock signal
-    sc_in<bool> start;     // Start signal
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
     sc_out<bool> done;    // Done signal
+    sc_inout<int> nums[10];  // Array of integers to be sorted
+    sc_out<int> sorted_nums[10];  // Sorted array output
+    sc_out<bool> reset;    // Reset signal (changed from sc_in to sc_out)
 
-    sc_in<int> nums[5];     // Input array
-    sc_out<int> sorted_nums[5]; // Output sorted array
-
-    bool isSwapped;
+    int size_nums;  // Size of the array
 
     // Constructor
-    SC_CTOR(BubbleSort) {
+    SC_CTOR(BubbleSort) : size_nums(10) {
         // Process to handle sorting
-        SC_METHOD(sortArray);
+        SC_METHOD(sort);
         sensitive << clk.pos();
-        dont_initialize();
+
+        // Process to handle reset
+        SC_METHOD(reset_method);
+        sensitive << reset.pos();
     }
 
-    // Method to sort the array
-    void sortArray() {
+    // Method to handle sorting
+    void sort() {
         if (start.read()) {
-            for (int i = 0; i < 5; i++) {
+            bool isSwapped;
+            for (int i = 0; i < size_nums; i++) {
                 isSwapped = false;
-                for (int j = 1; j < 5 - i; j++) {
+                for (int j = 1; j < size_nums - i; j++) {
                     if (nums[j].read() < nums[j - 1].read()) {
-                        int temp = nums[j].read();
+                        int curr = nums[j].read();
                         nums[j].write(nums[j - 1].read());
-                        nums[j - 1].write(temp);
+                        nums[j - 1].write(curr);
                         isSwapped = true;
                     }
                 }
@@ -40,6 +44,31 @@ SC_MODULE(BubbleSort) {
             done.write(true);
         } else {
             done.write(false);
+        }
+    }
+
+    // Reset method
+    void reset_method() {
+        if (reset.read()) {
+            reset.write(false);  // Clear reset signal after handling reset
+            for (int i = 0; i < size_nums; i++) {
+                nums[i].write(0);
+            }
+            done.write(false);
+        }
+    }
+
+    // Method to load array from external source
+    void load_array(int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            nums[i].write(arr[i]);
+        }
+    }
+
+    // Method to read sorted array
+    void read_array(int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            arr[i] = sorted_nums[i].read();
         }
     }
 };

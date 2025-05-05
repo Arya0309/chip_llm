@@ -1,43 +1,4 @@
 
-#include <systemc.h>
-
-
-SC_MODULE(BinarySearchModule) {
-    sc_in<int> target;  // Input port for the target element
-    sc_out<bool> found; // Output port indicating whether the target was found
-    sc_vector<sc_in<int>> v; // Input port for the vector elements
-
-    // Constructor
-    SC_CTOR(BinarySearchModule) {
-        // Process to perform binary search
-        SC_METHOD(search);
-        sensitive << target;
-        for (int i = 0; i < v.size(); ++i) {
-            sensitive << v[i];
-        }
-    }
-
-    // Method to perform binary search
-    void search() {
-        int low = 0, high = v.size() - 1;
-        bool found_flag = false;
-
-        while (low <= high) {
-            int mid = ((high - low) / 2) + low;
-            if (v[mid].read() == target.read()) {
-                found_flag = true;
-                break;
-            }
-            if (v[mid].read() > target.read())
-                high = mid - 1;
-            else
-                low = mid + 1;
-        }
-
-        found.write(found_flag);
-    }
-};
-
 
 SC_MODULE(Testbench) {
     sc_vector<sc_signal<int>> v_sig; // Signals for the vector elements

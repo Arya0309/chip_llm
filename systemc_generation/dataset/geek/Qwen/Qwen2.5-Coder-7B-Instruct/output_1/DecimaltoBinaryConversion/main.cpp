@@ -1,33 +1,35 @@
 
 #include <systemc.h>
+#include <string>
 
 
 SC_MODULE(DecToBinary) {
     sc_in<int> dec_in;  // Input port for the decimal number
-    sc_out<int> binary_out; // Output port for the binary number
+    sc_out<int> binary_out; // Output port for the binary representation
 
     // Constructor
     SC_CTOR(DecToBinary) {
         // Process to convert decimal to binary
-        SC_THREAD(convert);
+        SC_METHOD(convert);
         sensitive << dec_in;
     }
 
-    // Thread to convert the decimal number to binary
+    // Method to convert decimal to binary
     void convert() {
-        int binaryNum[32];
-        int i = 0;
         int n = dec_in.read();
+        std::string binaryNum = "";
 
-        while (n > 0) {
-            binaryNum[i] = n % 2;
-            n = n / 2;
-            i++;
+        if (n == 0) {
+            binaryNum = "0";
+        } else {
+            while (n > 0) {
+                binaryNum = std::to_string(n % 2) + binaryNum;
+                n = n / 2;
+            }
         }
 
-        for (int j = i - 1; j >= 0; j--) {
-            binary_out.write(binaryNum[j]);
-        }
+        // Write the entire binary number to the output port
+        binary_out.write(std::stoi(binaryNum));
     }
 };
 

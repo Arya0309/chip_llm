@@ -1,10 +1,14 @@
 
 #include <systemc.h>
+#include <cmath>
+#include <utility> // For std::swap
+
+#define SIZE 4 // Define the size of the matrix
 
 
 SC_MODULE(DeterminantCalculator) {
-    sc_in<double> matrix[SIZE]; // Input matrix
-    sc_out<double> det;         // Output determinant
+    sc_in<double> matrix[SIZE];  // Input port for the matrix elements
+    sc_out<double> det;  // Output port for the determinant
 
     SC_CTOR(DeterminantCalculator) {
         SC_METHOD(calculate_determinant);
@@ -14,24 +18,25 @@ SC_MODULE(DeterminantCalculator) {
     void calculate_determinant() {
         double a[SIZE][SIZE];
         double det = 1.0;
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                a[i][j] = matrix[i][j].read();
+        int n = SIZE;
+
+        // Copy matrix values to local array
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                a[i][j] = matrix[i].read();
             }
         }
 
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < n; i++) {
             int pivot = i;
-            for (int j = i + 1; j < SIZE; j++) {
+            for (int j = i + 1; j < n; j++) {
                 if (fabs(a[j][i]) > fabs(a[pivot][i])) {
                     pivot = j;
                 }
             }
             if (pivot != i) {
-                for (int k = 0; k < SIZE; k++) {
-                    double temp = a[i][k];
-                    a[i][k] = a[pivot][k];
-                    a[pivot][k] = temp;
+                for (int k = 0; k < n; k++) {
+                    std::swap(a[i][k], a[pivot][k]);
                 }
                 det *= -1;
             }
@@ -40,17 +45,18 @@ SC_MODULE(DeterminantCalculator) {
                 break;
             }
             det *= a[i][i];
-            for (int j = i + 1; j < SIZE; j++) {
+            for (int j = i + 1; j < n; j++) {
                 double factor = a[j][i] / a[i][i];
-                for (int k = i + 1; k < SIZE; k++) {
+                for (int k = i + 1; k < n; k++) {
                     a[j][k] -= factor * a[i][k];
                 }
             }
         }
 
-        det.write(det);
+        det.write(det); // Write the determinant to the output port
     }
 };
+
 
 
 SC_MODULE(Testbench) {

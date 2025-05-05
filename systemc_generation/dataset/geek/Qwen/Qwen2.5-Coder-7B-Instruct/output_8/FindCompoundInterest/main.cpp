@@ -23,6 +23,8 @@ SC_MODULE(CompoundInterestCalculator) {
     }
 };
 
+// Testbench module to drive the CompoundInterestCalculator module
+
 
 SC_MODULE(Testbench) {
     sc_signal<double> principal_sig; // Signal for principal amount

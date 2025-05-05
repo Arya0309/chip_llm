@@ -7,22 +7,21 @@ SC_MODULE(GcdCalculator) {
     sc_in<int> b;  // Input port for the second number
     sc_out<int> gcd_result; // Output port for the GcdCalculator
 
-    // Constructor
     SC_CTOR(GcdCalculator) {
-        // Process to find the GcdCalculator
-        SC_METHOD(find_gcd);
+        SC_METHOD(compute_gcd);
         sensitive << a << b;
     }
 
-    // Method to find the GcdCalculator of two numbers
-    void find_gcd() {
-        int res = std::min(a.read(), b.read());
+    void compute_gcd() {
+        int res = std::min(a.read(), b.read()); // Find minimum of a and b
+
         while (res > 1) {
             if (a.read() % res == 0 && b.read() % res == 0)
                 break;
             res--;
         }
-        gcd_result.write(res);
+
+        gcd_result.write(res); // Write the GcdCalculator to the output port
     }
 };
 

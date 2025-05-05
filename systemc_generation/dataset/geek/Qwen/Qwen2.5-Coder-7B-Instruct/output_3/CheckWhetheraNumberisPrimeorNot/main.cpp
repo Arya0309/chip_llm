@@ -4,32 +4,37 @@
 
 SC_MODULE(PrimeChecker) {
     sc_in<int> n;  // Input port for the number to check
-    sc_out<bool> is_prime; // Output port indicating if the number is prime
+    sc_out<bool> is_prime; // Output port indicating if n is prime
 
     // Constructor
     SC_CTOR(PrimeChecker) {
-        // Process to check if the number is prime
+        // Process to determine if n is prime
         SC_METHOD(check_prime);
         sensitive << n;
     }
 
-    // Method to check if the number is prime
+    // Method to check if n is prime
     void check_prime() {
+        bool prime = true;
         int cnt = 0;
+
+        // If number is less than/equal to 1, it is not prime
         if (n.read() <= 1) {
-            is_prime.write(false);
+            prime = false;
         } else {
+            // Check for divisors from 1 to n
             for (int i = 1; i <= n.read(); i++) {
-                if (n.read() % i == 0) {
+                if (n.read() % i == 0)
                     cnt++;
-                }
             }
-            if (cnt > 2) {
-                is_prime.write(false);
-            } else {
-                is_prime.write(true);
-            }
+
+            // If n is divisible by more than 2 numbers, then it is not prime
+            if (cnt > 2)
+                prime = false;
         }
+
+        // Assign the result to the output port
+        is_prime.write(prime);
     }
 };
 

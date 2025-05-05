@@ -9,7 +9,8 @@ SC_MODULE(Rotator) {
     sc_in<int> in_array[7];  // Input array
     sc_out<int> out_array[7];  // Output array
 
-    int arr[7];  // Internal array to hold the input and output values
+    // Temporary array to store rotated elements
+    int temp[7];
 
     // Constructor
     SC_CTOR(Rotator) {
@@ -17,55 +18,33 @@ SC_MODULE(Rotator) {
         SC_METHOD(handle_rotation);
         sensitive << clk.pos();
         dont_initialize();
-
-        // Process to handle reset
-        SC_METHOD(handle_reset);
-        sensitive << rst.pos();
-        dont_initialize();
     }
 
-    // Method to handle rotation
+    // Method to handle the rotation logic
     void handle_rotation() {
-        if (!rst.read()) {
-            // Perform rotation
-            int temp[7];
-            int k = 0;
-
-            // Copy n-d elements to the front of temp
-            for (int i = d; i < 7; i++) {
-                temp[k] = in_array[i].read();
-                k++;
-            }
-
-            // Copy the first d elements to the end of temp
-            for (int i = 0; i < d; i++) {
-                temp[k] = in_array[i].read();
-                k++;
-            }
-
-            // Copy the elements of temp back to arr
+        if (rst.read()) {
+            // Reset case
             for (int i = 0; i < 7; i++) {
-                arr[i] = temp[i];
-            }
-
-            // Write the rotated array to out_array
-            for (int i = 0; i < 7; i++) {
-                out_array[i].write(arr[i]);
+                out_array[i].write(0);  // Clear output array
             }
         } else {
-            // Reset the output array to zero
-            for (int i = 0; i < 7; i++) {
-                out_array[i].write(0);
-            }
-        }
-    }
+            // Normal operation
+            int n = 7;  // Size of the array
+            int k = 0;  // Index for temp array
 
-    // Method to handle reset
-    void handle_reset() {
-        if (rst.read()) {
-            // Reset the internal array
-            for (int i = 0; i < 7; i++) {
-                arr[i] = 0;
+            // Copy elements from d to n-1 to the beginning of temp
+            for (int i = d; i < n; i++) {
+                temp[k++] = in_array[i].read();
+            }
+
+            // Copy elements from 0 to d-1 to the end of temp
+            for (int i = 0; i < d; i++) {
+                temp[k++] = in_array[i].read();
+            }
+
+            // Copy elements from temp back to out_array
+            for (int i = 0; i < n; i++) {
+                out_array[i].write(temp[i]);
             }
         }
     }

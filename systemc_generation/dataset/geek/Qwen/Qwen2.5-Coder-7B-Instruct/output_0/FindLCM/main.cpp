@@ -1,35 +1,38 @@
 
-#include <systemc.h>
+   #include <systemc.h>
 
-
+   
 SC_MODULE(LcmCalculator) {
-    sc_in<int> a;  // Input port for the first number
-    sc_in<int> b;  // Input port for the second number
-    sc_out<int> lcm_result; // Output port for the LCM
+       sc_in<int> a;  // Input port for the first number
+       sc_in<int> b;  // Input port for the second number
+       sc_out<int> lcm_result;  // Output port for the LCM result
 
-    int max_num, flag = 1;
+       // Constructor
+       SC_CTOR(LcmCalculator) {
+           // Process to calculate the LCM
+           SC_METHOD(calculate_lcm);
+           sensitive << a << b;
+       }
 
-    SC_CTOR(LcmCalculator) {
-        SC_METHOD(calculate_lcm);
-        sensitive << a << b;
-    }
+       // Method to calculate the LCM
+       void calculate_lcm() {
+           if (a.read() == 0 || b.read() == 0) {
+               lcm_result.write(0);  // Handle edge case where a or b is zero
+               return;
+           }
+           int max_num = (a.read() > b.read()) ? a.read() : b.read();
+           int flag = 1;
 
-    void calculate_lcm() {
-        // Determine the larger number
-        max_num = (a.read() > b.read()) ? a.read() : b.read();
-
-        // Loop to find LCM
-        while (flag) {
-            if (max_num % a.read() == 0 && max_num % b.read() == 0) {
-                lcm_result.write(max_num);
-                flag = 0;
-                break;
-            }
-            ++max_num;
-        }
-    }
-};
-
+           while (flag) {
+               if (max_num % a.read() == 0 && max_num % b.read() == 0) {
+                   lcm_result.write(max_num);
+                   flag = 0;
+               }
+               ++max_num;
+           }
+       }
+   };
+   
 
 SC_MODULE(Testbench) {
     sc_signal<int> a_sig;       // Signal for the first input

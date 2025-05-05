@@ -1,136 +1,58 @@
-### Inputs and Outputs
+The runtime error you encountered is an "unbound port" error. This indicates that a port in the SystemC module has not been properly connected or initialized. Specifically, the error message points to a problem with the `port_12` port, which seems to be an output port (`sc_out`) in your testbench.
 
-**Inputs**:
-- None
+### Step-by-Step Analysis:
 
-**Outputs**:
-- `cout`: The sorted array is printed before and after sorting.
+1. **Nature of the Runtime Failure**:
+   - The error is a "complete binding failed: port not bound" error, indicating that a port in the `BubbleSort` module has not been properly connected in the testbench.
 
-### Detailed Explanation
+2. **Function or Line Where the Error Occurs**:
+   - The error message does not provide a direct line number, but it suggests that the issue is related to the connection of the `port_12` port in the testbench. This port is likely an `sc_out` port in the `BubbleSort` module.
 
-#### Line-by-Line Explanation
+3. **Underlying Cause**:
+   - The underlying cause is that the `port_12` port in the testbench is not connected to any output port in the `BubbleSort` module. This could be due to a missing or incorrect connection in the testbench code.
 
-1. **Include Statements and Namespace**:
-    ```cpp
-    #include <bits/stdc++.h>
-    using namespace std;
-    ```
-    - Includes the standard library and uses the `std` namespace for convenience.
+4. **Proposed Necessary Code Adjustments**:
+   - To fix this issue, you need to ensure that the `port_12` port in the testbench is correctly connected to an output port in the `BubbleSort` module. Since the `BubbleSort` module does not have a `port_12` port, you should check the names and types of the ports in both modules to ensure they match.
 
-2. **Function Prototypes**:
-    ```cpp
-    void sort(int num[], int len);
-    void swapNums(int nums[], int first, int second);
-    ```
-    - Declares two functions: `sort` and `swapNums`.
+5. **Revised Code Section**:
+   - Assuming the `port_12` port in the testbench is meant to be connected to the `sorted_nums` output port in the `BubbleSort` module, you should update the connection accordingly.
 
-3. **Main Function**:
-    ```cpp
-    int main()
-    {
-        int nums[] = {1, 12, 6, 8, 10};
-        int size_nums = (sizeof(nums) / sizeof(nums[0]));
-    ```
-    - Initializes an array `nums` with values `{1, 12, 6, 8, 10}`.
-    - Calculates the size of the array `size_nums`.
+6. **Complete, Fixed SystemC Module Code**:
+   - Below is the corrected SystemC module code. The `port_12` port in the testbench is renamed to `sorted_nums`, and it is correctly connected to the `sorted_nums` output port in the `BubbleSort` module.
 
-4. **Print Before Sorting**:
-    ```cpp
-    cout << "Before sorting the array is: \n";
-    for (int i = 0; i < size_nums; i++)
-        cout << nums[i] << " ";
-    cout << "\n\n";
-    ```
-    - Prints the array before sorting.
-
-5. **Call Sort Function**:
-    ```cpp
-    sort(nums, size_nums);
-    ```
-    - Calls the `sort` function to sort the array.
-
-6. **Print After Sorting**:
-    ```cpp
-    cout << "After sorting the array is: \n";
-    for (int i = 0; i < size_nums; i++)
-        cout << nums[i] << " ";
-    cout << "\n";
-    return 0;
-    ```
-    - Prints the array after sorting and returns 0.
-
-7. **Sort Function Implementation**:
-    ```cpp
-    void sort(int num[], int len)
-    {
-        bool isSwapped;
-        for (int i = 0; i < len; i++) 
-        {
-            isSwapped = false;
-            for (int j = 1; j < len - i; j++) 
-            {
-                if (num[j] < num[j - 1]) 
-                {
-                    swapNums(num, j, (j - 1));
-                    isSwapped = true;
-                }
-            }
-            if (!isSwapped) 
-            {
-                break;
-            }
-        }
-    }
-    ```
-    - Implements the bubble sort algorithm.
-    - Uses a nested loop to compare adjacent elements and swap them if they are out of order.
-    - The outer loop runs `len` times, and the inner loop reduces in size each time to avoid unnecessary comparisons.
-    - If no swaps are made in a pass, the array is already sorted, and the loop breaks early.
-
-8. **Swap Function Implementation**:
-    ```cpp
-    void swapNums(int nums[], int first, int second)
-    {
-        int curr = nums[first];
-        nums[first] = nums[second];
-        nums[second] = curr;
-    }
-    ```
-    - Swaps two elements in the array.
-
-### SystemC Code Snippet
-
-Below is the equivalent SystemC code that preserves the logic of the original C++/C code:
+### Corrected SystemC Module Code:
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(SortArray) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;     // Clock signal
+    sc_in<bool> start;   // Start signal
     sc_out<bool> done;  // Done signal
-    sc_out<int> sorted_array[5];  // Output array
 
-    int nums[5] = {1, 12, 6, 8, 10};
-    int size_nums = 5;
-    bool isSwapped;
+    sc_inout<int> nums[5]; // Array of integers to be sorted
+    sc_out<int> sorted_nums[5]; // Sorted array output
 
     // Constructor
-    SC_CTOR(SortArray) {
-        // Process to perform sorting
-        SC_METHOD(sort);
+    SC_CTOR(BubbleSort) {
+        SC_METHOD(sortArray);
         sensitive << clk.pos();
         async_reset_signal_is(clk, false);
     }
 
     // Method to sort the array
-    void sort() {
+    void sortArray() {
+        static bool isSwapped;
+        static int len = 5;
+
         if (start.read()) {
-            for (int i = 0; i < size_nums; i++) {
+            for (int i = 0; i < len; i++) {
                 isSwapped = false;
-                for (int j = 1; j < size_nums - i; j++) {
-                    if (nums[j] < nums[j - 1]) {
-                        swapNums(j, j - 1);
+                for (int j = 1; j < len - i; j++) {
+                    if (nums[j].read() < nums[j - 1].read()) {
+                        int curr = nums[j].read();
+                        nums[j].write(nums[j - 1].read());
+                        nums[j - 1].write(curr);
                         isSwapped = true;
                     }
                 }
@@ -142,46 +64,67 @@ SC_MODULE(SortArray) {
         } else {
             done.write(false);
         }
+    }
 
-        // Copy sorted array to output
-        for (int i = 0; i < size_nums; i++) {
-            sorted_array[i].write(nums[i]);
+    // Method to load array with input data
+    void load_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            nums[i].write(arr[i]);
         }
     }
 
-    // Swap two numbers in array
-    void swapNums(int first, int second) {
-        int curr = nums[first];
-        nums[first] = nums[second];
-        nums[second] = curr;
+    // Method to read sorted array
+    void read_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = nums[i].read();
+        }
+    }
+};
+
+SC_MODULE(Testbench) {
+    sc_clock clk("clk", 10, SC_NS); // 10 ns period
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+    sc_signal<int> nums[5];
+    sc_signal<int> sorted_nums[5];
+
+    BubbleSort bubble_sort_inst("bubble_sort_inst");
+
+    // Constructor
+    SC_CTOR(Testbench) {
+        bubble_sort_inst.clk(clk);
+        bubble_sort_inst.start(start);
+        bubble_sort_inst.done(done);
+        bubble_sort_inst.nums(nums);
+        bubble_sort_inst.sorted_nums(sorted_nums);
+
+        SC_THREAD(test);
+    }
+
+    void test() {
+        int input_array[5] = {1, 12, 6, 8, 10};
+        int output_array[5];
+
+        bubble_sort_inst.load_array(input_array);
+
+        start.write(true);
+        wait(20, SC_NS);
+
+        start.write(false);
+        wait(10, SC_NS);
+
+        bubble_sort_inst.read_array(output_array);
+
+        for (int i = 0; i < 5; i++) {
+            cout << "Sorted array[" << i << "] = " << output_array[i] << endl;
+        }
     }
 };
 ```
 
-### Explanation of SystemC Code
+### Explanation of Changes:
+- The `port_12` port in the testbench is renamed to `sorted_nums`.
+- The `sorted_nums` port is correctly connected to the `sorted_nums` output port in the `BubbleSort` module.
+- The `load_array` and `read_array` methods are added to facilitate loading the input array and reading the sorted array in the testbench.
 
-- **Inputs and Outputs**:
-  - `clk`: Clock signal.
-  - `start`: Start signal to initiate sorting.
-  - `done`: Done signal to indicate sorting completion.
-  - `sorted_array[5]`: Output array containing the sorted elements.
-
-- **State Variables**:
-  - `nums[5]`: Array to hold the input elements.
-  - `size_nums`: Size of the array.
-  - `isSwapped`: Flag to check if any swaps were made in a pass.
-
-- **Constructor**:
-  - Sets up the `sort` method to be triggered on the positive edge of the clock.
-  - Initializes the `done` signal to `false`.
-
-- **sort Method**:
-  - Checks if the `start` signal is high.
-  - Performs the bubble sort algorithm.
-  - Sets the `done` signal to `true` when sorting is complete.
-  - Copies the sorted array to the output ports.
-
-- **swapNums Method**:
-  - Swaps two elements in the `nums` array.
-
-This SystemC code can be integrated into a high-level synthesis flow and tested using the provided signals.
+This should resolve the "port not bound" error and allow the SystemC module to compile and run without crashing.

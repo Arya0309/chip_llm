@@ -1,37 +1,52 @@
-systemc
+
 #include <systemc.h>
 
 
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;         // Clock signal
-    sc_in<bool> start;       // Start signal
-    sc_out<bool> done;      // Done signal
-    sc_in<sc_vector<int>> original_arr; // Input array
-    sc_out<sc_vector<int>> copied_arr; // Output array
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done; // Done signal
 
-    sc_vector<int> temp_arr; // Temporary array for copying
+    int original_arr[5] = {1, 2, 3, 4, 5};
+    int copied_arr[5];
+    int len = 5;
+    bool running = false;
 
-    // Constructor
     SC_CTOR(ArrayReverse) {
-        SC_METHOD(reversal);
+        SC_THREAD(reverser_process);
         sensitive << clk.pos();
-        dont_initialize();
     }
 
-    // Method to perform the array reversal
-    void reversal() {
-        if (start.read()) {
-            int len = original_arr.size();
-            for (int i = 0; i < len; i++) {
-                temp_arr[i] = original_arr[len - i - 1];
+    void reverser_process() {
+        while (true) {
+            wait();  // Wait for the next clock cycle
+
+            if (start.read()) {
+                running = true;
+                for (int i = 0; i < len; i++) {
+                    copied_arr[i] = original_arr[len - i - 1];
+                }
+                done.write(true);
+                wait();  // Wait for the next clock cycle
+                done.write(false);
+                running = false;
             }
-            copied_arr = temp_arr;
-            done.write(true);
-        } else {
-            done.write(false);
+        }
+    }
+
+    void load_array(const int* arr) {
+        for (int i = 0; i < len; i++) {
+            original_arr[i] = arr[i];
+        }
+    }
+
+    void read_array(int* arr) {
+        for (int i = 0; i < len; i++) {
+            arr[i] = copied_arr[i];
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

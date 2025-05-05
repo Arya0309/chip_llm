@@ -1,43 +1,41 @@
-### Analysis of the C++/C Code
+### Analysis of the Provided C++/C Code
 
 #### Inputs and Outputs
-- **Inputs**: None (The code does not take any external inputs directly).
-- **Outputs**: The code prints whether a given year is a leap year or not.
+- **Inputs**: None (The year is hardcoded as `2000` in the code).
+- **Outputs**: A boolean value indicating whether the year is a leap year or not.
 
-#### Detailed Explanation
+#### Detailed Explanation of the Code
 
-1. **Header File Inclusion**:
+1. **Include Header File**:
    ```cpp
    #include <iostream>
    using namespace std;
    ```
-   - This includes the standard input-output stream library and uses the `std` namespace to avoid prefixing `std::` before standard library functions.
+   - This line includes the standard input-output stream library and uses the standard namespace for convenience.
 
-2. **Function Declaration**:
+2. **Function to Check Leap Year**:
    ```cpp
    bool checkYear(int year)
    ```
    - This function takes an integer `year` as input and returns a boolean indicating whether the year is a leap year.
 
-3. **Conditional Statements**:
+3. **Conditionals for Leap Year Check**:
    ```cpp
    if (year % 400 == 0) {
        return true;
-   }
-   else if (year % 100 == 0) {
+   } else if (year % 100 == 0) {
        return false;
-   }
-   else if (year % 4 == 0) {
+   } else if (year % 4 == 0) {
        return true;
-   }
-   else {
+   } else {
        return false;
    }
    ```
-   - The function checks if the year is divisible by 400, which makes it a leap year.
-   - If not, it checks if the year is divisible by 100, which disqualifies it from being a leap year unless it is also divisible by 400.
-   - If not, it checks if the year is divisible by 4, which makes it a leap year.
-   - If none of the above conditions are met, the year is not a leap year.
+   - The function checks the following conditions to determine if the year is a leap year:
+     - If the year is divisible by 400, it is a leap year.
+     - If the year is divisible by 100 but not by 400, it is not a leap year.
+     - If the year is divisible by 4 but not by 100, it is a leap year.
+     - If none of the above conditions are met, the year is not a leap year.
 
 4. **Driver Code**:
    ```cpp
@@ -48,29 +46,29 @@
        return 0;
    }
    ```
-   - The `main` function sets the `year` variable to 2000 and calls the `checkYear` function with this value.
+   - The `main` function sets the year to `2000` and calls the `checkYear` function.
    - It then prints "Leap Year" if the function returns `true`, otherwise it prints "Not a Leap Year".
 
-### SystemC Code Snippet
+### Equivalent SystemC Code
 
-Here is the equivalent SystemC code that integrates with the provided signals (`year` and `is_leap_year`):
+Here is the equivalent SystemC code that integrates with the provided signals (`sc_in<int> year` and `sc_out<bool> is_leap_year`):
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(LeapYearChecker) {
-    sc_in<int> year;      // Input port for the year
-    sc_out<bool> is_leap_year; // Output port for the leap year result
+SC_MODULE(LeapYearDetector) {
+    sc_in<int> year;  // Input port for the year
+    sc_out<bool> is_leap_year; // Output port for the leap year status
 
     // Constructor
-    SC_CTOR(LeapYearChecker) {
-        // Process to check if the year is a leap year
-        SC_METHOD(check_leap_year);
+    SC_CTOR(LeapYearDetector) {
+        // Process to detect leap year
+        SC_METHOD(detect_leap_year);
         sensitive << year;
     }
 
-    // Method to determine if the year is a leap year
-    void check_leap_year() {
+    // Method to detect leap year
+    void detect_leap_year() {
         if (year.read() % 400 == 0) {
             is_leap_year.write(true);
         } else if (year.read() % 100 == 0) {
@@ -88,32 +86,30 @@ SC_MODULE(LeapYearChecker) {
 
 1. **Module Declaration**:
    ```cpp
-   SC_MODULE(LeapYearChecker) {
+   SC_MODULE(LeapYearDetector) {
    ```
-   - This declares a SystemC module named `LeapYearChecker`.
+   - This line declares a SystemC module named `LeapYearDetector`.
 
 2. **Input and Output Ports**:
    ```cpp
-   sc_in<int> year;      // Input port for the year
-   sc_out<bool> is_leap_year; // Output port for the leap year result
+   sc_in<int> year;  // Input port for the year
+   sc_out<bool> is_leap_year; // Output port for the leap year status
    ```
-   - `year` is an input port that receives the year to be checked.
-   - `is_leap_year` is an output port that sends the result (whether the year is a leap year or not).
+   - The module has one input port `year` of type `int` and one output port `is_leap_year` of type `bool`.
 
 3. **Constructor**:
    ```cpp
-   SC_CTOR(LeapYearChecker) {
-       // Process to check if the year is a leap year
-       SC_METHOD(check_leap_year);
+   SC_CTOR(LeapYearDetector) {
+       // Process to detect leap year
+       SC_METHOD(detect_leap_year);
        sensitive << year;
    }
    ```
-   - The constructor initializes the `LeapYearChecker` module.
-   - It binds the `check_leap_year` method to the `year` input port, making it sensitive to changes in the `year` signal.
+   - The constructor initializes the module and specifies that the `detect_leap_year` method should be called whenever the `year` input changes.
 
-4. **Method to Check Leap Year**:
+4. **Method to Detect Leap Year**:
    ```cpp
-   void check_leap_year() {
+   void detect_leap_year() {
        if (year.read() % 400 == 0) {
            is_leap_year.write(true);
        } else if (year.read() % 100 == 0) {
@@ -125,7 +121,6 @@ SC_MODULE(LeapYearChecker) {
        }
    }
    ```
-   - This method reads the value of `year` and determines if it is a leap year using the same logic as the original C++ code.
-   - It writes the result (`true` or `false`) to the `is_leap_year` output port.
+   - This method reads the value of `year` and sets the value of `is_leap_year` based on the leap year rules described earlier.
 
-This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.
+This SystemC code accurately captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

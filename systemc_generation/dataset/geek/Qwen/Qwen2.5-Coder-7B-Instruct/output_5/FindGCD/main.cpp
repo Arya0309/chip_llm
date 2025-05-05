@@ -1,5 +1,6 @@
 
 #include <systemc.h>
+#include <algorithm>  // Include the algorithm header for min function
 
 
 SC_MODULE(GcdCalculator) {
@@ -14,17 +15,18 @@ SC_MODULE(GcdCalculator) {
         sensitive << a << b;
     }
 
-    // Method to calculate the GCD
+    // Method to find the GCD of two numbers
     void find_gcd() {
-        int res = std::min(a.read(), b.read()); // Initialize res with the minimum of a and b
+        int res = std::min(a.read(), b.read());  // Use std::min to avoid scope issues
         while (res > 1) {
-            if (a.read() % res == 0 && b.read() % res == 0) // Check if res divides both a and b
+            if (a.read() % res == 0 && b.read() % res == 0)
                 break;
-            res--; // Decrement res if it does not divide both a and b
+            res--;
         }
-        gcd_result.write(res); // Write the GCD to the output port
+        gcd_result.write(res);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

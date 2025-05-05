@@ -1,26 +1,32 @@
 
 #include <systemc.h>
 
+// Module that adds two complex numbers
 
 SC_MODULE(ComplexAdder) {
     sc_in<int> real1;  // Input port for the real part of the first complex number
     sc_in<int> imag1;  // Input port for the imaginary part of the first complex number
     sc_in<int> real2;  // Input port for the real part of the second complex number
     sc_in<int> imag2;  // Input port for the imaginary part of the second complex number
-    sc_out<int> real_sum; // Output port for the real part of the sum
-    sc_out<int> imag_sum; // Output port for the imaginary part of the sum
+    sc_out<int> real_sum;  // Output port for the real part of the sum
+    sc_out<int> imag_sum;  // Output port for the imaginary part of the sum
 
     // Constructor
     SC_CTOR(ComplexAdder) {
         // Process to perform addition
-        SC_METHOD(add_complex);
+        SC_METHOD(add);
         sensitive << real1 << imag1 << real2 << imag2;
     }
 
     // Method to add the two complex numbers
-    void add_complex() {
-        real_sum.write(real1.read() + real2.read());
-        imag_sum.write(imag1.read() + imag2.read());
+    void add() {
+        // Calculate the real part of the sum
+        int sum_real = real1.read() + real2.read();
+        // Calculate the imaginary part of the sum
+        int sum_imag = imag1.read() + imag2.read();
+        // Write the results to the output ports
+        real_sum.write(sum_real);
+        imag_sum.write(sum_imag);
     }
 };
 

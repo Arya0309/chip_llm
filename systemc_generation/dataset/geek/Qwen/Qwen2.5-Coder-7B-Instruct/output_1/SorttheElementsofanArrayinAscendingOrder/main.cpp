@@ -6,25 +6,22 @@ SC_MODULE(BubbleSort) {
     sc_in<bool> clk;          // Clock signal
     sc_in<bool> start;        // Start signal
     sc_out<bool> done;       // Done signal
-
-    sc_in<int> nums[5];        // Input array of size 5
-    sc_out<int> sorted_nums[5]; // Output sorted array of size 5
+    sc_inout<int> nums[5];     // Array of integers to be sorted
 
     bool isSwapped;
+    int size_nums = 5;
 
-    // Constructor
     SC_CTOR(BubbleSort) {
         SC_METHOD(sort);
         sensitive << clk.pos();
         dont_initialize();
     }
 
-    // Sort method
     void sort() {
         if (start.read()) {
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < size_nums; i++) {
                 isSwapped = false;
-                for (int j = 1; j < 5 - i; j++) {
+                for (int j = 1; j < size_nums - i; j++) {
                     if (nums[j].read() < nums[j - 1].read()) {
                         int curr = nums[j].read();
                         nums[j].write(nums[j - 1].read());
@@ -39,6 +36,18 @@ SC_MODULE(BubbleSort) {
             done.write(true);
         } else {
             done.write(false);
+        }
+    }
+
+    void load_array(const int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            nums[i].write(arr[i]);
+        }
+    }
+
+    void read_array(int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            arr[i] = nums[i].read();
         }
     }
 };

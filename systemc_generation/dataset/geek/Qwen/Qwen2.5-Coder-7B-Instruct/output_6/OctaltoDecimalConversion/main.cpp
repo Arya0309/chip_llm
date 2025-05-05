@@ -4,11 +4,11 @@
 
 SC_MODULE(OctalToDecimalConverter) {
     sc_in<int> octal_input;  // Input port for the octal number
-    sc_out<int> decimal_output;  // Output port for the decimal equivalent
+    sc_out<int> decimal_output; // Output port for the decimal equivalent
 
     // Constructor
     SC_CTOR(OctalToDecimalConverter) {
-        // Process to convert octal to decimal
+        // Process to perform the conversion
         SC_METHOD(convert);
         sensitive << octal_input;
     }
@@ -18,8 +18,8 @@ SC_MODULE(OctalToDecimalConverter) {
         int num = octal_input.read();
         int dec_value = 0;
         int base = 1;
-        int temp = num;
 
+        int temp = num;
         while (temp) {
             int last_digit = temp % 10;
             temp = temp / 10;

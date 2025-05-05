@@ -1,81 +1,81 @@
 
-#include <systemc.h>
+   #include <systemc.h>
 
-
+   
 SC_MODULE(MatrixRotator) {
-    sc_in<int> in[4][4];  // Input matrix
-    sc_out<int> out[4][4]; // Output matrix
+       sc_in<int> in[4][4];
+       sc_out<int> out[4][4];
 
-    // Constructor
-    SC_CTOR(MatrixRotator) {
-        // Process to perform matrix rotation
-        SC_THREAD(rotatematrix);
-        sensitive << in;
-    }
+       SC_CTOR(MatrixRotator) {
+           SC_METHOD(rotate_matrix);
+           for (int i = 0; i < 4; i++) {
+               for (int j = 0; j < 4; j++) {
+                   sensitive << in[i][j];
+               }
+           }
+       }
 
-    // Method to rotate the matrix
-    void rotatematrix() {
-        int mat[4][4];
-        int m = 4, n = 4;
-        int row = 0, col = 0;
-        int prev, curr;
+       void rotate_matrix() {
+           int mat[4][4];
+           int m = 4;
+           int n = 4;
 
-        // Copy input matrix to local variable
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j < n; j++) {
-                mat[i][j] = in[i][j].read();
-            }
-        }
+           for (int i = 0; i < m; i++) {
+               for (int j = 0; j < n; j++) {
+                   mat[i][j] = in[i][j].read();
+               }
+           }
 
-        while (row < m && col < n) {
-            if (row + 1 == m || col + 1 == n) {
-                break;
-            }
+           int row = 0, col = 0;
+           int prev, curr;
 
-            prev = mat[row + 1][col];
+           while (row < m && col < n) {
+               if (row + 1 == m || col + 1 == n) break;
 
-            for (int i = col; i < n; i++) {
-                curr = mat[row][i];
-                mat[row][i] = prev;
-                prev = curr;
-            }
-            row++;
+               prev = mat[row + 1][col];
 
-            for (int i = row; i < m; i++) {
-                curr = mat[i][n-1];
-                mat[i][n-1] = prev;
-                prev = curr;
-            }
-            n--;
+               for (int i = col; i < n; i++) {
+                   curr = mat[row][i];
+                   mat[row][i] = prev;
+                   prev = curr;
+               }
+               row++;
 
-            if (row < m) {
-                for (int i = n-1; i >= col; i--) {
-                    curr = mat[m-1][i];
-                    mat[m-1][i] = prev;
-                    prev = curr;
-                }
-            }
-            m--;
+               for (int i = row; i < m; i++) {
+                   curr = mat[i][n - 1];
+                   mat[i][n - 1] = prev;
+                   prev = curr;
+               }
+               n--;
 
-            if (col < n) {
-                for (int i = m-1; i >= row; i--) {
-                    curr = mat[i][col];
-                    mat[i][col] = prev;
-                    prev = curr;
-                }
-            }
-            col++;
-        }
+               if (row < m) {
+                   for (int i = n - 1; i >= col; i--) {
+                       curr = mat[m - 1][i];
+                       mat[m - 1][i] = prev;
+                       prev = curr;
+                   }
+               }
+               m--;
 
-        // Write rotated matrix to output
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j < n; j++) {
-                out[i][j].write(mat[i][j]);
-            }
-        }
-    }
-};
+               if (col < n) {
+                   for (int i = m - 1; i >= row; i--) {
+                       curr = mat[i][col];
+                       mat[i][col] = prev;
+                       prev = curr;
+                   }
+               }
+               col++;
+           }
 
+           for (int i = 0; i < m; i++) {
+               for (int j = 0; j < n; j++) {
+                   out[i][j].write(mat[i][j]);
+               }
+           }
+       }
+   };
+
+   
 
 SC_MODULE(Testbench) {
     // Using static const for matrix dimensions instead of #define

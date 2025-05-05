@@ -1,27 +1,38 @@
 
-#include <systemc.h>
+   #include <systemc.h>
 
-
+   
 SC_MODULE(MatrixSwapper) {
-    sc_in<int> in[4][4];  // Input ports for the 4x4 matrix
-    sc_out<int> out[4][4]; // Output ports for the modified matrix
+       sc_in<int> in[4][4];  // Input ports for the 4x4 matrix
+       sc_out<int> out[4][4]; // Output ports for the modified matrix
 
-    SC_CTOR(MatrixSwapper) {
-        // Process to perform the matrix swap
-        SC_METHOD(matrixSwap);
-        sensitive << in;
-    }
+       // Constructor
+       SC_CTOR(MatrixSwapper) {
+           // Process to perform row swapping
+           SC_METHOD(swap);
+           sensitive << in[0][0] << in[0][1] << in[0][2] << in[0][3]
+                     << in[1][0] << in[1][1] << in[1][2] << in[1][3]
+                     << in[2][0] << in[2][1] << in[2][2] << in[2][3]
+                     << in[3][0] << in[3][1] << in[3][2] << in[3][3];
+       }
 
-    void matrixSwap() {
-        int temp;
-        for (int i = 0; i < 4; i++) {
-            temp = in[0][i].read();
-            out[0][i].write(in[3][i].read());
-            out[3][i].write(temp);
-        }
-    }
-};
+       // Method to swap the first and last rows
+       void swap() {
+           for (int i = 0; i < 4; i++) {
+               int t = in[0][i].read();
+               out[0][i].write(in[3][i].read());
+               out[3][i].write(t);
+           }
+           // Copy all other rows as they are
+           for (int i = 1; i < 3; i++) {
+               for (int j = 0; j < 4; j++) {
+                   out[i][j].write(in[i][j].read());
+               }
+           }
+       }
+   };
 
+   
 
 SC_MODULE(Testbench) {
     // Use static const for constants instead of #define

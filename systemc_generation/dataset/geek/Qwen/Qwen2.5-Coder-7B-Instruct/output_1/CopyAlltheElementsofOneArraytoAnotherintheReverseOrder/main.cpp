@@ -1,44 +1,27 @@
 
 #include <systemc.h>
 
+// Module that adds two integers
 
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;       // Done signal
-    sc_out<int> original_arr; // Output port for the original array
-    sc_out<int> copied_arr;   // Output port for the copied array
+    sc_in<int> a;  // Input port for the first number
+    sc_in<int> b;  // Input port for the second number
+    sc_out<int> sum; // Output port for the sum
 
-    int original_arr_data[5] = {1, 2, 3, 4, 5};
-    int len = sizeof(original_arr_data) / sizeof(original_arr_data[0]);
-    int copied_arr_data[len];
-
-    bool processing = false;
-
+    // Constructor
     SC_CTOR(ArrayReverse) {
-        SC_THREAD(run);
-        sensitive << clk.pos();
+        // Process to perform addition
+        SC_METHOD(add);
+        sensitive << a << b;
     }
 
-    void run() {
-        while (true) {
-            wait(); // Wait for the clock edge
-
-            if (start.read() && !processing) {
-                processing = true;
-                for (int i = 0; i < len; i++) {
-                    copied_arr_data[i] = original_arr_data[len - i - 1];
-                }
-
-                // Simulate time taken for processing
-                wait(10, SC_NS);
-
-                done.write(true);
-                processing = false;
-            }
-        }
+    // Method to add the two numbers
+    void add() {
+        sum.write(a.read() + b.read());
     }
 };
+
+// Testbench module
 
 
 SC_MODULE(Testbench) {

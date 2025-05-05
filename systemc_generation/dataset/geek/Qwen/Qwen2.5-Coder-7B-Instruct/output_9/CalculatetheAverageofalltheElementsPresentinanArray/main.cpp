@@ -3,8 +3,8 @@
 
 
 SC_MODULE(AverageCalculator) {
-    sc_vector<sc_in<int>> data_in; // Vector of input ports for the array elements
-    sc_out<double> average_out;  // Output port for the average
+    sc_in<sc_vector<int>> data_in; // Input port for the array elements
+    sc_out<double> average_out; // Output port for the average
 
     SC_CTOR(AverageCalculator) {
         // Process to calculate the average
@@ -15,10 +15,18 @@ SC_MODULE(AverageCalculator) {
     void calculate_average() {
         int sum = 0;
         int n = data_in.size();
-        for (int i = 0; i < n; i++) {
-            sum += data_in[i].read();
+
+        if (n == 0) {
+            average_out.write(0); // Handle empty array case
+        } else {
+            // Calculate sum of array elements
+            for (int i = 0; i < n; i++) {
+                sum += data_in[i].read();
+            }
+
+            // Calculate and write the average
+            average_out.write(static_cast<double>(sum) / n);
         }
-        average_out.write((double)sum / n);
     }
 };
 

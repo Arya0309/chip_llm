@@ -1,32 +1,33 @@
 
 #include <systemc.h>
 
+// Module to find the largest among three numbers
 
 SC_MODULE(LargestFinder) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
     sc_in<int> c;  // Input port for the third number
-    sc_out<int> largest; // Output port for the largest number
+    sc_out<int> largest;  // Output port for the largest number
 
     // Constructor
     SC_CTOR(LargestFinder) {
-        // Process to find the largest number
+        // Process to determine the largest number
         SC_METHOD(find_largest);
         sensitive << a << b << c;
     }
 
-    // Method to find the largest of three numbers
+    // Method to find the largest number among a, b, and c
     void find_largest() {
-        if (a.read() >= b.read()) {
-            if (a.read() >= c.read())
-                largest.write(a.read());
+        if (a >= b) {
+            if (a >= c)
+                largest.write(a);
             else
-                largest.write(c.read());
+                largest.write(c);
         } else {
-            if (b.read() >= c.read())
-                largest.write(b.read());
+            if (b >= c)
+                largest.write(b);
             else
-                largest.write(c.read());
+                largest.write(c);
         }
     }
 };

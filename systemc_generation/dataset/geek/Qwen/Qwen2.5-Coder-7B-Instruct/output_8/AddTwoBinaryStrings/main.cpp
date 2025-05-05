@@ -1,66 +1,80 @@
 
 #include <systemc.h>
 
+// Module that adds two binary strings
 
 SC_MODULE(BinaryAdder) {
-    sc_in<sc_string> A;  // Input port for the first binary string
-    sc_in<sc_string> B;  // Input port for the second binary string
-    sc_out<sc_string> sum; // Output port for the sum
+    sc_in<std::string> A;  // Input port for the first binary string
+    sc_in<std::string> B;  // Input port for the second binary string
+    sc_out<std::string> sum; // Output port for the sum
 
+    // Constructor
     SC_CTOR(BinaryAdder) {
-        SC_METHOD(add_binary);
+        // Process to perform addition
+        SC_METHOD(add);
         sensitive << A << B;
     }
 
-    void add_binary() {
-        sc_string a = A.read();
-        sc_string b = B.read();
-
-        // If the length of A is greater than the length of B, swap them
-        if (a.length() > b.length()) {
-            sc_string temp = a;
-            a = b;
-            b = temp;
-        }
-
-        // Calculate the difference in lengths and create a padding string of zeros
-        int diff = b.length() - a.length();
-        sc_string padding(diff, '0');
-        a = padding + a;
-
-        // Initialize result string and carry
-        sc_string res;
+    // Method to add the two binary strings
+    void add() {
+        std::string a = A.read();
+        std::string b = B.read();
+        std::string res;
         char carry = '0';
 
-        // Loop through each character from right to left
+        // Length check and swap
+        if (a.length() > b.length()) {
+            std::swap(a, b);
+        }
+
+        // Padding
+        int diff = b.length() - a.length();
+        std::string padding(diff, '0');
+        a = padding + a;
+
+        // Loop through characters
         for (int i = a.length() - 1; i >= 0; i--) {
             if (a[i] == '1' && b[i] == '1') {
-                if (carry == '1')
-                    res.push_back('1'), carry = '1';
-                else
-                    res.push_back('0'), carry = '1';
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '1';
+                } else {
+                    res.push_back('0');
+                    carry = '1';
+                }
             } else if (a[i] == '0' && b[i] == '0') {
-                if (carry == '1')
-                    res.push_back('1'), carry = '0';
-                else
-                    res.push_back('0'), carry = '0';
-            } else if (a[i] != b[i]) {
-                if (carry == '1')
-                    res.push_back('0'), carry = '1';
-                else
-                    res.push_back('1'), carry = '0';
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '0';
+                } else {
+                    res.push_back('0');
+                    carry = '0';
+                }
+            } else {
+                if (carry == '1') {
+                    res.push_back('0');
+                    carry = '1';
+                } else {
+                    res.push_back('1');
+                    carry = '0';
+                }
             }
         }
 
-        // If there is a carry after the loop, add it to the result
-        if (carry == '1')
+        // Final carry check
+        if (carry == '1') {
             res.push_back(carry);
+        }
 
-        // Reverse the result and remove leading zeros
-        reverse(res.begin(), res.end());
-        int index = 0;
-        while (index + 1 < res.length() && res[index] == '0')
+        // Reverse result
+        std::reverse(res.begin(), res.end());
+
+        // Trim leading zeros
+        size_t index = 0;
+        while (index + 1 < res.length() && res[index] == '0') {
             index++;
+        }
+
         sum.write(res.substr(index));
     }
 };

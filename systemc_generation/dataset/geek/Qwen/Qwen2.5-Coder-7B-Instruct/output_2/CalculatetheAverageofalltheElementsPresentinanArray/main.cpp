@@ -3,31 +3,38 @@
 
 
 SC_MODULE(AverageCalculator) {
-    sc_vector<sc_in<int>> data_in;  // Input vector for the array elements
-    sc_out<double> average_out;  // Output port for the average
+    sc_vector<sc_in<int>> data_in;  // Input port for the array elements
+    sc_out<double> average_out;    // Output port for the average
+
+    sc_signal<int> sum;             // Internal signal to store the sum
 
     // Constructor
-    SC_CTOR(AverageCalculator) : data_in("data_in", 9) {
-        // Process to calculate average
+    SC_CTOR(AverageCalculator) : data_in("data_in", 9), sum("sum") {
+        // Process to calculate the sum
+        SC_METHOD(calculate_sum);
+        for (int i = 0; i < data_in.size(); i++) {
+            sensitive << data_in[i];
+        }
+
+        // Process to calculate the average
         SC_METHOD(calculate_average);
-        sensitive << data_in;
+        sensitive << sum;
+    }
+
+    // Method to calculate the sum of the array elements
+    void calculate_sum() {
+        int current_sum = 0;  // Initialize sum to zero
+        for (int i = 0; i < data_in.size(); i++) {
+            current_sum += data_in[i].read();
+        }
+        sum.write(current_sum);  // Write the new sum back to the signal
     }
 
     // Method to calculate the average
     void calculate_average() {
-        int sum = 0;
-        int n = data_in.size();
-
-        // Sum up all elements in the array
-        for (int i = 0; i < n; i++) {
-            sum += data_in[i].read();
-        }
-
-        // Calculate the average
-        average_out.write(static_cast<double>(sum) / n);
+        average_out.write(static_cast<double>(sum) / data_in.size());
     }
 };
-
 
 
 SC_MODULE(Testbench) {

@@ -3,24 +3,32 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;       // Clock signal
-    sc_in<bool> start;     // Start signal
-    sc_out<bool> done;     // Done signal
-    sc_out<int> sorted[5]; // Output array for sorted elements
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done; // Done signal
 
-    int nums[5] = {1, 12, 6, 8, 10}; // Hard-coded array
+    int nums[5]; // Array to be sorted
+    int size_nums; // Size of the array
+
     bool isSwapped;
-    int size_nums = 5; // Size of the array
 
     // Constructor
     SC_CTOR(BubbleSort) {
-        SC_METHOD(sort);
+        SC_METHOD(sort_array);
         sensitive << clk.pos();
         dont_initialize();
     }
 
+    // Method to load the array with input values
+    void load_array(int arr[], int size) {
+        for (int i = 0; i < size; i++) {
+            nums[i] = arr[i];
+        }
+        size_nums = size;
+    }
+
     // Method to sort the array
-    void sort() {
+    void sort_array() {
         if (start.read()) {
             for (int i = 0; i < size_nums; i++) {
                 isSwapped = false;
@@ -38,20 +46,24 @@ SC_MODULE(BubbleSort) {
         } else {
             done.write(false);
         }
-
-        // Output the sorted array
-        for (int i = 0; i < size_nums; i++) {
-            sorted[i].write(nums[i]);
-        }
     }
 
-    // Method to swap two elements in the array
+    // Method to swap two numbers in the array
     void swapNums(int first, int second) {
         int curr = nums[first];
         nums[first] = nums[second];
         nums[second] = curr;
     }
+
+    // Method to read the sorted array
+    void read_array(int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            arr[i] = nums[i];
+        }
+    }
 };
+
+// Testbench module
 
 
 SC_MODULE(Testbench) {

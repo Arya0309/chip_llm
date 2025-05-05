@@ -1,7 +1,7 @@
 
 #include <systemc.h>
 
-// Module to multiply two floating-point numbers
+// Module that multiplies two floating-point numbers
 
 SC_MODULE(Multiplier) {
     sc_in<float> a;  // Input port for the first number

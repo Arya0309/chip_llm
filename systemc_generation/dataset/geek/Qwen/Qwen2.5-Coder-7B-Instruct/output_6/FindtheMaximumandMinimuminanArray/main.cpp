@@ -1,37 +1,48 @@
 
 #include <systemc.h>
+#include <algorithm>  // Include for min_element and max_element
 
 
 SC_MODULE(MinMax) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_out<int> min_val;      // Output for minimum value
-    sc_out<int> max_val;      // Output for maximum value
+    sc_in<bool> clk;         // Clock signal
+    sc_in<bool> start;       // Start signal to initiate processing
+    sc_out<bool> done;       // Done signal to indicate processing completion
+    sc_out<int> min_val;      // Output for the minimum value
+    sc_out<int> max_val;      // Output for the maximum value
 
-    int arr[] = { 12, 1234, 45, 67, 1 };
-    int n = sizeof(arr) / sizeof(arr[0]);
-    bool processing = false;
+    int* arr;  // Pointer to the array
+    int n;     // Size of the array
 
     SC_CTOR(MinMax) {
-        SC_METHOD(find_min_max);
+        SC_THREAD(process);
         sensitive << clk.pos();
     }
 
-    void find_min_max() {
-        if (start.read()) {
-            if (!processing) {
-                processing = true;
-                min_val.write(*min_element(arr, arr + n));
-                max_val.write(*max_element(arr, arr + n));
+    void process() {
+        while (true) {
+            wait();  // Wait for the clock edge
+
+            if (start.read()) {
+                done.write(false);
+
+                int min_value = *std::min_element(arr, arr + n);
+                int max_value = *std::max_element(arr, arr + n);
+
+                min_val.write(min_value);
+                max_val.write(max_value);
+
                 done.write(true);
-                processing = false;
             }
-        } else {
-            done.write(false);
         }
     }
+
+    // Method to load the array
+    void load_array(int* arr_ptr, int size) {
+        arr = arr_ptr;
+        n = size;
+    }
 };
+
 
 
 SC_MODULE(Testbench) {

@@ -1,5 +1,6 @@
 
 #include <systemc.h>
+#include <bitset>
 
 
 SC_MODULE(DecToBinary) {
@@ -9,28 +10,32 @@ SC_MODULE(DecToBinary) {
     // Constructor
     SC_CTOR(DecToBinary) {
         // Process to convert decimal to binary
-        SC_METHOD(decToBinary);
+        SC_METHOD(convert);
         sensitive << dec_in;
     }
 
     // Method to convert decimal to binary
-    void decToBinary() {
-        int binaryNum[32];
-        int i = 0;
+    void convert() {
         int n = dec_in.read();
+        int binaryNumber = 0;
 
+        // Loop to convert decimal to binary
         while (n > 0) {
-            binaryNum[i] = n % 2;
+            binaryNumber = (binaryNumber << 1) | (n % 2);
             n = n / 2;
-            i++;
         }
 
-        int result = 0;
-        for (int j = i - 1; j >= 0; j--) {
-            result = result * 10 + binaryNum[j];
-        }
+        // Convert the integer to a string of binary digits
+        std::string binaryStr = std::bitset<32>(binaryNumber).to_string();
 
-        binary_out.write(result);
+        // Write each bit to binary_out
+        for (int i = 0; i < 32; i++) {
+            if (binaryStr[i] == '1') {
+                binary_out.write(1);
+            } else {
+                binary_out.write(0);
+            }
+        }
     }
 };
 

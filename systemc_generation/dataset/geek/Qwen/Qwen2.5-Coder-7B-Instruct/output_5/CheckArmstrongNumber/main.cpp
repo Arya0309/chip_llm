@@ -26,22 +26,14 @@ SC_MODULE(ArmstrongChecker) {
             digits++;
         }
 
-        // Reset n to the original value
         n = temp;
-
-        // Calculate the sum of the digits raised to the power of the number of digits
         while (n > 0) {
             int rem = n % 10;
-            p = p + pow(rem, digits);
+            p += pow(rem, digits);
             n = n / 10;
         }
 
-        // Check if the sum is equal to the original number
-        if (temp == p) {
-            is_armstrong.write(true);
-        } else {
-            is_armstrong.write(false);
-        }
+        is_armstrong.write(p == temp);
     }
 };
 

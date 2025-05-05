@@ -9,11 +9,11 @@ SC_MODULE(DecToBinary) {
     // Constructor
     SC_CTOR(DecToBinary) {
         // Process to convert decimal to binary
-        SC_THREAD(dec_to_binary);
+        SC_METHOD(dec_to_binary);
         sensitive << dec_in;
     }
 
-    // Thread to perform the conversion
+    // Method to convert decimal to binary
     void dec_to_binary() {
         int n = dec_in.read();
         int binaryNum[32];
@@ -25,10 +25,12 @@ SC_MODULE(DecToBinary) {
             i++;
         }
 
+        int binary = 0;
         for (int j = i - 1; j >= 0; j--) {
-            binary_out.write(binaryNum[j]);
-            wait(1, SC_NS);  // Simulate time delay for output
+            binary = binary * 10 + binaryNum[j];
         }
+
+        binary_out.write(binary);
     }
 };
 

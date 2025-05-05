@@ -5,27 +5,27 @@
 SC_MODULE(Divider) {
     sc_in<int> Dividend;  // Input port for the dividend
     sc_in<int> Divisor;   // Input port for the divisor
-    sc_out<int> Quotient; // Output port for the quotient
+    sc_out<int> Quotient;  // Output port for the quotient
     sc_out<int> Remainder; // Output port for the remainder
-    sc_out<bool> Error;   // Output port for error flag
+    sc_out<bool> Error;    // Output port for error flag
 
     // Constructor
     SC_CTOR(Divider) {
-        // Process to perform division
+        // Process to handle division
         SC_METHOD(divide);
         sensitive << Dividend << Divisor;
     }
 
-    // Method to perform division and calculate quotient and remainder
+    // Method to perform division
     void divide() {
         if (Divisor.read() == 0) {
-            Quotient.write(0); // Set quotient to 0 in case of error
-            Remainder.write(0); // Set remainder to 0 in case of error
-            Error.write(true); // Set error flag to true
+            Error.write(true);
+            Quotient.write(0);
+            Remainder.write(0);
         } else {
-            Quotient.write(Dividend.read() / Divisor.read()); // Calculate quotient
-            Remainder.write(Dividend.read() % Divisor.read()); // Calculate remainder
-            Error.write(false); // Set error flag to false
+            Error.write(false);
+            Quotient.write(Dividend.read() / Divisor.read());
+            Remainder.write(Dividend.read() % Divisor.read());
         }
     }
 };

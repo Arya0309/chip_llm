@@ -1,7 +1,7 @@
 
 #include <systemc.h>
 
-// Module that determines if a number is even or odd
+// Module to check if the number is even or odd
 
 SC_MODULE(EvenOddChecker) {
     sc_in<int> number_in;  // Input port for the number
@@ -9,13 +9,13 @@ SC_MODULE(EvenOddChecker) {
 
     // Constructor
     SC_CTOR(EvenOddChecker) {
-        // Process to classify the number
-        SC_METHOD(classify_number);
+        // Process to determine if the number is even or odd
+        SC_METHOD(check_number);
         sensitive << number_in;
     }
 
-    // Method to classify the number
-    void classify_number() {
+    // Method to check the number and set the result
+    void check_number() {
         if (number_in.read() % 2 == 0)
             result_out.write(0); // Even
         else

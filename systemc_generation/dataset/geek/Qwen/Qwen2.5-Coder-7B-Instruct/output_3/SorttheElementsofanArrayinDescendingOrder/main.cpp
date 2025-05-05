@@ -3,39 +3,28 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
+    sc_in<bool> clk;     // Clock signal
+    sc_in<bool> start;   // Start signal
     sc_out<bool> done;  // Done signal
-    sc_out<int> sorted_array[5];  // Output port for the sorted array
 
-    // Constructor
+    int nums[5];         // Array to hold the input data
+    int size_nums = 5;   // Size of the array
+
     SC_CTOR(BubbleSort) {
-        // Process to handle sorting
-        SC_METHOD(sort);
+        SC_METHOD(sortArray);
         sensitive << clk.pos();
-        async_reset_signal_is(reset, true);
+        async_reset_signal_is(clk, false);
     }
 
-    // Reset signal
-    sc_in<bool> reset;
+    void sortArray() {
+        if (start.read()) {
+            bool isSwapped;
 
-    // Method to perform sorting
-    void sort() {
-        static int nums[] = {1, 12, 6, 8, 10};
-        static int size_nums = sizeof(nums) / sizeof(nums[0]);
-        static bool isSwapped;
-
-        if (reset) {
-            for (int i = 0; i < size_nums; i++) {
-                sorted_array[i].write(nums[i]);
-            }
-            done.write(false);
-        } else if (start) {
             for (int i = 0; i < size_nums; i++) {
                 isSwapped = false;
                 for (int j = 1; j < size_nums - i; j++) {
                     if (nums[j] < nums[j - 1]) {
-                        swapNums(nums, j, (j - 1));
+                        swapNums(j, j - 1);
                         isSwapped = true;
                     }
                 }
@@ -43,18 +32,31 @@ SC_MODULE(BubbleSort) {
                     break;
                 }
             }
-            for (int i = 0; i < size_nums; i++) {
-                sorted_array[i].write(nums[i]);
-            }
+
             done.write(true);
+        } else {
+            done.write(false);
         }
     }
 
-    // Swap function
-    void swapNums(int nums[], int first, int second) {
+    void swapNums(int first, int second) {
         int curr = nums[first];
         nums[first] = nums[second];
         nums[second] = curr;
+    }
+
+    // Method to load input array
+    void load_array(int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            nums[i] = arr[i];
+        }
+    }
+
+    // Method to read sorted array
+    void read_array(int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            arr[i] = nums[i];
+        }
     }
 };
 

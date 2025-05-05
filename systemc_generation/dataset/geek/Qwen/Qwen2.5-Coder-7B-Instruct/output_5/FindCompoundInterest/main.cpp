@@ -24,6 +24,7 @@ SC_MODULE(CompoundInterestCalculator) {
 };
 
 
+
 SC_MODULE(Testbench) {
     sc_signal<double> principal_sig; // Signal for principal amount
     sc_signal<double> rate_sig;      // Signal for interest rate

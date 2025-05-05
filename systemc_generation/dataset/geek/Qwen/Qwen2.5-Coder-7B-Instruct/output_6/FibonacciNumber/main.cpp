@@ -1,20 +1,21 @@
 
 #include <systemc.h>
 
+// Module to calculate the nth Fibonacci number
 
 SC_MODULE(FibonacciCalculator) {
-    sc_in<int> n;  // Input port for the nth term
-    sc_out<int> result; // Output port for the nth FibonacciCalculator number
+    sc_in<int> n;  // Input port for the position in the Fibonacci sequence
+    sc_out<int> result; // Output port for the nth Fibonacci number
 
     // Constructor
     SC_CTOR(FibonacciCalculator) {
-        // Process to calculate the nth FibonacciCalculator number
-        SC_METHOD(calculateFib);
+        // Process to calculate the Fibonacci number
+        SC_METHOD(calculate_fib);
         sensitive << n;
     }
 
-    // Method to calculate the nth FibonacciCalculator number
-    void calculateFib() {
+    // Method to calculate the nth Fibonacci number
+    void calculate_fib() {
         if (n.read() <= 1) {
             result.write(n.read());
         } else {

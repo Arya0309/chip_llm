@@ -3,38 +3,60 @@
 
 
 SC_MODULE(MinMax) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_out<int> min_val;      // Output for minimum value
-    sc_out<int> max_val;      // Output for maximum value
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal to initiate computation
+    sc_out<bool> done;  // Done signal to indicate computation completion
+    sc_out<int> min_val;  // Output for minimum value
+    sc_out<int> max_val;  // Output for maximum value
 
-    int arr[] = { 12, 1234, 45, 67, 1 }; 
-    int n = sizeof(arr) / sizeof(arr[0]); 
+    int arr[100];  // Array to store input values
+    int n;  // Size of the array
 
-    int min_val_int;
-    int max_val_int;
-
+    // Constructor
     SC_CTOR(MinMax) {
-        SC_METHOD(find_min_max);
-        sensitive << clk.pos(); // Sensitive to positive edge of clock
+        // Process to handle start signal and compute min/max
+        SC_METHOD(compute_min_max);
+        sensitive << clk.pos();
         dont_initialize();
+
+        // Reset signals
+        done.initialize(false);
     }
 
-    void find_min_max() {
+    // Method to load the input array
+    void load_array(int* input_arr, int size) {
+        n = size;
+        for (int i = 0; i < n; i++) {
+            arr[i] = input_arr[i];
+        }
+    }
+
+    // Method to compute minimum and maximum values
+    void compute_min_max() {
         if (start.read()) {
-            min_val_int = *min_element(arr, arr + n);
-            max_val_int = *max_element(arr, arr + n);
+            // Initialize min and max values
+            min_val.write(arr[0]);
+            max_val.write(arr[0]);
 
-            min_val.write(min_val_int);
-            max_val.write(max_val_int);
+            // Iterate through the array to find min and max
+            for (int i = 1; i < n; i++) {
+                if (arr[i] < min_val.read()) {
+                    min_val.write(arr[i]);
+                }
+                if (arr[i] > max_val.read()) {
+                    max_val.write(arr[i]);
+                }
+            }
 
+            // Set done signal after computation
             done.write(true);
         } else {
+            // Reset done signal
             done.write(false);
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

@@ -3,32 +3,38 @@
 
 
 SC_MODULE(MatrixComparator) {
-    sc_in<sc_vector<sc_vector<int>> > A;  // Input port for matrix A
-    sc_in<sc_vector<sc_vector<int>> > B;  // Input port for matrix B
-    sc_out<bool> identical;              // Output port for the result
+    sc_in<int> A[4][4];  // Input port for the first matrix
+    sc_in<int> B[4][4];  // Input port for the second matrix
+    sc_out<bool> identical; // Output port indicating if matrices are identical
 
     // Constructor
     SC_CTOR(MatrixComparator) {
         // Process to compare the matrices
         SC_METHOD(compareMatrices);
-        sensitive << A << B;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                sensitive << A[i][j];
+                sensitive << B[i][j];
+            }
+        }
     }
 
     // Method to compare the matrices
     void compareMatrices() {
-        bool result = true;
-        for (int i = 0; i < A.size(); i++) {
-            for (int j = 0; j < A[i].size(); j++) {
-                if (A[i][j] != B[i][j]) {
-                    result = false;
+        bool areIdentical = true;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (A[i][j].read() != B[i][j].read()) {
+                    areIdentical = false;
                     break;
                 }
             }
-            if (!result) break;
+            if (!areIdentical) break;
         }
-        identical.write(result);
+        identical.write(areIdentical);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

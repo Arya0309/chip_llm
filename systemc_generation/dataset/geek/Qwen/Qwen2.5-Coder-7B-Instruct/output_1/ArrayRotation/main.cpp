@@ -9,48 +9,53 @@ SC_MODULE(Rotator) {
     sc_in<int> in_array[7];  // Input array
     sc_out<int> out_array[7];  // Output array
 
-    // Temporary array to store rotated elements
-    int temp[7];
+    int arr[7];
+    int N;
 
-    // Constructor
     SC_CTOR(Rotator) {
-        // Process to handle rotation
-        SC_METHOD(rotate);
+        SC_METHOD(Rotate);
         sensitive << clk.pos();
-        dont_initialize();
+        async_reset_signal_is(rst, true);
     }
 
-    // Method to rotate the array
-    void rotate() {
+    void Rotate() {
         if (rst.read()) {
-            // Reset output array to zero
             for (int i = 0; i < 7; i++) {
-                out_array[i].write(0);
+                arr[i] = 0;  // Reset array to zero
             }
         } else {
-            int n = 7;  // Size of the array
-            int k = 0;  // Index for temp array
+            N = 7;  // Size of the array
+            for (int i = 0; i < N; i++) {
+                arr[i] = in_array[i];
+            }
 
-            // Copy elements from d to n-1 to the front of temp
-            for (int i = d; i < n; i++) {
-                temp[k] = in_array[i];
+            int temp[N];
+            int k = 0;
+
+            // Storing the n - d elements of array arr[] to the front of temp[]
+            for (int i = d; i < N; i++) {
+                temp[k] = arr[i];
                 k++;
             }
 
-            // Copy elements from 0 to d-1 to the back of temp
+            // Storing the first d elements of array arr[] into temp
             for (int i = 0; i < d; i++) {
-                temp[k] = in_array[i];
+                temp[k] = arr[i];
                 k++;
             }
 
-            // Copy elements from temp back to out_array
-            for (int i = 0; i < n; i++) {
-                out_array[i].write(temp[i]);
+            // Copying the elements of temp[] in arr[] to get the final rotated array
+            for (int i = 0; i < N; i++) {
+                arr[i] = temp[i];
+            }
+
+            // Copy the rotated array to the output array
+            for (int i = 0; i < N; i++) {
+                out_array[i].write(arr[i]);
             }
         }
     }
 };
-
 
 
 SC_MODULE(Testbench) {

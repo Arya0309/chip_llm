@@ -1,27 +1,31 @@
 
 #include <systemc.h>
 
-// Module to check if the number is even or odd
+// Module to determine if a number is even or odd
 
 SC_MODULE(EvenOddChecker) {
     sc_in<int> number_in;  // Input port for the number
-    sc_out<int> result_out; // Output port for the result
+    sc_out<sc_dt::sc_string> result_out; // Output port for the result ("Even" or "Odd")
 
     // Constructor
     SC_CTOR(EvenOddChecker) {
-        // Process to determine if the number is even or odd
-        SC_METHOD(check_even_odd);
+        // Process to classify the number
+        SC_METHOD(classify);
         sensitive << number_in;
     }
 
-    // Method to check if the number is even or odd
-    void check_even_odd() {
-        if (number_in.read() % 2 == 0)
-            result_out.write(0);  // 0 represents "Even"
-        else
-            result_out.write(1);  // 1 represents "Odd"
+    // Method to classify the number
+    void classify() {
+        int num = number_in.read();
+        if (num % 2 == 0) {
+            result_out.write("Even"); // Write "Even" to result_out if the number is even
+        } else {
+            result_out.write("Odd"); // Write "Odd" to result_out if the number is odd
+        }
     }
 };
+
+// Testbench module to drive the EvenOddChecker module
 
 
 SC_MODULE(Testbench) {

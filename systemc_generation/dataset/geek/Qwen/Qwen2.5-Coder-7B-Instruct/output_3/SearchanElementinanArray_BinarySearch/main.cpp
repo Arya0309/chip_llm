@@ -1,34 +1,43 @@
 
 #include <systemc.h>
+#include <vector>
+#include <fstream>
 
 
 SC_MODULE(BinarySearchModule) {
-    sc_in<int> target;  // Input port for the target value
-    sc_out<bool> found; // Output port indicating if the target is found
-    sc_vector<sc_in<int>> v; // Input port for the vector elements
+    sc_in<sc_vector<int>> v;  // Input port for the vector
+    sc_in<int> target;        // Input port for the target value
+    sc_out<bool> found;       // Output port for the result
 
+    // Log file for error messages
+    std::ofstream log_file("search_log.txt", std::ios::app);
+
+    // Constructor
     SC_CTOR(BinarySearchModule) {
         // Process to perform binary search
         SC_METHOD(search);
-        sensitive << target << v;
+        sensitive << v << target;
     }
 
+    // Method to perform binary search
     void search() {
         int low = 0;
         int high = v.size() - 1;
 
         while (low <= high) {
             int mid = ((high - low) / 2) + low;
-            if (v[mid].read() == target.read()) {
+            if (v[mid] == target) {
                 found.write(true);
                 return;
             }
-            if (v[mid].read() > target.read())
+            if (v[mid] > target)
                 high = mid - 1;
             else
-                low = mid + 1;
+                high = mid + 1;
         }
 
+        // Log an error message if the target is not found
+        log_file << "Error: Target " << target << " not found in the vector." << std::endl;
         found.write(false);
     }
 };

@@ -1,35 +1,39 @@
 
 #include <systemc.h>
 
+#define MATRIX_SIZE 4  // Define the size of the matrices
+
 
 SC_MODULE(MatrixComparator) {
-    sc_in<int> A[4][4];  // Input port for the first matrix
-    sc_in<int> B[4][4];  // Input port for the second matrix
-    sc_out<bool> identical; // Output port for the comparison result
+    sc_in<int> A[MATRIX_SIZE];  // Input port for the first matrix
+    sc_in<int> B[MATRIX_SIZE];  // Input port for the second matrix
+    sc_out<bool> identical;  // Output port for the comparison result
 
     // Constructor
     SC_CTOR(MatrixComparator) {
         // Process to compare the matrices
-        SC_METHOD(compare);
-        sensitive << A << B;
+        SC_METHOD(compare_matrices);
+        for (int i = 0; i < MATRIX_SIZE; i++) {
+            sensitive << A[i];
+            sensitive << B[i];
+        }
     }
 
-    // Method to compare the matrices
-    void compare() {
-        bool areIdentical = true;
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (A[i][j].read() != B[i][j].read()) {
-                    areIdentical = false;
+    // Method to compare the two matrices
+    void compare_matrices() {
+        bool are_identical = true;
+        for (int i = 0; i < MATRIX_SIZE; i++) {
+            for (int j = 0; j < MATRIX_SIZE; j++) {
+                if (A[i].read() != B[j].read()) {  // Corrected the column index from 'i' to 'j'
+                    are_identical = false;
                     break;
                 }
             }
-            if (!areIdentical) break;
+            if (!are_identical) break;
         }
-        identical.write(areIdentical);
+        identical.write(are_identical);
     }
 };
-
 
 
 SC_MODULE(Testbench) {

@@ -1,63 +1,59 @@
 ### Analysis of Provided C++/C Code
 
-**Inputs and Outputs**:
-- **Inputs**: None (The values of `a`, `b`, and `c` are hardcoded within the code).
-- **Outputs**: The largest number among `a`, `b`, and `c`.
+**Inputs:**
+- `a`: An integer value.
+- `b`: An integer value.
+- `c`: An integer value.
 
-**Line-by-Line Explanation**:
+**Outputs:**
+- The largest of the three integers `a`, `b`, and `c`.
 
-1. **Header Inclusion and Namespace Declaration**:
+**Detailed Explanation:**
+
+1. **Variable Declaration and Initialization:**
    ```cpp
-   #include <iostream>
-   using namespace std;
+   int a = 1, b = 2, c = 11;
    ```
-   - Includes the input-output stream library for console operations.
-   - Declares the standard namespace to avoid prefixing standard library names with `std::`.
+   - Three integer variables `a`, `b`, and `c` are declared and initialized to the values 1, 2, and 11 respectively.
 
-2. **Main Function**:
+2. **Finding the Largest Number:**
    ```cpp
-   int main() {
-       int a = 1, b = 2, c = 11;
+   if (a >= b) {
+       if (a >= c)
+           cout << a;
+       else
+           cout << c;
+   }
+   else {
+       if (b >= c)
+           cout << b;
+       else
+           cout << c;
+   }
    ```
-   - Defines the `main` function, which is the entry point of the program.
-   - Initializes three integer variables `a`, `b`, and `c` with values 1, 2, and 11 respectively.
+   - The code uses nested `if-else` statements to determine the largest number among `a`, `b`, and `c`.
+   - First, it checks if `a` is greater than or equal to `b`.
+     - If true, it then checks if `a` is greater than or equal to `c`.
+       - If true, `a` is the largest, and it prints `a`.
+       - If false, `c` is the largest, and it prints `c`.
+   - If `a` is not greater than or equal to `b`, it means `b` is either greater than `a` or equal to `a`.
+     - It then checks if `b` is greater than or equal to `c`.
+       - If true, `b` is the largest, and it prints `b`.
+       - If false, `c` is the largest, and it prints `c`.
 
-3. **Nested If-Else Statements**:
+3. **Return Statement:**
    ```cpp
-       if (a >= b) {
-           if (a >= c)
-               cout << a;
-           else
-               cout << c;
-       }
-       else {
-           if (b >= c)
-               cout << b;
-           else
-               cout << c;
-       }
+   return 0;
    ```
-   - Compares `a` with `b`. If `a` is greater than or equal to `b`, it further compares `a` with `c`.
-     - If `a` is also greater than or equal to `c`, it prints `a`.
-     - Otherwise, it prints `c`.
-   - If `a` is less than `b`, it compares `b` with `c`.
-     - If `b` is greater than or equal to `c`, it prints `b`.
-     - Otherwise, it prints `c`.
+   - The program returns 0, indicating successful execution.
 
-4. **Return Statement**:
-   ```cpp
-       return 0;
-   ```
-   - Returns 0 from the `main` function, indicating successful execution.
+### Equivalent SystemC Code
 
-### SystemC Code Snippet
-
-To integrate this logic into a SystemC design, we need to create a module that takes inputs `a`, `b`, and `c`, and outputs the largest value among them. Here's how the SystemC code would look:
+To integrate this logic into a SystemC environment, we need to modify the code to use the provided signals (`a`, `b`, `c`, and `largest`). Here is the equivalent SystemC code:
 
 ```cpp
 #include <systemc.h>
 
-// Module to find the largest among three numbers
 SC_MODULE(LargestFinder) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
@@ -66,12 +62,12 @@ SC_MODULE(LargestFinder) {
 
     // Constructor
     SC_CTOR(LargestFinder) {
-        // Process to determine the largest number
+        // Process to find the largest number
         SC_METHOD(find_largest);
         sensitive << a << b << c;
     }
 
-    // Method to find the largest number
+    // Method to determine the largest number
     void find_largest() {
         if (a.read() >= b.read()) {
             if (a.read() >= c.read())
@@ -90,30 +86,33 @@ SC_MODULE(LargestFinder) {
 
 ### Explanation of SystemC Code
 
-1. **Module Declaration**:
+1. **Module Declaration:**
    ```cpp
    SC_MODULE(LargestFinder) {
-       sc_in<int> a;  // Input port for the first number
-       sc_in<int> b;  // Input port for the second number
-       sc_in<int> c;  // Input port for the third number
-       sc_out<int> largest; // Output port for the largest number
    ```
-   - Defines a SystemC module named `LargestFinder`.
-   - Declares input ports `a`, `b`, and `c` for the three numbers.
-   - Declares an output port `largest` for the result.
+   - A SystemC module named `LargestFinder` is declared.
 
-2. **Constructor**:
+2. **Input and Output Ports:**
+   ```cpp
+   sc_in<int> a;  // Input port for the first number
+   sc_in<int> b;  // Input port for the second number
+   sc_in<int> c;  // Input port for the third number
+   sc_out<int> largest; // Output port for the largest number
+   ```
+   - Three input ports `a`, `b`, and `c` are declared to receive integer values.
+   - One output port `largest` is declared to send the largest integer value.
+
+3. **Constructor:**
    ```cpp
    SC_CTOR(LargestFinder) {
-       // Process to determine the largest number
+       // Process to find the largest number
        SC_METHOD(find_largest);
        sensitive << a << b << c;
    }
    ```
-   - Initializes the module with the name `LargestFinder`.
-   - Registers the method `find_largest` to be called whenever `a`, `b`, or `c` changes.
+   - The constructor initializes the `find_largest` method to be sensitive to changes in `a`, `b`, and `c`.
 
-3. **Method to Find Largest Number**:
+4. **Method to Find the Largest Number:**
    ```cpp
    void find_largest() {
        if (a.read() >= b.read()) {
@@ -129,7 +128,8 @@ SC_MODULE(LargestFinder) {
        }
    }
    ```
-   - Reads the current values of `a`, `b`, and `c`.
-   - Uses nested if-else statements to compare the values and write the largest value to the `largest` port.
+   - This method reads the values of `a`, `b`, and `c`.
+   - It uses nested `if-else` statements to determine the largest number among `a`, `b`, and `c`.
+   - The largest number is written to the `largest` output port.
 
-This SystemC code snippet accurately captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.
+This SystemC code faithfully captures the logic of the original C++/C source code and can be integrated into a high-level synthesis flow.

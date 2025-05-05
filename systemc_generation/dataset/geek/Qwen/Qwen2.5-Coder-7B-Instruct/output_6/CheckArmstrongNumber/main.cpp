@@ -3,8 +3,8 @@
 
 
 SC_MODULE(ArmstrongChecker) {
-    sc_in<int> num_in;  // Input port for the number to be checked
-    sc_out<bool> is_armstrong;  // Output port indicating if the number is an Armstrong number
+    sc_in<int> num_in;  // Input port for the number to check
+    sc_out<bool> is_armstrong; // Output port indicating if the number is an Armstrong number
 
     // Constructor
     SC_CTOR(ArmstrongChecker) {

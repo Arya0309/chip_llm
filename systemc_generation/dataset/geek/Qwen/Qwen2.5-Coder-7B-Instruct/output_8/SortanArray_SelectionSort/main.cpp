@@ -3,49 +3,56 @@
 
 
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;       // Clock signal
-    sc_in<bool> start;     // Start signal
-    sc_out<bool> done;     // Done signal
-    sc_out<int> sorted_arr[5]; // Output port for the sorted array
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_in<int> arr_in[5];  // Input array for elements
+    sc_out<int> arr_out[5];  // Output array for sorted elements
 
-    int arr[5] = {64, 25, 12, 22, 11}; // Fixed array for demonstration
-    int n = 5; // Size of the array
-
+    int arr[5];  // Internal array for sorting
+    int n = 5;  // Size of the array
     int i, j, min_idx;
 
-    SC_CTOR(SelectionSort) {
-        // Process to handle sorting and output
-        SC_METHOD(sort_and_output);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
+    // Process to handle sorting
+    SC_THREAD(sort_process);
 
-    void sort_and_output() {
-        if (start.read()) {
-            // Selection sort algorithm
-            for (i = 0; i < n-1; i++) {
-                min_idx = i;
-                for (j = i+1; j < n; j++)
-                    if (arr[j] < arr[min_idx])
-                        min_idx = j;
-                swap(&arr[min_idx], &arr[i]);
+    // Method to perform selection sort
+    void sort_process() {
+        while (true) {
+            wait();
+
+            if (start.read()) {
+                // Load the input array into the internal array
+                for (i = 0; i < n; i++) {
+                    arr[i] = arr_in[i].read();
+                }
+
+                // Perform selection sort
+                for (i = 0; i < n - 1; i++) {
+                    min_idx = i;
+                    for (j = i + 1; j < n; j++)
+                        if (arr[j] < arr[min_idx])
+                            min_idx = j;
+
+                    std::swap(arr[min_idx], arr[i]);
+                }
+
+                // Output the sorted array
+                for (i = 0; i < n; i++) {
+                    arr_out[i].write(arr[i]);
+                }
+
+                done.write(true);
+            } else {
+                done.write(false);
             }
-
-            // Assign sorted array to output ports
-            for (i = 0; i < n; i++) {
-                sorted_arr[i].write(arr[i]);
-            }
-
-            done.write(true); // Indicate sorting is done
-        } else {
-            done.write(false); // Indicate no sorting is happening
         }
     }
 
-    void swap(int *xp, int *yp) {
-        int temp = *xp;
-        *xp = *yp;
-        *yp = temp;
+    // Constructor
+    SC_CTOR(SelectionSort) {
+        // Connect the sort process to the clock
+        sensitive << clk.pos();
     }
 };
 

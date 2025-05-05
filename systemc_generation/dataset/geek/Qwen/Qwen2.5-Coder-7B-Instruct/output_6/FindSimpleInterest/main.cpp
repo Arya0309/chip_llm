@@ -17,11 +17,8 @@ SC_MODULE(SimpleInterestCalculator) {
 
     // Method to calculate simple interest
     void calculate_interest() {
-        float p = P.read();
-        float r = R.read();
-        float t = T.read();
-        float si = (p * t * r) / 100;
-        SI.write(si);
+        float interest = (P.read() * T.read() * R.read()) / 100;
+        SI.write(interest);
     }
 };
 

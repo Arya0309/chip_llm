@@ -8,7 +8,7 @@ SC_MODULE(OctalToDecimalConverter) {
 
     // Constructor
     SC_CTOR(OctalToDecimalConverter) {
-        // Process to convert octal to decimal
+        // Process to perform conversion
         SC_METHOD(convert);
         sensitive << octal_input;
     }

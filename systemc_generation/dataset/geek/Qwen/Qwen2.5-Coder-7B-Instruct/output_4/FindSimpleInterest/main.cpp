@@ -5,20 +5,19 @@
 SC_MODULE(SimpleInterestCalculator) {
     sc_in<float> P;  // Input port for Principal amount
     sc_in<float> R;  // Input port for Rate of interest
-    sc_in<float> T;  // Input port for Time
+    sc_in<float> T;  // Input port for Time period
     sc_out<float> SI; // Output port for Simple Interest
 
     // Constructor
     SC_CTOR(SimpleInterestCalculator) {
         // Process to calculate simple interest
-        SC_METHOD(calculate_interest);
+        SC_METHOD(calculate_simple_interest);
         sensitive << P << R << T;
     }
 
     // Method to calculate simple interest
-    void calculate_interest() {
-        float si = (P.read() * T.read() * R.read()) / 100;
-        SI.write(si);
+    void calculate_simple_interest() {
+        SI.write((P.read() * T.read() * R.read()) / 100);
     }
 };
 

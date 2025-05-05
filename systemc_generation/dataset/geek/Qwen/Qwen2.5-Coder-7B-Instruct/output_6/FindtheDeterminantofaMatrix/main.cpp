@@ -1,28 +1,30 @@
 
 #include <systemc.h>
+#include <cmath>
+#include <algorithm>  // Include for std::swap
 
 
 SC_MODULE(DeterminantCalculator) {
-    sc_in<double> matrix[4][4];  // Input port for the matrix
-    sc_out<double> det;          // Output port for the determinant
+    sc_in<double> matrix[16];  // Input port for the flattened matrix
+    sc_out<double> det;       // Output port for the determinant
 
-    // Constructor
     SC_CTOR(DeterminantCalculator) {
-        // Process to calculate the determinant
-        SC_METHOD(calculate_determinant);
-        sensitive << matrix;
+        SC_THREAD(compute_determinant);
+        sensitive << matrix[0] << matrix[1] << matrix[2] << matrix[3]
+                   << matrix[4] << matrix[5] << matrix[6] << matrix[7]
+                   << matrix[8] << matrix[9] << matrix[10] << matrix[11]
+                   << matrix[12] << matrix[13] << matrix[14] << matrix[15];
     }
 
-    // Method to calculate the determinant
-    void calculate_determinant() {
+    void compute_determinant() {
         double a[4][4];
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                a[i][j] = matrix[i][j].read();
+                a[i][j] = matrix[i * 4 + j].read();  // Correctly access the flattened matrix
             }
         }
 
-        double det = 1.0;
+        double det_val = 1.0;
         for (int i = 0; i < 4; i++) {
             int pivot = i;
             for (int j = i + 1; j < 4; j++) {
@@ -31,16 +33,16 @@ SC_MODULE(DeterminantCalculator) {
                 }
             }
             if (pivot != i) {
-                for (int k = 0; k < 4; k++) {
-                    swap(a[i][k], a[pivot][k]);
+                for (int k = i; k < 4; k++) {
+                    std::swap(a[i][k], a[pivot][k]);  // Use std::swap
                 }
-                det *= -1;
+                det_val *= -1;
             }
             if (a[i][i] == 0) {
-                det = 0;
+                det_val = 0;
                 break;
             }
-            det *= a[i][i];
+            det_val *= a[i][i];
             for (int j = i + 1; j < 4; j++) {
                 double factor = a[j][i] / a[i][i];
                 for (int k = i + 1; k < 4; k++) {
@@ -48,7 +50,8 @@ SC_MODULE(DeterminantCalculator) {
                 }
             }
         }
-        this->det.write(det);
+
+        det.write(det_val);  // Correctly write the determinant to the output port
     }
 };
 

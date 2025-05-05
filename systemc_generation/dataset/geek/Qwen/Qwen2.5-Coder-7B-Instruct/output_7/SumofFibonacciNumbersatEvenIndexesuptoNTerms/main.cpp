@@ -9,34 +9,35 @@ SC_MODULE(FibonacciSumCalculator) {
     // Constructor
     SC_CTOR(FibonacciSumCalculator) {
         // Process to calculate the sum of even-indexed Fibonacci numbers
-        SC_METHOD(calculateSum);
+        SC_THREAD(calculateSum);
         sensitive << n;
     }
 
-    // Method to calculate the sum of even-indexed Fibonacci numbers
+    // Thread to perform the calculation
     void calculateSum() {
-        if (n.read() <= 0) {
-            sum.write(0);
-            return;
-        }
-
-        int fibo[2 * n.read() + 1];
-        fibo[0] = 0;
-        fibo[1] = 1;
-
-        int sum_val = 0;
-
-        for (int i = 2; i <= 2 * n.read(); i++) {
-            fibo[i] = fibo[i - 1] + fibo[i - 2];
-            if (i % 2 == 0) {
-                sum_val += fibo[i];
+        while (true) {
+            int n_val = n.read();
+            if (n_val <= 0) {
+                sum.write(0);
+                wait();
+                continue;
             }
-        }
 
-        sum.write(sum_val);
+            int fibo[2 * n_val + 1];
+            fibo[0] = 0, fibo[1] = 1;
+            int sum_val = 0;
+
+            for (int i = 2; i <= 2 * n_val; i++) {
+                fibo[i] = fibo[i - 1] + fibo[i - 2];
+                if (i % 2 == 0)
+                    sum_val += fibo[i];
+            }
+
+            sum.write(sum_val);
+            wait();
+        }
     }
 };
-
 
 
 SC_MODULE(Testbench) {

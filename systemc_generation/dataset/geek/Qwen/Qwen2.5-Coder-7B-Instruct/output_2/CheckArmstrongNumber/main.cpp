@@ -3,8 +3,8 @@
 
 
 SC_MODULE(ArmstrongChecker) {
-    sc_in<int> num_in; // Input port for the number to check
-    sc_out<bool> is_armstrong; // Output port indicating if the number is an Armstrong number
+    sc_in<int> num_in;  // Input port for the number to check
+    sc_out<bool> is_armstrong;  // Output port indicating if the number is an Armstrong number
 
     // Constructor
     SC_CTOR(ArmstrongChecker) {
@@ -15,22 +15,22 @@ SC_MODULE(ArmstrongChecker) {
 
     // Method to check if the number is an Armstrong number
     void check_armstrong() {
-        int n = num_in.read(); // Read the input number
-        int temp = n; // Preserve the original number
-        int p = 0; // Initialize sum of cubes of digits
+        int n = num_in.read();
+        int temp = n;
+        int p = 0;
 
-        // Loop to calculate the sum of cubes of digits
+        // Loop to calculate the sum of cubes of individual digits
         while (n > 0) {
-            int rem = n % 10; // Extract the last digit
-            p = (p) + (rem * rem * rem); // Add the cube of the digit to p
-            n = n / 10; // Remove the last digit from n
+            int rem = n % 10;
+            p = (p) + (rem * rem * rem);
+            n = n / 10;
         }
 
-        // Check if the sum of cubes equals the original number
+        // Condition to check whether the value of P equals to user input or not
         if (temp == p) {
-            is_armstrong.write(true); // Set output to true if Armstrong
+            is_armstrong.write(true);  // Set output to true if it is an Armstrong number
         } else {
-            is_armstrong.write(false); // Set output to false if not Armstrong
+            is_armstrong.write(false);  // Set output to false if it is not an Armstrong number
         }
     }
 };

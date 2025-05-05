@@ -3,39 +3,87 @@
 
 
 SC_MODULE(RowWiseSorter) {
-    sc_in<bool> clk;     // Clock signal
-    sc_in<bool> start;   // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_inout<int> matrix[4][4];  // Input/Output matrix
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;         // Done signal
+    sc_inout<int> matrix[4][4]; // Input/Output matrix
 
     // Constructor
     SC_CTOR(RowWiseSorter) {
-        SC_METHOD(sortMatrix);
+        SC_THREAD(sortRows);
         sensitive << clk.pos();
         dont_initialize();
+
+        SC_THREAD(checkDone);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                sensitive << matrix[i][j];
+            }
+        }
     }
 
-    void sortMatrix() {
-        if (start.read()) {
-            // Sort each row of the matrix
+    // Event to trigger sorting completion
+    sc_event sort_done_event;
+
+    // Method to sort each row of the matrix
+    void sortRows() {
+        while (true) {
+            wait(start); // Wait for start signal
+
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
                     for (int k = 0; k < 4 - j - 1; k++) {
-                        if (matrix[i][k] > matrix[i][k + 1]) {
-                            int temp = matrix[i][k];
-                            matrix[i][k] = matrix[i][k + 1];
-                            matrix[i][k + 1] = temp;
+                        if (matrix[i][k].read() > matrix[i][k + 1].read()) {
+                            int temp = matrix[i][k].read();
+                            matrix[i][k].write(matrix[i][k + 1].read());
+                            matrix[i][k + 1].write(temp);
                         }
                     }
                 }
             }
-            done.write(true);  // Set done signal
-        } else {
-            done.write(false);  // Reset done signal
+
+            sort_done_event.notify(); // Notify that sorting is done
+        }
+    }
+
+    // Method to check if sorting is done
+    void checkDone() {
+        while (true) {
+            wait(sort_done_event); // Wait for sorting completion
+
+            bool isSorted = true;
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 3; j++) {
+                    if (matrix[i][j].read() > matrix[i][j + 1].read()) {
+                        isSorted = false;
+                        break;
+                    }
+                }
+                if (!isSorted) break;
+            }
+
+            done.write(isSorted); // Set done signal based on sorting status
+        }
+    }
+
+    // Method to load the input matrix
+    void load_matrix(const int input_matrix[4][4]) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                matrix[i][j].write(input_matrix[i][j]);
+            }
+        }
+    }
+
+    // Method to read the sorted matrix
+    void read_matrix(int output_matrix[4][4]) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                output_matrix[i][j] = matrix[i][j].read();
+            }
         }
     }
 };
-
 
 
 SC_MODULE(Testbench) {

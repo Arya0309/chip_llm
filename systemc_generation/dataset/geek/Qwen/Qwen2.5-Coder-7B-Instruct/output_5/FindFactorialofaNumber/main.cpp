@@ -1,7 +1,6 @@
 
 #include <systemc.h>
 
-// SystemC module to calculate factorial
 
 SC_MODULE(Factorial) {
     sc_in<unsigned int> in;  // Input port for the number
@@ -14,12 +13,12 @@ SC_MODULE(Factorial) {
         sensitive << in;
     }
 
-    // Method to calculate factorial
+    // Method to calculate the factorial
     void calculate_factorial() {
+        unsigned int n = in.read();
         unsigned int res = 1, i;
-        for (i = 2; i <= in.read(); i++) {
+        for (i = 2; i <= n; i++)
             res *= i;
-        }
         out.write(res);
     }
 };

@@ -3,57 +3,77 @@
 
 
 SC_MODULE(Rotator) {
-    sc_in<bool> clk;      // Clock signal
-    sc_in<bool> rst;      // Reset signal
-    sc_in<int> d;         // Number of positions to rotate
-    sc_in<int> in_array[7];// Input array
-    sc_out<int> out_array[7]; // Output array
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> rst;  // Reset signal
+    sc_in<int> d;      // Number of positions to rotate
+    sc_in<int> in_array[7];  // Input array
+    sc_out<int> out_array[7];  // Output array
 
-    int arr[7];           // Internal array to hold the elements
-    int N = 7;            // Size of the array
+    int arr[7];  // Internal array to store the input data
 
     // Constructor
     SC_CTOR(Rotator) {
-        // Process to handle rotation
-        SC_METHOD(handle_rotation);
+        // Initialize the internal array from the input array
+        SC_METHOD(init_array);
         sensitive << clk.pos();
-        dont_initialize();
+        async_reset_signal_is(rst, true);
+
+        // Process to perform rotation
+        SC_METHOD(rotate_array);
+        sensitive << clk.pos();
+        async_reset_signal_is(rst, true);
+
+        // Process to print the array (simulated output)
+        SC_METHOD(print_array);
+        sensitive << clk.pos();
+        async_reset_signal_is(rst, true);
     }
 
-    // Method to handle the rotation
-    void handle_rotation() {
+    // Method to initialize the internal array from the input array
+    void init_array() {
         if (rst.read()) {
-            // Reset the array to the initial state
-            for (int i = 0; i < N; i++) {
-                arr[i] = in_array[i].read();
+            for (int i = 0; i < 7; i++) {
+                arr[i] = 0;
             }
         } else {
-            // Rotate the array
-            int temp[N];
-            int k = 0;
+            for (int i = 0; i < 7; i++) {
+                arr[i] = in_array[i].read();
+            }
+        }
+    }
 
-            for (int i = d; i < N; i++) {
-                temp[k] = arr[i];
-                k++;
+    // Method to rotate the array
+    void rotate_array() {
+        if (!rst.read()) {
+            int n = 7;
+            int temp[n];
+
+            // Copy the n - d elements to the front of temp
+            for (int i = d.read(); i < n; i++) {
+                temp[i - d.read()] = arr[i];
             }
 
-            for (int i = 0; i < d; i++) {
-                temp[k] = arr[i];
-                k++;
+            // Copy the first d elements to the end of temp
+            for (int i = 0; i < d.read(); i++) {
+                temp[n - d.read() + i] = arr[i];
             }
 
-            for (int i = 0; i < N; i++) {
+            // Copy the elements of temp back to arr
+            for (int i = 0; i < n; i++) {
                 arr[i] = temp[i];
             }
+        }
+    }
 
-            // Copy the rotated array to the output
-            for (int i = 0; i < N; i++) {
+    // Method to simulate printing the array (output)
+    void print_array() {
+        if (!rst.read()) {
+            for (int i = 0; i < 7; i++) {
                 out_array[i].write(arr[i]);
             }
         }
     }
 };
-
 
 
 SC_MODULE(Testbench) {

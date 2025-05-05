@@ -1,128 +1,55 @@
-### Analysis of the C++/C Code
+The error message indicates that there is an issue with port binding in the SystemC simulation environment. Specifically, the error states that the port `port_12` (which should be `arr_out`) is not properly bound to the corresponding signal in the testbench.
 
-#### Inputs and Outputs
-- **Inputs**: None (the array is hardcoded within the `main` function).
-- **Outputs**: 
-  - Before sorting: The unsorted array elements.
-  - After sorting: The sorted array elements.
+### Analysis of the Runtime Failure
 
-#### Detailed Explanation
+1. **Nature of the Runtime Failure**:
+   - The error is related to port binding, which means that the SystemC kernel is unable to connect the output port (`arr_out`) of the `BubbleSort` module to the corresponding input port in the testbench. This could lead to a runtime error because the output of the `BubbleSort` module will not be accessible to the testbench.
 
-1. **Header and Namespace**
-   ```cpp
-   #include <bits/stdc++.h>
-   using namespace std;
-   ```
-   - This includes the standard C++ library and uses the standard namespace.
+2. **Function or Line Where the Error Occurs**:
+   - The error occurs during the simulation setup phase when the SystemC kernel tries to bind the ports. This is typically indicated by the stack trace or by observing the symptoms such as the simulation crashing or throwing an exception.
 
-2. **Function Declarations**
-   ```cpp
-   void sort(int num[], int len);
-   void swapNums(int nums[], int first, int second);
-   ```
-   - These declare functions for sorting the array and swapping elements.
+3. **Underlying Cause**:
+   - The most likely cause is that the port `arr_out` is not declared or initialized properly in the `BubbleSort` module. Additionally, there might be a mismatch between the port names and types in the module and the testbench.
 
-3. **Main Function**
-   ```cpp
-   int main()
-   {
-       int nums[] = {1, 12, 6, 8, 10};
-       int size_nums = (sizeof(nums) / sizeof(nums[0]));
+4. **Proposed Code Adjustments**:
+   - Ensure that the `arr_out` port is declared correctly in the `BubbleSort` module.
+   - Verify that the port names and types match between the `BubbleSort` module and the testbench.
+   - Initialize the `arr_out` port properly in the constructor of the `BubbleSort` module.
 
-       cout << "Before sorting the array is: \n";
-       for (int i = 0; i < size_nums; i++)
-           cout << nums[i] << " ";
-       cout << "\n\n";
+### Revised Code Section
 
-       sort(nums, size_nums);
-
-       cout << "After sorting the array is: \n";
-
-       for (int i = 0; i < size_nums; i++)
-           cout << nums[i] << " ";
-       cout << "\n";
-       return 0;
-   }
-   ```
-   - Initializes the array and calculates its size.
-   - Prints the unsorted array.
-   - Calls the `sort` function to sort the array.
-   - Prints the sorted array.
-
-4. **Sort Function**
-   ```cpp
-   void sort(int num[], int len)
-   {
-       bool isSwapped;
-
-       for (int i = 0; i < len; i++) 
-       {
-           isSwapped = false;
-           for (int j = 1; j < len - i; j++) 
-           {
-               if (num[j] < num[j - 1]) 
-               {
-                   swapNums(num, j, (j - 1));
-                   isSwapped = true;
-               }
-           }
-           if (!isSwapped) 
-           {
-               break;
-           }
-       }
-   }
-   ```
-   - Uses a bubble sort algorithm to sort the array.
-   - Iterates through the array, comparing adjacent elements and swapping them if they are in the wrong order.
-   - If no swaps are made in a pass, the array is already sorted and the loop breaks early.
-
-5. **Swap Function**
-   ```cpp
-   void swapNums(int nums[], int first, int second)
-   {
-       int curr = nums[first];
-       nums[first] = nums[second];
-       nums[second] = curr;
-   }
-   ```
-   - Swaps two elements in the array.
-
-### SystemC Code Snippet
-
-Here is the equivalent SystemC code that captures the logic of the original C++/C code and integrates with the provided signals:
+Here is the revised code section for the `BubbleSort` module:
 
 ```cpp
-#include <systemc.h>
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;     // Done signal
+    sc_in<int> arr_in[5];   // Input array
+    sc_out<int> arr_out[5]; // Output sorted array
 
-SC_MODULE(ArraySorter) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_out<int> sorted_array[5];  // Output port for the sorted array
-
-    int nums[5] = {1, 12, 6, 8, 10};  // Hardcoded array
+    int nums[5];
     bool isSwapped;
 
-    SC_CTOR(ArraySorter) {
-        // Process to handle sorting
-        SC_METHOD(sortArray);
+    SC_CTOR(BubbleSort) {
+        // Constructor
+        SC_METHOD(sort);
         sensitive << clk.pos();
-        dont_initialize();
-
-        // Process to handle start signal
-        SC_METHOD(handleStart);
         sensitive << start;
-        dont_initialize();
     }
 
-    void sortArray() {
+    void sort() {
         if (start.read()) {
+            for (int i = 0; i < 5; i++) {
+                nums[i] = arr_in[i].read();
+            }
             for (int i = 0; i < 5; i++) {
                 isSwapped = false;
                 for (int j = 1; j < 5 - i; j++) {
                     if (nums[j] < nums[j - 1]) {
-                        swapNums(j, j - 1);
+                        int curr = nums[j];
+                        nums[j] = nums[j - 1];
+                        nums[j - 1] = curr;
                         isSwapped = true;
                     }
                 }
@@ -134,101 +61,95 @@ SC_MODULE(ArraySorter) {
         } else {
             done.write(false);
         }
+
+        for (int i = 0; i < 5; i++) {
+            arr_out[i].write(nums[i]);
+        }
     }
 
-    void swapNums(int first, int second) {
-        int curr = nums[first];
-        nums[first] = nums[second];
-        nums[second] = curr;
+    // Method to load array from testbench
+    void load_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            nums[i] = arr[i];
+        }
     }
 
-    void handleStart() {
-        if (start.read()) {
-            for (int i = 0; i < 5; i++) {
-                sorted_array[i].write(nums[i]);
-            }
+    // Method to read sorted array from the module
+    void read_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = nums[i];
         }
     }
 };
 ```
 
-### Explanation of the SystemC Code
+### Complete Fixed SystemC Module Code
 
-1. **Module Declaration**
-   ```cpp
-   SC_MODULE(ArraySorter) {
-       sc_in<bool> clk;  // Clock signal
-       sc_in<bool> start;  // Start signal
-       sc_out<bool> done;  // Done signal
-       sc_out<int> sorted_array[5];  // Output port for the sorted array
-   ```
-   - Defines a SystemC module with the required signals and output ports.
+Here is the complete, fixed SystemC module code:
 
-2. **Initialization and Arrays**
-   ```cpp
-   int nums[5] = {1, 12, 6, 8, 10};  // Hardcoded array
-   bool isSwapped;
-   ```
-   - Initializes the array and a boolean flag for swapping.
+```cpp
+#include <systemc.h>
 
-3. **Constructor**
-   ```cpp
-   SC_CTOR(ArraySorter) {
-       SC_METHOD(sortArray);
-       sensitive << clk.pos();
-       dont_initialize();
+SC_MODULE(BubbleSort) {
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;     // Done signal
+    sc_in<int> arr_in[5];   // Input array
+    sc_out<int> arr_out[5]; // Output sorted array
 
-       SC_METHOD(handleStart);
-       sensitive << start;
-       dont_initialize();
-   }
-   ```
-   - Registers methods to be called on clock edges and start signal changes.
+    int nums[5];
+    bool isSwapped;
 
-4. **Sorting Logic**
-   ```cpp
-   void sortArray() {
-       if (start.read()) {
-           for (int i = 0; i < 5; i++) {
-               isSwapped = false;
-               for (int j = 1; j < 5 - i; j++) {
-                   if (nums[j] < nums[j - 1]) {
-                       swapNums(j, j - 1);
-                       isSwapped = true;
-                   }
-               }
-               if (!isSwapped) {
-                   break;
-               }
-           }
-           done.write(true);
-       } else {
-           done.write(false);
-       }
-   }
-   ```
-   - Sorts the array when the `start` signal is high and sets the `done` signal once sorting is complete.
+    SC_CTOR(BubbleSort) {
+        // Constructor
+        SC_METHOD(sort);
+        sensitive << clk.pos();
+        sensitive << start;
+    }
 
-5. **Swap Function**
-   ```cpp
-   void swapNums(int first, int second) {
-       int curr = nums[first];
-       nums[first] = nums[second];
-       nums[second] = curr;
-   }
-   ```
-   - Swaps two elements in the array.
+    void sort() {
+        if (start.read()) {
+            for (int i = 0; i < 5; i++) {
+                nums[i] = arr_in[i].read();
+            }
+            for (int i = 0; i < 5; i++) {
+                isSwapped = false;
+                for (int j = 1; j < 5 - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        int curr = nums[j];
+                        nums[j] = nums[j - 1];
+                        nums[j - 1] = curr;
+                        isSwapped = true;
+                    }
+                }
+                if (!isSwapped) {
+                    break;
+                }
+            }
+            done.write(true);
+        } else {
+            done.write(false);
+        }
 
-6. **Handling Start Signal**
-   ```cpp
-   void handleStart() {
-       if (start.read()) {
-           for (int i = 0; i < 5; i++) {
-               sorted_array[i].write(nums[i]);
-           }
-       }
-   }
-   ```
-   - Writes the sorted array to the output ports when the `start` signal is high.
+        for (int i = 0; i < 5; i++) {
+            arr_out[i].write(nums[i]);
+        }
+    }
 
-This SystemC code should integrate seamlessly with the provided testbench and capture the logic of the original C++/C code.
+    // Method to load array from testbench
+    void load_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            nums[i] = arr[i];
+        }
+    }
+
+    // Method to read sorted array from the module
+    void read_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = nums[i];
+        }
+    }
+};
+```
+
+This revised code ensures that the `arr_out` port is properly declared and initialized, and that the port names and types match between the `BubbleSort` module and the testbench. This should resolve the port binding issue and allow the simulation to run without crashing.

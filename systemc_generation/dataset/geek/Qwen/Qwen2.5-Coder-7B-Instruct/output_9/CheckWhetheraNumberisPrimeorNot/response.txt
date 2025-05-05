@@ -1,104 +1,98 @@
-### Analysis of the C++ Code
+### Analysis of the C++/C Code
 
-#### Inputs and Outputs
-- **Inputs**: None (The code uses a hardcoded value `n = 29`).
-- **Outputs**: A string indicating whether the number `n` is prime or not.
+**Inputs and Outputs**:
+- **Input**: An integer `n` which is to be checked for primality.
+- **Output**: A boolean value indicating whether the number `n` is prime or not.
 
-#### Detailed Explanation
-
-1. **Header Inclusion**
+**Line-by-Line Explanation**:
+1. **Header File Include**:
    ```cpp
    #include <bits/stdc++.h>
    ```
-   This line includes all standard libraries in C++.
+   - This includes all standard libraries, which might not be necessary for this specific task but is often used for convenience.
 
-2. **Namespace Declaration**
+2. **Namespace Declaration**:
    ```cpp
    using namespace std;
    ```
-   This line allows us to use standard library functions without prefixing them with `std::`.
+   - This allows us to use standard library functions without prefixing them with `std::`.
 
-3. **Main Function**
+3. **Main Function**:
    ```cpp
    int main() {
+       int n = 29;
    ```
-   The entry point of the program.
+   - The program starts with a `main` function where an integer `n` is initialized to 29.
 
-4. **Initialization**
+4. **Counter Initialization**:
    ```cpp
-   int n = 29;
+       int cnt = 0;
    ```
-   The number to be checked for primality is hardcoded as 29.
+   - A counter `cnt` is initialized to zero to keep track of the number of divisors.
 
-5. **Counter Initialization**
+5. **Prime Check Condition**:
    ```cpp
-   int cnt = 0;
+       if (n <= 1)
+           cout << n << " is NOT prime" << endl;
    ```
-   A counter to keep track of the number of divisors of `n`.
+   - If `n` is less than or equal to 1, it is immediately determined that `n` is not prime.
 
-6. **Prime Check Condition**
+6. **Loop to Check Divisors**:
    ```cpp
-   if (n <= 1)
-       cout << n << " is NOT prime" << endl;
-   ```
-   If `n` is less than or equal to 1, it is not a prime number.
-
-7. **Loop to Check Divisors**
-   ```cpp
-   else {
-       for (int i = 1; i <= n; i++) {
-           if (n % i == 0)
-               cnt++;
+       else {
+           for (int i = 1; i <= n; i++) {
+               if (n % i == 0)
+                   cnt++;
+           }
        }
    ```
-   If `n` is greater than 1, the code checks for divisors from 1 to `n`. If any divisor is found, `cnt` is incremented.
+   - If `n` is greater than 1, the program enters a loop that checks for divisors from 1 to `n`. For each divisor found, `cnt` is incremented.
 
-8. **Final Prime Check**
+7. **Final Prime Check**:
    ```cpp
-   if (cnt > 2)
-       cout << n << " is NOT prime" << endl;
-   else
-       cout << n << " is prime" << endl;
+           if (cnt > 2)
+               cout << n << " is NOT prime" << endl;
+           else
+               cout << n << " is prime" << endl;
+       }
    ```
-   After checking all divisors, if `cnt` is greater than 2, `n` is not a prime number. Otherwise, `n` is a prime number.
+   - After the loop, if `cnt` is greater than 2, it means `n` has more than two divisors, and thus it is not prime. Otherwise, it is prime.
 
-9. **Return Statement**
+8. **Return Statement**:
    ```cpp
-   return 0;
+       return 0;
+   }
    ```
-   The main function returns 0, indicating successful execution.
+   - The `main` function returns 0, indicating successful execution.
 
-### SystemC Code Snippet
+### Equivalent SystemC Code
 
-To convert this C++ code into SystemC, we need to create a module that takes an integer input `n` and outputs a boolean `is_prime` indicating whether `n` is prime or not. Here's the equivalent SystemC code:
+Below is the SystemC code that replicates the logic of the provided C++/C code:
 
 ```cpp
 #include <systemc.h>
 
 SC_MODULE(PrimeChecker) {
-    sc_in<int> n;  // Input port for the number to check
-    sc_out<bool> is_prime;  // Output port indicating if n is prime
+    sc_in<int> n;  // Input port for the number to be checked
+    sc_out<bool> is_prime; // Output port indicating if the number is prime
 
     // Constructor
     SC_CTOR(PrimeChecker) {
-        // Process to check if n is prime
+        // Process to check if the number is prime
         SC_METHOD(check_prime);
         sensitive << n;
     }
 
-    // Method to check if n is prime
+    // Method to check if the number is prime
     void check_prime() {
         int cnt = 0;
-
         if (n.read() <= 1) {
             is_prime.write(false);
         } else {
             for (int i = 1; i <= n.read(); i++) {
-                if (n.read() % i == 0) {
+                if (n.read() % i == 0)
                     cnt++;
-                }
             }
-
             if (cnt > 2) {
                 is_prime.write(false);
             } else {
@@ -109,52 +103,19 @@ SC_MODULE(PrimeChecker) {
 };
 ```
 
-### Explanation of the SystemC Code
+### Explanation of the SystemC Code:
+- **Module Declaration**:
+  - `SC_MODULE(PrimeChecker)` declares a SystemC module named `PrimeChecker`.
+  
+- **Input and Output Ports**:
+  - `sc_in<int> n` is the input port for the number to be checked.
+  - `sc_out<bool> is_prime` is the output port indicating whether the number is prime.
 
-1. **Module Declaration**
-   ```cpp
-   SC_MODULE(PrimeChecker) {
-   ```
-   Declares a SystemC module named `PrimeChecker`.
+- **Constructor**:
+  - `SC_CTOR(PrimeChecker)` initializes the module and binds the `check_prime` method to the `n` input port.
 
-2. **Input and Output Ports**
-   ```cpp
-   sc_in<int> n;
-   sc_out<bool> is_prime;
-   ```
-   Defines an input port `n` and an output port `is_prime`.
+- **Method to Check Prime**:
+  - `void check_prime()` contains the logic to determine if the number `n` is prime.
+  - It initializes `cnt` to zero and checks for divisors from 1 to `n`. If `cnt` exceeds 2, it sets `is_prime` to `false`; otherwise, it sets `is_prime` to `true`.
 
-3. **Constructor**
-   ```cpp
-   SC_CTOR(PrimeChecker) {
-       SC_METHOD(check_prime);
-       sensitive << n;
-   }
-   ```
-   Initializes the module and specifies that the `check_prime` method should be called whenever the `n` port changes.
-
-4. **Method to Check Prime**
-   ```cpp
-   void check_prime() {
-       int cnt = 0;
-
-       if (n.read() <= 1) {
-           is_prime.write(false);
-       } else {
-           for (int i = 1; i <= n.read(); i++) {
-               if (n.read() % i == 0) {
-                   cnt++;
-               }
-           }
-
-           if (cnt > 2) {
-               is_prime.write(false);
-           } else {
-               is_prime.write(true);
-           }
-       }
-   }
-   ```
-   This method reads the value of `n`, checks if it is prime, and writes the result to `is_prime`.
-
-This SystemC code preserves the logic of the original C++ code and can be integrated into a high-level synthesis flow.
+This SystemC code can be integrated into a larger SystemC design and tested using a suitable testbench.

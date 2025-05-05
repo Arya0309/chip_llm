@@ -1,60 +1,78 @@
 
 #include <systemc.h>
 
+// Constants
+const int SIZE = 4; // Number of elements in the matrix
+const int R = 4;    // Number of rows in the matrix
+const int C = 4;    // Number of columns in the matrix
+
 
 SC_MODULE(MatrixRotator) {
-    sc_in<int> in[SIZE][SIZE];  // Input ports for the matrix
-    sc_out<int> out[SIZE][SIZE]; // Output ports for the rotated matrix
+    sc_in<int> in[SIZE];
+    sc_out<int> out[SIZE];
 
-    // Constructor
+    int mat[R][C];
+    int row, col, prev, curr;
+
     SC_CTOR(MatrixRotator) {
-        // Process to perform matrix rotation
-        SC_METHOD(rotate_matrix);
-        sensitive << in;
+        // Add each input port to the sensitivity list
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << in[i];
+        }
     }
 
-    // Method to rotate the matrix
-    void rotate_matrix() {
-        int m = SIZE;
-        int n = SIZE;
-        int row = 0, col = 0;
-        int prev, curr;
+    void rotatematrix() {
+        // Copy input matrix to internal array
+        for (int i = 0; i < R; i++)
+            for (int j = 0; j < C; j++)
+                mat[i][j] = in[i * C + j];
 
-        while (row < m && col < n) {
-            if (row + 1 == m || col + 1 == n) break;
+        row = 0, col = 0;
 
-            prev = in[row + 1][col];
-            for (int i = col; i < n; i++) {
-                curr = in[row][i];
-                out[row][i] = prev;
+        while (row < R && col < C) {
+            if (row + 1 == R || col + 1 == C) break;
+
+            prev = mat[row + 1][col];
+            for (int i = col; i < C; i++) {
+                curr = mat[row][i];
+                mat[row][i] = prev;
                 prev = curr;
             }
             row++;
 
-            prev = in[m-1][n-1];
-            for (int i = row; i < m; i++) {
-                curr = in[i][n-1];
-                out[i][n-1] = prev;
+            prev = mat[R - 1][C - 1];
+            for (int i = row; i < R; i++) {
+                curr = mat[i][C - 1];
+                mat[i][C - 1] = prev;
                 prev = curr;
             }
-            n--;
+            C--;
 
-            prev = in[m-1][col];
-            for (int i = n-1; i >= col; i--) {
-                curr = in[m-1][i];
-                out[m-1][i] = prev;
-                prev = curr;
+            if (row < R) {
+                prev = mat[R - 1][col];
+                for (int i = C - 1; i >= col; i--) {
+                    curr = mat[R - 1][i];
+                    mat[R - 1][i] = prev;
+                    prev = curr;
+                }
             }
-            m--;
+            R--;
 
-            prev = in[row][col];
-            for (int i = m-1; i >= row; i--) {
-                curr = in[i][col];
-                out[i][col] = prev;
-                prev = curr;
+            if (col < C) {
+                prev = mat[row][col];
+                for (int i = R - 1; i >= row; i--) {
+                    curr = mat[i][col];
+                    mat[i][col] = prev;
+                    prev = curr;
+                }
             }
             col++;
         }
+
+        // Copy output matrix back to output ports
+        for (int i = 0; i < R; i++)
+            for (int j = 0; j < C; j++)
+                out[i * C + j] = mat[i][j];
     }
 };
 

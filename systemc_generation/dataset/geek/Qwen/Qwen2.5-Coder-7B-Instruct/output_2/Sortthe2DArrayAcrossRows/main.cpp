@@ -5,49 +5,52 @@
 SC_MODULE(RowWiseSorter) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
+    sc_out<bool> done; // Done signal
 
-    sc_in<sc_uint<32>> rows;  // Number of rows in the matrix
-    sc_in<sc_uint<32>> cols;  // Number of columns in the matrix
-    sc_inout_array<sc_uint<32>> matrix;  // Input/output matrix
+    sc_in<sc_vector<sc_int<4>>[4]> input_matrix;  // Input port for the matrix
+    sc_out<sc_vector<sc_int<4>>[4]> output_matrix; // Output port for the sorted matrix
 
-    sc_signal<bool> sort_done;  // Internal signal to indicate sorting is done
-
-    // Constructor
-    SC_CTOR(RowWiseSorter) {
-        // Process to handle sorting
-        SC_METHOD(sort_matrix);
-        sensitive << clk.pos();
-        dont_initialize();
-
-        // Process to set done signal
-        SC_METHOD(set_done);
-        sensitive << sort_done;
-    }
-
-    // Method to sort the matrix
-    void sort_matrix() {
-        if (start.read()) {
-            for (int i = 0; i < rows.read(); i++) {
-                for (int j = 0; j < cols.read(); j++) {
-                    for (int k = 0; k < cols.read() - j - 1; k++) {
-                        if (matrix[i][k] > matrix[i][k + 1]) {
-                            sc_uint<32> temp = matrix[i][k];
-                            matrix[i][k] = matrix[i][k + 1];
-                            matrix[i][k + 1] = temp;
-                        }
+    void sortRowWise(sc_vector<sc_int<4>> &m, int r, int c) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                for (int k = 0; k < c - j - 1; k++) {
+                    if (m[i][k] > m[i][k + 1]) {
+                        sc_int<4> temp = m[i][k];
+                        m[i][k] = m[i][k + 1];
+                        m[i][k + 1] = temp;
                     }
                 }
             }
-            sort_done.write(true);
         }
     }
 
-    // Method to set the done signal
-    void set_done() {
-        done.write(sort_done.read());
+    void process() {
+        while (true) {
+            wait(clk.posedge());  // Wait for clock edge
+            if (start.read()) {
+                sc_vector<sc_int<4>> m[4];
+                for (int i = 0; i < 4; i++) {
+                    m[i] = input_matrix[i].read();
+                }
+                int r = 4;  // Number of rows
+                int c = 4;  // Number of columns
+                for (int i = 0; i < r; i++) {
+                    sortRowWise(m[i], 1, c);
+                }
+                for (int i = 0; i < 4; i++) {
+                    output_matrix[i].write(m[i]);
+                }
+                done.write(true);
+            } else {
+                done.write(false);
+            }
+        }
     }
+
+    SC_METHOD(process);
+    sensitive << clk.posedge();
 };
+
 
 
 SC_MODULE(Testbench) {

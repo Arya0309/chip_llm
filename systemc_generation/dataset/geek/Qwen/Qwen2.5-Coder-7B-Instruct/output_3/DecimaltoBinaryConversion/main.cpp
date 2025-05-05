@@ -4,11 +4,11 @@
 
 SC_MODULE(DecToBinary) {
     sc_in<int> dec_in;  // Input port for the decimal number
-    sc_out<int> binary_out;  // Output port for the binary number
+    sc_out<int> binary_out; // Output port for the binary number
 
     // Constructor
     SC_CTOR(DecToBinary) {
-        // Process to perform the conversion
+        // Process to convert decimal to binary
         SC_METHOD(convert);
         sensitive << dec_in;
     }

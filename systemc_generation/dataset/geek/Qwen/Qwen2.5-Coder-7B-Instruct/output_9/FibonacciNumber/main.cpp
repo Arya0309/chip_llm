@@ -1,7 +1,6 @@
 
 #include <systemc.h>
 
-// Module to calculate the nth FibonacciCalculator number
 
 SC_MODULE(FibonacciCalculator) {
     sc_in<int> n;  // Input port for the position in the FibonacciCalculator sequence
@@ -9,28 +8,25 @@ SC_MODULE(FibonacciCalculator) {
 
     // Constructor
     SC_CTOR(FibonacciCalculator) {
-        // Process to calculate the FibonacciCalculator number
+        // Process to calculate the nth FibonacciCalculator number
         SC_METHOD(calculate_fib);
         sensitive << n;
     }
 
-    // Method to calculate the FibonacciCalculator number
+    // Method to calculate the nth FibonacciCalculator number
     void calculate_fib() {
-        int prev1 = 1, prev2 = 0;
-        int curr;
-
-        if (n <= 1) {
-            result.write(n);
-            return;
+        if (n.read() <= 1) {
+            result.write(n.read());
+        } else {
+            int prev1 = 1, prev2 = 0;
+            int curr;
+            for (int i = 2; i <= n.read(); i++) {
+                curr = prev1 + prev2;
+                prev2 = prev1;
+                prev1 = curr;
+            }
+            result.write(curr);
         }
-
-        for (int i = 2; i <= n; i++) {
-            curr = prev1 + prev2;
-            prev2 = prev1;
-            prev1 = curr;
-        }
-
-        result.write(curr);
     }
 };
 

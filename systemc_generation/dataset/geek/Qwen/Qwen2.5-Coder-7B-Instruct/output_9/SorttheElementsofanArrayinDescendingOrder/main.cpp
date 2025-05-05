@@ -3,33 +3,34 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_out<int> sorted_array[5];  // Output port for the sorted array
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> start;     // Start signal
+    sc_out<bool> done;     // Done signal
+    sc_in<int> arr_in[5];   // Input array
+    sc_out<int> arr_out[5]; // Output sorted array
 
-    int nums[5] = {1, 12, 6, 8, 10};  // Hardcoded array
+    int nums[5];
     bool isSwapped;
 
     SC_CTOR(BubbleSort) {
-        // Process to handle sorting
-        SC_METHOD(sortArray);
+        // Constructor
+        SC_METHOD(sort);
         sensitive << clk.pos();
-        dont_initialize();
-
-        // Process to handle start signal
-        SC_METHOD(handleStart);
         sensitive << start;
-        dont_initialize();
     }
 
-    void sortArray() {
+    void sort() {
         if (start.read()) {
+            for (int i = 0; i < 5; i++) {
+                nums[i] = arr_in[i].read();
+            }
             for (int i = 0; i < 5; i++) {
                 isSwapped = false;
                 for (int j = 1; j < 5 - i; j++) {
                     if (nums[j] < nums[j - 1]) {
-                        swapNums(j, j - 1);
+                        int curr = nums[j];
+                        nums[j] = nums[j - 1];
+                        nums[j - 1] = curr;
                         isSwapped = true;
                     }
                 }
@@ -41,19 +42,23 @@ SC_MODULE(BubbleSort) {
         } else {
             done.write(false);
         }
+
+        for (int i = 0; i < 5; i++) {
+            arr_out[i].write(nums[i]);
+        }
     }
 
-    void swapNums(int first, int second) {
-        int curr = nums[first];
-        nums[first] = nums[second];
-        nums[second] = curr;
+    // Method to load array from testbench
+    void load_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            nums[i] = arr[i];
+        }
     }
 
-    void handleStart() {
-        if (start.read()) {
-            for (int i = 0; i < 5; i++) {
-                sorted_array[i].write(nums[i]);
-            }
+    // Method to read sorted array from the module
+    void read_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = nums[i];
         }
     }
 };

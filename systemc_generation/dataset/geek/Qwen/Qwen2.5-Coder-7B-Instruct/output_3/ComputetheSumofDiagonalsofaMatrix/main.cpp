@@ -3,24 +3,37 @@
 
 
 SC_MODULE(DiagonalSum) {
-    sc_in<int> matrix[SIZE];  // Input ports for the matrix elements
-    sc_out<int> principal;   // Output port for the principal diagonal sum
-    sc_out<int> secondary;   // Output port for the secondary diagonal sum
+    static const int MAX = 100;  // Define the MAX constant
 
+    // Input port for the matrix
+    sc_in<int> matrix[MAX][MAX];
+
+    // Output ports for the diagonal sums
+    sc_out<int> principal;
+    sc_out<int> secondary;
+
+    // Constructor
     SC_CTOR(DiagonalSum) {
         // Process to calculate diagonal sums
-        SC_METHOD(calculate_sums);
-        sensitive << matrix;
+        SC_METHOD(calculate_diagonals);
+        for (int i = 0; i < MAX; i++) {
+            for (int j = 0; j < MAX; j++) {
+                sensitive << matrix[i][j];
+            }
+        }
     }
 
-    void calculate_sums() {
+    // Method to calculate the sums of the diagonals
+    void calculate_diagonals() {
         int principal_sum = 0, secondary_sum = 0;
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                if (i == j)
-                    principal_sum += matrix[i].read();
-                if ((i + j) == (SIZE - 1))
-                    secondary_sum += matrix[i].read();
+        for (int i = 0; i < MAX; i++) {
+            for (int j = 0; j < MAX; j++) {
+                if (i == j) {
+                    principal_sum += matrix[i][j].read();
+                }
+                if ((i + j) == (MAX - 1)) {
+                    secondary_sum += matrix[i][j].read();
+                }
             }
         }
         principal.write(principal_sum);

@@ -1,8 +1,8 @@
-### Analysis of the Provided C++/C Code
+### Analysis of the C++/C Code
 
 #### Inputs and Outputs
-- **Inputs**: None, as the code is a standalone program and does not take any external inputs.
-- **Outputs**: The sum of two complex numbers, printed to the console.
+- **Inputs**: Two complex numbers represented as pairs of integers `(real1, imag1)` and `(real2, imag2)`.
+- **Outputs**: The sum of the two complex numbers as a pair of integers `(real_sum, imag_sum)`.
 
 #### Detailed Explanation
 
@@ -11,18 +11,20 @@
    #include<bits/stdc++.h>
    using namespace std;
    ```
-   - This includes the standard C++ library and uses the `std` namespace for convenience.
+   - This includes the standard C++ library and uses the standard namespace.
 
-2. **User Defined Complex Class**
+2. **Complex Class Definition**
    ```cpp
    class Complex 
    { 
        public: int real, imaginary;
+
        Complex(int tempReal = 0, int tempImaginary = 0)
        {
            real = tempReal;
            imaginary = tempImaginary;
        }
+
        Complex addComp(Complex C1, Complex C2)
        {
            Complex temp;
@@ -33,30 +35,33 @@
    };
    ```
    - A `Complex` class is defined with public members `real` and `imaginary`.
-   - A constructor initializes these members with default values.
-   - The `addComp` method takes two `Complex` objects, adds their real and imaginary parts, and returns a new `Complex` object containing the sum.
+   - A constructor initializes these members with default values if not provided.
+   - The `addComp` method takes two `Complex` objects as parameters, adds their real and imaginary parts respectively, and returns a new `Complex` object representing their sum.
 
-3. **Driver Code**
+3. **Main Function**
    ```cpp
    int main()
    {
        Complex C1(3, 2);
        cout << "Complex number 1 : " << C1.real << " + i" << C1.imaginary << endl;
+
        Complex C2(9, 5);
        cout << "Complex number 2 : " << C2.real << " + i" << C2.imaginary << endl;
+
        Complex C3;
        C3 = C3.addComp(C1, C2);
+
        cout << "Sum of complex number : " << C3.real << " + i" << C3.imaginary;
    }
    ```
-   - Two `Complex` objects `C1` and `C2` are created with specified real and imaginary parts.
-   - The real and imaginary parts of `C1` and `C2` are printed.
-   - A third `Complex` object `C3` is created and assigned the result of adding `C1` and `C2` using the `addComp` method.
-   - The real and imaginary parts of `C3` are printed.
+   - Creates two `Complex` objects `C1` and `C2` with specified real and imaginary parts.
+   - Prints the details of both complex numbers.
+   - Creates a third `Complex` object `C3` and assigns it the sum of `C1` and `C2` using the `addComp` method.
+   - Prints the sum of the two complex numbers.
 
-### Generated SystemC Code
+### SystemC Code Snippet
 
-To integrate this logic into a SystemC environment, we need to modify the code to use SystemC's port-based communication mechanism. Below is the equivalent SystemC code:
+To integrate this functionality into a SystemC environment, we need to define a module that accepts the provided signals and performs the same operations. Here's how the SystemC code would look:
 
 ```cpp
 #include <systemc.h>
@@ -66,8 +71,8 @@ SC_MODULE(ComplexAdder) {
     sc_in<int> imag1;  // Input port for the imaginary part of the first complex number
     sc_in<int> real2;  // Input port for the real part of the second complex number
     sc_in<int> imag2;  // Input port for the imaginary part of the second complex number
-    sc_out<int> real_sum;  // Output port for the real part of the sum
-    sc_out<int> imag_sum;  // Output port for the imaginary part of the sum
+    sc_out<int> real_sum; // Output port for the real part of the sum
+    sc_out<int> imag_sum; // Output port for the imaginary part of the sum
 
     // Constructor
     SC_CTOR(ComplexAdder) {
@@ -84,42 +89,23 @@ SC_MODULE(ComplexAdder) {
 };
 ```
 
-### Explanation of the SystemC Code
+### Explanation of SystemC Code
 
-1. **Module Declaration**
-   ```cpp
-   SC_MODULE(ComplexAdder) {
-   ```
-   - A SystemC module named `ComplexAdder` is declared.
+- **Module Declaration**: `SC_MODULE(ComplexAdder)`
+  - Defines a SystemC module named `ComplexAdder`.
 
-2. **Input and Output Ports**
-   ```cpp
-   sc_in<int> real1;  // Input port for the real part of the first complex number
-   sc_in<int> imag1;  // Input port for the imaginary part of the first complex number
-   sc_in<int> real2;  // Input port for the real part of the second complex number
-   sc_in<int> imag2;  // Input port for the imaginary part of the second complex number
-   sc_out<int> real_sum;  // Output port for the real part of the sum
-   sc_out<int> imag_sum;  // Output port for the imaginary part of the sum
-   ```
-   - These ports correspond to the inputs and outputs of the original C++ code.
+- **Input and Output Ports**:
+  - `sc_in<int> real1`, `sc_in<int> imag1`, `sc_in<int> real2`, `sc_in<int> imag2`: These are the input ports for the real and imaginary parts of the two complex numbers.
+  - `sc_out<int> real_sum`, `sc_out<int> imag_sum`: These are the output ports for the real and imaginary parts of the sum.
 
-3. **Constructor**
-   ```cpp
-   SC_CTOR(ComplexAdder) {
-       // Process to perform addition
-       SC_METHOD(add);
-       sensitive << real1 << imag1 << real2 << imag2;
-   }
-   ```
-   - The constructor initializes the `add` method to be triggered whenever any of the input ports change.
+- **Constructor**:
+  - `SC_CTOR(ComplexAdder)`: Initializes the module.
+  - `SC_METHOD(add)`: Registers the `add` method to be called whenever any of the input ports change.
+  - `sensitive << real1 << imag1 << real2 << imag2`: Specifies that the `add` method should be sensitive to changes in any of the input ports.
 
-4. **Method to Add Complex Numbers**
-   ```cpp
-   void add() {
-       real_sum.write(real1.read() + real2.read());
-       imag_sum.write(imag1.read() + imag2.read());
-   }
-   ```
-   - This method reads the real and imaginary parts from the input ports, adds them, and writes the results to the output ports.
+- **Method `add`**:
+  - Reads the values from the input ports.
+  - Computes the sum of the real and imaginary parts.
+  - Writes the results to the output ports.
 
-This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a larger SystemC design for further simulation and synthesis.
+This SystemC code faithfully captures the logic of the original C++/C program, allowing it to be integrated into a larger SystemC design and tested with the provided signals.

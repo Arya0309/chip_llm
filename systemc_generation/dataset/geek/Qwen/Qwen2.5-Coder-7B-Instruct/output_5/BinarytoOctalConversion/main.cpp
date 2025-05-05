@@ -8,7 +8,7 @@ SC_MODULE(OctalToDecimalConverter) {
 
     // Constructor
     SC_CTOR(OctalToDecimalConverter) {
-        // Process to perform the conversion
+        // Process to perform conversion
         SC_METHOD(convert);
         sensitive << octal_input;
     }
@@ -28,7 +28,6 @@ SC_MODULE(OctalToDecimalConverter) {
         decimal_output.write(dec_value);
     }
 };
-
 
 
 SC_MODULE(Testbench) {

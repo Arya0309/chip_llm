@@ -1,42 +1,63 @@
-### C++/C Code Analysis
+### Analysis of the Provided C++/C Code
 
-**Inputs**:
-- None explicitly provided in the function. However, the value of `n` is hardcoded as `153`.
+#### Inputs and Outputs
+- **Inputs**: 
+  - None explicitly defined. However, the code uses a hardcoded value `n = 153`.
+- **Outputs**:
+  - A string indicating whether the number is an Armstrong number or not.
 
-**Outputs**:
-- A boolean value indicating whether the number is an Armstrong number or not.
+#### Detailed Explanation
 
-**Explanation**:
 1. **Initialization**:
-   - `n = 153`: This is the number to be checked.
-   - `temp = n`: Store the original number for later comparison.
-   - `p = 0`: Initialize a variable to store the sum of cubes of digits.
+   ```cpp
+   int n = 153;
+   int temp = n;
+   int p = 0;
+   ```
+   - `n` is initialized to `153`, which is the number to be checked.
+   - `temp` is set to the value of `n` to keep the original number for comparison later.
+   - `p` is initialized to `0`. This variable will store the sum of the cubes of the digits of `n`.
 
-2. **Loop**:
-   - `while (n > 0)`: Continue until all digits of `n` are processed.
-   - `int rem = n % 10`: Extract the last digit of `n`.
-   - `p = (p) + (rem * rem * rem)`: Add the cube of the extracted digit to `p`.
-   - `n = n / 10`: Remove the last digit from `n`.
+2. **Loop to Calculate the Sum of Cubes**:
+   ```cpp
+   while (n > 0) {
+       int rem = n % 10;
+       p = (p) + (rem * rem * rem);
+       n = n / 10;
+   }
+   ```
+   - This loop runs as long as `n` is greater than `0`.
+   - Inside the loop:
+     - `rem` is calculated as the remainder when `n` is divided by `10` (i.e., the last digit of `n`).
+     - `p` is updated by adding the cube of `rem` to its current value.
+     - `n` is updated by removing the last digit (i.e., `n` is divided by `10`).
 
-3. **Condition Check**:
-   - `if (temp == p)`: Compare the original number with the sum of cubes.
-   - If true, print "Yes. It is Armstrong No."
-   - If false, print "No. It is not an Armstrong No."
+3. **Condition to Check Armstrong Number**:
+   ```cpp
+   if (temp == p) {
+       cout << ("Yes. It is Armstrong No.");
+   } else {
+       cout << ("No. It is not an Armstrong No.");
+   }
+   ```
+   - After the loop, the code checks if `temp` (the original number) is equal to `p` (the sum of the cubes of its digits).
+   - If they are equal, it prints "Yes. It is Armstrong No.".
+   - Otherwise, it prints "No. It is not an Armstrong No.".
 
-### SystemC Code Generation
+### Equivalent SystemC Code
 
-To create an equivalent SystemC code, we need to incorporate the provided signals (`num_in` and `is_armstrong`). Here's the SystemC code:
+Below is the SystemC code that replicates the logic of the given C++/C code. This SystemC module takes an integer input `num_in` and outputs a boolean `is_armstrong` indicating whether the input number is an Armstrong number.
 
 ```cpp
 #include <systemc.h>
 
 SC_MODULE(ArmstrongChecker) {
-    sc_in<int> num_in;  // Input port for the number to be checked
+    sc_in<int> num_in;  // Input port for the number to check
     sc_out<bool> is_armstrong; // Output port indicating if the number is an Armstrong number
 
     // Constructor
     SC_CTOR(ArmstrongChecker) {
-        // Process to perform the Armstrong number check
+        // Process to perform the Armstrong check
         SC_METHOD(check_armstrong);
         sensitive << num_in;
     }
@@ -53,31 +74,28 @@ SC_MODULE(ArmstrongChecker) {
             n = n / 10;
         }
 
-        if (temp == p) {
-            is_armstrong.write(true);
-        } else {
-            is_armstrong.write(false);
-        }
+        is_armstrong.write(temp == p);
     }
 };
 ```
 
-### Explanation of SystemC Code
+### Explanation of the SystemC Code
 
 1. **Module Declaration**:
-   - `SC_MODULE(ArmstrongChecker)`: Defines a SystemC module named `ArmstrongChecker`.
+   - `SC_MODULE(ArmstrongChecker)` declares a SystemC module named `ArmstrongChecker`.
 
 2. **Ports**:
-   - `sc_in<int> num_in`: Input port to receive the number to be checked.
-   - `sc_out<bool> is_armstrong`: Output port to indicate whether the number is an Armstrong number.
+   - `sc_in<int> num_in`: An input port that receives the number to be checked.
+   - `sc_out<bool> is_armstrong`: An output port that provides the result (true if the number is an Armstrong number, false otherwise).
 
 3. **Constructor**:
-   - `SC_CTOR(ArmstrongChecker)`: Initializes the module and binds the `check_armstrong` method to the `num_in` signal.
+   - `SC_CTOR(ArmstrongChecker)`: Initializes the module.
+   - `SC_METHOD(check_armstrong)`: Registers the `check_armstrong` method to be called whenever `num_in` changes.
+   - `sensitive << num_in;`: Specifies that the `check_armstrong` method should be sensitive to changes in `num_in`.
 
 4. **Method**:
-   - `void check_armstrong()`: Contains the logic to check if the number is an Armstrong number.
-     - Initializes `n`, `temp`, and `p` with the value of `num_in`.
-     - Uses a loop to calculate the sum of cubes of digits.
-     - Compares the original number with the sum of cubes and writes the result to `is_armstrong`.
+   - `void check_armstrong()`: Contains the logic to check if the input number is an Armstrong number.
+   - The method reads the input number, calculates the sum of the cubes of its digits, and compares it to the original number.
+   - The result (`true` or `false`) is written to the `is_armstrong` output port.
 
-This SystemC code preserves the logic of the original C++/C code and can be integrated into a high-level synthesis flow.
+This SystemC code snippet can be integrated into a larger SystemC design and tested using the provided signals `num_in` and `is_armstrong`.

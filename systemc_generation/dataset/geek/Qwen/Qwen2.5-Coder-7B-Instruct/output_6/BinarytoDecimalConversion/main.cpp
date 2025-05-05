@@ -1,7 +1,6 @@
 
 #include <systemc.h>
 
-// Module to convert binary to decimal
 
 SC_MODULE(BinaryToDecimalConverter) {
     sc_in<int> binary_in;  // Input port for the binary number
@@ -9,7 +8,7 @@ SC_MODULE(BinaryToDecimalConverter) {
 
     // Constructor
     SC_CTOR(BinaryToDecimalConverter) {
-        // Process to perform the conversion
+        // Process to perform binary to decimal conversion
         SC_METHOD(convert);
         sensitive << binary_in;
     }
@@ -19,11 +18,10 @@ SC_MODULE(BinaryToDecimalConverter) {
         int num = binary_in.read();
         int dec_value = 0;
         int base = 1;
-        int temp = num;
 
-        while (temp) {
-            int last_digit = temp % 10;
-            temp = temp / 10;
+        while (num > 0) {
+            int last_digit = num % 10;
+            num = num / 10;
             dec_value += last_digit * base;
             base = base * 2;
         }

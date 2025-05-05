@@ -3,49 +3,46 @@
 
 
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_out<int> original_arr[5]; // Output for the original array
-    sc_out<int> copied_arr[5];   // Output for the copied array
+    sc_in<bool> clk;         // Clock signal
+    sc_in<bool> start;       // Start signal
+    sc_out<bool> done;       // Done signal
+    sc_out<int> original_arr[5]; // Output array for original elements
+    sc_out<int> copied_arr[5]; // Output array for copied elements in reverse order
 
-    // Constructor
+    int len = 5; // Length of the arrays
+
     SC_CTOR(ArrayReverse) {
-        // Process to handle the copying logic
+        // Constructor
         SC_METHOD(copy_array);
         sensitive << clk.pos();
-        dont_initialize();
-
-        // Process to update the output signals
-        SC_METHOD(update_outputs);
-        sensitive << clk.pos();
-        dont_initialize();
     }
 
-    // Method to copy the array in reverse order
     void copy_array() {
+        static bool running = false;
+
         if (start.read()) {
-            static int original_arr_c[] = {1, 2, 3, 4, 5};
-            static int copied_arr_c[5];
-
-            for (int i = 0; i < 5; i++) {
-                copied_arr_c[i] = original_arr_c[5 - i - 1];
+            running = true;
+            for (int i = 0; i < len; i++) {
+                original_arr[i].write(i + 1); // Initialize original array
+                copied_arr[i].write(len - i); // Initialize copied array in reverse order
             }
+        }
 
-            for (int i = 0; i < 5; i++) {
-                original_arr[i].write(original_arr_c[i]);
-                copied_arr[i].write(copied_arr_c[i]);
+        if (running) {
+            for (int i = 0; i < len; i++) {
+                // Simulate original array values
+                int value = original_arr[i].read();
+                original_arr[i].write(value);
+
+                // Simulate copied array values
+                value = copied_arr[i].read();
+                copied_arr[i].write(value);
             }
-
+            running = false;
             done.write(true);
         } else {
             done.write(false);
         }
-    }
-
-    // Method to update the output signals
-    void update_outputs() {
-        // Placeholder for any additional output handling
     }
 };
 

@@ -8,23 +8,23 @@ SC_MODULE(MatrixSwapper) {
 
     // Constructor
     SC_CTOR(MatrixSwapper) {
-        // Process to perform the swap operation
-        SC_METHOD(swap_columns);
-        sensitive << in;
+        // Process to perform the swapping
+        SC_METHOD(swapping);
+        for (int i = 0; i < 4; i++) {
+            sensitive << in[i][0] << in[i][1] << in[i][2] << in[i][3];
+        }
     }
 
     // Method to swap the first and last columns of the matrix
-    void swap_columns() {
+    void swapping() {
         for (int i = 0; i < 4; i++) {
             int t = in[i][0].read();
             out[i][0].write(in[i][3].read());
             out[i][3].write(t);
-            for (int j = 1; j < 3; j++) {
-                out[i][j].write(in[i][j].read());
-            }
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

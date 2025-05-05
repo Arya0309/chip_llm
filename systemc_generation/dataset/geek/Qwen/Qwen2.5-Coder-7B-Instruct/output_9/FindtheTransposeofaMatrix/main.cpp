@@ -3,25 +3,26 @@
 
 
 SC_MODULE(MatrixTranspose) {
-    sc_in<int> A[4][4];  // Input port for the 4x4 matrix A
+    sc_in<int> A[4][4];  // Input port for the matrix A
     sc_out<int> B[4][4]; // Output port for the transposed matrix B
 
-    // Constructor
     SC_CTOR(MatrixTranspose) {
-        // Process to perform transposition
+        // Process to perform matrix transpose
         SC_METHOD(transpose);
-        sensitive << A;
-    }
-
-    // Method to transpose the matrix
-    void transpose() {
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                B[i][j].write(A[j][i].read());
+                sensitive << A[i][j];
             }
         }
     }
+
+    void transpose() {
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                B[i][j].write(A[j][i].read());
+    }
 };
+
 
 
 SC_MODULE(Testbench) {

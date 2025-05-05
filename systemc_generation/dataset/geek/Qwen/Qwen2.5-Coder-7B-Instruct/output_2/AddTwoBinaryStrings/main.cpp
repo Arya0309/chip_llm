@@ -1,92 +1,26 @@
 
 #include <systemc.h>
 
-// Module that adds two binary strings
 
 SC_MODULE(BinaryAdder) {
-    sc_in<std::string> A;  // Input port for the first binary string
-    sc_in<std::string> B;  // Input port for the second binary string
-    sc_out<std::string> sum; // Output port for the sum of the two binary strings
+    sc_in<int> A;  // Input port for the first binary number
+    sc_in<int> B;  // Input port for the second binary number
+    sc_out<int> sum; // Output port for the sum
 
     // Constructor
     SC_CTOR(BinaryAdder) {
-        // Process to perform binary addition
+        // Process to perform addition
         SC_METHOD(add);
         sensitive << A << B;
     }
 
-    // Method to add the two binary strings
+    // Method to add the two binary numbers
     void add() {
-        std::string a = A.read();
-        std::string b = B.read();
+        int a = A.read();
+        int b = B.read();
 
-        // If the length of string A is greater than the length of B then just swap
-        if (a.length() > b.length()) {
-            std::swap(a, b);
-        }
-
-        // Calculating the difference between the length of the two strings.
-        int diff = b.length() - a.length();
-
-        // Initialise the padding string which is used to store zeroes that should
-        // be added as prefix to the string which has length smaller than the other string.
-        std::string padding;
-        for (int i = 0; i < diff; i++) {
-            padding += '0';
-        }
-        a = padding + a;
-
-        std::string res;
-        char carry = '0';
-
-        for (int i = a.length() - 1; i >= 0; i--) {
-            // This if condition solves 110 111 possible cases
-            if (a[i] == '1' && b[i] == '1') {
-                if (carry == '1') {
-                    res += '1';
-                    carry = '1';
-                } else {
-                    res += '0';
-                    carry = '1';
-                }
-            }
-            // This if condition solves 000 001 possible cases
-            else if (a[i] == '0' && b[i] == '0') {
-                if (carry == '1') {
-                    res += '1';
-                    carry = '0';
-                } else {
-                    res += '0';
-                    carry = '0';
-                }
-            }
-            // This if condition solves 100 101 010 011 possible cases
-            else if (a[i] != b[i]) {
-                if (carry == '1') {
-                    res += '0';
-                    carry = '1';
-                } else {
-                    res += '1';
-                    carry = '0';
-                }
-            }
-        }
-
-        // If at the end their is carry then just add it to the result
-        if (carry == '1') {
-            res += carry;
-        }
-
-        // reverse the result
-        std::reverse(res.begin(), res.end());
-
-        // To remove leading zeroes
-        int index = 0;
-        while (index + 1 < res.length() && res[index] == '0') {
-            index++;
-        }
-
-        sum.write(res.substr(index));
+        // Perform binary addition using integer arithmetic
+        sum.write(a + b);
     }
 };
 

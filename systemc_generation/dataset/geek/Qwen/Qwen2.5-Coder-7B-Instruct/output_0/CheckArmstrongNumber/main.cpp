@@ -3,7 +3,7 @@
 
 
 SC_MODULE(ArmstrongChecker) {
-    sc_in<int> num_in;  // Input port for the number to check
+    sc_in<int> num_in;  // Input port for the number to be checked
     sc_out<bool> is_armstrong; // Output port indicating if the number is an Armstrong number
 
     // Constructor
@@ -19,7 +19,7 @@ SC_MODULE(ArmstrongChecker) {
         int temp = n;
         int p = 0;
 
-        // Loop to calculate sum of cubes of each digit
+        // Loop to calculate the sum of cubes of digits
         while (n > 0) {
             int rem = n % 10;
             p = (p) + (rem * rem * rem);

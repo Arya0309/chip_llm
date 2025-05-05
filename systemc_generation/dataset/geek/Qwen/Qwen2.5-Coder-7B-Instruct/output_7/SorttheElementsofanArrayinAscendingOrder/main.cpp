@@ -3,29 +3,37 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_inout<int> nums[5];    // Input/output array of 5 elements
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_in<int> input_array[10];  // Input array (assuming maximum size of 10)
+    sc_out<int> output_array[10];  // Output array (assuming maximum size of 10)
+    sc_in<int> array_size;  // Size of the array
 
-    // Constructor
+    int *nums;
+    int size_nums;
+    bool isSwapped;
+
     SC_CTOR(BubbleSort) {
-        SC_METHOD(sortArray);
+        SC_METHOD(sort);
         sensitive << clk.pos();
-        dont_initialize();
+        sensitive << start;
     }
 
-    // Method to sort the array
-    void sortArray() {
+    void sort() {
         if (start.read()) {
-            bool isSwapped;
-            for (int i = 0; i < 5; i++) {
+            nums = new int[array_size.read()];
+            for (int i = 0; i < array_size.read(); i++) {
+                nums[i] = input_array[i].read();
+            }
+            size_nums = array_size.read();
+            isSwapped = false;
+
+            for (int i = 0; i < size_nums; i++) {
                 isSwapped = false;
-                for (int j = 1; j < 5 - i; j++) {
-                    if (nums[j].read() < nums[j - 1].read()) {
-                        int temp = nums[j].read();
-                        nums[j].write(nums[j - 1].read());
-                        nums[j - 1].write(temp);
+                for (int j = 1; j < size_nums - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        swapNums(j, j - 1);
                         isSwapped = true;
                     }
                 }
@@ -33,9 +41,35 @@ SC_MODULE(BubbleSort) {
                     break;
                 }
             }
+
+            for (int i = 0; i < size_nums; i++) {
+                output_array[i].write(nums[i]);
+            }
+
+            delete[] nums;
             done.write(true);
         } else {
             done.write(false);
+        }
+    }
+
+    void swapNums(int first, int second) {
+        int curr = nums[first];
+        nums[first] = nums[second];
+        nums[second] = curr;
+    }
+
+    // New methods to load and read arrays
+    void load_array(int* arr, int size) {
+        for (int i = 0; i < size; i++) {
+            input_array[i].write(arr[i]);
+        }
+        array_size.write(size);
+    }
+
+    void read_array(int* arr, int size) {
+        for (int i = 0; i < size; i++) {
+            arr[i] = output_array[i].read();
         }
     }
 };

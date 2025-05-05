@@ -3,63 +3,60 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;       // Done signal
 
-    sc_in<sc_vector<int>> nums;  // Input vector of integers to be sorted
-    sc_out<sc_vector<int>> sorted_nums;  // Output sorted vector of integers
-
-    sc_vector<int> temp_nums;  // Temporary vector to hold the sorted array
-    bool isSwapped;  // Flag to check if any swaps were made in the current iteration
+    int nums[5];              // Array to store input and sorted data
+    int size_nums = 5;        // Size of the array
+    bool isSwapped;
 
     // Constructor
     SC_CTOR(BubbleSort) {
-        // Process to handle sorting
-        SC_METHOD(sort_array);
+        SC_METHOD(sort);
         sensitive << clk.pos();
-        async_reset_signal_is(clk, false);
-
-        // Process to update output
-        SC_METHOD(update_output);
-        sensitive << clk.pos();
-        async_reset_signal_is(clk, false);
+        dont_initialize();
     }
 
-    // Method to perform sorting
-    void sort_array() {
+    // Method to sort the array
+    void sort() {
         if (start.read()) {
-            temp_nums = nums.read();
-            int len = temp_nums.size();
-
-            do {
+            for (int i = 0; i < size_nums; i++) {
                 isSwapped = false;
-                for (int j = 1; j < len; j++) {
-                    if (temp_nums[j] < temp_nums[j - 1]) {
-                        swapNums(temp_nums, j, j - 1);
+                for (int j = 1; j < size_nums - i; j++) {
+                    if (nums[j] < nums[j - 1]) {
+                        swapNums(j, j - 1);
                         isSwapped = true;
                     }
                 }
-                len--;
-            } while (isSwapped);
-
+                if (!isSwapped) {
+                    break;
+                }
+            }
             done.write(true);
         } else {
             done.write(false);
         }
     }
 
-    // Method to swap two numbers in the array
-    void swapNums(sc_vector<int>& nums, int first, int second) {
+    // Method to swap two elements in the array
+    void swapNums(int first, int second) {
         int curr = nums[first];
         nums[first] = nums[second];
         nums[second] = curr;
     }
 
-    // Method to update the output
-    void update_output() {
-        if (done.read()) {
-            sorted_nums.write(temp_nums);
+    // Method to load input array
+    void load_array(int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            nums[i] = arr[i];
+        }
+    }
+
+    // Method to read sorted array
+    void read_array(int arr[]) {
+        for (int i = 0; i < size_nums; i++) {
+            arr[i] = nums[i];
         }
     }
 };

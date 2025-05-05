@@ -1,54 +1,54 @@
-### Analysis of the Provided C++ Code
+### Analysis of Provided C++/C Code
 
 #### Inputs and Outputs
 - **Inputs**:
-  - `principal`: The initial amount of money (in this case, 10000).
-  - `rate`: The annual interest rate (in this case, 5%).
-  - `time`: The time period for which the interest is calculated (in this case, 2 years).
-- **Outputs**:
-  - `CI`: The compound interest calculated.
+  - `principal`: The initial amount of money (double)
+  - `rate`: The annual interest rate (double)
+  - `time`: The time the money is invested for, in years (double)
+- **Output**:
+  - `CI`: The calculated compound interest (double)
 
-#### Detailed Explanation of the Code
+#### Detailed Explanation
 
-1. **Include Directives and Namespace Declaration**
+1. **Include Statements and Namespace**:
    ```cpp
    #include <bits/stdc++.h>
    using namespace std;
    ```
-   - This includes the standard library and uses the standard namespace for simplicity.
+   - Includes the standard C++ library and uses the `std` namespace.
 
-2. **Main Function**
+2. **Main Function**:
    ```cpp
    int main()
    {
        double principal = 10000, rate = 5, time = 2;
    ```
-   - Declares and initializes the `principal`, `rate`, and `time` variables.
+   - Initializes the variables `principal`, `rate`, and `time` with the given values.
 
-3. **Calculate Compound Interest**
+3. **Calculate Compound Interest**:
    ```cpp
        double A = principal * ((pow((1 + rate / 100), time)));
        double CI = A - principal;
    ```
    - Calculates the compound interest using the formula \( A = P \times (1 + \frac{r}{100})^t \) where \( P \) is the principal, \( r \) is the rate, and \( t \) is the time.
-   - Then calculates the compound interest as \( CI = A - P \).
+   - Then, calculates the compound interest as \( CI = A - P \).
 
-4. **Output the Result**
+4. **Output the Result**:
    ```cpp
        cout << "Compound interest is " << CI;
    ```
    - Prints the calculated compound interest.
 
-5. **Return Statement**
+5. **Return Statement**:
    ```cpp
        return 0;
    }
    ```
-   - Ends the main function and returns 0, indicating successful execution.
+   - Returns 0 indicating successful execution.
 
 ### Equivalent SystemC Code
 
-To convert the above C++ code into SystemC, we need to use SystemC's signal types and processes. Here is the equivalent SystemC code:
+Below is the SystemC code that replicates the logic of the provided C++/C code. It uses the signals `principal`, `rate`, `time`, and `ci` as specified.
 
 ```cpp
 #include <systemc.h>
@@ -56,13 +56,13 @@ To convert the above C++ code into SystemC, we need to use SystemC's signal type
 SC_MODULE(CompoundInterestCalculator) {
     sc_in<double> principal;  // Input port for the principal amount
     sc_in<double> rate;       // Input port for the interest rate
-    sc_in<double> time;       // Input port for the time period
-    sc_out<double> ci;        // Output port for the compound interest
+    sc_in<double> time;       // Input port for the time in years
+    sc_out<double> ci;         // Output port for the compound interest
 
     // Constructor
     SC_CTOR(CompoundInterestCalculator) {
         // Process to calculate compound interest
-        SC_THREAD(calculate_ci);
+        SC_METHOD(calculate_ci);
         sensitive << principal << rate << time;
     }
 
@@ -74,43 +74,86 @@ SC_MODULE(CompoundInterestCalculator) {
     }
 };
 
-int sc_main(int argc, char* argv[]) {
+// Testbench module to drive inputs and check outputs
+SC_MODULE(Testbench) {
+    sc_signal<double> p;
+    sc_signal<double> r;
+    sc_signal<double> t;
+    sc_signal<double> expected_ci;
+    sc_signal<double> actual_ci;
+
     CompoundInterestCalculator calc("calc");
 
-    // Example testbench connections
-    calc.principal(10000.0);
-    calc.rate(5.0);
-    calc.time(2.0);
+    SC_CTOR(Testbench) : calc("calc") {
+        calc.principal(p);
+        calc.rate(r);
+        calc.time(t);
+        calc.ci(actual_ci);
 
-    // Start simulation
+        // Process to drive inputs and check results
+        SC_THREAD(run_test);
+    }
+
+    void run_test() {
+        // Test case 1
+        p = 10000.0;
+        r = 5.0;
+        t = 2.0;
+        expected_ci = 1000.0;
+        wait(10, SC_NS);
+
+        // Check if the actual compound interest matches the expected value
+        assert(actual_ci.read() == expected_ci.read());
+
+        // Test case 2
+        p = 20000.0;
+        r = 3.5;
+        t = 1.5;
+        expected_ci = 975.0;
+        wait(10, SC_NS);
+
+        // Check if the actual compound interest matches the expected value
+        assert(actual_ci.read() == expected_ci.read());
+
+        // End simulation
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
     sc_start();
-
     return 0;
 }
 ```
 
-### Explanation of the SystemC Code
+### Explanation of SystemC Code
 
-1. **Module Declaration**
+1. **Module Declaration**:
    ```cpp
    SC_MODULE(CompoundInterestCalculator) {
-       sc_in<double> principal;
-       sc_in<double> rate;
-       sc_in<double> time;
-       sc_out<double> ci;
    ```
-   - Defines a SystemC module named `CompoundInterestCalculator` with input and output ports.
+   - Declares a SystemC module named `CompoundInterestCalculator`.
 
-2. **Constructor**
+2. **Input and Output Ports**:
+   ```cpp
+   sc_in<double> principal;
+   sc_in<double> rate;
+   sc_in<double> time;
+   sc_out<double> ci;
+   ```
+   - Defines the input ports `principal`, `rate`, and `time`, and the output port `ci`.
+
+3. **Constructor**:
    ```cpp
    SC_CTOR(CompoundInterestCalculator) {
-       SC_THREAD(calculate_ci);
+       SC_METHOD(calculate_ci);
        sensitive << principal << rate << time;
    }
    ```
-   - Initializes the module and sets up a thread to handle the calculation of compound interest when any of the input ports change.
+   - Constructs the module and binds the method `calculate_ci` to be called whenever `principal`, `rate`, or `time` change.
 
-3. **Thread to Calculate Compound Interest**
+4. **Method to Calculate Compound Interest**:
    ```cpp
    void calculate_ci() {
        double A = principal.read() * pow((1 + rate.read() / 100), time.read());
@@ -118,19 +161,60 @@ int sc_main(int argc, char* argv[]) {
        ci.write(CI);
    }
    ```
-   - Reads the input values, calculates the compound interest, and writes the result to the output port.
+   - Reads the input values, calculates the compound interest, and writes the result to the output port `ci`.
 
-4. **Main Function**
+5. **Testbench Module**:
+   ```cpp
+   SC_MODULE(Testbench) {
+       sc_signal<double> p;
+       sc_signal<double> r;
+       sc_signal<double> t;
+       sc_signal<double> expected_ci;
+       sc_signal<double> actual_ci;
+
+       CompoundInterestCalculator calc("calc");
+
+       SC_CTOR(Testbench) : calc("calc") {
+           calc.principal(p);
+           calc.rate(r);
+           calc.time(t);
+           calc.ci(actual_ci);
+
+           SC_THREAD(run_test);
+       }
+
+       void run_test() {
+           p = 10000.0;
+           r = 5.0;
+           t = 2.0;
+           expected_ci = 1000.0;
+           wait(10, SC_NS);
+
+           assert(actual_ci.read() == expected_ci.read());
+
+           p = 20000.0;
+           r = 3.5;
+           t = 1.5;
+           expected_ci = 975.0;
+           wait(10, SC_NS);
+
+           assert(actual_ci.read() == expected_ci.read());
+
+           sc_stop();
+       }
+   };
+   ```
+   - Declares a testbench module to drive inputs and check outputs.
+   - Initializes signals and asserts the correctness of the output.
+
+6. **Main Function**:
    ```cpp
    int sc_main(int argc, char* argv[]) {
-       CompoundInterestCalculator calc("calc");
-       calc.principal(10000.0);
-       calc.rate(5.0);
-       calc.time(2.0);
+       Testbench tb("tb");
        sc_start();
        return 0;
    }
    ```
-   - Creates an instance of the module and sets the input values. Starts the simulation.
+   - Starts the simulation and runs the testbench.
 
-This SystemC code faithfully captures the logic of the original C++ code and can be integrated with the provided testbench signals.
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated into a high-level synthesis flow.

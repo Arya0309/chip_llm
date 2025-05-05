@@ -3,35 +3,40 @@
 
 
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[2][2];  // Input port for the first matrix
-    sc_in<int> B[2][3];  // Input port for the second matrix
-    sc_out<int> C[2][3]; // Output port for the result matrix
+    sc_in<int> A[2][2];  // Input port for Matrix-1
+    sc_in<int> B[2][3];  // Input port for Matrix-2
+    sc_out<int> C[6];    // Output port for the result (flattened array)
 
-    // Constructor
     SC_CTOR(MatrixMultiplier) {
         // Process to perform matrix multiplication
         SC_METHOD(multiply);
-        sensitive << A << B;
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                sensitive << A[i][j].event();
+            }
+            for (int j = 0; j < 3; j++) {
+                sensitive << B[i][j].event();
+            }
+        }
     }
 
-    // Method to perform matrix multiplication
     void multiply() {
-        int rslt[2][3] = {0};  // Initialize result matrix with zeros
+        int rslt[2][3];
 
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 3; j++) {
                 rslt[i][j] = 0;
 
                 for (int k = 0; k < 2; k++) {
-                    rslt[i][j] += A[i][k] * B[k][j];
+                    rslt[i][j] += A[i][k].read() * B[k][j].read();
                 }
             }
         }
 
-        // Write the result to the output ports
+        // Flatten the result array
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 3; j++) {
-                C[i][j].write(rslt[i][j]);
+                C[i * 3 + j].write(rslt[i][j]);
             }
         }
     }

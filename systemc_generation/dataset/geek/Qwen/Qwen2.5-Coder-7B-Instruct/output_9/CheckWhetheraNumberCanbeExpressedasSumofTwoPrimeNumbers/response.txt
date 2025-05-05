@@ -1,34 +1,28 @@
-### Input and Output Summary
+### Analysis of the C++/C Code
 
-**Inputs:**
-- `n_in`: An integer input signal.
+#### Inputs and Outputs
+- **Inputs**: The C++ code takes an integer `n` as input.
+- **Outputs**: The code outputs a boolean value indicating whether the given integer `n` can be expressed as the sum of two prime numbers.
 
-**Outputs:**
-- `result_out`: A boolean output signal indicating whether the input number can be expressed as the sum of two prime numbers.
-
-### Detailed Explanation of the C++/C Code
+#### Detailed Explanation
 
 1. **Function `isPrime(int n)`**:
-   - **Purpose**: Checks if a given number `n` is prime.
-   - **Process**:
-     - If `n` is less than or equal to 1, it returns `false` (not prime).
-     - It iterates from 2 to the square root of `n`. If any number divides `n` evenly, it returns `false`.
-     - If no divisors are found, it returns `true` (prime).
+   - This function checks if a given number `n` is prime.
+   - It iterates from 2 to the square root of `n`. If `n` is divisible by any number in this range, it returns `false`.
+   - If no divisors are found, it returns `true`.
 
 2. **Function `isPossible(int N)`**:
-   - **Purpose**: Checks if a given prime number `N` can be expressed as the sum of two prime numbers.
-   - **Process**:
-     - It checks if `N` is prime using the `isPrime` function.
-     - It then checks if `N - 2` is also prime.
-     - If both conditions are met, it returns `true`; otherwise, it returns `false`.
+   - This function checks if a given prime number `N` can be expressed as the sum of two prime numbers.
+   - It checks if both `N` and `N-2` are prime numbers using the `isPrime` function.
+   - If both are prime, it returns `true`; otherwise, it returns `false`.
 
 3. **Main Function**:
-   - **Purpose**: Demonstrates the usage of the `isPossible` function with a sample input.
-   - **Process**:
-     - It initializes `n` with the value 13.
-     - It calls `isPossible(n)` and prints "Yes" if the function returns `true`, otherwise "No".
+   - The main function sets `n` to 13.
+   - It calls `isPossible(n)` and prints "Yes" if the function returns `true`, otherwise "No".
 
 ### SystemC Code Snippet
+
+Here's the equivalent SystemC code snippet that incorporates the provided signals and reflects the same behavior:
 
 ```cpp
 #include <systemc.h>
@@ -40,24 +34,35 @@ SC_MODULE(PrimeSumChecker) {
     // Constructor
     SC_CTOR(PrimeSumChecker) {
         // Process to check if the number can be expressed as the sum of two primes
-        SC_METHOD(check_prime_sum);
+        SC_METHOD(check_sum_of_primes);
         sensitive << n_in;
     }
 
     // Method to check if the number can be expressed as the sum of two primes
-    void check_prime_sum() {
+    void check_sum_of_primes() {
         int n = n_in.read();
         bool is_n_prime = isPrime(n);
         bool is_n_minus_2_prime = isPrime(n - 2);
-        result_out.write(is_n_prime && is_n_minus_2_prime);
+
+        if (is_n_prime && is_n_minus_2_prime) {
+            result_out.write(true);
+        } else {
+            result_out.write(false);
+        }
     }
 
     // Helper function to check if a number is prime
     bool isPrime(int n) {
-        if (n <= 1) return false;
-        for (int i = 2; i <= sqrt(n); i++) {
-            if (n % i == 0) return false;
+        if (n <= 1) {
+            return false;
         }
+
+        for (int i = 2; i <= sqrt(n); i++) {
+            if (n % i == 0) {
+                return false;
+            }
+        }
+
         return true;
     }
 };
@@ -65,9 +70,19 @@ SC_MODULE(PrimeSumChecker) {
 
 ### Explanation of the SystemC Code
 
-- **Module Declaration**: The module `PrimeSumChecker` is declared with `n_in` as an input and `result_out` as an output.
-- **Constructor**: The constructor sets up a method `check_prime_sum` to be triggered whenever `n_in` changes.
-- **Method `check_prime_sum`**: This method reads the input `n`, checks if it and `n-2` are prime using the helper function `isPrime`, and writes the result to `result_out`.
-- **Helper Function `isPrime`**: This function mirrors the logic of the original `isPrime` function from the C++ code.
+1. **Module Declaration**:
+   - `PrimeSumChecker` is a SystemC module with one input port `n_in` and one output port `result_out`.
 
-This SystemC code snippet preserves the logic of the original C++/C code and can be integrated into a high-level synthesis flow, utilizing the provided signals for seamless testbench integration.
+2. **Constructor**:
+   - The constructor initializes a method `check_sum_of_primes` to be sensitive to changes in `n_in`.
+
+3. **Method `check_sum_of_primes`**:
+   - Reads the input `n` from `n_in`.
+   - Calls the helper function `isPrime` to check if `n` and `n-2` are prime.
+   - Writes `true` to `result_out` if both are prime, otherwise `false`.
+
+4. **Helper Function `isPrime`**:
+   - This function mirrors the logic of the original C++ function `isPrime`.
+   - Checks if a number `n` is prime by iterating from 2 to the square root of `n`.
+
+This SystemC code snippet faithfully captures the logic of the original C++/C source code and can be integrated into a high-level synthesis flow.

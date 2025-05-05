@@ -7,40 +7,63 @@ SC_MODULE(RowWiseSorter) {
     sc_in<bool> start;  // Start signal
     sc_out<bool> done; // Done signal
 
-    int m[4][4] = {{9, 8, 7, 1},
-                    {7, 3, 0, 2},
-                    {9, 5, 3, 2},
-                    {6, 3, 1, 2}};
-    int c = sizeof(m[0]) / sizeof(m[0][0]);
-    int r = sizeof(m) / sizeof(m[0]);
-
+    int matrix[4][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}};
+    int rows = 4;
+    int cols = 4;
     bool sorting_done = false;
+    bool start_received = false;
 
     SC_CTOR(RowWiseSorter) {
-        SC_THREAD(sort_matrix);
+        SC_THREAD(sort_rows);
         sensitive << clk.pos();
         dont_initialize();
     }
 
-    void sort_matrix() {
+    void sort_rows() {
         while (true) {
-            wait();  // Wait for the clock edge
+            wait(clk.posedge());  // Wait for the next clock cycle
             if (start.read()) {
-                sorting_done = false;
-                for (int i = 0; i < r; i++) {
-                    for (int j = 0; j < c; j++) {
-                        for (int k = 0; k < c - j - 1; k++) {
-                            if (m[i][k] > m[i][k + 1]) {
-                                int temp = m[i][k];
-                                m[i][k] = m[i][k + 1];
-                                m[i][k + 1] = temp;
+                start_received = true;
+            }
+
+            if (start_received) {
+                // Sort each row
+                for (int i = 0; i < rows; i++) {
+                    for (int j = 0; j < cols; j++) {
+                        for (int k = 0; k < cols - j - 1; k++) {
+                            if (matrix[i][k] > matrix[i][k + 1]) {
+                                int temp = matrix[i][k];
+                                matrix[i][k] = matrix[i][k + 1];
+                                matrix[i][k + 1] = temp;
                             }
                         }
                     }
                 }
+
                 sorting_done = true;
+                done.write(true);  // Indicate sorting is done
+                wait(1, SC_NS);  // Small delay
+                done.write(false); // Clear done signal
+                start_received = false;  // Reset the start_received flag
             }
-            done.write(sorting_done);
+        }
+    }
+
+    // Method to load the input matrix
+    void load_matrix(int input_matrix[4][4]) {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                matrix[i][j] = input_matrix[i][j];
+            }
+        }
+    }
+
+    // Method to read the output matrix
+    void read_matrix(int output_matrix[4][4]) {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                output_matrix[i][j] = matrix[i][j];
+            }
         }
     }
 };

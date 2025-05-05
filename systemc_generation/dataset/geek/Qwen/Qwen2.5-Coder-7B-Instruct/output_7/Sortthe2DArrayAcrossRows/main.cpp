@@ -8,20 +8,36 @@ SC_MODULE(RowWiseSorter) {
     sc_out<bool> done;  // Done signal
 
     int m[4][4];  // Matrix to store the input
-    int r = 4;  // Number of rows
-    int c = 4;  // Number of columns
+    int r = 4;
+    int c = 4;
 
-    // Constructor
+    // Method to load the input matrix
+    void load_matrix(int matrix[4][4]) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                m[i][j] = matrix[i][j];
+            }
+        }
+    }
+
+    // Method to read the sorted matrix
+    void read_matrix(int matrix[4][4]) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                matrix[i][j] = m[i][j];
+            }
+        }
+    }
+
     SC_CTOR(RowWiseSorter) {
-        // Process to handle sorting
-        SC_METHOD(sortMatrix);
+        SC_METHOD(sort);
         sensitive << clk.pos();
         dont_initialize();
     }
 
-    // Method to sort the matrix
-    void sortMatrix() {
+    void sort() {
         if (start.read()) {
+            // Sort each row
             for (int i = 0; i < r; i++) {
                 for (int k = 0; k < c - 1; k++) {
                     for (int j = 0; j < c - k - 1; j++) {

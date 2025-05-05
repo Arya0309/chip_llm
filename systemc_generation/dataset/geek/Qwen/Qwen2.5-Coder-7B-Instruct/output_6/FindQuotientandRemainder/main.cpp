@@ -5,13 +5,13 @@
 SC_MODULE(Divider) {
     sc_in<int> Dividend;  // Input port for the dividend
     sc_in<int> Divisor;   // Input port for the divisor
-    sc_out<int> Quotient; // Output port for the quotient
+    sc_out<int> Quotient;  // Output port for the quotient
     sc_out<int> Remainder; // Output port for the remainder
-    sc_out<bool> Error;   // Output port for error indication
+    sc_out<bool> Error;    // Output port for the error flag
 
     // Constructor
     SC_CTOR(Divider) {
-        // Process to perform division
+        // Process to handle division
         SC_METHOD(divide);
         sensitive << Dividend << Divisor;
     }

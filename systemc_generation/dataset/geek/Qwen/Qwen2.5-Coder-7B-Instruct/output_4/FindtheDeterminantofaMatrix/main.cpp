@@ -1,39 +1,44 @@
 
 #include <systemc.h>
 
+// Define the size of the matrix
+const int SIZE = 4;
+
+// Module that calculates the determinant of a matrix
 
 SC_MODULE(DeterminantCalculator) {
-    sc_in<sc_vector<double>> matrix; // Input vector of doubles representing the matrix
-    sc_out<double> det; // Output port for the determinant
+    sc_in<double> matrix[SIZE * SIZE];  // Input port for the matrix elements
+    sc_out<double> det;                 // Output port for the determinant
 
     // Constructor
     SC_CTOR(DeterminantCalculator) {
         // Process to calculate the determinant
         SC_METHOD(calculate_determinant);
-        sensitive << matrix;
+        for (int i = 0; i < SIZE * SIZE; i++) {
+            sensitive << matrix[i];
+        }
     }
 
     // Method to calculate the determinant
     void calculate_determinant() {
-        int n = matrix.size();
-        double a[MAXN][MAXN];
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                a[i][j] = matrix[i * n + j].read();
+        double a[SIZE][SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                a[i][j] = matrix[i * SIZE + j].read();
             }
         }
 
         double det = 1.0;
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < SIZE; i++) {
             int pivot = i;
-            for (int j = i + 1; j < n; j++) {
+            for (int j = i + 1; j < SIZE; j++) {
                 if (abs(a[j][i]) > abs(a[pivot][i])) {
                     pivot = j;
                 }
             }
             if (pivot != i) {
-                for (int k = 0; k < n; k++) {
-                    swap(a[i][k], a[pivot][k]);
+                for (int k = 0; k < SIZE; k++) {
+                    std::swap(a[i][k], a[pivot][k]);
                 }
                 det *= -1;
             }
@@ -42,17 +47,18 @@ SC_MODULE(DeterminantCalculator) {
                 break;
             }
             det *= a[i][i];
-            for (int j = i + 1; j < n; j++) {
+            for (int j = i + 1; j < SIZE; j++) {
                 double factor = a[j][i] / a[i][i];
-                for (int k = i + 1; k < n; k++) {
+                for (int k = i + 1; k < SIZE; k++) {
                     a[j][k] -= factor * a[i][k];
                 }
             }
         }
-
         this->det.write(det);
     }
 };
+
+// Testbench module to drive the DeterminantCalculator module
 
 
 SC_MODULE(Testbench) {

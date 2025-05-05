@@ -4,31 +4,25 @@
 
 SC_MODULE(FibonacciSumCalculator) {
     sc_in<int> n;  // Input port for the number of terms
-    sc_out<int> sum; // Output port for the sum
+    sc_out<int> sum; // Output port for the sum of even-indexed Fibonacci numbers
 
     SC_CTOR(FibonacciSumCalculator) {
-        SC_THREAD(calculate_even_sum);
+        SC_METHOD(calculateSum);
         sensitive << n;
     }
 
-    void calculate_even_sum() {
-        int n_val = n.read();
-        if (n_val <= 0) {
-            sum.write(0);
-            return;
-        }
-
-        int fibo[2 * n_val + 1];
+    void calculateSum() {
+        int fibo[2 * n.read() + 1];
         fibo[0] = 0, fibo[1] = 1;
-        int sum_val = 0;
+        int sum_value = 0;
 
-        for (int i = 2; i <= 2 * n_val; i++) {
+        for (int i = 2; i <= 2 * n.read(); i++) {
             fibo[i] = fibo[i - 1] + fibo[i - 2];
             if (i % 2 == 0)
-                sum_val += fibo[i];
+                sum_value += fibo[i];
         }
 
-        sum.write(sum_val);
+        sum.write(sum_value);
     }
 };
 

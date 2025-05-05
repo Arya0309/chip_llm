@@ -1,6 +1,10 @@
 
 #include <systemc.h>
+#include <string>
 
+#define MAX_RESULT_LENGTH 1024 // Define a maximum length for the result string
+
+// Module that adds two binary strings
 
 SC_MODULE(BinaryAdder) {
     sc_in<std::string> A;  // Input port for the first binary string
@@ -16,50 +20,71 @@ SC_MODULE(BinaryAdder) {
 
     // Method to add the two binary strings
     void add() {
+        std::string a = A.read();
+        std::string b = B.read();
         std::string res;
         char carry = '0';
 
-        int lenA = A->length();
-        int lenB = B->length();
-        int diff = lenB - lenA;
+        // If A is longer than B, swap them
+        if (a.length() > b.length()) {
+            std::swap(a, b);
+        }
 
-        // Padding
-        std::string padding;
-        for (int i = 0; i < diff; i++)
-            padding += '0';
-        std::string paddedA = padding + A->read();
+        // Calculate the difference in lengths
+        int diff = b.length() - a.length();
 
-        // Loop through characters
-        for (int i = paddedA.length() - 1; i >= 0; i--) {
-            if (paddedA[i] == '1' && B->read()[i] == '1') {
-                if (carry == '1')
-                    res += '1', carry = '1';
-                else
-                    res += '0', carry = '1';
-            } else if (paddedA[i] == '0' && B->read()[i] == '0') {
-                if (carry == '1')
-                    res += '1', carry = '0';
-                else
-                    res += '0', carry = '0';
-            } else if (paddedA[i] != B->read()[i]) {
-                if (carry == '1')
-                    res += '0', carry = '1';
-                else
-                    res += '1', carry = '0';
+        // Pad A with leading zeros
+        a = std::string(diff, '0') + a;
+
+        // Iterate over the characters of A from right to left
+        for (int i = a.length() - 1; i >= 0; i--) {
+            if (a[i] == '1' && b[i] == '1') {
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '1';
+                } else {
+                    res.push_back('0');
+                    carry = '1';
+                }
+            } else if (a[i] == '0' && b[i] == '0') {
+                if (carry == '1') {
+                    res.push_back('1');
+                    carry = '0';
+                } else {
+                    res.push_back('0');
+                    carry = '0';
+                }
+            } else if (a[i] != b[i]) {
+                if (carry == '1') {
+                    res.push_back('0');
+                    carry = '1';
+                } else {
+                    res.push_back('1');
+                    carry = '0';
+                }
             }
         }
 
-        // Final carry check
-        if (carry == '1')
-            res += '1';
+        // If there is a remaining carry, append it to res
+        if (carry == '1') {
+            res.push_back(carry);
+        }
 
-        // Reverse result
+        // Reverse res to get the correct order
         std::reverse(res.begin(), res.end());
 
-        // Remove leading zeros
+        // Remove any leading zeros
         size_t index = 0;
-        while (index + 1 < res.length() && res[index] == '0')
+        while (index + 1 < res.length() && res[index] == '0') {
             index++;
+        }
+
+        // Truncate the result if it exceeds the maximum length
+        if (res.length() > MAX_RESULT_LENGTH) {
+            res = res.substr(0, MAX_RESULT_LENGTH);
+        }
+
+        // Assign the result to the output port
         sum.write(res.substr(index));
     }
 };

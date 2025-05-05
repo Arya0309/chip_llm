@@ -3,27 +3,25 @@
 
 
 SC_MODULE(GcdCalculator) {
-    sc_in<int> a;          // Input port for the first number
-    sc_in<int> b;          // Input port for the second number
+    sc_in<int> a;  // Input port for the first number
+    sc_in<int> b;  // Input port for the second number
     sc_out<int> gcd_result; // Output port for the GCD result
 
     // Constructor
     SC_CTOR(GcdCalculator) {
-        // Process to calculate GCD
-        SC_METHOD(calculate_gcd);
+        // Process to compute GCD
+        SC_METHOD(compute_gcd);
         sensitive << a << b;
     }
 
-    // Method to calculate the GCD
-    void calculate_gcd() {
+    // Method to compute the GCD
+    void compute_gcd() {
         int res = std::min(a.read(), b.read());
-
         while (res > 1) {
             if (a.read() % res == 0 && b.read() % res == 0)
                 break;
             res--;
         }
-
         gcd_result.write(res);
     }
 };

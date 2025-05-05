@@ -8,7 +8,7 @@ SC_MODULE(ArmstrongChecker) {
 
     // Constructor
     SC_CTOR(ArmstrongChecker) {
-        // Process to perform the Armstrong check
+        // Process to check if the number is an Armstrong number
         SC_METHOD(check_armstrong);
         sensitive << num_in;
     }
@@ -19,12 +19,14 @@ SC_MODULE(ArmstrongChecker) {
         int temp = n;
         int p = 0;
 
+        // Loop to calculate the sum of cubes of digits
         while (n > 0) {
             int rem = n % 10;
             p = (p) + (rem * rem * rem);
             n = n / 10;
         }
 
+        // Condition to check if the number is an Armstrong number
         if (temp == p) {
             is_armstrong.write(true);
         } else {

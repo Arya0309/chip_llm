@@ -3,29 +3,52 @@
 
 
 SC_MODULE(AverageCalculator) {
-    sc_in<sc_vector<int>> data_in;  // Input port for the array of integers
-    sc_out<double> average_out;  // Output port for the average
+    sc_in<sc_vector<int>> data_in; // Input vector of integers
+    sc_out<double> average_out; // Output port for the average
+
+    // Variables to store the sum and count of elements
+    int sum = 0;
+    int count = 0;
 
     // Constructor
     SC_CTOR(AverageCalculator) {
-        // Process to calculate the average
-        SC_THREAD(calculate_average);
+        // Process to handle input data
+        SC_THREAD(handle_input);
         sensitive << data_in;
+
+        // Process to calculate average
+        SC_METHOD(calculate_average);
+        sensitive << data_in_update;
+    }
+
+    // Method to handle input data
+    void handle_input() {
+        while (true) {
+            wait(); // Wait for data_in to change
+            data_in_update.notify(); // Notify the calculate_average process
+        }
     }
 
     // Method to calculate the average
     void calculate_average() {
-        int sum = 0;
-        int n = data_in.size();
-
-        // Calculate sum of array elements
-        for (int i = 0; i < n; i++) {
-            sum += data_in[i].read();
+        if (data_in_update.triggered()) {
+            int n = data_in.size();
+            if (n > count) {
+                for (int i = count; i < n; i++) {
+                    sum += data_in[i].read();
+                }
+                count = n;
+            }
+            if (count == 0) {
+                average_out.write(0.0); // Handle empty array case
+            } else {
+                average_out.write((double)sum / count);
+            }
         }
-
-        // Calculate and write the average
-        average_out.write((double)sum / n);
     }
+
+private:
+    sc_event data_in_update; // Event to trigger average calculation
 };
 
 

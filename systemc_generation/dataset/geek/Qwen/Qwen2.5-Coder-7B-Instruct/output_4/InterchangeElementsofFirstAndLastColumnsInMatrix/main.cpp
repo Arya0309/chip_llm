@@ -3,31 +3,27 @@
 
 
 SC_MODULE(MatrixSwapper) {
-    sc_in<int> in[4][4];  // Input ports for the matrix elements
-    sc_out<int> out[4][4]; // Output ports for the modified matrix elements
+    sc_in<int> in[4][4];  // Input port for the matrix
+    sc_out<int> out[4][4]; // Output port for the swapped matrix
 
-    // Constructor
     SC_CTOR(MatrixSwapper) {
-        // Process to perform the swap
-        SC_METHOD(swapRows);
-        sensitive << in;
-    }
-
-    // Method to swap the first and last rows of the matrix
-    void swapRows() {
-        int temp;
+        SC_METHOD(interchangeFirstLast);
         for (int i = 0; i < 4; i++) {
-            temp = in[0][i].read();
-            out[0][i].write(in[3][i].read());
-            out[3][i].write(temp);
-        }
-        for (int i = 0; i < 4; i++) {
-            for (int j = 1; j < 3; j++) {
-                out[j][i].write(in[j][i].read());
+            for (int j = 0; j < 4; j++) {
+                sensitive << in[i][j];
             }
         }
     }
+
+    void interchangeFirstLast() {
+        for (int i = 0; i < 4; i++) {
+            int t = in[0][i].read();
+            out[0][i].write(in[3][i].read());
+            out[3][i].write(t);
+        }
+    }
 };
+
 
 
 SC_MODULE(Testbench) {

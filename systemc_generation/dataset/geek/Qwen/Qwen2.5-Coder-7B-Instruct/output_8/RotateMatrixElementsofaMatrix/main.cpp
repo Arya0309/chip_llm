@@ -1,26 +1,35 @@
 
 #include <systemc.h>
 
+const int R = 4;  // Number of rows in the matrix
+const int C = 4;  // Number of columns in the matrix
+
 
 SC_MODULE(MatrixRotator) {
-    sc_in<int> in[4][4];  // Input ports for the matrix elements
-    sc_out<int> out[4][4]; // Output ports for the rotated matrix elements
+    sc_in<int> in[R][C];  // Input matrix
+    sc_out<int> out[R][C]; // Output matrix
 
     // Constructor
     SC_CTOR(MatrixRotator) {
         // Process to perform matrix rotation
         SC_METHOD(rotate);
-        sensitive << in;
+        for (int i = 0; i < R; i++) {
+            for (int j = 0; j < C; j++) {
+                sensitive << in[i][j];
+            }
+        }
     }
 
     // Method to rotate the matrix
     void rotate() {
-        int m = 4, n = 4;
+        int m = R;
+        int n = C;
         int row = 0, col = 0;
         int prev, curr;
 
         while (row < m && col < n) {
-            if (row + 1 == m || col + 1 == n) break;
+            if (row + 1 == m || col + 1 == n)
+                break;
 
             prev = in[row + 1][col];
 
@@ -31,7 +40,6 @@ SC_MODULE(MatrixRotator) {
             }
             row++;
 
-            prev = in[m-1][n-1];
             for (int i = row; i < m; i++) {
                 curr = in[i][n-1];
                 out[i][n-1] = prev;
@@ -39,19 +47,21 @@ SC_MODULE(MatrixRotator) {
             }
             n--;
 
-            prev = in[m-1][col];
-            for (int i = n-1; i >= col; i--) {
-                curr = in[m-1][i];
-                out[m-1][i] = prev;
-                prev = curr;
+            if (row < m) {
+                for (int i = n-1; i >= col; i--) {
+                    curr = in[m-1][i];
+                    out[m-1][i] = prev;
+                    prev = curr;
+                }
             }
             m--;
 
-            prev = in[row][col];
-            for (int i = m-1; i >= row; i--) {
-                curr = in[i][col];
-                out[i][col] = prev;
-                prev = curr;
+            if (col < n) {
+                for (int i = m-1; i >= row; i--) {
+                    curr = in[i][col];
+                    out[i][col] = prev;
+                    prev = curr;
+                }
             }
             col++;
         }

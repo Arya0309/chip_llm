@@ -3,33 +3,40 @@
 
 
 SC_MODULE(BinarySearchModule) {
-    sc_in<int> target;  // Input port for the target element
-    sc_out<bool> found; // Output port for whether the target was found
+    sc_in<int> target;  // Input port for the target value
+    sc_out<bool> found; // Output port indicating if the target is found
     sc_vector<sc_in<int>> v; // Input vector of integers
 
     // Constructor
     SC_CTOR(BinarySearchModule) {
         // Process to perform binary search
-        SC_METHOD(search);
-        sensitive << v << target;
+        SC_THREAD(search); // Use SC_THREAD instead of SC_METHOD
     }
 
     // Method to perform binary search
     void search() {
-        int low = 0;
-        int high = v.size() - 1;
-        found.write(false);
-
-        while (low <= high) {
-            int mid = ((high - low) / 2) + low;
-            if (v[mid].read() == target.read()) {
-                found.write(true);
-                break;
-            } else if (v[mid].read() > target.read()) {
-                high = mid - 1;
-            } else {
-                low = mid + 1;
+        while (true) {
+            int low = 0, high = v.size() - 1;
+            while (low <= high) {
+                int mid = ((high - low) / 2) + low;
+                if (mid >= 0 && mid < v.size()) { // Check bounds
+                    if (v[mid].read() == target.read()) {
+                        found.write(true);
+                        wait(SC_ZERO_TIME);
+                        continue;
+                    }
+                    if (v[mid].read() > target.read())
+                        high = mid - 1;
+                    else
+                        low = mid + 1;
+                } else {
+                    found.write(false); // Set found to false if mid is out of bounds
+                    wait(SC_ZERO_TIME);
+                    break; // Exit the loop if mid is out of bounds
+                }
             }
+            found.write(false); // Set found to false if target is not found
+            wait(SC_ZERO_TIME);
         }
     }
 };

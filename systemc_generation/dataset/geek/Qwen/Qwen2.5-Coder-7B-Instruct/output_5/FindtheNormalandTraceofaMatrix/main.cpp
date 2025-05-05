@@ -1,38 +1,46 @@
 
 #include <systemc.h>
+#include <cmath>
+
+#define MAX 100
 
 
 SC_MODULE(MatrixOperations) {
-    sc_in<int> matrix[5][5];  // Input port for the matrix
-    sc_out<int> trace;       // Output port for the trace
-    sc_out<int> norm;        // Output port for the normal
+    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
+    sc_out<int> trace; // Output port for the trace
+    sc_out<int> norm; // Output port for the normal
 
     // Constructor
     SC_CTOR(MatrixOperations) {
-        // Process to calculate trace and normal
-        SC_METHOD(calculate_trace_and_norm);
+        // Process to calculate trace
+        SC_METHOD(calculate_trace);
+        sensitive << matrix;
+
+        // Process to calculate normal
+        SC_METHOD(calculate_norm);
         sensitive << matrix;
     }
 
-    // Method to calculate trace and normal
-    void calculate_trace_and_norm() {
-        int trace_value = 0;
-        int norm_value = 0;
-
-        // Calculate trace
-        for (int i = 0; i < 5; i++) {
-            trace_value += matrix[i][i];
+    // Method to calculate the trace of the matrix
+    void calculate_trace() {
+        int n = 5; // Assuming a fixed size of 5x5 for simplicity
+        int sum = 0;
+        for (int i = 0; i < n; i++) {
+            sum += matrix[i][i];
         }
+        trace.write(sum);
+    }
 
-        // Calculate normal
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                norm_value += matrix[i][j] * matrix[i][j];
+    // Method to calculate the normal of the matrix
+    void calculate_norm() {
+        int n = 5; // Assuming a fixed size of 5x5 for simplicity
+        int sum = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                sum += matrix[i][j] * matrix[i][j];
             }
         }
-
-        norm.write(sqrt(norm_value));
-        trace.write(trace_value);
+        norm.write(sqrt(sum));
     }
 };
 

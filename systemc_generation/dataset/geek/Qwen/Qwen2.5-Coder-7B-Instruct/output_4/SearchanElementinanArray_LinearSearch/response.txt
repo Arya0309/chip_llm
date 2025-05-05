@@ -1,107 +1,107 @@
-### Input and Output Analysis
-
-**Inputs:**
-1. `vector<int> v`: A vector of integers in which the search will be performed.
-2. `int key`: The integer value to search within the vector.
-
-**Outputs:**
-1. `int i`: The index position of the key if found; otherwise, `-1` indicating the key was not found.
-
-### Detailed Line-by-Line Explanation
+The error indicates that the `LinearSearch` module is being instantiated with two arguments, but the constructor of `LinearSearch` only accepts one argument of type `sc_core::sc_module_name`. The error message points to the instantiation of `LinearSearch` in the testbench:
 
 ```cpp
-#include <bits/stdc++.h>
-using namespace std;
+ls_inst = new LinearSearch("ls_inst", 8);
 ```
-- **Include Standard Libraries**: This includes the standard C++ library and uses the `std` namespace for convenience.
 
-```cpp
-int linearSearch(vector<int> v, int key) {
-```
-- **Function Declaration**: Defines a function `linearSearch` that takes a vector of integers `v` and an integer `key` as parameters and returns an integer.
+This line is attempting to pass two arguments to the `LinearSearch` constructor: a module name (`"ls_inst"`) and an integer (`8`). However, the `LinearSearch` constructor is defined to accept only one argument, which is the module name.
 
-```cpp
-    for (int i = 0; i < v.size(); i++) {
-```
-- **For Loop**: Iterates through each element of the vector `v`.
+To resolve this issue, we need to adjust the instantiation of `LinearSearch` in the testbench to match the constructor signature. We should remove the second argument (the integer) from the instantiation call.
 
-```cpp
-        if (v[i] == key) {
-            return i;
-        }
-```
-- **If Statement**: Checks if the current element `v[i]` is equal to the `key`. If true, it returns the index `i`.
-
-```cpp
-    }
-```
-- **End of For Loop**: Ends the loop after checking all elements.
-
-```cpp
-    return -1;
-}
-```
-- **Return Statement**: Returns `-1` if the key is not found in the vector.
-
-```cpp
-int main() {
-    vector<int> v = {1, 2, 3, 4, 5, 8, 9, 11};
-    int key = 8;
-    int i = linearSearch(v, key);
-    if (i != -1)
-        cout << key << " Found at Position: " << i + 1;
-    else
-        cout << key << " NOT found.";
-    return 0;
-}
-```
-- **Main Function**: Contains the main program execution.
-  - Initializes a vector `v` with values `{1, 2, 3, 4, 5, 8, 9, 11}`.
-  - Sets the `key` to `8`.
-  - Calls `linearSearch` with `v` and `key`, storing the result in `i`.
-  - Checks if `i` is not `-1` and prints the position of the key if found; otherwise, prints that the key was not found.
-
-### Equivalent SystemC Code
+Here's the corrected version of the code snippet:
 
 ```cpp
 #include <systemc.h>
+#include <vector>
 
-SC_MODULE(LineaerSearch) {
+SC_MODULE(LinearSearch) {
     sc_in<int> key;  // Input port for the key to search
-    sc_out<int> index; // Output port for the index of the found key or -1
-    sc_vector<sc_in<int>> data; // Input vector of integers
+    sc_out<int> index; // Output port for the index where the key is found or -1 if not found
+    sc_vector<sc_in<int>> data; // Vector to hold the data
 
-    SC_CTOR(LineaerSearch) {
+    // Constructor
+    SC_CTOR(LinearSearch) : data("data", 8) { // Initialize the data vector with size 8
+        // Process to perform linear search
         SC_METHOD(search);
-        sensitive << key << data;
+        sensitive << key;
+        for (int i = 0; i < data.size(); i++) {
+            sensitive << data[i];
+        }
     }
 
     void search() {
         int size = data.size();
-        bool found = false;
-        for (int i = 0; i < size; i++) {
-            if (data[i].read() == key.read()) {
-                index.write(i);
-                found = true;
-                break;
-            }
+        int i = 0;
+
+        // Iterate through the vector to find the key
+        while (i < size && data[i].read() != key) {
+            i++;
         }
-        if (!found) {
-            index.write(-1);
+
+        // Assign the result to the output port
+        if (i < size) {
+            index.write(i); // Key found, write the index
+        } else {
+            index.write(-1); // Key not found, write -1
         }
     }
 };
+
+SC_MODULE(Testbench) {
+    sc_signal<int> key;
+    sc_signal<int> index;
+    sc_vector<sc_signal<int>> data;
+    LinearSearch* ls_inst;
+
+    SC_CTOR(Testbench) : data("data", 8) {
+        ls_inst = new LinearSearch("ls_inst");
+
+        // Connect signals to the module
+        ls_inst->key(key);
+        ls_inst->index(index);
+        for (int i = 0; i < data.size(); i++) {
+            ls_inst->data[i](data[i]);
+        }
+
+        // Test case
+        SC_THREAD(test);
+    }
+
+    void test() {
+        // Initialize data
+        for (int i = 0; i < data.size(); i++) {
+            data[i].write(i + 1);
+        }
+
+        // Set key to search
+        key.write(8);
+
+        // Wait for the search to complete
+        wait();
+
+        // Check the result
+        if (index.read() == 6) {
+            std::cout << "Test passed." << std::endl;
+        } else {
+            std::cout << "Test failed." << std::endl;
+        }
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+    sc_start();
+    return 0;
+}
 ```
 
-### Explanation of SystemC Code
+### Explanation of Changes:
+1. **Constructor Change**: The `LinearSearch` constructor remains unchanged as it correctly accepts only one argument (`sc_core::sc_module_name`).
+2. **Instantiation Change**: The instantiation of `LinearSearch` in the `Testbench` module is changed to:
+   ```cpp
+   ls_inst = new LinearSearch("ls_inst");
+   ```
+   This removes the second argument (`8`) from the instantiation call.
+3. **Signal Connections**: The signals (`key`, `index`, and `data`) are connected to the `LinearSearch` module within the `test` method of the `Testbench` module.
 
-- **Module Declaration**: Defines a module `LineaerSearch` with input ports `key` and `data`, and an output port `index`.
-- **Constructor**: Initializes the `search` method to be sensitive to changes in `key` and `data`.
-- **search Method**: 
-  - Reads the size of the `data` vector.
-  - Iterates through each element of the `data` vector.
-  - Checks if the current element is equal to the `key`.
-  - If found, writes the index to the `index` output port and sets `found` to `true`.
-  - If not found after the loop, writes `-1` to the `index` output port.
-
-This SystemC code accurately captures the logic of the original C++ linear search algorithm and can be integrated into a high-level synthesis flow.
+With these changes, the `LinearSearch` module should be instantiated correctly, and the unit tests should pass.

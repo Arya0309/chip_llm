@@ -8,18 +8,16 @@ SC_MODULE(PrimeChecker) {
 
     // Constructor
     SC_CTOR(PrimeChecker) {
-        // Process to check if the number is prime
+        // Process to determine if the number is prime
         SC_METHOD(check_prime);
         sensitive << n;
     }
 
     // Method to check if the number is prime
     void check_prime() {
-        bool prime = true;
         int cnt = 0;
-
         if (n.read() <= 1) {
-            prime = false;
+            is_prime.write(false);
         } else {
             for (int i = 1; i <= n.read(); i++) {
                 if (n.read() % i == 0) {
@@ -27,11 +25,11 @@ SC_MODULE(PrimeChecker) {
                 }
             }
             if (cnt > 2) {
-                prime = false;
+                is_prime.write(false);
+            } else {
+                is_prime.write(true);
             }
         }
-
-        is_prime.write(prime);
     }
 };
 

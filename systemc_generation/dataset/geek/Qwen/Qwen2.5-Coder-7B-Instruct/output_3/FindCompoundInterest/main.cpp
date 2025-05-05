@@ -5,13 +5,13 @@
 SC_MODULE(CompoundInterestCalculator) {
     sc_in<double> principal;  // Input port for the principal amount
     sc_in<double> rate;       // Input port for the interest rate
-    sc_in<double> time;       // Input port for the time period
-    sc_out<double> ci;        // Output port for the compound interest
+    sc_in<double> time;       // Input port for the time in years
+    sc_out<double> ci;         // Output port for the compound interest
 
     // Constructor
     SC_CTOR(CompoundInterestCalculator) {
         // Process to calculate compound interest
-        SC_THREAD(calculate_ci);
+        SC_METHOD(calculate_ci);
         sensitive << principal << rate << time;
     }
 
@@ -23,6 +23,7 @@ SC_MODULE(CompoundInterestCalculator) {
     }
 };
 
+// Testbench module to drive inputs and check outputs
 
 
 SC_MODULE(Testbench) {

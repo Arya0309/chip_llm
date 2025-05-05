@@ -10,16 +10,16 @@ SC_MODULE(Swapper) {
 
     // Constructor
     SC_CTOR(Swapper) {
-        // Process to perform swapping
+        // Process to perform the swap
         SC_METHOD(swap);
         sensitive << a << b;
     }
 
     // Method to swap the two numbers
     void swap() {
-        int temp = a.read();  // Store the value of a in temp
-        out_a.write(b.read()); // Assign b to out_a
-        out_b.write(temp);     // Assign temp (original a) to out_b
+        int temp = a.read();
+        out_a.write(b.read());
+        out_b.write(temp);
     }
 };
 

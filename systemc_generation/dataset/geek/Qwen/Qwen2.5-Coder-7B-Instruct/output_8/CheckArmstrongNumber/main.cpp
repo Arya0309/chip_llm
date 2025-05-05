@@ -3,12 +3,12 @@
 
 
 SC_MODULE(ArmstrongChecker) {
-    sc_in<int> num_in;  // Input port for the number to be checked
+    sc_in<int> num_in;  // Input port for the number to check
     sc_out<bool> is_armstrong; // Output port indicating if the number is an Armstrong number
 
     // Constructor
     SC_CTOR(ArmstrongChecker) {
-        // Process to perform the Armstrong number check
+        // Process to perform the Armstrong check
         SC_METHOD(check_armstrong);
         sensitive << num_in;
     }
@@ -25,11 +25,7 @@ SC_MODULE(ArmstrongChecker) {
             n = n / 10;
         }
 
-        if (temp == p) {
-            is_armstrong.write(true);
-        } else {
-            is_armstrong.write(false);
-        }
+        is_armstrong.write(temp == p);
     }
 };
 

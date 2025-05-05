@@ -7,35 +7,24 @@ SC_MODULE(RowWiseSorter) {
     sc_in<bool> start;  // Start signal
     sc_out<bool> done; // Done signal
 
-    sc_in<int> input_matrix[4][4];  // Input matrix
-    sc_out<int> output_matrix[4][4]; // Output matrix
-
     int m[4][4];
-    int r = 4;
-    int c = 4;
+    int c = sizeof(m[0]) / sizeof(m[0][0]);
+    int r = sizeof(m) / sizeof(m[0]);
+
+    bool sorting_done = false;
 
     SC_CTOR(RowWiseSorter) {
-        // Process to handle sorting
-        SC_METHOD(sortMatrix);
+        SC_METHOD(sortRows);
         sensitive << clk.pos();
         dont_initialize();
 
-        // Process to update output
-        SC_METHOD(updateOutput);
+        SC_METHOD(checkDone);
         sensitive << clk.pos();
         dont_initialize();
     }
 
-    void sortMatrix() {
+    void sortRows() {
         if (start.read()) {
-            // Copy input matrix to local matrix
-            for (int i = 0; i < r; i++) {
-                for (int j = 0; j < c; j++) {
-                    m[i][j] = input_matrix[i][j];
-                }
-            }
-
-            // Sort each row
             for (int i = 0; i < r; i++) {
                 for (int j = 0; j < c; j++) {
                     for (int k = 0; k < c - j - 1; k++) {
@@ -45,21 +34,36 @@ SC_MODULE(RowWiseSorter) {
                     }
                 }
             }
+            sorting_done = true;
+        }
+    }
 
-            // Set done signal
+    void checkDone() {
+        if (sorting_done) {
             done.write(true);
         } else {
             done.write(false);
         }
     }
 
-    void updateOutput() {
-        if (done.read()) {
-            // Copy sorted matrix to output matrix
-            for (int i = 0; i < r; i++) {
-                for (int j = 0; j < c; j++) {
-                    output_matrix[i][j].write(m[i][j]);
-                }
+    void swap(int &xp, int &yp) {
+        int temp = xp;
+        xp = yp;
+        yp = temp;
+    }
+
+    void load_matrix(int input_matrix[4][4]) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                m[i][j] = input_matrix[i][j];
+            }
+        }
+    }
+
+    void read_matrix(int output_matrix[4][4]) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                output_matrix[i][j] = m[i][j];
             }
         }
     }

@@ -3,41 +3,31 @@
 
 
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[SIZE_A];  // Input ports for the first matrix
-    sc_in<int> B[SIZE_B];  // Input ports for the second matrix
-    sc_out<int> C[SIZE_RESULT]; // Output ports for the result matrix
+    sc_in<int> A[2][2];
+    sc_in<int> B[2][2];
+    sc_out<int> C[2][3];
 
-    int R1, C1, R2, C2; // Dimensions of the matrices
-
-    // Constructor
     SC_CTOR(MatrixMultiplier) {
-        R1 = SIZE_A / C1;
-        R2 = SIZE_B / C2;
-        C1 = SIZE_A % C1;
-        C2 = SIZE_B % C2;
-
-        // Process to perform matrix multiplication
         SC_THREAD(mulMat);
-        sensitive << A << B;
     }
 
-    // Thread to multiply the two matrices
     void mulMat() {
-        int rslt[R1][C2];
+        int rslt[2][3] = {0};
 
-        for (int i = 0; i < R1; i++) {
-            for (int j = 0; j < C2; j++) {
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
                 rslt[i][j] = 0;
 
-                for (int k = 0; k < R2; k++) {
-                    rslt[i][j] += A[i * C1 + k] * B[k * C2 + j];
+                for (int k = 0; k < 2; k++) {
+                    rslt[i][j] += A[i][k].read() * B[k][j].read();
                 }
 
-                C[i * C2 + j].write(rslt[i][j]);
+                C[i][j].write(rslt[i][j]);
             }
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

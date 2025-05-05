@@ -5,56 +5,69 @@
 SC_MODULE(BinaryAdder) {
     sc_in<std::string> A;  // Input port for the first binary string
     sc_in<std::string> B;  // Input port for the second binary string
-    sc_out<std::string> sum; // Output port for the sum of the binary strings
+    sc_out<std::string> sum; // Output port for the binary sum
 
-    // Constructor
     SC_CTOR(BinaryAdder) {
-        // Process to perform binary addition
-        SC_METHOD(add);
+        SC_THREAD(add_binary);
         sensitive << A << B;
     }
 
-    // Method to add the two binary strings
-    void add() {
-        string a = A.read();
-        string b = B.read();
-        if (a.length() > b.length()) {
-            add(b, a);
-            return;
+    void add_binary() {
+        std::string a = A.read();
+        std::string b = B.read();
+
+        std::string result = addBinary(a, b);
+        sum.write(result);
+    }
+
+private:
+    std::string addBinary(const std::string& A, const std::string& B) {
+        if (A.length() > B.length()) {
+            return addBinary(B, A);
         }
-        int diff = b.length() - a.length();
-        string padding;
-        for (int i = 0; i < diff; i++)
-            padding.push_back('0');
-        a = padding + a;
-        string res;
+
+        int diff = B.length() - A.length();
+        std::string padding(diff, '0');
+        A = padding + A;
+
+        std::string res(B.length() + 1, '0'); // Initialize result with enough space
         char carry = '0';
 
-        for (int i = a.length() - 1; i >= 0; i--) {
-            if (a[i] == '1' && b[i] == '1') {
-                if (carry == '1')
-                    res.push_back('1'), carry = '1';
-                else
-                    res.push_back('0'), carry = '1';
-            } else if (a[i] == '0' && b[i] == '0') {
-                if (carry == '1')
-                    res.push_back('1'), carry = '0';
-                else
-                    res.push_back('0'), carry = '0';
+        for (int i = A.length() - 1; i >= 0; i--) {
+            if (A[i] == '1' && B[i] == '1') {
+                if (carry == '1') {
+                    res[i] = '1';
+                    carry = '1';
+                } else {
+                    res[i] = '0';
+                    carry = '1';
+                }
+            } else if (A[i] == '0' && B[i] == '0') {
+                if (carry == '1') {
+                    res[i] = '1';
+                    carry = '0';
+                } else {
+                    res[i] = '0';
+                    carry = '0';
+                }
             } else {
-                if (carry == '1')
-                    res.push_back('0'), carry = '1';
-                else
-                    res.push_back('1'), carry = '0';
+                if (carry == '1') {
+                    res[i] = '0';
+                    carry = '1';
+                } else {
+                    res[i] = '1';
+                    carry = '0';
+                }
             }
         }
-        if (carry == '1')
-            res.push_back(carry);
-        reverse(res.begin(), res.end());
-        int index = 0;
-        while (index + 1 < res.length() && res[index] == '0')
-            index++;
-        sum.write(res.substr(index));
+
+        if (carry == '1') {
+            res[0] = '1';
+        } else {
+            res.erase(0, 1); // Remove leading zero if any
+        }
+
+        return res;
     }
 };
 

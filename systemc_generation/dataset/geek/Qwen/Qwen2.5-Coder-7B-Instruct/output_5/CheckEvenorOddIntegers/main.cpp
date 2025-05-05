@@ -4,22 +4,23 @@
 // Module to check if a number is even or odd
 
 SC_MODULE(EvenOddChecker) {
-    sc_in<int> number_in;  // Input port for the number to check
+    sc_in<int> number_in;  // Input port for the number
     sc_out<int> result_out; // Output port for the result
 
     // Constructor
     SC_CTOR(EvenOddChecker) {
         // Process to determine if the number is even or odd
-        SC_METHOD(check_even_odd);
+        SC_METHOD(check_number);
         sensitive << number_in;
     }
 
-    // Method to check if the number is even or odd
-    void check_even_odd() {
-        if (number_in.read() % 2 == 0)
-            result_out.write(0); // Write 0 for Even
-        else
-            result_out.write(1); // Write 1 for Odd
+    // Method to check the number and write the result to result_out
+    void check_number() {
+        if (number_in.read() % 2 == 0) {
+            result_out.write(0);  // Even
+        } else {
+            result_out.write(1);  // Odd
+        }
     }
 };
 

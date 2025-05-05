@@ -3,8 +3,8 @@
 
 
 SC_MODULE(LeapYearChecker) {
-    sc_in<int> year;          // Input port for the year
-    sc_out<bool> is_leap_year; // Output port for the leap year result
+    sc_in<int> year;  // Input port for the year
+    sc_out<bool> is_leap_year; // Output port indicating if the year is a leap year
 
     // Constructor
     SC_CTOR(LeapYearChecker) {
@@ -13,7 +13,7 @@ SC_MODULE(LeapYearChecker) {
         sensitive << year;
     }
 
-    // Method to determine if the year is a leap year
+    // Method to check if the year is a leap year
     void check_leap_year() {
         if (year.read() % 400 == 0) {
             is_leap_year.write(true);

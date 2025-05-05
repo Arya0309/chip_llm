@@ -9,63 +9,36 @@ SC_MODULE(Rotator) {
     sc_in<int> in_array[7];  // Input array
     sc_out<int> out_array[7];  // Output array
 
-    int arr[7];  // Internal array to store the input array
+    // Temporary array to store rotated elements
+    int temp[7];
 
     // Constructor
     SC_CTOR(Rotator) {
-        // Initialize the internal array with the input array
-        SC_METHOD(init_array);
+        // Process to handle rotation
+        SC_METHOD(handle_rotation);
         sensitive << clk.pos();
-        async_reset_signal_is(rst, true);
-
-        // Process to rotate the array
-        SC_METHOD(rotate_array);
-        sensitive << clk.pos();
-        async_reset_signal_is(rst, true);
-
-        // Process to copy the rotated array to the output array
-        SC_METHOD(copy_array);
-        sensitive << clk.pos();
-        async_reset_signal_is(rst, true);
+        dont_initialize();
     }
 
-    // Method to initialize the internal array
-    void init_array() {
+    // Method to handle the rotation logic
+    void handle_rotation() {
         if (rst.read()) {
+            // Reset the output array to zero
             for (int i = 0; i < 7; i++) {
-                arr[i] = 0;
+                out_array[i].write(0);
             }
         } else {
-            for (int i = 0; i < 7; i++) {
-                arr[i] = in_array[i].read();
-            }
-        }
-    }
-
-    // Method to rotate the array
-    void rotate_array() {
-        if (!rst.read()) {
-            int temp[7];
-            int k = 0;
+            // Copy elements from in_array to temp
             for (int i = d.read(); i < 7; i++) {
-                temp[k] = arr[i];
-                k++;
+                temp[i - d.read()] = in_array[i].read();
             }
             for (int i = 0; i < d.read(); i++) {
-                temp[k] = arr[i];
-                k++;
+                temp[7 - d.read() + i] = in_array[i].read();
             }
-            for (int i = 0; i < 7; i++) {
-                arr[i] = temp[i];
-            }
-        }
-    }
 
-    // Method to copy the rotated array to the output array
-    void copy_array() {
-        if (!rst.read()) {
+            // Copy elements from temp back to out_array
             for (int i = 0; i < 7; i++) {
-                out_array[i].write(arr[i]);
+                out_array[i].write(temp[i]);
             }
         }
     }

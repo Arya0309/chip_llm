@@ -1,203 +1,140 @@
-### Input and Output Summary
+The runtime error occurred because the SystemC simulation environment was unable to bind the `sc_inout` ports correctly. This is likely due to the way the ports are connected in the testbench or the way the ports are declared and instantiated in the module.
 
-**Inputs:**
-- None
+### Analysis:
 
-**Outputs:**
-- `cout`: Outputs the sorted array.
+1. **Nature of the Runtime Failure**: The error message indicates that the port `port_7` of the `selection_sort_inst` instance is not bound. This means that the port is not properly connected to a corresponding port in the testbench or another module.
 
-### Detailed Explanation
+2. **Function or Line Where the Error Occurs**: The error message points to the `sc_port.cpp` file at line 235, which suggests that the issue lies in the port binding process.
 
-1. **Include Statements and Namespace**:
-   ```cpp
-   #include <bits/stdc++.h> 
-   using namespace std; 
-   ```
-   - Includes the standard library and uses the `std` namespace for convenience.
+3. **Underlying Cause**: The most likely cause is that the `sc_inout` ports are not properly connected in the testbench. This could be due to a typo in the port names, missing connections, or incorrect instantiation.
 
-2. **Swap Function**:
-   ```cpp
-   void swap(int *xp, int *yp) 
-   { 
-       int temp = *xp; 
-       *xp = *yp; 
-       *yp = temp; 
-   } 
-   ```
-   - Swaps the values of two integers pointed to by `xp` and `yp`.
+4. **Proposed Code Adjustments**: To resolve this issue, we need to ensure that all `sc_inout` ports are properly connected in the testbench. We should also verify that the port names match exactly between the module and the testbench.
 
-3. **Selection Sort Function**:
-   ```cpp
-   void selectionSort(int arr[], int n) 
-   { 
-       int i, j, min_idx; 
+5. **Revised Code Section**:
+   - Ensure that the `sc_inout` ports are correctly connected in the testbench.
+   - Verify that the port names match exactly between the module and the testbench.
 
-       for (i = 0; i < n-1; i++) 
-       { 
-           min_idx = i; 
-           for (j = i+1; j < n; j++) 
-           if (arr[j] < arr[min_idx]) 
-               min_idx = j; 
-
-           swap(&arr[min_idx], &arr[i]); 
-       } 
-   } 
-   ```
-   - Sorts an array `arr` of size `n` using the selection sort algorithm.
-   - Iterates through the array, finds the minimum element in the unsorted part, and swaps it with the first element of the unsorted part.
-
-4. **Print Array Function**:
-   ```cpp
-   void printArray(int arr[], int size) 
-   { 
-       int i; 
-       for (i=0; i < size; i++) 
-           cout << arr[i] << " "; 
-       cout << endl; 
-   } 
-   ```
-   - Prints the elements of an array `arr` of size `size`.
-
-5. **Main Function**:
-   ```cpp
-   int main() 
-   { 
-       int arr[] = {64, 25, 12, 22, 11}; 
-       int n = sizeof(arr)/sizeof(arr[0]); 
-       selectionSort(arr, n); 
-       cout << "Sorted array: "; 
-       printArray(arr, n); 
-       return 0; 
-   } 
-   ```
-   - Initializes an array `arr`, calculates its size, sorts it using `selectionSort`, and prints the sorted array.
-
-### SystemC Code Snippet
+### Revised SystemC Module Code:
 
 ```cpp
 #include <systemc.h>
 
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_out<int> sorted_array[5];  // Output array
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_inout<int> arr[5];      // Input/output array
 
-    int arr[5] = {64, 25, 12, 22, 11};  // Input array
-    int n = 5;  // Size of the array
-
-    void selectionSort() {
-        int i, j, min_idx;
-        for (i = 0; i < n-1; i++) {
-            min_idx = i;
-            for (j = i+1; j < n; j++)
-                if (arr[j] < arr[min_idx])
-                    min_idx = j;
-            swap(&arr[min_idx], &arr[i]);
-        }
-    }
-
-    void printArray() {
-        for (int i = 0; i < n; i++)
-            sorted_array[i].write(arr[i]);
-    }
+    int n;                    // Size of the array
+    bool sorting_done;         // Flag to indicate sorting is done
 
     SC_CTOR(SelectionSort) {
-        SC_METHOD(selectionSort);
-        sensitive << clk.pos();
-        SC_METHOD(printArray);
+        n = 5;                  // Set the size of the array
+        sorting_done = false;
+
+        // Process to handle the sorting logic
+        SC_METHOD(sort);
         sensitive << clk.pos();
 
-        done.initialize(false);
+        // Process to update the output array and set the done signal
+        SC_METHOD(update_output);
+        sensitive << clk.pos();
     }
 
-    void selectionSort_process() {
+    void sort() {
         if (start.read()) {
-            selectionSort();
-            done.write(true);
+            for (int i = 0; i < n-1; i++) {
+                int min_idx = i;
+                for (int j = i+1; j < n; j++) {
+                    if (arr[j].read() < arr[min_idx].read()) {
+                        min_idx = j;
+                    }
+                }
+                // Swap the values without using pointers
+                int temp = arr[min_idx].read();
+                arr[min_idx] = arr[i].read();
+                arr[i] = temp;
+            }
+            sorting_done = true;
         }
     }
 
-    void printArray_process() {
-        if (done.read()) {
-            printArray();
+    void update_output() {
+        if (sorting_done) {
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+
+    void load_array(int input[]) {
+        for (int i = 0; i < n; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    void read_array(int output[]) {
+        for (int i = 0; i < n; i++) {
+            output[i] = arr[i].read();
         }
     }
 };
 ```
 
-### Explanation of SystemC Code
+### Testbench Example:
 
-1. **Module Declaration**:
-   ```cpp
-   SC_MODULE(SelectionSort) {
-   ```
-   - Declares a SystemC module named `SelectionSort`.
+To ensure that the `sc_inout` ports are correctly connected, here is an example testbench:
 
-2. **Signals**:
-   ```cpp
-   sc_in<bool> clk;  // Clock signal
-   sc_in<bool> start;  // Start signal
-   sc_out<bool> done;  // Done signal
-   sc_out<int> sorted_array[5];  // Output array
-   ```
-   - Defines the required signals for the module.
+```cpp
+#include <systemc.h>
 
-3. **Array Initialization**:
-   ```cpp
-   int arr[5] = {64, 25, 12, 22, 11};  // Input array
-   int n = 5;  // Size of the array
-   ```
-   - Initializes the input array and its size.
+SC_MODULE(Testbench) {
+    sc_clock clk("clk", 10, SC_NS);  // 10 ns period clock
+    sc_signal<bool> start;
+    sc_signal<bool> done;
+    sc_signal<int> arr[5];
 
-4. **Selection Sort and Print Functions**:
-   ```cpp
-   void selectionSort() {
-       int i, j, min_idx;
-       for (i = 0; i < n-1; i++) {
-           min_idx = i;
-           for (j = i+1; j < n; j++)
-               if (arr[j] < arr[min_idx])
-                   min_idx = j;
-           swap(&arr[min_idx], &arr[i]);
-       }
-   }
+    SelectionSort selection_sort_inst("selection_sort_inst");
 
-   void printArray() {
-       for (int i = 0; i < n; i++)
-           sorted_array[i].write(arr[i]);
-   }
-   ```
-   - Translates the original C++ functions into SystemC methods.
+    SC_CTOR(Testbench) : selection_sort_inst("selection_sort_inst") {
+        selection_sort_inst.clk(clk);
+        selection_sort_inst.start(start);
+        selection_sort_inst.done(done);
+        selection_sort_inst.arr(arr);
 
-5. **Constructor**:
-   ```cpp
-   SC_CTOR(SelectionSort) {
-       SC_METHOD(selectionSort_process);
-       sensitive << clk.pos();
-       SC_METHOD(printArray_process);
-       sensitive << clk.pos();
+        SC_THREAD(run_test);
+    }
 
-       done.initialize(false);
-   }
-   ```
-   - Initializes the module and sets up the processes to be sensitive to the clock signal.
+    void run_test() {
+        int input[] = {64, 25, 12, 22, 11};
+        selection_sort_inst.load_array(input);
 
-6. **Process Methods**:
-   ```cpp
-   void selectionSort_process() {
-       if (start.read()) {
-           selectionSort();
-           done.write(true);
-       }
-   }
+        start = true;
+        wait(100, SC_NS);
 
-   void printArray_process() {
-       if (done.read()) {
-           printArray();
-       }
-   }
-   ```
-   - Defines the processes to handle the sorting and printing logic based on the start and done signals.
+        start = false;
+        wait(100, SC_NS);
 
-This SystemC code snippet faithfully captures the logic of the original C++/C source and can be integrated into a high-level synthesis flow.
+        while (!done.read()) {
+            wait(10, SC_NS);
+        }
+
+        int output[5];
+        selection_sort_inst.read_array(output);
+
+        for (int i = 0; i < 5; i++) {
+            cout << "Output[" << i << "] = " << output[i] << endl;
+        }
+
+        sc_stop();
+    }
+};
+
+int sc_main(int argc, char* argv[]) {
+    Testbench tb("tb");
+    sc_start();
+    return 0;
+}
+```
+
+In this testbench, the `sc_inout` ports are correctly connected to the `SelectionSort` module. The `run_test` thread initializes the input array, starts the sorting process, waits for the sorting to complete, and then reads the sorted array from the output ports.

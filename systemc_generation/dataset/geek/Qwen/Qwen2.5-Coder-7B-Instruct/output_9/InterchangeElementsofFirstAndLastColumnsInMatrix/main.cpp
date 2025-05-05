@@ -1,34 +1,35 @@
 
-#include <systemc.h>
+     #include <systemc.h>
 
-
+     
 SC_MODULE(MatrixSwapper) {
-    sc_in<int> in[4][4];  // Input port for the 2D array
-    sc_out<int> out[4][4]; // Output port for the modified 2D array
+         sc_in<int> in[4][4];
+         sc_out<int> out[4][4];
 
-    // Constructor
-    SC_CTOR(MatrixSwapper) {
-        // Process to perform row swapping
-        SC_METHOD(swapRows);
-        sensitive << in;
-    }
+         SC_CTOR(MatrixSwapper) {
+             for (int i = 0; i < 4; ++i) {
+                 for (int j = 0; j < 4; ++j) {
+                     sensitive << in[i][j];
+                 }
+             }
+         }
 
-    // Method to swap the first and last rows of the input matrix
-    void swapRows() {
-        for (int i = 0; i < 4; i++) {
-            int t = in[0][i].read();
-            out[0][i].write(in[3][i].read());
-            out[3][i].write(t);
-        }
-        // Copy other rows unchanged
-        for (int i = 1; i < 3; i++) {
-            for (int j = 0; j < 4; j++) {
-                out[i][j].write(in[i][j].read());
-            }
-        }
-    }
-};
+         void interchangeFirstLast() {
+             int temp;
+             for (int i = 0; i < 4; i++) {
+                 temp = in[0][i].read();
+                 out[0][i].write(in[3][i].read());
+                 out[3][i].write(temp);
+             }
+             for (int i = 1; i < 3; i++) {
+                 for (int j = 0; j < 4; j++) {
+                     out[i][j].write(in[i][j].read());
+                 }
+             }
+         }
+     };
 
+     
 
 SC_MODULE(Testbench) {
     // Use static const for constants instead of #define

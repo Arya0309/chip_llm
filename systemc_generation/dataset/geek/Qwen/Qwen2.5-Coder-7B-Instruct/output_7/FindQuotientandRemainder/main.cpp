@@ -7,7 +7,7 @@ SC_MODULE(Divider) {
     sc_in<int> Divisor;   // Input port for the divisor
     sc_out<int> Quotient;  // Output port for the quotient
     sc_out<int> Remainder; // Output port for the remainder
-    sc_out<bool> Error;   // Output port for error flag
+    sc_out<bool> Error;    // Output port for error indication
 
     // Constructor
     SC_CTOR(Divider) {
@@ -19,13 +19,13 @@ SC_MODULE(Divider) {
     // Method to perform division
     void divide() {
         if (Divisor.read() == 0) {
-            Quotient.write(0);
-            Remainder.write(0);
-            Error.write(true);
+            Quotient.write(0);  // Default value for quotient
+            Remainder.write(0); // Default value for remainder
+            Error.write(true);   // Indicate error
         } else {
             Quotient.write(Dividend.read() / Divisor.read());
             Remainder.write(Dividend.read() % Divisor.read());
-            Error.write(false);
+            Error.write(false);  // No error
         }
     }
 };

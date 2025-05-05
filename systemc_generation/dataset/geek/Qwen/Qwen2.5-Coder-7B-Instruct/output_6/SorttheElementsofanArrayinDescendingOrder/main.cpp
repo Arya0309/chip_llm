@@ -3,26 +3,32 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_out<int> sorted_nums[5];// Output port for sorted array
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+    sc_in<int> input[5];
+    sc_out<int> sorted_array[5];
 
-    int nums[5] = {1, 12, 6, 8, 10}; // Array to be sorted
+    int nums[5];
+    int size_nums = 5;
     bool isSwapped;
 
-    // Constructor
     SC_CTOR(BubbleSort) {
-        SC_METHOD(sort);
+        SC_METHOD(sort_process);
         sensitive << clk.pos();
+        dont_initialize();
+
+        SC_METHOD(check_done);
+        sensitive << clk.pos();
+        dont_initialize();
     }
 
-    // Sort method
-    void sort() {
+    void sort_process() {
         if (start.read()) {
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < size_nums; i++) {
+                nums[i] = input[i].read();
                 isSwapped = false;
-                for (int j = 1; j < 5 - i; j++) {
+                for (int j = 1; j < size_nums - i; j++) {
                     if (nums[j] < nums[j - 1]) {
                         swapNums(j, j - 1);
                         isSwapped = true;
@@ -32,24 +38,36 @@ SC_MODULE(BubbleSort) {
                     break;
                 }
             }
+        }
+    }
+
+    void check_done() {
+        static bool first_time = true;
+        if (first_time) {
+            first_time = false;
+            return;
+        }
+
+        if (start.read() == false) {
             done.write(true);
         } else {
             done.write(false);
         }
-
-        // Copy sorted array to output port
-        for (int i = 0; i < 5; i++) {
-            sorted_nums[i].write(nums[i]);
-        }
     }
 
-    // Swap method
     void swapNums(int first, int second) {
         int curr = nums[first];
         nums[first] = nums[second];
         nums[second] = curr;
     }
+
+    ~BubbleSort() {
+        for (int i = 0; i < size_nums; i++) {
+            sorted_array[i].write(nums[i]);
+        }
+    }
 };
+
 
 
 SC_MODULE(Testbench) {

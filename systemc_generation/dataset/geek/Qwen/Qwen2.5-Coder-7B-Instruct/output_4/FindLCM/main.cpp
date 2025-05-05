@@ -1,34 +1,41 @@
 
 #include <systemc.h>
 
+// Module that calculates the LCM of two integers
 
 SC_MODULE(LcmCalculator) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
-    sc_out<int> lcm_result; // Output port for the LCM
+    sc_out<int> lcm_result; // Output port for the LCM result
 
-    int max_num, flag = 1;
+    int max_num;
+    bool flag;
 
     // Constructor
     SC_CTOR(LcmCalculator) {
-        // Process to calculate LCM
-        SC_METHOD(calculate_lcm);
+        // Initialize variables
+        max_num = (a.read() > b.read()) ? a.read() : b.read();
+        flag = true;
+
+        // Process to find the LCM
+        SC_METHOD(find_lcm);
         sensitive << a << b;
     }
 
-    // Method to calculate the LCM
-    void calculate_lcm() {
-        max_num = (a.read() > b.read()) ? a.read() : b.read();
+    // Method to find the LCM
+    void find_lcm() {
         while (flag) {
             if (max_num % a.read() == 0 && max_num % b.read() == 0) {
                 lcm_result.write(max_num);
-                flag = 0; // Break the loop
-            } else {
-                ++max_num;
+                flag = false;
+                break;
             }
+            ++max_num;
         }
     }
 };
+
+// Testbench module
 
 
 SC_MODULE(Testbench) {

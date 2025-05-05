@@ -4,7 +4,7 @@
 
 SC_MODULE(TempConverter) {
     sc_in<float> fahrenheit;  // Input port for the temperature in Fahrenheit
-    sc_out<float> celsius;   // Output port for the temperature in Celsius
+    sc_out<float> celsius;     // Output port for the temperature in Celsius
 
     // Constructor
     SC_CTOR(TempConverter) {

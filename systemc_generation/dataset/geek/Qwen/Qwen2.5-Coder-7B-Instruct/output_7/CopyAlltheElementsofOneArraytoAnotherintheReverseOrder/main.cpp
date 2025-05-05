@@ -7,50 +7,68 @@ SC_MODULE(ArrayReverse) {
     sc_in<bool> start;  // Start signal
     sc_out<bool> done;  // Done signal
 
-    // Internal signals to hold array values
-    sc_signal<int> original_arr[5];
-    sc_signal<int> copied_arr[5];
-    sc_signal<int> len;
-    sc_signal<int> i;
+    static const int len = 5;
+    int* original_arr;
+    int* copied_arr;
+    bool is_copied = false;
 
-    // Constructor
     SC_CTOR(ArrayReverse) {
-        // Initialize the original array
-        original_arr[0].write(1);
-        original_arr[1].write(2);
-        original_arr[2].write(3);
-        original_arr[3].write(4);
-        original_arr[4].write(5);
-
-        // Calculate the length of the array
-        len.write(5);
-
-        // Process to copy array in reverse order
-        SC_METHOD(copy_array);
-        sensitive << clk.pos();
-
-        // Process to handle the start and done signals
-        SC_METHOD(handle_start_done);
-        sensitive << start;
-    }
-
-    // Method to copy the array in reverse order
-    void copy_array() {
-        if (start.read()) {
-            for (i = 0; i < len.read(); i++) {
-                copied_arr[i].write(original_arr[len.read() - i - 1].read());
-            }
-            done.write(true);
+        original_arr = new int[len];
+        copied_arr = new int[len];
+        for (int i = 0; i < len; i++) {
+            original_arr[i] = i + 1;
         }
+        SC_METHOD(copy_and_print);
+        sensitive << clk.pos();
+        dont_initialize();
     }
 
-    // Method to handle start and done signals
-    void handle_start_done() {
+    ~ArrayReverse() {
+        delete[] original_arr;
+        delete[] copied_arr;
+    }
+
+    void copy_and_print() {
         if (start.read()) {
+            for (int i = 0; i < len; i++) {
+                copied_arr[i] = original_arr[len - i - 1];
+            }
+            is_copied = true;
+        }
+
+        if (is_copied) {
+            std::cout << " Original array: ";
+            for (int i = 0; i < len; i++) {
+                std::cout << original_arr[i] << " ";
+            }
+            std::cout << std::endl;
+
+            std::cout << " Resultant array: ";
+            for (int i = 0; i < len; i++) {
+                std::cout << copied_arr[i] << " ";
+            }
+            std::cout << std::endl;
+
+            is_copied = false;
+            done.write(true);
+        } else {
             done.write(false);
         }
     }
+
+    void load_array(const int* arr) {
+        for (int i = 0; i < len; i++) {
+            original_arr[i] = arr[i];
+        }
+    }
+
+    void read_array(int* arr) {
+        for (int i = 0; i < len; i++) {
+            arr[i] = copied_arr[i];
+        }
+    }
 };
+
 
 
 SC_MODULE(Testbench) {

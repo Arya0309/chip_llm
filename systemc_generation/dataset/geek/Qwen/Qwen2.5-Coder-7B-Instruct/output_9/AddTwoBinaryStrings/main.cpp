@@ -5,74 +5,73 @@
 SC_MODULE(BinaryAdder) {
     sc_in<std::string> A;  // Input port for the first binary string
     sc_in<std::string> B;  // Input port for the second binary string
-    sc_out<std::string> sum; // Output port for the binary sum
+    sc_out<std::string> sum; // Output port for the sum
 
     // Constructor
     SC_CTOR(BinaryAdder) {
-        // Process to perform addition
+        // Process to perform binary addition
         SC_METHOD(add);
         sensitive << A << B;
     }
 
     // Method to add the two binary strings
     void add() {
-        std::string res;
+        std::string a = A.read();
+        std::string b = B.read();
+
+        // Ensure a is the longer string
+        if (a.length() < b.length()) {
+            a.swap(b);
+        }
+
+        std::string result;
         char carry = '0';
 
-        // Ensure A is the shorter string
-        if (A->length() > B->length()) {
-            addBinary(B, A, res, carry);
-        } else {
-            addBinary(A, B, res, carry);
-        }
+        // Perform binary addition
+        for (int i = a.length() - 1; i >= 0; --i) {
+            char bitA = a[i] == '1' ? '1' : '0';
+            char bitB = i >= b.length() ? '0' : b[i] == '1' ? '1' : '0';
 
-        // Remove leading zeros
-        size_t index = 0;
-        while (index + 1 < res.length() && res[index] == '0') {
-            index++;
-        }
-        sum.write(res.substr(index));
-    }
-
-    // Helper method to perform the actual addition
-    void addBinary(const std::string& A, const std::string& B, std::string& res, char& carry) {
-        int diff = B.length() - A.length();
-        std::string padding(diff, '0');
-        std::string paddedA = padding + A;
-
-        for (int i = paddedA.length() - 1; i >= 0; i--) {
-            if (paddedA[i] == '1' && B[i] == '1') {
+            if (bitA == '1' && bitB == '1') {
                 if (carry == '1') {
-                    res.push_back('1');
-                    carry = '1';
+                    result.push_back('1');
                 } else {
-                    res.push_back('0');
+                    result.push_back('0');
                     carry = '1';
                 }
-            } else if (paddedA[i] == '0' && B[i] == '0') {
+            } else if (bitA == '0' && bitB == '0') {
                 if (carry == '1') {
-                    res.push_back('1');
+                    result.push_back('1');
                     carry = '0';
                 } else {
-                    res.push_back('0');
-                    carry = '0';
+                    result.push_back('0');
                 }
-            } else if (paddedA[i] != B[i]) {
+            } else {
                 if (carry == '1') {
-                    res.push_back('0');
-                    carry = '1';
+                    result.push_back('0');
                 } else {
-                    res.push_back('1');
-                    carry = '0';
+                    result.push_back('1');
                 }
             }
         }
 
+        // Handle remaining carry
         if (carry == '1') {
-            res.push_back(carry);
+            result.push_back('1');
         }
 
-        reverse(res.begin(), res.end());
+        // Reverse the result
+        std::reverse(result.begin(), result.end());
+
+        // Remove leading zeros
+        size_t first_non_zero = result.find_first_not_of('0');
+        if (first_non_zero != std::string::npos) {
+            result = result.substr(first_non_zero);
+        } else {
+            result = "0";
+        }
+
+        sum.write(result);
     }
 };
 

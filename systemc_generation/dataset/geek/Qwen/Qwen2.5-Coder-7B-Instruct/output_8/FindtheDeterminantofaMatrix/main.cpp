@@ -3,28 +3,23 @@
 
 
 SC_MODULE(DeterminantCalculator) {
-    sc_in<double> matrix[4][4];  // Input ports for the matrix elements
-    sc_out<double> det;         // Output port for the determinant
+    sc_in<sc_vector<sc_vector<double>>> matrix;  // Input port for the matrix elements
+    sc_out<double> det;                          // Output port for the determinant
 
-    // Constructor
     SC_CTOR(DeterminantCalculator) {
-        // Process to calculate the determinant
-        SC_METHOD(calculate_determinant);
-        for (int i = 0; i < 4; i++) {
-            sensitive << matrix[i];
-        }
+        SC_THREAD(calculate_determinant);
+        sensitive << matrix;
     }
 
-    // Method to calculate the determinant
     void calculate_determinant() {
-        double a[4][4];
+        double a[4][4];  // Adjust size based on matrix dimensions
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 a[i][j] = matrix[i][j].read();
             }
         }
 
-        double det = 1.0;
+        double det_val = 1.0;
         for (int i = 0; i < 4; i++) {
             int pivot = i;
             for (int j = i + 1; j < 4; j++) {
@@ -34,15 +29,17 @@ SC_MODULE(DeterminantCalculator) {
             }
             if (pivot != i) {
                 for (int k = 0; k < 4; k++) {
-                    swap(a[i][k], a[pivot][k]);
+                    double temp = a[i][k];
+                    a[i][k] = a[pivot][k];
+                    a[pivot][k] = temp;
                 }
-                det *= -1;
+                det_val *= -1;
             }
             if (a[i][i] == 0) {
-                det = 0;
+                det_val = 0;
                 break;
             }
-            det *= a[i][i];
+            det_val *= a[i][i];
             for (int j = i + 1; j < 4; j++) {
                 double factor = a[j][i] / a[i][i];
                 for (int k = i + 1; k < 4; k++) {
@@ -51,7 +48,13 @@ SC_MODULE(DeterminantCalculator) {
             }
         }
 
-        this->det.write(det);
+        // Ensure the determinant value is within a reasonable range
+        if (fabs(det_val) > 1e308) {
+            det_val = 1e308 * (det_val > 0 ? 1 : -1);
+        }
+
+        // Write the determinant value directly to the output port
+        det.write(det_val);
     }
 };
 

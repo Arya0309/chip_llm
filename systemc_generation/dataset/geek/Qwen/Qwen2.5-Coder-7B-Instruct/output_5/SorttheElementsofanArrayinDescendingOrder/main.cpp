@@ -7,43 +7,68 @@ SC_MODULE(BubbleSort) {
     sc_in<bool> start;
     sc_out<bool> done;
 
-    int nums[5] = {1, 12, 6, 8, 10};
-    int size_nums = 5;
-    bool isSwapped;
+    sc_in<int> arr_in[5];  // Assuming fixed size for simplicity
+    sc_out<int> arr_out[5];
 
     SC_CTOR(BubbleSort) {
-        SC_METHOD(sort_array);
+        SC_THREAD(sort_array);
         sensitive << clk.pos();
-        dont_initialize();
     }
 
     void sort_array() {
-        if (start.read()) {
-            isSwapped = false;
-            for (int i = 0; i < size_nums; i++) {
-                isSwapped = false;
-                for (int j = 1; j < size_nums - i; j++) {
-                    if (nums[j] < nums[j - 1]) {
-                        swapNums(j, j - 1);
-                        isSwapped = true;
-                    }
-                }
-                if (!isSwapped) {
-                    break;
-                }
+        while (true) {
+            wait(start.pos());
+            int nums[5];
+            for (int i = 0; i < 5; i++) {
+                nums[i] = arr_in[i].read();
             }
+
+            cout << "Before sorting the array is: \n";
+            for (int i = 0; i < 5; i++)
+                cout << nums[i] << " ";
+            cout << "\n\n";
+
+            sort(nums, 5);
+
+            cout << "After sorting the array is: \n";
+            for (int i = 0; i < 5; i++)
+                cout << nums[i] << " ";
+            cout << "\n";
+
+            for (int i = 0; i < 5; i++) {
+                arr_out[i].write(nums[i]);
+            }
+
             done.write(true);
-        } else {
+            wait(clk.pos());
             done.write(false);
         }
     }
 
-    void swapNums(int first, int second) {
+    void sort(int num[], int len) {
+        bool isSwapped;
+
+        for (int i = 0; i < len; i++) {
+            isSwapped = false;
+            for (int j = 1; j < len - i; j++) {
+                if (num[j] < num[j - 1]) {
+                    swapNums(num, j, (j - 1));
+                    isSwapped = true;
+                }
+            }
+            if (!isSwapped) {
+                break;
+            }
+        }
+    }
+
+    void swapNums(int nums[], int first, int second) {
         int curr = nums[first];
         nums[first] = nums[second];
         nums[second] = curr;
     }
 };
+
 
 
 SC_MODULE(Testbench) {

@@ -1,6 +1,7 @@
 
 #include <systemc.h>
 
+// Module to convert Fahrenheit to Celsius
 
 SC_MODULE(TempConverter) {
     sc_in<float> fahrenheit;  // Input port for the temperature in Fahrenheit
@@ -8,7 +9,7 @@ SC_MODULE(TempConverter) {
 
     // Constructor
     SC_CTOR(TempConverter) {
-        // Process to perform conversion
+        // Process to perform the conversion
         SC_METHOD(convert);
         sensitive << fahrenheit;
     }

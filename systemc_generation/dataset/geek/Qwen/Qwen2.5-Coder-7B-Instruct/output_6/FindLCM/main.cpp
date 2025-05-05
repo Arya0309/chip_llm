@@ -5,28 +5,42 @@
 SC_MODULE(LcmCalculator) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
-    sc_out<int> lcm_result; // Output port for the LCM
+    sc_out<int> lcm_result; // Output port for the LCM result
+
+    // Function to calculate the GCD using the Euclidean algorithm
+    int gcd(int x, int y) {
+        while (y != 0) {
+            int temp = y;
+            y = x % y;
+            x = temp;
+        }
+        return x;
+    }
+
+    // Method to calculate LCM
+    void calculate_lcm() {
+        // Ensure a and b are positive
+        if (a.read() <= 0 || b.read() <= 0) {
+            lcm_result.write(-1); // Indicate invalid input
+            return;
+        }
+
+        // Calculate the LCM using the GCD
+        int lcm = (a.read() * b.read()) / gcd(a.read(), b.read());
+
+        // Ensure the result is positive
+        if (lcm < 0) {
+            lcm_result.write(-1); // Indicate invalid result
+        } else {
+            lcm_result.write(lcm);
+        }
+    }
 
     // Constructor
     SC_CTOR(LcmCalculator) {
         // Process to calculate LCM
         SC_METHOD(calculate_lcm);
         sensitive << a << b;
-    }
-
-    // Method to calculate the LCM
-    void calculate_lcm() {
-        int max_num = (a.read() > b.read()) ? a.read() : b.read();
-        int flag = 1;
-
-        while (flag) {
-            if (max_num % a.read() == 0 && max_num % b.read() == 0) {
-                lcm_result.write(max_num);
-                flag = 0;  // Break the loop
-            } else {
-                ++max_num;
-            }
-        }
     }
 };
 

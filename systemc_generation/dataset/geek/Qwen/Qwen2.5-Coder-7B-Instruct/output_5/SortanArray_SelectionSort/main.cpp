@@ -3,40 +3,56 @@
 
 
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_inout<int> arr;  // Input array (inout because we modify it)
-    sc_in<int> n;  // Size of the array
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
+    sc_out<bool> done;   // Done signal
 
-    int min_idx;
-    int i, j;
+    int arr[5];           // Array to store the elements
+    int n = sizeof(arr)/sizeof(arr[0]);
+    int i, j, min_idx;
 
     SC_CTOR(SelectionSort) {
-        SC_METHOD(sort);
+        SC_METHOD(sort_process);
         sensitive << clk.pos();
-        dont_initialize();
     }
 
-    void sort() {
+    // Method to load an array into the module
+    void load_array(int* arr_in) {
+        for (i = 0; i < n; i++) {
+            arr[i] = arr_in[i];
+        }
+    }
+
+    // Method to read the sorted array from the module
+    void read_array(int* arr_out) {
+        for (i = 0; i < n; i++) {
+            arr_out[i] = arr[i];
+        }
+    }
+
+    // Method to perform the sorting process
+    void sort_process() {
         if (start.read()) {
-            for (i = 0; i < n.read() - 1; i++) {
+            for (i = 0; i < n-1; i++) {
                 min_idx = i;
-                for (j = i + 1; j < n.read(); j++) {
+                for (j = i+1; j < n; j++) {
                     if (arr[j] < arr[min_idx]) {
                         min_idx = j;
                     }
                 }
-                if (min_idx != i) {
-                    int temp = arr[min_idx];
-                    arr[min_idx] = arr[i];
-                    arr[i] = temp;
-                }
+                swap(&arr[min_idx], &arr[i]);
             }
             done.write(true);
         } else {
             done.write(false);
         }
+    }
+
+    // Swap function
+    void swap(int *xp, int *yp) {
+        int temp = *xp;
+        *xp = *yp;
+        *yp = temp;
     }
 };
 

@@ -1,193 +1,133 @@
-### Analysis of Provided C++/C Code
+The runtime error you encountered is due to a violation of the SystemC standard, which states that a `sc_signal` cannot have more than one driver. In this case, the `done` signal is driven by both the `start_done` and `sort` methods.
 
-#### Inputs and Outputs
-- **Inputs**: 
-  - `arr[]`: An array of integers to be sorted.
-  - `n`: The size of the array.
-- **Outputs**: 
-  - The sorted array is printed to the console.
+### Nature of the Runtime Failure
+The error message indicates that the `done` signal is being driven twice: once by the `start_done` method and once by the `sort` method. This causes a conflict and results in a runtime error.
 
-#### Detailed Explanation of the Code
+### Pinpointing the Error
+The error occurs in the `sort` method when the `done` signal is written to. Specifically, the line:
+```cpp
+done.write(true);
+```
+This line is executed when the sorting is complete, and it drives the `done` signal.
 
-1. **Swap Function**
-   ```cpp
-   void swap(int *xp, int *yp) 
-   { 
-       int temp = *xp; 
-       *xp = *yp; 
-       *yp = temp; 
-   } 
-   ```
-   - This function swaps the values of two integers pointed to by `xp` and `yp`.
+### Underlying Cause
+The `done` signal is being driven by two different processes:
+1. `start_done`: This process sets `sort_flag` to true when `start` is true.
+2. `sort`: This process sets `done` to true when the sorting is complete.
 
-2. **Selection Sort Function**
-   ```cpp
-   void selectionSort(int arr[], int n) 
-   { 
-       int i, j, min_idx; 
+Since both processes can potentially drive the `done` signal, the conflict arises.
 
-       // One by one move boundary of 
-       // unsorted subarray 
-       for (i = 0; i < n-1; i++) 
-       { 
-           // Find the minimum element in 
-           // unsorted array 
-           min_idx = i; 
-           for (j = i+1; j < n; j++) 
-               if (arr[j] < arr[min_idx]) 
-                   min_idx = j; 
+### Proposed Code Adjustments
+To resolve this issue, we need to ensure that only one process drives the `done` signal at a time. One way to achieve this is to use a flag to control when the `done` signal is written. We can modify the `sort` method to set a flag indicating that sorting is complete, and then use this flag in the `start_done` method to write to the `done` signal.
 
-           // Swap the found minimum element 
-           // with the first element 
-           swap(&arr[min_idx], &arr[i]); 
-       } 
-   } 
-   ```
-   - This function sorts an array using the selection sort algorithm.
-   - It iterates over the array, finding the minimum element in the unsorted part and swapping it with the current position.
+### Revised Code Section
+Here is the revised code section for the `sort` method:
+```cpp
+void sort() {
+    if (sort_flag.read()) {
+        for (int i = 0; i < n-1; i++) {
+            int min_idx = i;
+            for (int j = i+1; j < n; j++)
+                if (arr[j] < arr[min_idx])
+                    min_idx = j;
+            swap(&arr[min_idx], &arr[i]);
+        }
+        sort_complete.write(true);  // Set a flag indicating sorting is complete
+    }
+}
+```
+And here is the modified `start_done` method:
+```cpp
+void start_done() {
+    if (start.read() && !sort_flag.read()) {
+        sort_flag.write(true);
+    } else if (sort_complete.read()) {
+        done.write(true);
+        sort_flag.write(false);
+        sort_complete.write(false);  // Reset the flag after signaling done
+    }
+}
+```
 
-3. **Print Array Function**
-   ```cpp
-   void printArray(int arr[], int size) 
-   { 
-       int i; 
-       for (i=0; i < size; i++) 
-           cout << arr[i] << " "; 
-       cout << endl; 
-   } 
-   ```
-   - This function prints the elements of the array.
-
-4. **Main Function**
-   ```cpp
-   int main() 
-   { 
-       int arr[] = {64, 25, 12, 22, 11}; 
-       int n = sizeof(arr)/sizeof(arr[0]); 
-       selectionSort(arr, n); 
-       cout << "Sorted array: "; 
-       printArray(arr, n); 
-       return 0; 
-   } 
-   ```
-   - The main function initializes an array, calls the selection sort function, and then prints the sorted array.
-
-### Equivalent SystemC Code
-
-To integrate this logic into a SystemC design, we need to create a module that takes an array and its size as inputs and outputs the sorted array. We'll use the provided signals `clk`, `start`, and `done` to control the sorting process.
-
+### Complete, Fixed SystemC Module Code
+Here is the complete, fixed SystemC module code:
 ```cpp
 #include <systemc.h>
 
 SC_MODULE(SelectionSort) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_in<sc_vector<int>> arr;  // Input array
-    sc_out<sc_vector<int>> sorted_arr;  // Output sorted array
+    sc_out<bool> done; // Done signal
 
-    int n;  // Size of the array
+    int arr[5];  // Array to be sorted
+    int n;       // Size of the array
+    sc_signal<bool> sort_flag;  // Flag to control sorting
+    sc_signal<bool> sort_complete;  // Flag to indicate sorting is complete
 
     // Constructor
     SC_CTOR(SelectionSort) {
-        SC_THREAD(sort_process);
+        n = 5;  // Initialize array size
+        arr[0] = 64; arr[1] = 25; arr[2] = 12; arr[3] = 22; arr[4] = 11;
+        sort_flag.write(false);
+        sort_complete.write(false);
+
+        // Process to handle the sorting logic
+        SC_METHOD(sort);
         sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to handle the start and done signals
+        SC_METHOD(start_done);
+        sensitive << start;
         dont_initialize();
     }
 
-    void sort_process() {
-        while (true) {
-            wait();  // Wait for the clock edge
-
-            if (start.read()) {
-                n = arr.size();
-                selectionSort(arr, n);
-                done.write(true);
-            } else {
-                done.write(false);
+    // Method to sort the array
+    void sort() {
+        if (sort_flag.read()) {
+            for (int i = 0; i < n-1; i++) {
+                int min_idx = i;
+                for (int j = i+1; j < n; j++)
+                    if (arr[j] < arr[min_idx])
+                        min_idx = j;
+                swap(&arr[min_idx], &arr[i]);
             }
+            sort_complete.write(true);  // Set a flag indicating sorting is complete
         }
     }
 
-    void selectionSort(sc_vector<int>& arr, int n) {
-        int i, j, min_idx;
-
-        for (i = 0; i < n-1; i++) {
-            min_idx = i;
-            for (j = i+1; j < n; j++)
-                if (arr[j] < arr[min_idx])
-                    min_idx = j;
-
-            swap(arr[min_idx], arr[i]);
+    // Method to handle start and done signals
+    void start_done() {
+        if (start.read() && !sort_flag.read()) {
+            sort_flag.write(true);
+        } else if (sort_complete.read()) {
+            done.write(true);
+            sort_flag.write(false);
+            sort_complete.write(false);  // Reset the flag after signaling done
         }
     }
 
-    void swap(sc_vector<int>& arr, int min_idx, int i) {
-        int temp = arr[min_idx];
-        arr[min_idx] = arr[i];
-        arr[i] = temp;
+    // Method to load input array
+    void load_array(const int input[]) {
+        for (int i = 0; i < n; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    // Method to read output array
+    void read_array(int output[]) {
+        for (int i = 0; i < n; i++) {
+            output[i] = arr[i];
+        }
+    }
+
+    // Helper function to swap elements
+    void swap(int *xp, int *yp) {
+        int temp = *xp;
+        *xp = *yp;
+        *yp = temp;
     }
 };
-
-int sc_main(int argc, char* argv[]) {
-    sc_signal<bool> clk;
-    sc_signal<bool> start;
-    sc_signal<bool> done;
-    sc_vector<int> arr(5);
-    sc_vector<int> sorted_arr(5);
-
-    SelectionSort sorter("sorter");
-    sorter.clk(clk);
-    sorter.start(start);
-    sorter.done(done);
-    sorter.arr(arr);
-    sorter.sorted_arr(sorted_arr);
-
-    // Initialize array
-    arr[0] = 64;
-    arr[1] = 25;
-    arr[2] = 12;
-    arr[3] = 22;
-    arr[4] = 11;
-
-    // Simulation loop
-    for (int i = 0; i < 10; i++) {
-        clk.write(i % 2 == 0);
-        start.write(i == 0);
-        wait();
-        if (done.read()) {
-            cout << "Sorted array: ";
-            for (int j = 0; j < 5; j++) {
-                cout << sorted_arr[j] << " ";
-            }
-            cout << endl;
-        }
-    }
-
-    return 0;
-}
 ```
 
-### Explanation of SystemC Code
-
-1. **Module Declaration**
-   - `SelectionSort` module with input/output ports and signals.
-
-2. **Constructor**
-   - Initializes the `sort_process` thread to handle the sorting logic.
-
-3. **sort_process Method**
-   - Waits for the clock edge and checks if the `start` signal is high.
-   - If `start` is high, it calls the `selectionSort` method and sets the `done` signal to high.
-   - If `start` is low, it sets the `done` signal to low.
-
-4. **selectionSort Method**
-   - Implements the selection sort algorithm using the provided array and size.
-
-5. **swap Method**
-   - Swaps the elements at the specified indices in the array.
-
-6. **sc_main Function**
-   - Initializes the signals and array, and runs a simulation loop to test the sorting module.
-
-This SystemC code captures the logic of the original C++/C code and integrates seamlessly with the provided signals.
+By using the `sort_complete` flag, we ensure that only one process drives the `done` signal at a time, resolving the runtime error.

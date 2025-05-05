@@ -6,14 +6,12 @@ SC_MODULE(OctalToDecimalConverter) {
     sc_in<int> octal_input;  // Input port for the octal number
     sc_out<int> decimal_output; // Output port for the decimal number
 
-    // Constructor
     SC_CTOR(OctalToDecimalConverter) {
-        // Process to convert octal to decimal
+        // Process to perform conversion
         SC_METHOD(convert);
         sensitive << octal_input;
     }
 
-    // Method to convert octal to decimal
     void convert() {
         int num = octal_input.read();
         int dec_value = 0;

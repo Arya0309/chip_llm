@@ -5,7 +5,7 @@
 
 SC_MODULE(BinaryToDecimalConverter) {
     sc_in<int> binary_in;  // Input port for the binary number
-    sc_out<int> decimal_out;  // Output port for the decimal number
+    sc_out<int> decimal_out; // Output port for the decimal number
 
     // Constructor
     SC_CTOR(BinaryToDecimalConverter) {
@@ -19,8 +19,8 @@ SC_MODULE(BinaryToDecimalConverter) {
         int num = binary_in.read();
         int dec_value = 0;
         int base = 1;
-
         int temp = num;
+
         while (temp) {
             int last_digit = temp % 10;
             temp = temp / 10;

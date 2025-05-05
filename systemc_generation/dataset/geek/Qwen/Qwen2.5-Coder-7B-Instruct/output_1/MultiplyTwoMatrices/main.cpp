@@ -1,42 +1,53 @@
 
-#include <systemc.h>
+   #include <systemc.h>
 
+   // Define the macros for matrix dimensions
+   #define R1 2 // number of rows in Matrix-1
+   #define C1 2 // number of columns in Matrix-1
+   #define R2 2 // number of rows in Matrix-2
+   #define C2 3 // number of columns in Matrix-2
 
+   
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[SIZE_A]; // Input port for Matrix-1
-    sc_in<int> B[SIZE_B]; // Input port for Matrix-2
-    sc_out<int> C[SIZE_RESULT]; // Output port for the result
+       sc_in<int> A[R1][C1];  // Input port for the first matrix
+       sc_in<int> B[R2][C2];  // Input port for the second matrix
+       sc_out<int> C[R1][C2]; // Output port for the result matrix
 
-    // Constructor
-    SC_CTOR(MatrixMultiplier) {
-        // Process to perform matrix multiplication
-        SC_METHOD(mulMat);
-        sensitive << A << B;
-    }
+       // Constructor
+       SC_CTOR(MatrixMultiplier) {
+           // Process to perform matrix multiplication
+           SC_METHOD(multiply);
+           for (int i = 0; i < R1; i++) {
+               for (int j = 0; j < C2; j++) {
+                   sensitive << A[i][j];
+               }
+           }
+           for (int i = 0; i < R2; i++) {
+               for (int j = 0; j < C2; j++) {
+                   sensitive << B[i][j];
+               }
+           }
+       }
 
-    // Method to perform matrix multiplication
-    void mulMat() {
-        static int rslt[SIZE_A][SIZE_B[1]]; // Result array
+       // Method to multiply the two matrices
+       void multiply() {
+           int rslt[R1][C2];
 
-        // Initialize result array to zero
-        for (int i = 0; i < SIZE_A; i++) {
-            for (int j = 0; j < SIZE_B[1]; j++) {
-                rslt[i][j] = 0;
-            }
-        }
+           for (int i = 0; i < R1; i++) {
+               for (int j = 0; j < C2; j++) {
+                   rslt[i][j] = 0;
 
-        // Perform matrix multiplication
-        for (int i = 0; i < SIZE_A; i++) {
-            for (int j = 0; j < SIZE_B[1]; j++) {
-                for (int k = 0; k < SIZE_B[0]; k++) {
-                    rslt[i][j] += A[i * SIZE_B[0] + k] * B[k * SIZE_B[1] + j];
-                }
-                C[i * SIZE_B[1] + j].write(rslt[i][j]);
-            }
-        }
-    }
-};
+                   for (int k = 0; k < R2; k++) {
+                       rslt[i][j] += A[i][k].read() * B[k][j].read();
+                   }
 
+                   C[i][j].write(rslt[i][j]);
+               }
+           }
+       }
+   };
+
+   
 
 SC_MODULE(Testbench) {
     // Use static const for matrix dimensions

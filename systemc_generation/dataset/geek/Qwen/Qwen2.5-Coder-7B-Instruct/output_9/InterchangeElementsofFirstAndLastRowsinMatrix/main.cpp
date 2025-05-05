@@ -1,30 +1,29 @@
 
 #include <systemc.h>
 
+// Define the MatrixSwapper module
 
 SC_MODULE(MatrixSwapper) {
-    sc_in<int> in[SIZE][SIZE];  // Input port for the matrix
-    sc_out<int> out[SIZE][SIZE]; // Output port for the modified matrix
+    sc_in<int> in[SIZE];  // Input port for the matrix elements
+    sc_out<int> out[SIZE]; // Output port for the matrix elements
 
     // Constructor
     SC_CTOR(MatrixSwapper) {
-        // Process to perform matrix swapping
-        SC_METHOD(swapping);
+        // Process to perform matrix operation
+        SC_METHOD(interchangeFirstLast);
         sensitive << in;
     }
 
-    // Method to swap the first and last columns of the matrix
-    void swapping() {
+    // Method to interchange first and last elements of each row
+    void interchangeFirstLast() {
         for (int i = 0; i < SIZE; i++) {
-            int temp = in[i][0];
-            out[i][0] = in[i][SIZE - 1];
-            out[i][SIZE - 1] = temp;
-            for (int j = 1; j < SIZE - 1; j++) {
-                out[i][j] = in[i][j];
-            }
+            int t = in[i].read();
+            out[i].write(t);
         }
     }
 };
+
+// Define the Testbench module
 
 
 SC_MODULE(Testbench) {

@@ -3,32 +3,42 @@
 
 
 SC_MODULE(BinarySearchModule) {
-    sc_in<int> target;  // Input port for the target value
+    sc_in<int> target;  // Input port for the target element
     sc_out<bool> found; // Output port indicating if the target is found
-    sc_vector<sc_in<int>> v; // Vector of integers to search through
+    sc_vector<sc_in<int>> v; // Input vector of integers
 
     // Constructor
     SC_CTOR(BinarySearchModule) {
         // Process to perform binary search
         SC_METHOD(search);
-        sensitive << target << v;
+        sensitive << target;
+        for (unsigned i = 0; i < v.size(); ++i) {
+            sensitive << v[i];
+        }
     }
 
     // Method to perform binary search
     void search() {
+        found.write(false); // Initialize found to false
+
+        if (v.size() == 0) {
+            return;
+        }
+
         int low = 0, high = v.size() - 1;
         bool result = false;
 
         while (low <= high) {
             int mid = ((high - low) / 2) + low;
-            if (v[mid].read() == target.read()) {
+
+            if (v[mid] == target) {
                 result = true;
                 break;
-            }
-            if (v[mid].read() > target.read())
+            } else if (v[mid] > target) {
                 high = mid - 1;
-            else
+            } else {
                 low = mid + 1;
+            }
         }
 
         found.write(result);

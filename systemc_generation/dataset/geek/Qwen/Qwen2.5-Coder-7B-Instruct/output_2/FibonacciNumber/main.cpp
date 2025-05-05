@@ -9,27 +9,24 @@ SC_MODULE(FibonacciCalculator) {
     // Constructor
     SC_CTOR(FibonacciCalculator) {
         // Process to calculate the nth FibonacciCalculator number
-        SC_METHOD(calculateFib);
+        SC_METHOD(calculate_fib);
         sensitive << n;
     }
 
     // Method to calculate the nth FibonacciCalculator number
-    void calculateFib() {
-        int prev1 = 1, prev2 = 0;
-        int curr;
-
+    void calculate_fib() {
         if (n.read() <= 1) {
             result.write(n.read());
-            return;
+        } else {
+            int prev1 = 1, prev2 = 0;
+            int curr;
+            for (int i = 2; i <= n.read(); i++) {
+                curr = prev1 + prev2;
+                prev2 = prev1;
+                prev1 = curr;
+            }
+            result.write(curr);
         }
-
-        for (int i = 2; i <= n.read(); i++) {
-            curr = prev1 + prev2;
-            prev2 = prev1;
-            prev1 = curr;
-        }
-
-        result.write(curr);
     }
 };
 

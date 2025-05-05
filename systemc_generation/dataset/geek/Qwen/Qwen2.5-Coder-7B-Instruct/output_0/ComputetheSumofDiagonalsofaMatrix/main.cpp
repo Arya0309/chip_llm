@@ -1,31 +1,47 @@
 
 #include <systemc.h>
 
+#define MAX 100
+
 
 SC_MODULE(DiagonalSum) {
-    sc_in<int> matrix[4][4];  // Input ports for the matrix elements
-    sc_out<int> principal;    // Output port for the sum of the principal diagonal
-    sc_out<int> secondary;    // Output port for the sum of the secondary diagonal
+    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
+    sc_out<int> principal;      // Output port for the sum of the principal diagonal
+    sc_out<int> secondary;      // Output port for the sum of the secondary diagonal
+    sc_in<int> n;                // Input port for the size of the matrix
 
+    // Constructor
     SC_CTOR(DiagonalSum) {
-        SC_METHOD(calculate_diagonals);
-        sensitive << matrix;
-    }
-
-    void calculate_diagonals() {
-        int principal_sum = 0, secondary_sum = 0;
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                if (i == j)
-                    principal_sum += matrix[i][j];
-                if ((i + j) == (4 - 1))
-                    secondary_sum += matrix[i][j];
+        // Process to calculate the diagonal sums
+        SC_METHOD(calculateDiagonals);
+        for (int i = 0; i < MAX; ++i) {
+            for (int j = 0; j < MAX; ++j) {
+                sensitive << matrix[i][j];
             }
         }
-        principal.write(principal_sum);
-        secondary.write(secondary_sum);
+        sensitive << n;
+    }
+
+    // Method to calculate the diagonal sums
+    void calculateDiagonals() {
+        int principalSum = 0, secondarySum = 0;
+        for (int i = 0; i < n.read(); i++) {
+            for (int j = 0; j < n.read(); j++) {
+                // Condition for principal diagonal
+                if (i == j)
+                    principalSum += matrix[i][j];
+
+                // Condition for secondary diagonal
+                if ((i + j) == (n.read() - 1))
+                    secondarySum += matrix[i][j];
+            }
+        }
+
+        principal.write(principalSum);
+        secondary.write(secondarySum);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

@@ -1,14 +1,11 @@
 
 #include <systemc.h>
 
-// Module to calculate the factorial of a number
+// SystemC module to calculate factorial
 
 SC_MODULE(Factorial) {
     sc_in<unsigned int> in;  // Input port for the number
     sc_out<unsigned int> out; // Output port for the factorial
-
-    unsigned int res = 1;  // Variable to store the result
-    unsigned int i;        // Loop counter
 
     // Constructor
     SC_CTOR(Factorial) {
@@ -17,9 +14,9 @@ SC_MODULE(Factorial) {
         sensitive << in;
     }
 
-    // Method to calculate the factorial
+    // Method to calculate factorial
     void calculate_factorial() {
-        res = 1;
+        unsigned int res = 1, i;
         for (i = 2; i <= in.read(); i++) {
             res *= i;
         }

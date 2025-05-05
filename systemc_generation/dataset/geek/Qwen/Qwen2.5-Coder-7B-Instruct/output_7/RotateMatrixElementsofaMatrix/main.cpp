@@ -1,65 +1,82 @@
 
 #include <systemc.h>
 
+const int R = 4;
+const int C = 4;
+
 
 SC_MODULE(MatrixRotator) {
-    sc_in<int> in[4][4];  // Input ports for the matrix
-    sc_out<int> out[4][4]; // Output ports for the rotated matrix
+    sc_in<int> in[R * C];
+    sc_out<int> out[R * C];
 
-    SC_CTOR(MatrixRotator) {
-        // Process to rotate the matrix
-        SC_METHOD(rotate);
-        sensitive << in;
+    int mat[R][C];
+    int m, n;
+
+    SC_CTOR(MatrixRotator) : m(R), n(C) {
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                mat[i][j] = 0; // Initialize to zero or appropriate default value
+            }
+        }
+        SC_THREAD(rotatematrix);
+        for (int i = 0; i < R * C; ++i) {
+            sensitive << in[i];
+        }
     }
 
-    void rotate() {
-        int m = 4, n = 4;
+    void rotatematrix() {
         int row = 0, col = 0;
         int prev, curr;
+        int total = m * n;
 
-        while (row < m && col < n) {
-            if (row + 1 == m || col + 1 == n)
-                break;
+        while (total > 0) {
+            int count = 0;
 
-            prev = in[row + 1][col];
-
-            for (int i = col; i < n; i++) {
-                curr = in[row][i];
-                in[row][i] = prev;
-                prev = curr;
+            // Rotate elements of the first row
+            for (int i = col; i < n - 1; i++) {
+                prev = mat[row][i];
+                mat[row][i] = mat[row][i + 1];
+                count++;
             }
+
+            // Rotate elements of the last column
+            for (int i = row; i < m - 1; i++) {
+                curr = mat[i][n - 1];
+                mat[i][n - 1] = prev;
+                prev = curr;
+                count++;
+            }
+
+            // Rotate elements of the last row
+            for (int i = n - 1; i > col; i--) {
+                curr = mat[m - 1][i];
+                mat[m - 1][i] = prev;
+                prev = curr;
+                count++;
+            }
+
+            // Rotate elements of the first column
+            for (int i = m - 1; i > row; i--) {
+                curr = mat[i][col];
+                mat[i][col] = prev;
+                prev = curr;
+                count++;
+            }
+
+            // Update the total number of elements to be rotated
+            total -= count;
+
+            // Move to the next layer of the matrix
             row++;
-
-            for (int i = row; i < m; i++) {
-                curr = in[i][n-1];
-                in[i][n-1] = prev;
-                prev = curr;
-            }
-            n--;
-
-            if (row < m) {
-                for (int i = n-1; i >= col; i--) {
-                    curr = in[m-1][i];
-                    in[m-1][i] = prev;
-                    prev = curr;
-                }
-            }
-            m--;
-
-            if (col < n) {
-                for (int i = m-1; i >= row; i--) {
-                    curr = in[i][col];
-                    in[i][col] = prev;
-                    prev = curr;
-                }
-            }
             col++;
+            m--;
+            n--;
         }
 
-        // Assign the rotated matrix to the output ports
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                out[i][j] = in[i][j];
+        // Output the rotated matrix
+        for (int i = 0; i < R; ++i) {
+            for (int j = 0; j < C; ++j) {
+                out[i * C + j].write(mat[i][j]);
             }
         }
     }

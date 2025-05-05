@@ -1,35 +1,51 @@
 
 #include <systemc.h>
+#include <cmath>
+#include <iomanip> // For std::setprecision
+#include <sstream> // For std::ostringstream
 
 
 SC_MODULE(MatrixOperations) {
-    sc_in<int> matrix[5][5];  // Input port for the matrix
-    sc_out<int> trace;         // Output port for the trace
-    sc_out<int> norm;          // Output port for the normal
+    sc_in<int> matrix[5][5];  // Input matrix of size 5x5
+    sc_out<int> trace;       // Output port for the trace
+    sc_out<double> norm;     // Output port for the normal (using double for better precision)
 
+    // Constructor
     SC_CTOR(MatrixOperations) {
-        // Process to calculate trace
+        // Process to calculate the trace
         SC_METHOD(calculate_trace);
         sensitive << matrix;
 
-        // Process to calculate normal
-        SC_METHOD(calculate_normal);
+        // Process to calculate the normal
+        SC_METHOD(calculate_norm);
         sensitive << matrix;
     }
 
+    // Method to calculate the trace
     void calculate_trace() {
         int sum = 0;
-        for (int i = 0; i < 5; i++) 
+        for (int i = 0; i < 5; i++)
             sum += matrix[i][i];
         trace.write(sum);
     }
 
-    void calculate_normal() {
-        int sum = 0;
-        for (int i = 0; i < 5; i++) 
-            for (int j = 0; j < 5; j++) 
-                sum += matrix[i][j] * matrix[i][j];
-        norm.write(sqrt(sum));
+    // Method to calculate the normal
+    void calculate_norm() {
+        double max_value = 0;
+        for (int i = 0; i < 5; i++)
+            for (int j = 0; j < 5; j++)
+                if (std::abs(matrix[i][j]) > max_value)
+                    max_value = std::abs(matrix[i][j]);
+
+        double sum = 0;
+        for (int i = 0; i < 5; i++)
+            for (int j = 0; j < 5; j++)
+                sum += static_cast<double>(matrix[i][j] / max_value) * (matrix[i][j] / max_value);
+
+        // Format the norm value to 2 decimal places
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << std::sqrt(sum);
+        norm.write(std::stod(oss.str()));
     }
 };
 

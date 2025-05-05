@@ -3,51 +3,63 @@
 
 
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;      // Clock signal
-    sc_in<bool> start;    // Start signal
-    sc_out<bool> done;   // Done signal
-    sc_out<int> sorted_arr[5]; // Output array
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done; // Done signal
+    sc_in<int> input_array[5]; // Input array
+    sc_out<int> sorted_array[5]; // Output array
 
-    int arr[5] = {64, 25, 12, 22, 11}; // Input array
+    int arr[5]; // Internal array for sorting
     int n = 5; // Size of the array
     int i, j, min_idx;
 
     // Constructor
     SC_CTOR(SelectionSort) {
-        // Process to handle start signal and sort the array
-        SC_METHOD(sort);
+        // Process to handle the sorting logic
+        SC_METHOD(sort_process);
         sensitive << clk.pos();
-        async_reset_signal_is(clk, false);
     }
 
-    // Method to perform the sorting
-    void sort() {
+    // Method to handle the sorting logic
+    void sort_process() {
         if (start.read()) {
-            for (i = 0; i < n-1; i++) {
-                min_idx = i;
-                for (j = i+1; j < n; j++)
-                    if (arr[j] < arr[min_idx])
-                        min_idx = j;
+            // Copy input array to internal array
+            for (i = 0; i < n; i++) {
+                arr[i] = input_array[i].read();
+            }
 
+            // One by one move boundary of 
+            // unsorted subarray 
+            for (i = 0; i < n-1; i++) {
+                // Find the minimum element in 
+                // unsorted array 
+                min_idx = i; 
+                for (j = i+1; j < n; j++) 
+                    if (arr[j] < arr[min_idx]) 
+                        min_idx = j; 
+
+                // Swap the found minimum element 
+                // with the first element 
                 swap(&arr[min_idx], &arr[i]);
             }
 
-            // Copy the sorted array to the output
+            // Write the sorted array
             for (i = 0; i < n; i++) {
-                sorted_arr[i].write(arr[i]);
+                sorted_array[i].write(arr[i]);
             }
 
-            done.write(true); // Set done signal
+            // Set the done signal
+            done.write(true);
         } else {
-            done.write(false); // Reset done signal
+            done.write(false);
         }
     }
 
-    // Swap function for SystemC
+    // Swap function
     void swap(int *xp, int *yp) {
-        int temp = *xp;
-        *xp = *yp;
-        *yp = temp;
+        int temp = *xp; 
+        *xp = *yp; 
+        *yp = temp; 
     }
 };
 

@@ -1,7 +1,6 @@
 
 #include <systemc.h>
 
-// Module to calculate the GCD of two numbers
 
 SC_MODULE(GcdCalculator) {
     sc_in<int> a;  // Input port for the first number
@@ -10,26 +9,20 @@ SC_MODULE(GcdCalculator) {
 
     // Constructor
     SC_CTOR(GcdCalculator) {
-        // Process to calculate GCD
-        SC_METHOD(calculate_gcd);
+        // Process to find GCD
+        SC_METHOD(find_gcd);
         sensitive << a << b;
     }
 
-    // Method to calculate the GCD
-    void calculate_gcd() {
-        // Find Minimum of a and b
-        int res = std::min(a.read(), b.read());
-
-        // Testing divisibility with all numbers starting from
-        // min(a, b) to 1
+    // Method to find the GCD
+    void find_gcd() {
+        int res = std::min(a.read(), b.read()); // Find minimum of a and b
         while (res > 1) {
-            // If any number divides both a and b, so we
-            // got the answer
             if (a.read() % res == 0 && b.read() % res == 0)
                 break;
             res--;
         }
-        gcd_result.write(res);
+        gcd_result.write(res); // Write the GCD result
     }
 };
 

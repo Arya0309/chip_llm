@@ -1,27 +1,34 @@
 
 #include <systemc.h>
 
+// Module that swaps two integers using a temporary variable
 
 SC_MODULE(Swapper) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
-    sc_out<int> out_a; // Output port for the swapped first number
-    sc_out<int> out_b; // Output port for the swapped second number
+    sc_out<int> out_a; // Output port for the first number after swapping
+    sc_out<int> out_b; // Output port for the second number after swapping
+
+    // Temporary variables
+    int a_temp, b_temp;
 
     // Constructor
     SC_CTOR(Swapper) {
         // Process to perform swapping
-        SC_METHOD(swapping);
+        SC_METHOD(swap);
         sensitive << a << b;
     }
 
     // Method to swap the two numbers
-    void swapping() {
-        int temp = a.read();
-        out_a.write(b.read());
-        out_b.write(temp);
+    void swap() {
+        a_temp = a.read();
+        b_temp = b.read();
+        out_a.write(b_temp);
+        out_b.write(a_temp);
     }
 };
+
+// Testbench for the Swapper module
 
 
 SC_MODULE(Testbench) {

@@ -3,46 +3,80 @@
 
 
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;     // Clock signal
-    sc_in<bool> start;   // Start signal
-    sc_out<bool> done;  // Done signal
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;         // Done signal
+    sc_out<int> original_arr[5];// Output port for original array
+    sc_out<int> copied_arr[5];  // Output port for copied array
 
-    // Internal arrays and variables
-    int original_arr[5] = {1, 2, 3, 4, 5};
-    int copied_arr[5];
-    int len = 5;
-    bool is_copied = false;
+    bool copying_completed = false;  // Flag to indicate if copying is completed
 
     // Constructor
     SC_CTOR(ArrayReverse) {
-        // Process to handle the copying operation
-        SC_METHOD(copy_and_print);
+        // Process to handle the start signal
+        SC_METHOD(handle_start);
         sensitive << clk.pos();
         dont_initialize();
 
-        // Process to set the done signal
-        SC_METHOD(set_done);
+        // Process to print arrays
+        SC_METHOD(print_arrays);
         sensitive << clk.pos();
         dont_initialize();
     }
 
-    // Method to copy the array and print
-    void copy_and_print() {
-        if (start.read()) {
-            for (int i = 0; i < len; i++) {
-                copied_arr[i] = original_arr[len - i - 1];
+    // Method to handle the start signal
+    void handle_start() {
+        if (start.read() && !copying_completed) {
+            // Initialize arrays
+            original_arr[0] = 1;
+            original_arr[1] = 2;
+            original_arr[2] = 3;
+            original_arr[3] = 4;
+            original_arr[4] = 5;
+
+            // Reverse copy the array
+            for (int i = 0; i < 5; i++) {
+                copied_arr[i] = original_arr[4 - i];
             }
-            is_copied = true;
+
+            // Set copying_completed flag
+            copying_completed = true;
         }
     }
 
-    // Method to set the done signal
-    void set_done() {
-        if (is_copied) {
-            done.write(true);
-            is_copied = false;
-        } else {
-            done.write(false);
+    // Method to load the original array
+    void load_array(const int original[5]) {
+        for (int i = 0; i < 5; i++) {
+            original_arr[i] = original[i];
+        }
+    }
+
+    // Method to read the copied array
+    void read_array(int result[5]) {
+        for (int i = 0; i < 5; i++) {
+            result[i] = copied_arr[i];
+        }
+    }
+
+    // Method to print arrays
+    void print_arrays() {
+        if (copying_completed) {
+            // Print original array
+            cout << " Original array: ";
+            for (int i = 0; i < 5; i++) {
+                cout << original_arr[i] << " ";
+            }
+            cout << endl;
+
+            // Print copied array
+            cout << " Resultant array: ";
+            for (int i = 0; i < 5; i++) {
+                cout << copied_arr[i] << " ";
+            }
+            cout << endl;
+
+            // Reset copying_completed flag
+            copying_completed = false;
         }
     }
 };

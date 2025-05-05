@@ -1,7 +1,6 @@
 
 #include <systemc.h>
 
-// Module to calculate compound interest
 
 SC_MODULE(CompoundInterestCalculator) {
     sc_in<double> principal;  // Input port for the principal amount
@@ -11,7 +10,7 @@ SC_MODULE(CompoundInterestCalculator) {
 
     // Constructor
     SC_CTOR(CompoundInterestCalculator) {
-        // Process to perform compound interest calculation
+        // Process to calculate compound interest
         SC_METHOD(calculate_ci);
         sensitive << principal << rate << time;
     }
@@ -23,7 +22,6 @@ SC_MODULE(CompoundInterestCalculator) {
         ci.write(CI);
     }
 };
-
 
 
 SC_MODULE(Testbench) {

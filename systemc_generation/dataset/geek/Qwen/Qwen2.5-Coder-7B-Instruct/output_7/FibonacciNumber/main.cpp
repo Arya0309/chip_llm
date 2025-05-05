@@ -3,30 +3,34 @@
 
 
 SC_MODULE(FibonacciCalculator) {
-    sc_in<int> n;  // Input port for the position in the FibonacciCalculator sequence
-    sc_out<int> result; // Output port for the nth FibonacciCalculator number
+    sc_in<int> n;  // Input port for the position in the Fibonacci sequence
+    sc_out<int> result; // Output port for the nth Fibonacci number
 
     // Constructor
     SC_CTOR(FibonacciCalculator) {
-        // Process to calculate the nth FibonacciCalculator number
-        SC_METHOD(calculateFib);
+        // Process to calculate the Fibonacci number
+        SC_METHOD(calculateFibonacci);
         sensitive << n;
     }
 
-    // Method to calculate the nth FibonacciCalculator number
-    void calculateFib() {
+    // Method to calculate the nth Fibonacci number
+    void calculateFibonacci() {
         int prev1 = 1, prev2 = 0;
         int curr;
-        for (int i = 2; i <= n.read(); i++) {
-            curr = prev1 + prev2;
-            prev2 = prev1;
-            prev1 = curr;
+
+        if (n.read() <= 1) {
+            result.write(n.read());
+        } else {
+            for (int i = 2; i <= n.read(); i++) {
+                curr = prev1 + prev2;
+                prev2 = prev1;
+                prev1 = curr;
+            }
+            result.write(curr);
         }
-        result.write(curr);
     }
 };
 
-// Testbench module to drive the FibonacciCalculator module
 
 
 SC_MODULE(Testbench) {

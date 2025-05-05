@@ -1,20 +1,21 @@
 
 #include <systemc.h>
 
+// Module to find the sum of the first n natural numbers
 
 SC_MODULE(SumCalculator) {
-    sc_in<unsigned int> n;  // Input port for the number of terms
-    sc_out<unsigned int> result;  // Output port for the sum
+    sc_in<unsigned int> n;  // Input port for the number of natural numbers
+    sc_out<unsigned int> result; // Output port for the sum
 
     // Constructor
     SC_CTOR(SumCalculator) {
         // Process to calculate the sum
-        SC_METHOD(calculateSum);
+        SC_METHOD(calculate_sum);
         sensitive << n;
     }
 
     // Method to calculate the sum of the first n natural numbers
-    void calculateSum() {
+    void calculate_sum() {
         unsigned int sum = 0;
         for (unsigned int i = 1; i <= n.read(); i++) {
             sum += i;

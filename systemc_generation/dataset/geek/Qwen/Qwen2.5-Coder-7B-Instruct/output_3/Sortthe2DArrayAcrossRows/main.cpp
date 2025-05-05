@@ -3,27 +3,23 @@
 
 
 SC_MODULE(RowWiseSorter) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done; // Done signal
+    sc_in<bool> clk;
+    sc_in<bool> start;
+    sc_out<bool> done;
+    sc_out<int> sorted_matrix[4][4];
 
-    sc_inout<int> m[4][4]; // Input/Output matrix
+    int m[4][4];
+    int r = 4;
+    int c = 4;
 
     SC_CTOR(RowWiseSorter) {
-        SC_METHOD(sortRows);
+        SC_METHOD(sortMatrix);
         sensitive << clk.pos();
-        async_reset_signal_is(reset, true);
+        dont_initialize();
     }
 
-    void sortRows() {
-        static bool initialized = false;
-        if (!initialized) {
-            initialized = true;
-            // Calculate dimensions
-            int r = 4;
-            int c = 4;
-
-            // Sort rows
+    void sortMatrix() {
+        if (start.read()) {
             for (int i = 0; i < r; i++) {
                 for (int j = 0; j < c; j++) {
                     for (int k = 0; k < c - j - 1; k++) {
@@ -35,12 +31,20 @@ SC_MODULE(RowWiseSorter) {
                     }
                 }
             }
-
-            // Mark as done
             done.write(true);
+        } else {
+            done.write(false);
+        }
+
+        // Copy sorted matrix to output port
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                sorted_matrix[i][j].write(m[i][j]);
+            }
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

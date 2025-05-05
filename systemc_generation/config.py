@@ -18,19 +18,17 @@ class ModelConfig:
     gpu_memory_utilization: float
     dtype: str
 
+    debug_round: int = None
+
     root_name: str = "dataset"  # The name of root directory for saving the outputs
     obj_dataset: str = "geek"  # The name of the objective dataset
     output_dir_name: str = "outputs"  # The name of the output directory
 
     params: SamplingParams = field(default_factory=lambda: SamplingParams())
 
-    work_dir: str = field(
-        default_factory=lambda: os.path.dirname(os.path.realpath(__file__))
-    )
-
     @property
     def root_dir(self) -> str:
-        return os.path.join(self.work_dir, self.root_name)
+        return os.path.join(current_dir, self.root_name)
 
     @property
     def output_dir(self) -> str:
@@ -79,6 +77,6 @@ def build_config():
 if __name__ == "__main__":
     config = build_config()
     print(config)
-    print(config.output_dir)
-    print(config.root_dir)
-    print(config.params)
+    # print(config.output_dir)
+    # print(config.root_dir)
+    # print(config.params)

@@ -3,31 +3,45 @@
 
 
 SC_MODULE(MatrixSwapper) {
-    sc_in<int> in[4][4];  // Input ports for the 2D array
-    sc_out<int> out[4][4]; // Output ports for the modified 2D array
+    sc_in<int> in[4][4];  // Input ports for the matrix
+    sc_out<int> out[4][4]; // Output ports for the modified matrix
+
+    SC_THREAD(swapping); // Declare the thread
 
     // Constructor
     SC_CTOR(MatrixSwapper) {
-        // Process to perform row swapping
-        SC_METHOD(interchangeFirstLast);
-        sensitive << in;
+        // Initialize the thread
+        SC_THREAD(swapping);
+        sensitive << in[0][0];
+
+        // Initialize the input and output signals
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                in[i][j](0);
+                out[i][j](0);
+            }
+        }
     }
 
-    // Method to swap the first and last rows of the input array
-    void interchangeFirstLast() {
-        for (int i = 0; i < 4; i++) {
-            int t = in[0][i].read();
-            out[0][i].write(in[3][i].read());
-            out[3][i].write(t);
-        }
-        // Copy all other rows as they are
-        for (int i = 1; i < 3; i++) {
-            for (int j = 0; j < 4; j++) {
-                out[i][j].write(in[i][j].read());
+    // Method to swap the first and last rows of the matrix
+    void swapping() {
+        while (true) {
+            wait(); // Wait for any event on the sensitivity list
+
+            for (int i = 0; i < 4; i++) {
+                int t = in[0][i].read();
+                out[0][i].write(in[3][i].read());
+                out[3][i].write(t);
+            }
+            for (int i = 1; i < 3; i++) {
+                for (int j = 0; j < 4; j++) {
+                    out[i][j].write(in[i][j].read());
+                }
             }
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

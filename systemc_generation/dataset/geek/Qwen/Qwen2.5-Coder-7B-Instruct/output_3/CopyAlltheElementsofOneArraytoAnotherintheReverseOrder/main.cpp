@@ -3,41 +3,51 @@
 
 
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;       // Done signal
+    sc_in<bool> clk;      // Clock signal
+    sc_in<bool> start;    // Start signal
+    sc_out<bool> done;     // Done signal
 
-    // Arrays for input and output
-    sc_signal<int> original_arr[5];
-    sc_signal<int> copied_arr[5];
+    sc_in<int> original_arr[5]; // Input array
+    sc_out<int> copied_arr[5];  // Output array
 
-    // Constructor
+    int len = 5; // Length of the array
+
     SC_CTOR(ArrayReverse) {
-        // Initialize the original array
-        original_arr[0].write(1);
-        original_arr[1].write(2);
-        original_arr[2].write(3);
-        original_arr[3].write(4);
-        original_arr[4].write(5);
+        SC_METHOD(load_array);
+        sensitive << clk.pos();
 
-        // Process to reverse the array
-        SC_METHOD(reverse_array);
-        sensitive << clk.pos(); // Sensitive to positive edge of clock
+        SC_METHOD(copy_array);
+        sensitive << clk.pos();
+
         dont_initialize();
     }
 
-    // Method to reverse the array
-    void reverse_array() {
-        if (start.read()) {
-            for (int i = 0; i < 5; i++) {
-                copied_arr[i].write(original_arr[4 - i].read());
-            }
-            done.write(true);
-        } else {
-            done.write(false);
+    void load_array(int arr[]) {
+        for (int i = 0; i < len; i++) {
+            copied_arr[i].write(arr[i]);
+        }
+    }
+
+    void copy_array() {
+        static bool copying = false;
+
+        if (start.read() && !copying) {
+            copying = true;
+            load_array(original_arr);
+            done.write(true); // Signal that copying is done
+        } else if (!start.read()) {
+            copying = false;
+            done.write(false); // Reset done signal
+        }
+    }
+
+    void read_array(int result[5]) {
+        for (int i = 0; i < len; i++) {
+            result[i] = copied_arr[i].read();
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

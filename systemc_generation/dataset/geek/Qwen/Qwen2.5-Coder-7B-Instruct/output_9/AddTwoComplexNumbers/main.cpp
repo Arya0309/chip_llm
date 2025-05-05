@@ -1,21 +1,15 @@
 
 #include <systemc.h>
 
-// Define a struct to represent a complex number
-struct Complex {
-    int real;
-    int imaginary;
-};
-
-// Module that adds two complex numbers
+// SystemC module that adds two complex numbers
 
 SC_MODULE(ComplexAdder) {
     sc_in<int> real1;  // Input port for the real part of the first complex number
     sc_in<int> imag1;  // Input port for the imaginary part of the first complex number
     sc_in<int> real2;  // Input port for the real part of the second complex number
     sc_in<int> imag2;  // Input port for the imaginary part of the second complex number
-    sc_out<int> real_sum; // Output port for the real part of the sum
-    sc_out<int> imag_sum; // Output port for the imaginary part of the sum
+    sc_out<int> real_sum;  // Output port for the real part of the sum
+    sc_out<int> imag_sum;  // Output port for the imaginary part of the sum
 
     // Constructor
     SC_CTOR(ComplexAdder) {
@@ -26,13 +20,8 @@ SC_MODULE(ComplexAdder) {
 
     // Method to add the two complex numbers
     void add() {
-        Complex C1 = {real1.read(), imag1.read()};
-        Complex C2 = {real2.read(), imag2.read()};
-        Complex C3;
-        C3.real = C1.real + C2.real;
-        C3.imaginary = C1.imaginary + C2.imaginary;
-        real_sum.write(C3.real);
-        imag_sum.write(C3.imaginary);
+        real_sum.write(real1.read() + real2.read());
+        imag_sum.write(imag1.read() + imag2.read());
     }
 };
 

@@ -1,32 +1,39 @@
 
 #include <systemc.h>
 
+// Define the sizes of the matrices
+#define R1 2 // number of rows in Matrix-1
+#define C1 2 // number of columns in Matrix-1
+#define R2 2 // number of rows in Matrix-2
+#define C2 3 // number of columns in Matrix-2
+
+// Module to multiply two matrices
+
 
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[SIZE_A];  // Input port for Matrix-1
-    sc_in<int> B[SIZE_B];  // Input port for Matrix-2
-    sc_out<int> C[SIZE_RESULT]; // Output port for the result
+    sc_in<int> A[R1 * C1];  // Input port for the first matrix
+    sc_in<int> B[R2 * C2];  // Input port for the second matrix
+    sc_out<int> C[R1 * C2]; // Output port for the result matrix
 
     // Constructor
     SC_CTOR(MatrixMultiplier) {
         // Process to perform matrix multiplication
         SC_THREAD(mulMat);
-        sensitive << A << B;
     }
 
-    // Method to perform matrix multiplication
+    // Method to multiply the two matrices
     void mulMat() {
-        int rslt[SIZE_A][SIZE_B];
+        int rslt[R1][C2];
 
-        for (int i = 0; i < SIZE_A; i++) {
-            for (int j = 0; j < SIZE_B; j++) {
+        for (int i = 0; i < R1; i++) {
+            for (int j = 0; j < C2; j++) {
                 rslt[i][j] = 0;
 
-                for (int k = 0; k < SIZE_A; k++) {
-                    rslt[i][j] += A[i * SIZE_A + k] * B[k * SIZE_B + j];
+                for (int k = 0; k < R2; k++) {
+                    rslt[i][j] += A[i * C1 + k] * B[k * C2 + j];
                 }
 
-                C[i * SIZE_B + j].write(rslt[i][j]);
+                C[i * C2 + j].write(rslt[i][j]);
             }
         }
     }

@@ -4,40 +4,41 @@
 
 SC_MODULE(DecToBinary) {
     sc_in<int> dec_in;  // Input port for the decimal number
-    sc_out<int> binary_out; // Output port for the binary representation
+    sc_out<int> binary_out; // Output port for the binary number
 
     // Constructor
     SC_CTOR(DecToBinary) {
-        // Process to convert decimal to binary
+        // Process to perform conversion
         SC_METHOD(convert);
         sensitive << dec_in;
     }
 
-    // Method to convert decimal to binary and output it
+    // Method to convert decimal to binary
     void convert() {
         int n = dec_in.read();
         int binaryNum[32];
         int i = 0;
 
+        // Convert decimal to binary
         while (n > 0) {
             binaryNum[i] = n % 2;
             n = n / 2;
             i++;
         }
 
-        int j = i - 1;
-        string binaryStr = "";
-        while (j >= 0) {
-            binaryStr += to_string(binaryNum[j]);
-            j--;
+        // Calculate the number of significant bits
+        int num_bits = i;
+
+        // Initialize the binary output to 0
+        int binary_output = 0;
+
+        // Accumulate the binary digits into a single integer
+        for (int j = 0; j < num_bits; j++) {
+            binary_output = (binary_output << 1) | binaryNum[j];
         }
 
-        // Print the binary string (this would typically go to a file or another process)
-        cout << "Binary Representation: " << binaryStr << endl;
-
-        // For demonstration, we can write the binary string to the output port
-        // Note: SystemC does not have direct support for printing to stdout in simulation
-        // binary_out.write(stoi(binaryStr));
+        // Write the binary number to the output port
+        binary_out.write(binary_output);
     }
 };
 

@@ -1,29 +1,35 @@
 
 #include <systemc.h>
 
+// Define the LinearSearch module
 
 SC_MODULE(LinearSearch) {
-    sc_in<int> key;          // Input port for the key to search
-    sc_out<int> index;        // Output port for the index position
-    sc_vector<sc_in<int>> data; // Input vector of integers
+    sc_in<int> key;  // Input port for the key
+    sc_out<int> index;  // Output port for the index
+    sc_vector<sc_in<int>> data;  // Input vector for the data
 
-    SC_CTOR(LinearSearch) {
+    // Constructor
+    LinearSearch(sc_core::sc_module_name name, const sc_vector<sc_in<int>>& data)
+        : data(data) {
+        // Process to perform linear search
         SC_METHOD(search);
         sensitive << key << data;
     }
 
+    // Method to perform linear search
     void search() {
-        int size = data.size();
-        for (int i = 0; i < size; i++) {
+        int v_size = data.size();
+        for (int i = 0; i < v_size; i++) {
             if (data[i].read() == key.read()) {
                 index.write(i);
                 return;
             }
         }
-        index.write(-1);
+        index.write(-1);  // Key not found
     }
 };
 
+// Define the Testbench module
 
 
 SC_MODULE(Testbench) {

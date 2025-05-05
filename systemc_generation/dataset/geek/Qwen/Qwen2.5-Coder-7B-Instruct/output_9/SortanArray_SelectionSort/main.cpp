@@ -3,49 +3,61 @@
 
 
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;      // Clock signal
-    sc_in<bool> start;    // Start signal
-    sc_out<bool> done;   // Done signal
-    sc_out<int> sorted_array[5]; // Output array of sorted elements
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done; // Done signal
+    sc_inout<int> arr[5]; // Input/output array of size 5
 
-    int arr[5] = {64, 25, 12, 22, 11}; // Hardcoded array
-    int n = sizeof(arr)/sizeof(arr[0]); // Size of the array
-    int i, j, min_idx;
+    int n = 5; // Size of the array
 
+    // Constructor
     SC_CTOR(SelectionSort) {
-        SC_METHOD(sort_process);
+        // Process to handle sorting
+        SC_METHOD(sort);
         sensitive << clk.pos();
-        dont_initialize();
     }
 
-    void sort_process() {
+    // Method to perform selection sort
+    void sort() {
         if (start.read()) {
-            // Selection Sort
+            int i, j, min_idx;
+
+            // One by one move boundary of 
+            // unsorted subarray 
             for (i = 0; i < n-1; i++) {
-                min_idx = i;
-                for (j = i+1; j < n; j++) {
-                    if (arr[j] < arr[min_idx]) {
-                        min_idx = j;
-                    }
-                }
-                swap(&arr[min_idx], &arr[i]);
+                // Find the minimum element in 
+                // unsorted array 
+                min_idx = i; 
+                for (j = i+1; j < n; j++) 
+                    if (arr[j].read() < arr[min_idx].read()) 
+                        min_idx = j; 
+
+                // Swap the found minimum element 
+                // with the first element 
+                int temp = arr[min_idx].read(); 
+                arr[min_idx].write(arr[i].read()); 
+                arr[i].write(temp); 
             }
 
-            // Print sorted array (simulated by writing to output ports)
-            for (i = 0; i < n; i++) {
-                sorted_array[i].write(arr[i]);
-            }
-
+            // Set done signal after sorting is complete
             done.write(true);
         } else {
             done.write(false);
         }
     }
 
-    void swap(int *xp, int *yp) {
-        int temp = *xp;
-        *xp = *yp;
-        *yp = temp;
+    // Method to load the input array
+    void load_array(const int input[]) {
+        for (int i = 0; i < n; i++) {
+            arr[i].write(input[i]);
+        }
+    }
+
+    // Method to read the sorted array
+    void read_array(int output[]) {
+        for (int i = 0; i < n; i++) {
+            output[i] = arr[i].read();
+        }
     }
 };
 

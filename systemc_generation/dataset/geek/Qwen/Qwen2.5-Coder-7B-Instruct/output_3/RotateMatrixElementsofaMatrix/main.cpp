@@ -3,74 +3,64 @@
 
 
 SC_MODULE(MatrixRotator) {
-    sc_in<int> in[4][4];  // Input ports for the matrix
-    sc_out<int> out[4][4]; // Output ports for the rotated matrix
+    sc_in<int> in[4][4];  // Input port for the matrix
+    sc_out<int> out[4][4]; // Output port for the rotated matrix
 
     SC_CTOR(MatrixRotator) {
-        SC_THREAD(rotatematrix);
-        sensitive << in;
+        SC_THREAD(rotate_matrix);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                sensitive << in[i][j];
+            }
+        }
     }
 
-    void rotatematrix() {
-        int mat[4][4];
+    void rotate_matrix() {
         int m = 4, n = 4;
         int row = 0, col = 0;
         int prev, curr;
-
-        // Copy input matrix to local variable
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j < n; j++) {
-                mat[i][j] = in[i][j].read();
-            }
-        }
 
         while (row < m && col < n) {
             if (row + 1 == m || col + 1 == n)
                 break;
 
-            prev = mat[row + 1][col];
+            prev = in[row + 1][col].read();
 
             for (int i = col; i < n; i++) {
-                curr = mat[row][i];
-                mat[row][i] = prev;
+                curr = in[row][i].read();
+                out[row][i].write(prev);
                 prev = curr;
             }
             row++;
 
             for (int i = row; i < m; i++) {
-                curr = mat[i][n - 1];
-                mat[i][n - 1] = prev;
+                curr = in[i][n-1].read();
+                out[i][n-1].write(prev);
                 prev = curr;
             }
             n--;
 
             if (row < m) {
-                for (int i = n - 1; i >= col; i--) {
-                    curr = mat[m - 1][i];
-                    mat[m - 1][i] = prev;
+                for (int i = n-1; i >= col; i--) {
+                    curr = in[m-1][i].read();
+                    out[m-1][i].write(prev);
                     prev = curr;
                 }
             }
             m--;
 
             if (col < n) {
-                for (int i = m - 1; i >= row; i--) {
-                    curr = mat[i][col];
-                    mat[i][col] = prev;
+                for (int i = m-1; i >= row; i--) {
+                    curr = in[i][col].read();
+                    out[i][col].write(prev);
                     prev = curr;
                 }
             }
             col++;
         }
-
-        // Copy rotated matrix to output ports
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j < n; j++) {
-                out[i][j].write(mat[i][j]);
-            }
-        }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

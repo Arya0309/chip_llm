@@ -1,5 +1,6 @@
 
 #include <systemc.h>
+#include <algorithm> // Include for std::min_element and std::max_element
 
 
 SC_MODULE(MinMax) {
@@ -9,51 +10,40 @@ SC_MODULE(MinMax) {
     sc_out<int> min_val;      // Output for minimum value
     sc_out<int> max_val;      // Output for maximum value
 
-    sc_vector<int> arr;       // Vector to store the array elements
-    int n;                    // Size of the array
+    int arr[5];               // Array to store input values
+    int n = 0;                // Size of the array
 
-    // Constructor
-    SC_CTOR(MinMax) : arr("arr") {
-        // Process to handle start signal
-        SC_METHOD(start_process);
-        sensitive << clk.pos();
-        dont_initialize();
+    int min_val_reg;
+    int max_val_reg;
 
-        // Process to compute min and max values
-        SC_METHOD(compute_min_max);
+    SC_CTOR(MinMax) {
+        SC_METHOD(find_min_max);
         sensitive << clk.pos();
         dont_initialize();
     }
 
-    // Method to handle start signal
-    void start_process() {
-        if (start.read()) {
-            // Read the array size and elements from external source (not shown here)
-            // For demonstration, let's assume n and arr are set externally
-            n = 5; // Example size
-            arr = {12, 1234, 45, 67, 1}; // Example array
+    // Method to load an array into the module
+    void load_array(int* input_arr, int size) {
+        for (int i = 0; i < size; ++i) {
+            arr[i] = input_arr[i];
+        }
+        n = size;
+    }
 
-            // Reset done signal
+    // Method to find minimum and maximum values
+    void find_min_max() {
+        if (start.read()) {
+            min_val_reg = *std::min_element(arr, arr + n);
+            max_val_reg = *std::max_element(arr, arr + n);
+            done.write(true);
+        } else {
             done.write(false);
         }
-    }
-
-    // Method to compute min and max values
-    void compute_min_max() {
-        if (done.read() == false) {
-            // Compute min and max values
-            int min_value = *std::min_element(arr.begin(), arr.end());
-            int max_value = *std::max_element(arr.begin(), arr.end());
-
-            // Assign results to output ports
-            min_val.write(min_value);
-            max_val.write(max_value);
-
-            // Set done signal
-            done.write(true);
-        }
+        min_val.write(min_val_reg);
+        max_val.write(max_val_reg);
     }
 };
+
 
 
 SC_MODULE(Testbench) {

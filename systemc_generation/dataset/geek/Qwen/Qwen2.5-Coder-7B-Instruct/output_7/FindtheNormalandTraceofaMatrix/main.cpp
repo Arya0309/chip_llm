@@ -1,42 +1,40 @@
 
 #include <systemc.h>
+#include <cmath>  // For sqrt function
 
 
 SC_MODULE(MatrixOperations) {
-    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
-    sc_in<int> size;              // Input port for the size of the matrix
-    sc_out<int> trace;             // Output port for the trace
-    sc_out<int> norm;              // Output port for the normal
+    static const int SIZE = 5;  // Define the size of the matrix
+    sc_in<int> matrix[SIZE];    // Input port for the matrix
+    sc_out<int> trace;           // Output port for the trace
+    sc_out<int> norm;            // Output port for the normal
 
-    // Constructor
     SC_CTOR(MatrixOperations) {
-        // Process to calculate trace
-        SC_METHOD(calculate_trace);
-        sensitive << matrix << size;
-
-        // Process to calculate normal
-        SC_METHOD(calculate_norm);
-        sensitive << matrix << size;
-    }
-
-    // Method to calculate the trace of the matrix
-    void calculate_trace() {
-        int sum = 0;
-        for (int i = 0; i < size; i++) {
-            sum += matrix[i][i].read();
+        SC_THREAD(process_matrix);
+        for (int i = 0; i < SIZE; i++) {
+            sensitive << matrix[i];
         }
-        trace.write(sum);
     }
 
-    // Method to calculate the normal of the matrix
-    void calculate_norm() {
-        int sum = 0;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++) {
-                sum += matrix[i][j].read() * matrix[i][j].read();
+    void process_matrix() {
+        int n = SIZE;  // Assuming SIZE is the size of the matrix
+        int sum_trace = 0;
+        int sum_norm = 0;
+
+        for (int i = 0; i < n; i++) {
+            sum_trace += matrix[i].read();
+            for (int j = 0; j < n; j++) {
+                sum_norm += matrix[i].read() * matrix[j].read();
             }
         }
-        norm.write(sqrt(sum));
+
+        try {
+            norm.write(sqrt(sum_norm));
+        } catch (const std::domain_error& e) {
+            norm.write(0);  // Handle exception by setting norm to 0
+        }
+
+        trace.write(sum_trace);
     }
 };
 

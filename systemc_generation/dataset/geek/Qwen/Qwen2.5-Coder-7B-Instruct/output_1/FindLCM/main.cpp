@@ -3,9 +3,11 @@
 
 
 SC_MODULE(LcmCalculator) {
-    sc_in<int> a;          // Input port for the first number
-    sc_in<int> b;          // Input port for the second number
-    sc_out<int> lcm_result; // Output port for the LCM result
+    sc_in<int> a;  // Input port for the first number
+    sc_in<int> b;  // Input port for the second number
+    sc_out<int> lcm_result; // Output port for the LCM
+
+    int max_num, flag = 1;
 
     // Constructor
     SC_CTOR(LcmCalculator) {
@@ -14,15 +16,20 @@ SC_MODULE(LcmCalculator) {
         sensitive << a << b;
     }
 
-    // Method to calculate the LCM
+    // Method to calculate LCM
     void calculate_lcm() {
-        int max_num = (a.read() > b.read()) ? a.read() : b.read();
-        int flag = 1;
+        if (a.read() <= 0 || b.read() <= 0) {
+            lcm_result.write(0); // Handle invalid input
+            return;
+        }
+
+        max_num = (a.read() > b.read()) ? a.read() : b.read();
+        flag = 1;
 
         while (flag) {
             if (max_num % a.read() == 0 && max_num % b.read() == 0) {
                 lcm_result.write(max_num);
-                flag = 0;
+                flag = 0; // Exit the loop
                 break;
             }
             ++max_num;

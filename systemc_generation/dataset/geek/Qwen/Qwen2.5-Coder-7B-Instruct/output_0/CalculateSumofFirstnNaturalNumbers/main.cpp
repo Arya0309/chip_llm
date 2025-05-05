@@ -6,12 +6,14 @@ SC_MODULE(SumCalculator) {
     sc_in<unsigned int> n;  // Input port for the number of natural numbers
     sc_out<unsigned int> result; // Output port for the sum
 
+    // Constructor
     SC_CTOR(SumCalculator) {
         // Process to calculate the sum of the first n natural numbers
         SC_METHOD(calculateSum);
         sensitive << n;
     }
 
+    // Method to calculate the sum
     void calculateSum() {
         unsigned int sum = 0;
         for (unsigned int i = 1; i <= n.read(); i++) {
@@ -20,7 +22,6 @@ SC_MODULE(SumCalculator) {
         result.write(sum);
     }
 };
-
 
 
 SC_MODULE(Testbench) {

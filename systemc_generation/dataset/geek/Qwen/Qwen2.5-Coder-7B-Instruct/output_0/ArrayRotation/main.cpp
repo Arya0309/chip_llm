@@ -5,49 +5,47 @@
 SC_MODULE(Rotator) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> rst;  // Reset signal
-    sc_in<int> d;     // Number of positions to rotate
+    sc_in<int> d;      // Number of positions to rotate
     sc_in<int> in_array[7];  // Input array
     sc_out<int> out_array[7];  // Output array
 
     int arr[7];  // Internal array to store the input values
-    int n = 7;   // Size of the array
 
     // Constructor
     SC_CTOR(Rotator) {
-        // Process to handle rotation
+        // Process to handle the rotation logic
         SC_METHOD(handle_rotation);
-        sensitive << clk.pos();  // Sensitive to positive edge of clock
-        dont_initialize();  // Do not initialize this method
+        sensitive << clk.pos();
+        dont_initialize();
     }
 
-    // Method to handle rotation logic
+    // Method to handle the rotation logic
     void handle_rotation() {
         if (rst.read()) {
-            // Reset the output array
-            for (int i = 0; i < n; i++) {
+            // Reset the output array to zero
+            for (int i = 0; i < 7; i++) {
                 out_array[i].write(0);
             }
         } else {
             // Copy input array to internal array
-            for (int i = 0; i < n; i++) {
+            for (int i = 0; i < 7; i++) {
                 arr[i] = in_array[i].read();
             }
 
-            // Temporary array to store rotated values
-            int temp[n];
-
-            // Copy n - d elements to the front of temp
-            for (int i = d; i < n; i++) {
-                temp[i - d] = arr[i];
+            // Rotate the array by 'd' positions
+            int temp[7];
+            int k = 0;
+            for (int i = d; i < 7; i++) {
+                temp[k] = arr[i];
+                k++;
             }
-
-            // Append the first d elements to temp
             for (int i = 0; i < d; i++) {
-                temp[n - d + i] = arr[i];
+                temp[k] = arr[i];
+                k++;
             }
 
-            // Copy temp back to output array
-            for (int i = 0; i < n; i++) {
+            // Copy the rotated array back to output array
+            for (int i = 0; i < 7; i++) {
                 out_array[i].write(temp[i]);
             }
         }

@@ -3,48 +3,64 @@
 
 
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;      // Clock signal
-    sc_in<bool> start;    // Start signal
-    sc_out<bool> done;    // Done signal
-    sc_out<int> sorted_arr[5];  // Output array
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_in<int> arr_in[5];  // Input array
+    sc_out<int> sorted_array[5];  // Output array
 
-    int arr[5] = {64, 25, 12, 22, 11};  // Input array
+    int arr[5];  // Internal array to hold the input data
     int n = 5;  // Size of the array
     int i, j, min_idx;
 
-    // Process to perform selection sort
-    SC_METHOD(selection_sort);
-    sensitive << clk.pos();
-
-    void selection_sort() {
-        while (!start.read()) {
-            wait();
-        }
-
-        for (i = 0; i < n-1; i++) {
-            min_idx = i;
-            for (j = i+1; j < n; j++) {
-                if (arr[j] < arr[min_idx]) {
-                    min_idx = j;
-                }
-            }
-            swap(&arr[min_idx], &arr[i]);
-        }
-
-        for (i = 0; i < n; i++) {
-            sorted_arr[i].write(arr[i]);
-        }
-
-        done.write(true);
+    SC_CTOR(SelectionSort) {
+        SC_METHOD(sort);
+        sensitive << clk.pos();
     }
 
-    // Helper function to swap elements
-    void swap(int *xp, int *yp) {
-        int temp = *xp;
-        *xp = *yp;
-        *yp = temp;
+    void sort() {
+        if (start.read()) {
+            // Load input array
+            for (i = 0; i < n; i++) {
+                arr[i] = arr_in[i].read();
+            }
+
+            // One by one move boundary of unsorted subarray
+            for (i = 0; i < n - 1; i++) {
+                // Find the minimum element in unsorted array
+                min_idx = i;
+                for (j = i + 1; j < n; j++)
+                    if (arr[j] < arr[min_idx])
+                        min_idx = j;
+
+                // Swap the found minimum element with the first element
+                std::swap(arr[min_idx], arr[i]);
+            }
+
+            // Output the sorted array
+            for (i = 0; i < n; i++) {
+                sorted_array[i].write(arr[i]);
+            }
+
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+
+    void load_array(int arr_in[]) {
+        for (i = 0; i < n; i++) {
+            this->arr[i] = arr_in[i];
+        }
+    }
+
+    void read_array(int arr_out[]) {
+        for (i = 0; i < n; i++) {
+            arr_out[i] = sorted_array[i].read();
+        }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

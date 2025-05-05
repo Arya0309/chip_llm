@@ -1,47 +1,56 @@
 
 #include <systemc.h>
+#include <algorithm>  // For min_element and max_element
 
 
 SC_MODULE(MinMax) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_out<int> min_val;     // Output for minimum value
-    sc_out<int> max_val;     // Output for maximum value
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_out<int> min_val;  // Minimum value output
+    sc_out<int> max_val;  // Maximum value output
 
-    int arr[] = { 12, 1234, 45, 67, 1 }; 
-    int n = sizeof(arr) / sizeof(arr[0]); 
-    int min_val_result = INT_MAX;
-    int max_val_result = INT_MIN;
+    int* arr;  // Pointer to the array
+    int n;  // Size of the array
+    int min_value;
+    int max_value;
 
-    // Process to find minimum and maximum values
-    SC_METHOD(find_min_max);
-    sensitive << clk.pos();
-    always @(*) {
-        if (start.read()) {
-            min_val_result = INT_MAX;
-            max_val_result = INT_MIN;
-            for (int i = 0; i < n; i++) {
-                if (arr[i] < min_val_result) {
-                    min_val_result = arr[i];
-                }
-                if (arr[i] > max_val_result) {
-                    max_val_result = arr[i];
-                }
-            }
-            done.write(true);
-        } else {
-            done.write(false);
+    SC_CTOR(MinMax) {
+        arr = nullptr;
+        n = 0;
+        SC_METHOD(find_min_max);
+        sensitive << clk.pos();
+        sensitive << start;
+    }
+
+    ~MinMax() {
+        delete[] arr;  // Clean up dynamically allocated memory
+    }
+
+    void load_array(const int* input_arr, int size) {
+        delete[] arr;  // Clean up previous array
+        arr = new int[size];
+        n = size;
+        for (int i = 0; i < size; ++i) {
+            arr[i] = input_arr[i];
         }
     }
 
-    // Method to assign results to output ports
-    SC_METHOD(assign_outputs);
-    sensitive << done;
-    always @(*) {
-        if (done.read()) {
-            min_val.write(min_val_result);
-            max_val.write(max_val_result);
+    void find_min_max() {
+        if (start.read()) {
+            if (arr && n > 0) {
+                min_value = *std::min_element(arr, arr + n);
+                max_value = *std::max_element(arr, arr + n);
+                min_val.write(min_value);
+                max_val.write(max_value);
+                done.write(true);
+            } else {
+                min_val.write(0);
+                max_val.write(0);
+                done.write(false);
+            }
+        } else {
+            done.write(false);
         }
     }
 };

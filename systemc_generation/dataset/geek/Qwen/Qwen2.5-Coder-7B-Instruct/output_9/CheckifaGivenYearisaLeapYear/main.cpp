@@ -1,15 +1,14 @@
 
 #include <systemc.h>
 
-// Module to check if a given year is a leap year
 
 SC_MODULE(LeapYearChecker) {
     sc_in<int> year;  // Input port for the year
-    sc_out<bool> is_leap_year;  // Output port for the leap year check
+    sc_out<bool> is_leap_year; // Output port for the leap year status
 
     // Constructor
     SC_CTOR(LeapYearChecker) {
-        // Process to check if the year is a leap year
+        // Process to determine if the year is a leap year
         SC_METHOD(check_leap_year);
         sensitive << year;
     }

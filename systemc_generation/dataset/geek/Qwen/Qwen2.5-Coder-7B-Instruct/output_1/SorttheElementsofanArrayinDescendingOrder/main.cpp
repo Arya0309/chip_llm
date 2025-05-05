@@ -3,26 +3,28 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_out<int> sorted_array[5]; // Output array of sorted elements
+    sc_in<bool> clk;     // Clock signal
+    sc_in<bool> start;   // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_in<int> input_array[5];  // Input array
+    sc_out<int> sorted_array[5];  // Output sorted array
 
-    int nums[5] = {1, 12, 6, 8, 10}; // Hardcoded array
-    int size_nums = 5;                 // Size of the array
+    int nums[5];
+    int size_nums = 5;
     bool isSwapped;
+    bool sorting_done;
 
-    // Constructor
     SC_CTOR(BubbleSort) {
-        // Process to handle sorting
         SC_METHOD(sort);
         sensitive << clk.pos();
-        async_reset_signal_is(reset, true);
+        dont_initialize();
     }
 
-    // Method to sort the array
     void sort() {
         if (start.read()) {
+            for (int i = 0; i < size_nums; i++) {
+                nums[i] = input_array[i].read();
+            }
             for (int i = 0; i < size_nums; i++) {
                 isSwapped = false;
                 for (int j = 1; j < size_nums - i; j++) {
@@ -32,27 +34,25 @@ SC_MODULE(BubbleSort) {
                     }
                 }
                 if (!isSwapped) {
+                    sorting_done = true;
                     break;
                 }
             }
-            done.write(true);
+            if (sorting_done) {
+                for (int i = 0; i < size_nums; i++) {
+                    sorted_array[i].write(nums[i]);
+                }
+                done.write(true);
+            }
         } else {
             done.write(false);
         }
     }
 
-    // Helper method to swap two numbers in the array
     void swapNums(int first, int second) {
         int curr = nums[first];
         nums[first] = nums[second];
         nums[second] = curr;
-    }
-
-    // Method to update the output array
-    void update_output() {
-        for (int i = 0; i < size_nums; i++) {
-            sorted_array[i].write(nums[i]);
-        }
     }
 };
 

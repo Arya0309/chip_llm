@@ -1,30 +1,29 @@
 
 #include <systemc.h>
 
-// Module that calculates the factorial of a number
 
 SC_MODULE(Factorial) {
     sc_in<unsigned int> in;  // Input port for the number
     sc_out<unsigned int> out; // Output port for the factorial
 
+    unsigned int res;  // Variable to store the result
+
     // Constructor
     SC_CTOR(Factorial) {
-        // Process to calculate factorial
-        SC_METHOD(calculate_factorial);
+        // Process to compute the factorial
+        SC_METHOD(compute_factorial);
         sensitive << in;
     }
 
-    // Method to calculate factorial
-    void calculate_factorial() {
-        unsigned int n = in.read();
-        unsigned int res = 1, i;
-        for (i = 2; i <= n; i++)
+    // Method to compute the factorial
+    void compute_factorial() {
+        res = 1;
+        for (unsigned int i = 2; i <= in.read(); i++) {
             res *= i;
+        }
         out.write(res);
     }
 };
-
-// Testbench to drive the Factorial module
 
 
 SC_MODULE(Testbench) {

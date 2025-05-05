@@ -3,13 +3,13 @@
 
 
 SC_MODULE(PrimeSumChecker) {
-    sc_in<int> n_in;  // Input port for the number to be checked
-    sc_out<bool> result_out;  // Output port indicating if the number can be expressed as sum of two primes
+    sc_in<int> n_in;  // Input port for the number to check
+    sc_out<bool> result_out; // Output port for the result
 
     // Constructor
     SC_CTOR(PrimeSumChecker) {
         // Process to check if the number can be expressed as sum of two primes
-        SC_METHOD(check_sum_of_primes);
+        SC_METHOD(check_prime_sum);
         sensitive << n_in;
     }
 
@@ -28,7 +28,7 @@ SC_MODULE(PrimeSumChecker) {
     }
 
     // Method to check if the number can be expressed as sum of two primes
-    void check_sum_of_primes() {
+    void check_prime_sum() {
         int N = n_in.read();
         if (isPrime(N) && isPrime(N - 2)) 
             result_out.write(true); 

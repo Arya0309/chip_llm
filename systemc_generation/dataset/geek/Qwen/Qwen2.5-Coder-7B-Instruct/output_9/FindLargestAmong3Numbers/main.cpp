@@ -1,13 +1,13 @@
 
 #include <systemc.h>
 
-// Module to find the largest among three numbers using if-else-if ladder
+// Module to find the largest number among three integers
 
 SC_MODULE(LargestFinder) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
     sc_in<int> c;  // Input port for the third number
-    sc_out<int> largest;  // Output port for the largest number
+    sc_out<int> largest; // Output port for the largest number
 
     // Constructor
     SC_CTOR(LargestFinder) {

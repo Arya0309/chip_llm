@@ -11,6 +11,9 @@ from torch.utils.data import DataLoader
 from config import ModelConfig, build_config
 
 cache_dir: str = "/workspace/models"  # Directory to save the model and reuse it
+current_dir = os.path.dirname(os.path.realpath(__file__))
+temp_format = os.path.join(current_dir, "__cache__", ".temp_{idx}")
+temp_dir = None
 
 
 def load_model(config: ModelConfig):
@@ -44,6 +47,7 @@ def load_model(config: ModelConfig):
         tensor_parallel_size=config.tensor_parallel_size,
         gpu_memory_utilization=config.gpu_memory_utilization,
         dtype=config.dtype,
+        task="generate",
     )
 
     return llm, tokenizer
@@ -72,7 +76,7 @@ class SystemCGenerator:
     def __init__(self, config: ModelConfig):
         self.config = config
 
-    def _generate(self, model, dataloader, params):
+    def _generate(self, model, dataloader) -> pd.DataFrame:
         results = []
 
         for batch in dataloader:
@@ -85,7 +89,7 @@ class SystemCGenerator:
             # print(inputs)
             # exit()
 
-            outputs = model.generate(inputs, params)
+            outputs = model.generate(inputs, self.config.params)
 
             for task_id, task, testbench, module_name, result in zip(
                 task_ids, tasks, testbenches, module_names, outputs
@@ -101,9 +105,20 @@ class SystemCGenerator:
                     }
                 )
 
-        return pd.DataFrame(results)
+        # Extract the code from the generated text
+        results = pd.DataFrame(results)
+        results["generated_code"] = results.apply(
+            lambda row: self._code_extractor(row["response"], row["module_name"]),
+            axis=1,
+        )
+        results["output_code"] = results.apply(
+            lambda row: row["generated_code"] + "\n\n" + row["testbench"],
+            axis=1,
+        )
 
-    def generate_systemc(self, model, tokenizer):
+        return results
+
+    def generate_systemc(self, model, tokenizer) -> pd.DataFrame:
         """Generates SystemC code using the model and tokenizer.
 
         Args:
@@ -119,22 +134,61 @@ class SystemCGenerator:
             sc_generator = SystemCGenerator(config)
             outputs = sc_generator.generate_systemc(llm, tokenizer)
         """
-        dataset = SystemCDataset(self.config.input_dir, tokenizer)  # Load the dataset
+        self.dataset = SystemCDataset(
+            self.config.input_dir,
+            tokenizer,
+        )
         dataloader = DataLoader(
-            dataset,
+            self.dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
             collate_fn=collate_fn,
         )
 
-        outputs = self._generate(model, dataloader, self.config.params)
-        # Extract the code from the generated text
-        outputs["output_code"] = outputs.apply(
-            lambda row: self._code_extractor(row["response"], row["module_name"])
-            + "\n\n"
-            + row["testbench"],
-            axis=1,
-        )
+        if self.config.debug_round:
+            print(f"Debug mode: at most {self.config.debug_round} rounds")
+            return self._self_debug(model, dataloader)
+        else:
+            outputs = self._generate(model, dataloader)
+
+        return outputs
+
+    def _self_debug(self, model, dataloader):
+        outputs = pd.DataFrame()
+        for i in range(self.config.debug_round):
+            print(f"Debug round {i + 1}/{self.config.debug_round}")
+            results = self._generate(model, dataloader)
+
+            done_results = pd.DataFrame(columns=results.columns)
+            if i < self.config.debug_round - 1:
+                self.save_systemc(results, temp=True)
+                self.check_results(temp=True)
+
+                # Map the responses to the dataset
+                response_map = results.set_index("task")["generated_code"].to_dict()
+                self.dataset.df["generated_code"] = (
+                    self.dataset.df["task"]
+                    .map(response_map)
+                    .fillna(self.dataset.df["generated_code"])
+                )
+
+                # Check the results and update the dataset
+                done, done_task = self.dataset.update_done(temp_dir, idx=i)
+                done_results = results[results["task"].isin(done_task)]
+                if done:
+                    print("Early stopping: all tasks are done.")
+                    break
+                # Update the dataloader with the new dataset
+                dataloader = DataLoader(
+                    self.dataset,
+                    batch_size=self.config.batch_size,
+                    shuffle=False,
+                    collate_fn=collate_fn,
+                )
+
+            outputs = pd.concat([outputs, done_results], ignore_index=True)
+
+        outputs = pd.concat([outputs, results], ignore_index=True)
         return outputs
 
     def _code_extractor(self, response: str, true_module_name) -> str:
@@ -212,7 +266,7 @@ class SystemCGenerator:
                 # print(response)
                 return ""  # No code snippet found
 
-    def save_systemc(self, df: pd.DataFrame):
+    def save_systemc(self, df: pd.DataFrame, temp=False):
         """Saves the generated SystemC code to files.
 
         Args:
@@ -224,27 +278,49 @@ class SystemCGenerator:
             outputs = sc_generator.generate_systemc(llm, tokenizer)
             sc_generator.save_systemc(outputs)
         """
-        for i, row in tqdm(df.iterrows(), desc="Writing output files"):
-            filename = row["task"]
-            file_dir = os.path.join(config.output_dir, filename)
-            if not os.path.exists(file_dir):
-                os.makedirs(file_dir)
+        if temp:
+            for i, row in tqdm(df.iterrows(), desc="Writing output files"):
+                filename = row["task"]
+                file_dir = os.path.join(temp_dir, filename)
+                if not os.path.exists(file_dir):
+                    os.makedirs(file_dir)
 
-            with open(os.path.join(file_dir, "main.cpp"), "w") as f:
-                f.write(row["output_code"])
-            with open(os.path.join(file_dir, "response.txt"), "w") as f:
-                f.write(row["response"])
+                with open(os.path.join(file_dir, "main.cpp"), "w") as f:
+                    f.write(row["output_code"])
+                with open(os.path.join(file_dir, "response.txt"), "w") as f:
+                    f.write(row["response"])
+        else:
+            for i, row in tqdm(df.iterrows(), desc="Writing output files"):
+                filename = row["task"]
+                file_dir = os.path.join(self.config.output_dir, filename)
+                if not os.path.exists(file_dir):
+                    os.makedirs(file_dir)
 
-    def check_results(self):
+                with open(os.path.join(file_dir, "main.cpp"), "w") as f:
+                    f.write(row["output_code"])
+                with open(os.path.join(file_dir, "response.txt"), "w") as f:
+                    f.write(row["response"])
+
+    def check_results(self, temp=False, timeout=20):
+        if temp:
+            directory = temp_dir
+            log_dir = directory
+        else:
+            directory = self.config.output_dir
+            log_dir = os.path.join(directory, "..")
+
+        # Call the check.py script to check the generated SystemC code
         subprocess.run(
             [
                 "python3",
                 "systemc_generation/check.py",
                 "--file_dir",
-                config.output_dir,
+                directory,
                 "--log_dir",
-                f"{config.output_dir}/..",
-            ]
+                f"{log_dir}",
+                "--timeout",
+                str(timeout),
+            ],
         )
 
 
@@ -255,6 +331,7 @@ if __name__ == "__main__":
     sc_generator = SystemCGenerator(config)
     for i in range(config.epoches):
         print(f"Epoch {i + 1}/{config.epoches}")
+        temp_dir = temp_format.format(idx=i)
         sc_generator.config.output_dir_name = f"output_{i}"
 
         outputs = sc_generator.generate_systemc(llm, tokenizer)

@@ -7,54 +7,73 @@ SC_MODULE(RowWiseSorter) {
     sc_in<bool> start;    // Start signal
     sc_out<bool> done;   // Done signal
 
-    sc_in<int> m[4][4];   // Input matrix
-    sc_out<int> sorted_m[4][4]; // Output sorted matrix
-
-    int r;                // Row count
-    int c;                // Column count
+    int m[4][4] = {{9, 8, 7, 1}, {7, 3, 0, 2}, {9, 5, 3, 2}, {6, 3, 1, 2}};
+    int r = 4;
+    int c = 4;
+    bool sorting_done = false;
+    bool start_received = false;
+    sc_event sort_done_event;  // Event to signal sorting completion
 
     SC_CTOR(RowWiseSorter) {
-        // Process to handle the sorting
-        SC_METHOD(sort_matrix);
+        SC_THREAD(sort);
         sensitive << clk.pos();
-        async_reset_signal_is(reset, true);
-
-        // Process to initialize row and column counts
-        SC_METHOD(init_counts);
-        sensitive << start;
-        async_reset_signal_is(reset, true);
+        dont_initialize();
     }
 
-    void init_counts() {
-        if (start.read()) {
-            r = 4; // Fixed row count for simplicity
-            c = 4; // Fixed column count for simplicity
-        }
-    }
+    void sort() {
+        while (true) {
+            wait(clk.pos()); // Wait for the clock edge
 
-    void sort_matrix() {
-        if (start.read()) {
-            for (int i = 0; i < r; i++) {
-                for (int j = 0; j < c; j++) {
-                    for (int k = 0; k < c - j - 1; k++) {
-                        if (m[i][k] > m[i][k + 1]) {
-                            int temp = m[i][k];
-                            m[i][k] = m[i][k + 1];
-                            m[i][k + 1] = temp;
+            if (start.read()) {
+                start_received = true;
+            }
+
+            if (start_received && !sorting_done) {
+                // Perform sorting
+                for (int i = 0; i < r; i++) {
+                    for (int j = 0; j < c; j++) {
+                        for (int k = 0; k < c - j - 1; k++) {
+                            if (m[i][k] > m[i][k + 1]) {
+                                swap(m[i][k], m[i][k + 1]);
+                            }
                         }
                     }
                 }
+
+                sorting_done = true;
+                sort_done_event.notify();  // Notify that sorting is done
             }
-            done.write(true);
-        } else {
-            done.write(false);
+
+            if (sorting_done) {
+                wait(sort_done_event);  // Wait for the sorting to be done
+                done.write(true);
+                wait(clk.pos());  // Wait for the next clock cycle before setting done to false
+                done.write(false);
+                sorting_done = false;
+                start_received = false;
+            }
         }
     }
 
-    void reset() {
+    void swap(int &xp, int &yp) {
+        int temp = xp;
+        xp = yp;
+        yp = temp;
+    }
+
+    // Add load_matrix and read_matrix methods
+    void load_matrix(int matrix[4][4]) {
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < c; j++) {
-                sorted_m[i][j].write(0);
+                m[i][j] = matrix[i][j];
+            }
+        }
+    }
+
+    void read_matrix(int matrix[4][4]) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                matrix[i][j] = m[i][j];
             }
         }
     }

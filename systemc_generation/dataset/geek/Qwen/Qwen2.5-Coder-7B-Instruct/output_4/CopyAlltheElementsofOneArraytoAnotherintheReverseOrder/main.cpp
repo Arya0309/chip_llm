@@ -3,32 +3,54 @@
 
 
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;       // Clock signal
-    sc_in<bool> start;     // Start signal
-    sc_out<bool> done;    // Done signal
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_out<int> original_arr[5];  // Output array for original values
+    sc_out<int> copied_arr[5];  // Output array for reversed values
 
-    sc_in<int> original_arr[5]; // Input array of 5 elements
-    sc_out<int> copied_arr[5];  // Output array of 5 elements
+    SC_CTOR(ArrayReverse) {
+        SC_METHOD(reverse_array);
+        sensitive << clk.pos();
+        dont_initialize();
+    }
 
-    // Process to handle the array reversal
-    SC_METHOD(reverseArray);
-    sensitive << clk.pos(); // Sensitive to positive edge of clock
-    dont_initialize();
+    void reverse_array() {
+        static bool started = false;
+        static int index = 0;
 
-    int len = 5; // Length of the arrays
-
-    void reverseArray() {
         if (start.read()) {
-            for (int i = 0; i < len; i++) {
-                copied_arr[i].write(original_arr[len - i - 1].read());
-            }
+            started = true;
+            index = 0;
+        }
+
+        if (started && !done.read() && index < 5) {
+            copied_arr[index].write(original_arr[4 - index].read());
+            index++;
+        }
+
+        if (index >= 5) {
             done.write(true);
-        } else {
+        }
+
+        if (!start.read()) {
+            started = false;
             done.write(false);
         }
     }
-};
 
+    void load_array(const int arr[5]) {
+        for (int i = 0; i < 5; i++) {
+            original_arr[i].write(arr[i]);
+        }
+    }
+
+    void read_array(int result[5]) {
+        for (int i = 0; i < 5; i++) {
+            result[i] = copied_arr[i].read();
+        }
+    }
+};
 
 
 SC_MODULE(Testbench) {

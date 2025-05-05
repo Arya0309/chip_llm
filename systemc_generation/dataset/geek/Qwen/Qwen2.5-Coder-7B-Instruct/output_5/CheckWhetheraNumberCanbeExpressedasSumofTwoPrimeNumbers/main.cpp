@@ -3,37 +3,40 @@
 
 
 SC_MODULE(PrimeSumChecker) {
-    sc_in<int> n_in;  // Input port for the number to check
-    sc_out<bool> result_out;  // Output port for the result
+    sc_in<int> n_in;      // Input signal for the number to check
+    sc_out<bool> result_out;  // Output signal indicating if the number can be expressed as the sum of two primes
 
     // Constructor
     SC_CTOR(PrimeSumChecker) {
-        // Process to check if the number can be expressed as sum of two primes
-        SC_METHOD(check_sum);
+        // Process to perform the check
+        SC_METHOD(check_prime_sum);
         sensitive << n_in;
     }
 
-    // Method to check if the number can be expressed as sum of two primes
-    void check_sum() {
-        int n = n_in.read();
-        bool is_n_prime = isPrime(n);
-        bool is_n_minus_2_prime = isPrime(n - 2);
-
-        result_out.write(is_n_prime && is_n_minus_2_prime);
-    }
-
-private:
-    // Helper function to check if a number is prime
+    // Method to check if a number is prime
     bool isPrime(int n) {
         if (n <= 1)
             return false;
-
         for (int i = 2; i <= sqrt(n); i++) {
             if (n % i == 0)
                 return false;
         }
-
         return true;
+    }
+
+    // Method to check if a prime number can be expressed as the sum of two primes
+    bool isPossible(int N) {
+        if (isPrime(N) && isPrime(N - 2))
+            return true;
+        else
+            return false;
+    }
+
+    // Method to handle the main logic
+    void check_prime_sum() {
+        int n = n_in.read();
+        bool result = isPossible(n);
+        result_out.write(result);
     }
 };
 

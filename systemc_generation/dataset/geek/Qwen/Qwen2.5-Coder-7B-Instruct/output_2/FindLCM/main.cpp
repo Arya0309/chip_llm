@@ -1,13 +1,13 @@
 
 #include <systemc.h>
 
+// Module to calculate the LCM of two integers
+
 
 SC_MODULE(LcmCalculator) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
-    sc_out<int> lcm_result; // Output port for the LCM result
-
-    int max_num, flag = 1;
+    sc_out<int> lcm_result;  // Output port for the LCM result
 
     // Constructor
     SC_CTOR(LcmCalculator) {
@@ -18,14 +18,21 @@ SC_MODULE(LcmCalculator) {
 
     // Method to calculate LCM
     void calculate_lcm() {
-        max_num = (a.read() > b.read()) ? a.read() : b.read();
+        int max_num = (a.read() > b.read()) ? a.read() : b.read();
+        int flag = 1;
+
         while (flag) {
             if (max_num % a.read() == 0 && max_num % b.read() == 0) {
-                lcm_result.write(max_num);
-                flag = 0; // Exit the loop after finding the LCM
-                break;
+                lcm_result.write(max_num);  // Write the LCM to the output port
+                flag = 0;  // Exit the loop
+            } else {
+                ++max_num;  // Increment max_num for the next iteration
             }
-            ++max_num;
+
+            // Add a reasonable upper limit to prevent infinite loop
+            if (max_num > 1000000) {  // Adjust the upper limit as needed
+                flag = 0;  // Exit the loop if the upper limit is reached
+            }
         }
     }
 };

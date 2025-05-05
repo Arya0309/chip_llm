@@ -1,45 +1,39 @@
 
 #include <systemc.h>
 
-// Module to check if a prime number can be expressed as sum of two prime numbers
 
 SC_MODULE(PrimeSumChecker) {
-    sc_in<int> n_in;  // Input port for the number to be checked
-    sc_out<bool> result_out; // Output port for the result
+    sc_in<int> n_in;  // Input port for the number to check
+    sc_out<bool> result_out;  // Output port for the result
 
     // Constructor
     SC_CTOR(PrimeSumChecker) {
-        // Process to check if the number can be expressed as sum of two primes
-        SC_METHOD(check_sum);
+        // Process to check if the number can be expressed as the sum of two primes
+        SC_METHOD(check_prime_sum);
         sensitive << n_in;
     }
 
-    // Method to check if the number can be expressed as sum of two primes
-    void check_sum() {
-        int n = n_in.read();
-        bool is_n_prime = isPrime(n);
-        bool is_n_minus_2_prime = isPrime(n - 2);
+    // Method to check if a number is prime
+    bool isPrime(int n) {
+        if (n <= 1) 
+            return false; 
 
-        if (is_n_prime && is_n_minus_2_prime) {
-            result_out.write(true);
-        } else {
-            result_out.write(false);
-        }
+        for (int i = 2; i <= sqrt(n); i++) 
+        { 
+            if (n % i == 0) 
+                return false; 
+        } 
+
+        return true; 
     }
 
-    // Helper function to check if a number is prime
-    bool isPrime(int n) {
-        if (n <= 1) {
-            return false;
-        }
-
-        for (int i = 2; i <= sqrt(n); i++) {
-            if (n % i == 0) {
-                return false;
-            }
-        }
-
-        return true;
+    // Method to check if the number can be expressed as the sum of two primes
+    void check_prime_sum() {
+        int N = n_in.read();
+        if (isPrime(N) && isPrime(N - 2)) 
+            result_out.write(true); 
+        else
+            result_out.write(false); 
     }
 };
 

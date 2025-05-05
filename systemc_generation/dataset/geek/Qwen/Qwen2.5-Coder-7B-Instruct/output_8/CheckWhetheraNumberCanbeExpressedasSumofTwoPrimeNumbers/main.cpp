@@ -8,12 +8,23 @@ SC_MODULE(PrimeSumChecker) {
 
     // Constructor
     SC_CTOR(PrimeSumChecker) {
-        // Process to check if the number can be expressed as the sum of two primes
+        // Process to check if the number can be expressed as sum of two primes
         SC_METHOD(check_prime_sum);
         sensitive << n_in;
     }
 
-    // Method to check if a number is prime
+    // Method to check if a prime number can be expressed as sum of two prime numbers
+    void check_prime_sum() {
+        int n = n_in.read();
+        if (isPrime(n) && isPrime(n - 2)) {
+            result_out.write(true);
+        } else {
+            result_out.write(false);
+        }
+    }
+
+private:
+    // Function to check whether a number is prime or not
     bool isPrime(int n) {
         if (n <= 1)
             return false;
@@ -23,16 +34,8 @@ SC_MODULE(PrimeSumChecker) {
         }
         return true;
     }
-
-    // Method to check if the number can be expressed as the sum of two primes
-    void check_prime_sum() {
-        int n = n_in.read();
-        if (isPrime(n) && isPrime(n - 2))
-            result_out.write(true);
-        else
-            result_out.write(false);
-    }
 };
+
 
 
 SC_MODULE(Testbench) {

@@ -1,6 +1,7 @@
 
 #include <systemc.h>
 
+// Module to convert Fahrenheit to Celsius
 
 SC_MODULE(TempConverter) {
     sc_in<float> fahrenheit;  // Input port for the temperature in Fahrenheit

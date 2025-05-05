@@ -3,12 +3,12 @@
 
 
 SC_MODULE(TempConverter) {
-    sc_in<float> fahrenheit;  // Input port for Fahrenheit temperature
-    sc_out<float> celsius;     // Output port for Celsius temperature
+    sc_in<float> fahrenheit;  // Input port for the temperature in Fahrenheit
+    sc_out<float> celsius;   // Output port for the temperature in Celsius
 
     // Constructor
     SC_CTOR(TempConverter) {
-        // Process to perform conversion
+        // Process to perform the conversion
         SC_METHOD(convert);
         sensitive << fahrenheit;
     }

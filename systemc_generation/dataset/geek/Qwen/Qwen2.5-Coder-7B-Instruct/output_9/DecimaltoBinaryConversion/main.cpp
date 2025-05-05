@@ -1,38 +1,40 @@
 
 #include <systemc.h>
+#include <bitset>
 
 
 SC_MODULE(DecToBinary) {
     sc_in<int> dec_in;  // Input port for the decimal number
-    sc_out<int> binary_out; // Output port for the binary number
+    sc_out<std::string> binary_out; // Output port for the binary representation
 
     // Constructor
     SC_CTOR(DecToBinary) {
         // Process to convert decimal to binary
-        SC_METHOD(dec_to_binary);
+        SC_METHOD(convert);
         sensitive << dec_in;
     }
 
     // Method to convert decimal to binary
-    void dec_to_binary() {
+    void convert() {
         int n = dec_in.read();
-        int binaryNum[32];
-        int i = 0;
-
-        // Loop to convert decimal to binary
-        while (n > 0) {
-            binaryNum[i] = n % 2;
-            n = n / 2;
-            i++;
+        if (n == 0) {
+            binary_out.write("0");
+            return;
         }
 
-        // Reset binary_out to 0
-        binary_out.write(0);
+        // Use bitset to handle up to 32-bit integers
+        std::bitset<32> binary(n);
+        std::string binaryString = binary.to_string();
 
-        // Loop to write binary number to binary_out
-        for (int j = i - 1; j >= 0; j--) {
-            binary_out.write(binaryNum[j]);
+        // Remove leading zeros
+        size_t firstOne = binaryString.find('1');
+        if (firstOne != std::string::npos) {
+            binaryString = binaryString.substr(firstOne);
+        } else {
+            binaryString = "0";
         }
+
+        binary_out.write(binaryString);
     }
 };
 

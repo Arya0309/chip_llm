@@ -3,54 +3,74 @@
 
 
 SC_MODULE(MinMax) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_out<int> min_val;      // Minimum value output
-    sc_out<int> max_val;      // Maximum value output
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_out<int> min_val;  // Output port for the minimum value
+    sc_out<int> max_val;  // Output port for the maximum value
 
-    int arr[100];             // Array to hold input values
-    int n;                    // Size of the array
+    sc_in<sc_vector<int>> input_arr;  // Input port for the array
+    sc_signal<int> min_result;  // Internal signal for the minimum result
+    sc_signal<int> max_result;  // Internal signal for the maximum result
 
     // Constructor
     SC_CTOR(MinMax) {
-        // Process to handle the computation
-        SC_METHOD(compute);
-        sensitive << clk.pos();  // Sensitive to positive edge of the clock
+        // Process to find minimum and maximum values
+        SC_METHOD(find_min_max);
+        sensitive << clk.pos();
+        dont_initialize();
+
+        // Process to handle the clock edge
+        SC_METHOD(handle_clock);
+        sensitive << clk.pos();
         dont_initialize();
     }
 
-    // Method to compute minimum and maximum values
-    void compute() {
+    // Method to find minimum and maximum values
+    void find_min_max() {
         if (start.read()) {
-            n = 0;
-            min_val.write(INT_MAX);
-            max_val.write(INT_MIN);
+            if (!input_arr.empty()) {
+                int min_val_temp = *std::min_element(input_arr.begin(), input_arr.end());
+                int max_val_temp = *std::max_element(input_arr.begin(), input_arr.end());
 
-            // Wait for the next clock cycle to capture the array elements
-            wait();
+                // Check if the values are within a safe range
+                if (min_val_temp >= INT_MIN && min_val_temp <= INT_MAX) {
+                    min_result = min_val_temp;
+                } else {
+                    min_result = INT_MIN;  // Handle overflow or underflow case
+                }
 
-            while (true) {
-                arr[n] = rand() % 10000;  // Example: Generate random values for demonstration
-                n++;
-                if (n >= 100) break;  // Limit the array size for demonstration
-
-                wait();
+                if (max_val_temp >= INT_MIN && max_val_temp <= INT_MAX) {
+                    max_result = max_val_temp;
+                } else {
+                    max_result = INT_MAX;  // Handle overflow or underflow case
+                }
+            } else {
+                min_result = 0;  // Default value if array is empty
+                max_result = 0;  // Default value if array is empty
             }
-
-            // Compute minimum and maximum values
-            int min_value = INT_MAX;
-            int max_value = INT_MIN;
-            for (int i = 0; i < n; i++) {
-                if (arr[i] < min_value) min_value = arr[i];
-                if (arr[i] > max_value) max_value = arr[i];
-            }
-
-            min_val.write(min_value);
-            max_val.write(max_value);
             done.write(true);
         } else {
             done.write(false);
+        }
+    }
+
+    // Method to update the output ports
+    void update_outputs() {
+        if (min_result > INT_MIN && max_result < INT_MAX) {
+            min_val.write(min_result);
+            max_val.write(max_result);
+        } else {
+            // Handle overflow or underflow case
+            min_val.write(0);  // Default value in case of overflow
+            max_val.write(0);  // Default value in case of overflow
+        }
+    }
+
+    // Process to handle the clock edge
+    void handle_clock() {
+        if (done.read()) {
+            update_outputs();
         }
     }
 };

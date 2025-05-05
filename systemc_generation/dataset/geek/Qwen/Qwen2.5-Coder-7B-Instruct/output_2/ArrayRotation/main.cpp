@@ -3,43 +3,42 @@
 
 
 SC_MODULE(Rotator) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> rst;  // Reset signal
-    sc_in<int> d;      // Number of positions to rotate
-    sc_in<int> in_array[7];  // Input array
-    sc_out<int> out_array[7];  // Output array
+    sc_in<bool> clk;       // Clock signal
+    sc_in<bool> rst;       // Reset signal
+    sc_in<int> d;          // Number of positions to rotate
+    sc_in<int> in_array[7]; // Input array
+    sc_out<int> out_array[7]; // Output array
 
-    // Temporary array for rotation
+    // Temporary array to store the rotated elements
     int temp[7];
 
     // Constructor
     SC_CTOR(Rotator) {
-        // Process to handle the rotation
-        SC_METHOD(handle_rotation);
+        // Process to perform the rotation
+        SC_METHOD(rotate);
         sensitive << clk.pos();
-        async_reset_signal_is(rst, true);
+        dont_initialize();
     }
 
-    // Method to handle the rotation
-    void handle_rotation() {
+    // Method to rotate the array
+    void rotate() {
         if (rst.read()) {
-            // Reset the output array
+            // Reset the output array to zero
             for (int i = 0; i < 7; i++) {
                 out_array[i].write(0);
             }
         } else {
-            // Perform the rotation
-            int k = 0;
-            for (int i = d; i < 7; i++) {
-                temp[k] = in_array[i].read();
-                k++;
-            }
-            for (int i = 0; i < d; i++) {
-                temp[k] = in_array[i].read();
-                k++;
-            }
+            // Calculate the effective rotation index
+            int effective_rotation = d % 7;
+
+            // Copy the elements from in_array to temp
             for (int i = 0; i < 7; i++) {
-                out_array[i].write(temp[i]);
+                temp[i] = in_array[i].read();
+            }
+
+            // Rotate the array
+            for (int i = 0; i < 7; i++) {
+                out_array[i].write(temp[(i + effective_rotation) % 7]);
             }
         }
     }

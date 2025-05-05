@@ -3,12 +3,12 @@
 
 
 SC_MODULE(ComplexAdder) {
-    sc_in<int> real1;    // Input port for the real part of the first complex number
-    sc_in<int> imag1;    // Input port for the imaginary part of the first complex number
-    sc_in<int> real2;    // Input port for the real part of the second complex number
-    sc_in<int> imag2;    // Input port for the imaginary part of the second complex number
-    sc_out<int> real_sum; // Output port for the real part of the sum
-    sc_out<int> imag_sum; // Output port for the imaginary part of the sum
+    sc_in<int> real1;  // Input port for the real part of the first complex number
+    sc_in<int> imag1;  // Input port for the imaginary part of the first complex number
+    sc_in<int> real2;  // Input port for the real part of the second complex number
+    sc_in<int> imag2;  // Input port for the imaginary part of the second complex number
+    sc_out<int> real_sum;  // Output port for the real part of the sum
+    sc_out<int> imag_sum;  // Output port for the imaginary part of the sum
 
     // Constructor
     SC_CTOR(ComplexAdder) {

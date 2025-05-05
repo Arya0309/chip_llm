@@ -5,55 +5,65 @@
 SC_MODULE(Rotator) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> rst;  // Reset signal
-    sc_in<int> d;     // Number of positions to rotate
+    sc_in<int> d;      // Number of positions to rotate
     sc_in<int> in_array[7];  // Input array
     sc_out<int> out_array[7];  // Output array
 
-    int arr[7];  // Internal array to store the elements
+    int arr[7];  // Internal array to hold the input values
+    int n = 7;   // Size of the array
 
     // Constructor
     SC_CTOR(Rotator) {
-        // Process to handle rotation
-        SC_METHOD(handle_rotation);
+        // Process to handle clock and reset
+        SC_METHOD(process);
         sensitive << clk.pos();
         dont_initialize();
 
-        // Process to handle reset
-        SC_METHOD(reset_array);
+        // Reset process
+        SC_METHOD(reset_process);
         sensitive << rst.pos();
-        dont_initialize();
     }
 
-    // Method to handle rotation
-    void handle_rotation() {
-        if (!rst.read()) {
+    // Method to handle the main logic
+    void process() {
+        if (rst.read()) {
+            // Reset the output array to zero
+            for (int i = 0; i < n; i++) {
+                out_array[i].write(0);
+            }
+        } else {
+            // Copy input array to internal array
+            for (int i = 0; i < n; i++) {
+                arr[i] = in_array[i].read();
+            }
+
             // Rotate the array
-            for (int i = 0; i < 7; i++) {
-                arr[(i + d) % 7] = in_array[i];
+            int temp[n];
+            int k = 0;
+            for (int i = d; i < n; i++) {
+                temp[k++] = arr[i];
+            }
+            for (int i = 0; i < d; i++) {
+                temp[k++] = arr[i];
+            }
+
+            // Copy the rotated array to output array
+            for (int i = 0; i < n; i++) {
+                out_array[i].write(temp[i]);
             }
         }
     }
 
     // Method to handle reset
-    void reset_array() {
+    void reset_process() {
         if (rst.read()) {
-            // Initialize the array to zero
-            for (int i = 0; i < 7; i++) {
+            // Reset the internal array to zero
+            for (int i = 0; i < n; i++) {
                 arr[i] = 0;
             }
         }
     }
-
-    // Method to update output array
-    SC_METHOD(update_output) {
-        if (!rst.read()) {
-            for (int i = 0; i < 7; i++) {
-                out_array[i].write(arr[i]);
-            }
-        }
-    }
 };
-
 
 
 SC_MODULE(Testbench) {

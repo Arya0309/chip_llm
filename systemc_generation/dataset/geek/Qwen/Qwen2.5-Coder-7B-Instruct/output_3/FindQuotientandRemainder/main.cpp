@@ -1,27 +1,28 @@
 
 #include <systemc.h>
 
+// Module that performs division and handles errors
 
 SC_MODULE(Divider) {
     sc_in<int> Dividend;  // Input port for the dividend
     sc_in<int> Divisor;   // Input port for the divisor
-    sc_out<int> Quotient;  // Output port for the quotient
+    sc_out<int> Quotient; // Output port for the quotient
     sc_out<int> Remainder; // Output port for the remainder
-    sc_out<bool> Error;    // Output port for the error flag
+    sc_out<bool> Error; // Output port for the error flag
 
     // Constructor
     SC_CTOR(Divider) {
-        // Process to handle division
+        // Process to perform division
         SC_METHOD(divide);
         sensitive << Dividend << Divisor;
     }
 
-    // Method to perform division
+    // Method to perform division and handle errors
     void divide() {
         if (Divisor.read() == 0) {
             Error.write(true);
-            Quotient.write(0);  // Assigning default value
-            Remainder.write(0); // Assigning default value
+            Quotient.write(0);
+            Remainder.write(0);
         } else {
             Error.write(false);
             Quotient.write(Dividend.read() / Divisor.read());

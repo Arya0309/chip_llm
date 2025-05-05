@@ -1,21 +1,32 @@
 
 #include <systemc.h>
 
+const int SIZE = 4;
+
 
 SC_MODULE(MatrixTranspose) {
-    sc_in<int> A[SIZE];  // Input ports for the matrix A
-    sc_out<int> B[SIZE]; // Output ports for the matrix B
+    sc_in<int> A[SIZE][SIZE];
+    sc_out<int> B[SIZE][SIZE];
 
     SC_CTOR(MatrixTranspose) {
-        SC_METHOD(compute_transpose);
-        sensitive << A;
+        SC_METHOD(transpose);
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                sensitive << A[i][j];
+            }
+        }
     }
 
-    void compute_transpose() {
-        int i, j;
-        for (i = 0; i < SIZE; i++) {
-            for (j = 0; j < SIZE; j++) {
-                B[i * SIZE + j].write(A[j * SIZE + i].read());
+    void transpose() {
+        int B_local[SIZE][SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                B_local[i][j] = A[j][i];
+            }
+        }
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                B[i][j].write(B_local[i][j]);
             }
         }
     }

@@ -1,14 +1,17 @@
 
 #include <systemc.h>
+#include <algorithm>  // Include the algorithm header for std::swap
 
 
 SC_MODULE(DeterminantCalculator) {
-    sc_in<double> matrix[4];  // Input port for the matrix
-    sc_out<double> det;       // Output port for the determinant
+    sc_in<double> matrix[4];  // Input ports for the matrix elements
+    sc_out<double> det;      // Output port for the determinant
 
     SC_CTOR(DeterminantCalculator) {
         SC_METHOD(calculate_determinant);
-        sensitive << matrix;
+        for (int i = 0; i < 4; i++) {
+            sensitive << matrix[i];
+        }
     }
 
     void calculate_determinant() {
@@ -29,7 +32,7 @@ SC_MODULE(DeterminantCalculator) {
             }
             if (pivot != i) {
                 for (int k = 0; k < 4; k++) {
-                    swap(a[i][k], a[pivot][k]);
+                    std::swap(a[i][k], a[pivot][k]);
                 }
                 det *= -1;
             }
@@ -45,6 +48,7 @@ SC_MODULE(DeterminantCalculator) {
                 }
             }
         }
+
         this->det.write(det);
     }
 };

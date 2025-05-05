@@ -7,55 +7,45 @@ SC_MODULE(Rotator) {
     sc_in<bool> rst;  // Reset signal
     sc_in<int> d;     // Number of positions to rotate
     sc_in<int> in_array[7];  // Input array
-    sc_out<int> out_array[7]; // Output array
+    sc_out<int> out_array[7];  // Output array
 
     // Temporary array for rotation
     int temp[7];
 
     // Constructor
     SC_CTOR(Rotator) {
-        // Process to perform rotation
-        SC_METHOD(rotate);
-        sensitive << clk.pos();  // Sensitive to positive edge of clock
-        async_reset_signal_is(rst, true);  // Reset active high
-
-        // Process to print the array
-        SC_METHOD(print_array);
-        sensitive << clk.pos();  // Sensitive to positive edge of clock
-        async_reset_signal_is(rst, true);  // Reset active high
+        // Process to handle the rotation
+        SC_METHOD(handle_rotation);
+        sensitive << clk.pos();
+        async_reset_signal_is(rst, true);
     }
 
-    // Method to rotate the array
-    void rotate() {
-        if (!rst.read()) {
-            // Clear the temporary array
+    // Method to handle the rotation logic
+    void handle_rotation() {
+        if (rst.read()) {
+            // Reset the output array to zero
             for (int i = 0; i < 7; i++) {
-                temp[i] = 0;
+                out_array[i].write(0);
+            }
+        } else {
+            // Perform the rotation
+            int n = 7;  // Size of the array
+            int k = 0;
+
+            // Copy the elements from d to n-1 to the beginning of temp
+            for (int i = d; i < n; i++) {
+                temp[k++] = in_array[i].read();
             }
 
-            // Copy elements from in_array to temp
-            for (int i = d; i < 7; i++) {
-                temp[i - d] = in_array[i];
-            }
+            // Copy the elements from 0 to d-1 to the end of temp
             for (int i = 0; i < d; i++) {
-                temp[7 - d + i] = in_array[i];
+                temp[k++] = in_array[i].read();
             }
 
-            // Copy elements from temp back to out_array
-            for (int i = 0; i < 7; i++) {
+            // Copy the elements from temp back to the output array
+            for (int i = 0; i < n; i++) {
                 out_array[i].write(temp[i]);
             }
-        }
-    }
-
-    // Method to print the array (not directly executable in SystemC, just for demonstration)
-    void print_array() {
-        if (!rst.read()) {
-            cout << "Rotated Array: ";
-            for (int i = 0; i < 7; i++) {
-                cout << out_array[i].read() << " ";
-            }
-            cout << endl;
         }
     }
 };

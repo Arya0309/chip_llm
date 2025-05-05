@@ -3,32 +3,35 @@
 
 
 SC_MODULE(PrimeChecker) {
-    sc_in<int> n;  // Input port for the number to check
-    sc_out<bool> is_prime; // Output port for the result
+    sc_in<int> n;          // Input port for the number to check
+    sc_out<bool> is_prime; // Output port indicating whether the number is prime
 
     // Constructor
     SC_CTOR(PrimeChecker) {
-        // Process to check if n is prime
+        // Process to determine if the number is prime
         SC_METHOD(check_prime);
         sensitive << n;
     }
 
-    // Method to check if n is prime
+    // Method to check if the number is prime
     void check_prime() {
         int cnt = 0;
+        bool prime = true;
+
         if (n.read() <= 1) {
-            is_prime.write(false);
+            prime = false;
         } else {
             for (int i = 1; i <= n.read(); i++) {
-                if (n.read() % i == 0)
+                if (n.read() % i == 0) {
                     cnt++;
+                }
             }
             if (cnt > 2) {
-                is_prime.write(false);
-            } else {
-                is_prime.write(true);
+                prime = false;
             }
         }
+
+        is_prime.write(prime);
     }
 };
 

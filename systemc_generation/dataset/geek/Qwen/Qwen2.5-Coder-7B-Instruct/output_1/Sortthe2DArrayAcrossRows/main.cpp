@@ -6,30 +6,59 @@ SC_MODULE(RowWiseSorter) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> start;  // Start signal
     sc_out<bool> done; // Done signal
-    sc_in<sc_uint<16>> matrix[4][4];  // Input matrix
-    sc_out<sc_uint<16>> sorted_matrix[4][4];  // Output sorted matrix
 
-    // Constructor
+    int m[4][4];
+    int r = 4;
+    int c = 4;
+    bool sorting_complete = false;
+
+    // Method to load the input matrix
+    void load_matrix(int input_matrix[4][4]) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                m[i][j] = input_matrix[i][j];
+            }
+        }
+    }
+
+    // Method to read the sorted matrix
+    void read_matrix(int output_matrix[4][4]) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                output_matrix[i][j] = m[i][j];
+            }
+        }
+    }
+
     SC_CTOR(RowWiseSorter) {
         SC_METHOD(sortRows);
         sensitive << clk.pos();
-        async_reset_signal_is(clk, false);
+        dont_initialize();
+
+        SC_METHOD(checkDone);
+        sensitive << clk.pos();
+        dont_initialize();
     }
 
-    // Method to sort rows of the matrix
     void sortRows() {
         if (start.read()) {
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    for (int k = 0; k < 4 - j - 1; k++) {
-                        if (matrix[i][k].read() > matrix[i][k + 1].read()) {
-                            sc_uint<16> temp = matrix[i][k].read();
-                            matrix[i][k].write(matrix[i][k + 1].read());
-                            matrix[i][k + 1].write(temp);
+            for (int i = 0; i < r; i++) {
+                for (int j = 0; j < c; j++) {
+                    for (int k = 0; k < c - j - 1; k++) {
+                        if (m[i][k] > m[i][k + 1]) {
+                            int temp = m[i][k];
+                            m[i][k] = m[i][k + 1];
+                            m[i][k + 1] = temp;
                         }
                     }
                 }
             }
+            sorting_complete = true;
+        }
+    }
+
+    void checkDone() {
+        if (sorting_complete) {
             done.write(true);
         } else {
             done.write(false);

@@ -1,33 +1,31 @@
 
 #include <systemc.h>
 
+#define SIZE 4  // Define the size of the matrix
+
+// Module that swaps the first and last elements of each row in a matrix
 
 SC_MODULE(MatrixSwapper) {
-    sc_in<sc_vector<sc_int<32>>*> in;  // Input port for the 2D array
-    sc_out<sc_vector<sc_int<32>>*> out; // Output port for the modified 2D array
+    sc_in<int> in[SIZE];  // Input ports for the matrix elements
+    sc_out<int> out[SIZE]; // Output ports for the swapped matrix elements
 
     // Constructor
     SC_CTOR(MatrixSwapper) {
-        // Process to perform the swapping
-        SC_METHOD(swapping);
+        // Process to swap the first and last elements of each row
+        SC_METHOD(interchangeFirstLast);
         sensitive << in;
     }
 
-    // Method to swap the first and last columns
-    void swapping() {
-        int n = in->size();
-        sc_vector<sc_int<32>>* temp = new sc_vector<sc_int<32>>(n);
-
-        for (int i = 0; i < n; i++) {
-            (*temp)[i] = (*in)[i][0];
-            (*in)[i][0] = (*in)[i][n - 1];
-            (*in)[i][n - 1] = (*temp)[i];
+    // Method to swap the first and last elements of each row
+    void interchangeFirstLast() {
+        for (int i = 0; i < SIZE; i++) {
+            int t = in[i].read();
+            out[i].write(t);
         }
-
-        out->assign(*temp);
-        delete temp;
     }
 };
+
+// Testbench module to drive the MatrixSwapper module
 
 
 SC_MODULE(Testbench) {

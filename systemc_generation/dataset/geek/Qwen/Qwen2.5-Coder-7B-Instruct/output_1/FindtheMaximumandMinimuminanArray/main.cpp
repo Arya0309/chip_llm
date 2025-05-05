@@ -9,49 +9,53 @@ SC_MODULE(MinMax) {
     sc_out<int> min_val;      // Output for minimum value
     sc_out<int> max_val;      // Output for maximum value
 
-    int arr[5] = {12, 1234, 45, 67, 1}; // Array of integers
-    int n = sizeof(arr) / sizeof(arr[0]); // Size of the array
-    int current_min = INT_MAX;
-    int current_max = INT_MIN;
+    int* arr;
+    int n;
 
     // Constructor
-    SC_CTOR(MinMax) {
-        // Process to handle start signal and compute min/max
-        SC_METHOD(compute_min_max);
+    SC_CTOR(MinMax) : arr(nullptr), n(0) {
+        // Process to handle the start signal
+        SC_METHOD(handle_start);
         sensitive << clk.pos();
-        async_reset_signal_is(clk, false);
+        dont_initialize();
 
-        // Process to update outputs when done
-        SC_METHOD(update_outputs);
-        sensitive << done;
+        // Process to update the minimum and maximum values
+        SC_METHOD(update_min_max);
+        sensitive << clk.pos();
+        dont_initialize();
     }
 
-    // Method to compute minimum and maximum values
-    void compute_min_max() {
+    // Method to handle the start signal
+    void handle_start() {
         if (start.read()) {
-            current_min = INT_MAX;
-            current_max = INT_MIN;
-            for (int i = 0; i < n; i++) {
-                if (arr[i] < current_min) {
-                    current_min = arr[i];
+            min_val_reg = arr[0];
+            max_val_reg = arr[0];
+            done.write(false);
+        }
+    }
+
+    // Method to update the minimum and maximum values
+    void update_min_max() {
+        if (!done.read()) {
+            for (int i = 1; i < n; ++i) {
+                if (arr[i] < min_val_reg) {
+                    min_val_reg = arr[i];
                 }
-                if (arr[i] > current_max) {
-                    current_max = arr[i];
+                if (arr[i] > max_val_reg) {
+                    max_val_reg = arr[i];
                 }
             }
+            min_val.write(min_val_reg);
+            max_val.write(max_val_reg);
             done.write(true);
         }
     }
 
-    // Method to update outputs
-    void update_outputs() {
-        if (done.read()) {
-            min_val.write(current_min);
-            max_val.write(current_max);
-            done.write(false);
-        }
-    }
+private:
+    int min_val_reg;
+    int max_val_reg;
 };
+
 
 
 SC_MODULE(Testbench) {

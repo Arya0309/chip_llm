@@ -1,35 +1,47 @@
 
-#include <systemc.h>
+   #include <systemc.h>
 
-
+   
 SC_MODULE(LcmCalculator) {
-    sc_in<int> a;  // Input port for the first number
-    sc_in<int> b;  // Input port for the second number
-    sc_out<int> lcm_result; // Output port for the LCM
+       sc_in<int> a;  // Input port for the first number
+       sc_in<int> b;  // Input port for the second number
+       sc_out<int> lcm_result; // Output port for the LCM result
 
-    // Constructor
-    SC_CTOR(LcmCalculator) {
-        // Process to find the LCM
-        SC_METHOD(find_lcm);
-        sensitive << a << b;
-    }
+       int max_num;
+       bool flag = true;
 
-    // Method to find the LCM of two numbers
-    void find_lcm() {
-        int max_num = (a.read() > b.read()) ? a.read() : b.read();
-        bool flag = true;
+       // Constructor
+       SC_CTOR(LcmCalculator) {
+           // Process to find the LCM
+           SC_METHOD(find_lcm);
+           sensitive << a << b;
+       }
 
-        while (flag) {
-            if (max_num % a.read() == 0 && max_num % b.read() == 0) {
-                lcm_result.write(max_num);
-                flag = false;
-                break;
-            }
-            ++max_num;
-        }
-    }
-};
+       // Method to find the LCM
+       void find_lcm() {
+           // Initialize max_num to a default value
+           max_num = (a.read() > b.read()) ? a.read() : b.read();
+           bool flag = true;
 
+           while (flag) {
+               // Check if max_num is divisible by both a and b
+               if (max_num % a.read() == 0 && max_num % b.read() == 0) {
+                   lcm_result.write(max_num);
+                   flag = false;  // Exit the loop
+               }
+
+               // Increment max_num for the next iteration
+               ++max_num;
+
+               // Handle potential infinite loop
+               if (max_num > 1000000) {  // Arbitrary large number to prevent infinite loop
+                   cout << "No LCM found within the range." << endl;
+                   flag = false;  // Exit the loop
+               }
+           }
+       }
+   };
+   
 
 SC_MODULE(Testbench) {
     sc_signal<int> a_sig;       // Signal for the first input

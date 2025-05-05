@@ -4,33 +4,30 @@
 
 SC_MODULE(DecToBinary) {
     sc_in<int> dec_in;  // Input port for the decimal number
-    sc_out<int> binary_out; // Output port for the binary representation
+    sc_out<int> binary_out; // Output port for the binary number
 
     // Constructor
     SC_CTOR(DecToBinary) {
         // Process to convert decimal to binary
-        SC_METHOD(dec_to_binary);
+        SC_METHOD(convert);
         sensitive << dec_in;
     }
 
     // Method to convert decimal to binary
-    void dec_to_binary() {
+    void convert() {
         int n = dec_in.read();
         int binaryNum[32];
         int i = 0;
-
         while (n > 0) {
             binaryNum[i] = n % 2;
             n = n / 2;
             i++;
         }
-
-        int binaryValue = 0;
+        int binary = 0;
         for (int j = i - 1; j >= 0; j--) {
-            binaryValue = binaryValue * 10 + binaryNum[j];
+            binary = binary * 10 + binaryNum[j];
         }
-
-        binary_out.write(binaryValue);
+        binary_out.write(binary);
     }
 };
 

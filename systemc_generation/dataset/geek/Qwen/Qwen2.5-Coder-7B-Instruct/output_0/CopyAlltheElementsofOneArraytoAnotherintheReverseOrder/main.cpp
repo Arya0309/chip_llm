@@ -3,34 +3,73 @@
 
 
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
 
-    int original_arr[5] = {1, 2, 3, 4, 5};
-    int len = sizeof(original_arr) / sizeof(original_arr[0]);
-    int copied_arr[len];
-    bool running;
+    sc_signal<int> original_arr[5];  // Signal to hold the original array
+    sc_signal<int> copied_arr[5];    // Signal to hold the copied array
+    sc_signal<bool> print_original; // Signal to trigger printing original array
+    sc_signal<bool> print_copied;   // Signal to trigger printing copied array
 
+    // Constructor
     SC_CTOR(ArrayReverse) {
-        SC_METHOD(run);
-        sensitive << clk.pos();
-        dont_initialize();
+        // Process to handle start signal and reverse array
+        SC_METHOD(handle_start);
+        sensitive << start;
+
+        // Process to print arrays
+        SC_METHOD(print_arrays);
+        sensitive << print_original << print_copied << clk.pos();
     }
 
-    void run() {
+    // Method to handle start signal and reverse array
+    void handle_start() {
         if (start.read()) {
-            running = true;
-            for (int i = 0; i < len; i++) {
-                copied_arr[i] = original_arr[len - i - 1];
+            // Initialize original array
+            original_arr[0].write(1);
+            original_arr[1].write(2);
+            original_arr[2].write(3);
+            original_arr[3].write(4);
+            original_arr[4].write(5);
+
+            // Copy and reverse the array
+            for (int i = 0; i < 5; i++) {
+                copied_arr[i].write(original_arr[4 - i].read());
             }
-            running = false;
+
+            // Trigger printing
+            print_original.write(true);
+            print_copied.write(true);
+        }
+    }
+
+    // Method to print arrays
+    void print_arrays() {
+        static bool printed = false;
+        if (print_original.read() && !printed) {
+            cout << " Original array: ";
+            for (int i = 0; i < 5; i++) {
+                cout << original_arr[i].read() << " ";
+            }
+            cout << endl;
+            print_original.write(false);
+            printed = true;
+        } else if (print_copied.read() && !printed) {
+            cout << " Resultant array: ";
+            for (int i = 0; i < 5; i++) {
+                cout << copied_arr[i].read() << " ";
+            }
+            cout << endl;
+            print_copied.write(false);
+            printed = true;
+        } else if (printed) {
             done.write(true);
-        } else {
-            done.write(false);
         }
     }
 };
+
+// Testbench module
 
 
 SC_MODULE(Testbench) {

@@ -1,44 +1,38 @@
-### Analysis of the Provided C++ Code
+### Analysis of the C++ Code
 
-#### Inputs and Outputs
-- **Inputs**: The code does not take any external inputs from the user. The only variable that can be considered an input is `num`, which is hardcoded within the `main` function.
-- **Outputs**: The code prints the factorial of the number `num` to the standard output.
+**Inputs**:
+- None. The `main` function initializes a variable `num` with the value 5.
 
-#### Detailed Explanation Line-by-Line
+**Outputs**:
+- The output is the factorial of the number 5, which is 120.
 
-1. **Include Header Files**
+**Detailed Explanation**:
+
+1. **Header and Namespace**:
    ```cpp
    #include <iostream>
    using namespace std;
    ```
-   - This includes the input-output stream library and uses the standard namespace to avoid prefixing standard library functions with `std::`.
+   - This includes the standard input-output stream library and uses the standard namespace for convenience.
 
-2. **Function Declaration**
+2. **Function Declaration**:
    ```cpp
    unsigned int factorial(unsigned int n)
    ```
-   - Declares a function named `factorial` that takes an unsigned integer `n` as input and returns an unsigned integer.
+   - Declares a function `factorial` that takes an unsigned integer `n` and returns an unsigned integer.
 
-3. **Variable Initialization**
+3. **Factorial Calculation**:
    ```cpp
    int res = 1, i;
-   ```
-   - Initializes two variables: `res` to 1 (to store the result of the factorial) and `i` for looping.
-
-4. **Loop to Calculate Factorial**
-   ```cpp
    for (i = 2; i <= n; i++)
        res *= i;
-   ```
-   - A loop that starts from 2 and goes up to `n`. For each iteration, it multiplies the current value of `res` by `i`.
-
-5. **Return Statement**
-   ```cpp
    return res;
    ```
-   - Returns the computed factorial value stored in `res`.
+   - Initializes `res` to 1.
+   - Iterates from 2 to `n`, multiplying `res` by each number in this range.
+   - Returns the calculated factorial.
 
-6. **Main Function**
+4. **Driver Code**:
    ```cpp
    int main()
    {
@@ -48,32 +42,31 @@
        return 0;
    }
    ```
-   - The `main` function initializes `num` to 5 and then calls the `factorial` function with `num` as the argument. It then prints the result to the console.
+   - Initializes `num` to 5.
+   - Calls the `factorial` function with `num` and prints the result.
 
-### SystemC Code Snippet
+### Equivalent SystemC Code
 
-To convert this C++ code into a SystemC module, we need to create a module that takes an input signal `in` and outputs the factorial of that number on `out`. Here's how you can do it:
+To convert the C++ code into SystemC, we need to create a module that takes an input signal, calculates the factorial, and outputs the result. Here's the equivalent SystemC code:
 
 ```cpp
 #include <systemc.h>
 
-SC_MODULE(Factorial) {
+SC_MODULE(FactorialCalculator) {
     sc_in<unsigned int> in;  // Input port for the number
     sc_out<unsigned int> out; // Output port for the factorial
 
-    unsigned int res = 1, i;
-
-    // Constructor
-    SC_CTOR(Factorial) {
-        // Process to calculate factorial
+    SC_CTOR(FactorialCalculator) {
+        // Process to calculate the factorial
         SC_METHOD(calculate_factorial);
         sensitive << in;
     }
 
     // Method to calculate the factorial
     void calculate_factorial() {
-        res = 1;
-        for (i = 2; i <= in.read(); i++) {
+        unsigned int n = in.read();
+        unsigned int res = 1;
+        for (unsigned int i = 2; i <= n; i++) {
             res *= i;
         }
         out.write(res);
@@ -83,40 +76,38 @@ SC_MODULE(Factorial) {
 
 ### Explanation of the SystemC Code
 
-- **Module Declaration**: 
-  ```cpp
-  SC_MODULE(Factorial) {
-      sc_in<unsigned int> in;  // Input port for the number
-      sc_out<unsigned int> out; // Output port for the factorial
-  ```
-  - Defines a SystemC module named `Factorial` with an input port `in` and an output port `out`.
+1. **Module Declaration**:
+   ```cpp
+   SC_MODULE(FactorialCalculator) {
+       sc_in<unsigned int> in;  // Input port for the number
+       sc_out<unsigned int> out; // Output port for the factorial
+   ```
+   - Defines a SystemC module named `FactorialCalculator` with an input port `in` and an output port `out`.
 
-- **Variables**:
-  ```cpp
-  unsigned int res = 1, i;
-  ```
-  - Initializes `res` to 1 and `i` for looping.
+2. **Constructor**:
+   ```cpp
+   SC_CTOR(FactorialCalculator) {
+       // Process to calculate the factorial
+       SC_METHOD(calculate_factorial);
+       sensitive << in;
+   }
+   ```
+   - Constructs the module and binds the `calculate_factorial` method to the input signal `in`.
 
-- **Constructor**:
-  ```cpp
-  SC_CTOR(Factorial) {
-      // Process to calculate factorial
-      SC_METHOD(calculate_factorial);
-      sensitive << in;
-  }
-  ```
-  - Constructs the module and binds the `calculate_factorial` method to the `in` signal.
+3. **Factorial Calculation**:
+   ```cpp
+   void calculate_factorial() {
+       unsigned int n = in.read();
+       unsigned int res = 1;
+       for (unsigned int i = 2; i <= n; i++) {
+           res *= i;
+       }
+       out.write(res);
+   }
+   ```
+   - Reads the input value.
+   - Initializes `res` to 1.
+   - Iterates from 2 to `n`, multiplying `res` by each number in this range.
+   - Writes the calculated factorial to the output port `out`.
 
-- **Method to Calculate Factorial**:
-  ```cpp
-  void calculate_factorial() {
-      res = 1;
-      for (i = 2; i <= in.read(); i++) {
-          res *= i;
-      }
-      out.write(res);
-  }
-  ```
-  - This method calculates the factorial of the input number `in` and writes the result to the output port `out`.
-
-This SystemC module faithfully captures the logic of the original C++ code and can be integrated into a high-level synthesis flow.
+This SystemC code faithfully captures the logic of the original C++ factorial calculation and can be integrated with the provided testbench signals.

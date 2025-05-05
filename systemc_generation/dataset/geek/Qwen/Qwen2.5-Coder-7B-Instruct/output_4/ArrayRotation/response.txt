@@ -1,36 +1,49 @@
-### Analysis of the Provided C++/C Code
+### C++/C Code Analysis
 
 #### Inputs and Outputs
 - **Inputs**:
-  - `arr[]`: An integer array containing the elements to be rotated.
+  - `arr[]`: An array of integers.
   - `d`: The number of positions to rotate the array to the left.
-  - `n`: The size of the array.
 - **Outputs**:
-  - The rotated array is printed to the console.
+  - The rotated array printed to the console.
 
 #### Detailed Explanation
 
-1. **Rotate Function**:
-   - This function takes three parameters: an integer array `arr`, an integer `d` (number of positions to rotate), and an integer `n` (size of the array).
-   - It creates a temporary array `temp` of size `n`.
-   - The function then copies the elements from index `d` to the end of the array to the beginning of `temp`.
-   - Next, it copies the elements from the start of the array up to index `d` to the end of `temp`.
-   - Finally, it copies the elements from `temp` back to the original array `arr`.
+1. **Function: `Rotate`**
+   - **Parameters**:
+     - `arr[]`: The input array.
+     - `d`: The number of positions to rotate the array.
+     - `n`: The size of the array.
+   - **Process**:
+     - A temporary array `temp[]` is created to store the rotated version of the input array.
+     - The first loop copies the elements from index `d` to `n-1` to the front of `temp[]`.
+     - The second loop copies the elements from index `0` to `d-1` to the end of `temp[]`.
+     - The third loop copies the elements from `temp[]` back to the original array `arr[]`.
 
-2. **PrintTheArray Function**:
-   - This function takes two parameters: an integer array `arr` and an integer `n`.
-   - It iterates through the array and prints each element followed by a space.
+2. **Function: `PrintTheArray`**
+   - **Parameters**:
+     - `arr[]`: The array to be printed.
+     - `n`: The size of the array.
+   - **Process**:
+     - A loop iterates through the array and prints each element followed by a space.
 
-3. **Main Function**:
-   - The main function initializes an array `arr` with elements `{1, 2, 3, 4, 5, 6, 7}`.
-   - It calculates the size of the array `N` using `sizeof(arr) / sizeof(arr[0])`.
-   - It sets the rotation value `d` to `2`.
-   - It calls the `Rotate` function to rotate the array.
-   - It calls the `PrintTheArray` function to print the rotated array.
+3. **Main Function**
+   - **Initialization**:
+     - An array `arr[]` is initialized with values `{1, 2, 3, 4, 5, 6, 7}`.
+     - The size of the array `N` is calculated using `sizeof(arr) / sizeof(arr[0])`.
+     - The number of positions to rotate `d` is set to `2`.
+   - **Function Calls**:
+     - `Rotate(arr, d, N)` is called to rotate the array.
+     - `PrintTheArray(arr, N)` is called to print the rotated array.
 
-### Equivalent SystemC Code
+### SystemC Code Generation
 
-To integrate this functionality into a SystemC environment, we need to create a module that takes the inputs and outputs as described. Here's the SystemC code:
+To convert the given C++/C code into SystemC, we need to:
+1. Define a module that takes the necessary inputs (`arr`, `d`, `n`) and produces the output (`rotated_arr`).
+2. Implement the rotation logic within the module.
+3. Ensure that the module can be integrated with the provided signals (`clk`, `rst`, `d`, `in_array`, `out_array`).
+
+Here is the equivalent SystemC code:
 
 ```cpp
 #include <systemc.h>
@@ -38,79 +51,81 @@ To integrate this functionality into a SystemC environment, we need to create a 
 SC_MODULE(Rotator) {
     sc_in<bool> clk;  // Clock signal
     sc_in<bool> rst;  // Reset signal
-    sc_in<int> d;     // Number of positions to rotate
+    sc_in<int> d;      // Number of positions to rotate
     sc_in<int> in_array[7];  // Input array
     sc_out<int> out_array[7];  // Output array
 
-    int arr[7];  // Internal array to store the elements
+    int arr[7];  // Internal array to hold the input values
+    int n = 7;   // Size of the array
 
     // Constructor
     SC_CTOR(Rotator) {
-        // Process to handle rotation
-        SC_METHOD(handle_rotation);
+        // Process to handle clock and reset
+        SC_METHOD(process);
         sensitive << clk.pos();
         dont_initialize();
 
-        // Process to handle reset
-        SC_METHOD(reset_array);
+        // Reset process
+        SC_METHOD(reset_process);
         sensitive << rst.pos();
-        dont_initialize();
     }
 
-    // Method to handle rotation
-    void handle_rotation() {
-        if (!rst.read()) {
+    // Method to handle the main logic
+    void process() {
+        if (rst.read()) {
+            // Reset the output array to zero
+            for (int i = 0; i < n; i++) {
+                out_array[i].write(0);
+            }
+        } else {
+            // Copy input array to internal array
+            for (int i = 0; i < n; i++) {
+                arr[i] = in_array[i].read();
+            }
+
             // Rotate the array
-            for (int i = 0; i < 7; i++) {
-                arr[(i + d) % 7] = in_array[i];
+            int temp[n];
+            int k = 0;
+            for (int i = d; i < n; i++) {
+                temp[k++] = arr[i];
+            }
+            for (int i = 0; i < d; i++) {
+                temp[k++] = arr[i];
+            }
+
+            // Copy the rotated array to output array
+            for (int i = 0; i < n; i++) {
+                out_array[i].write(temp[i]);
             }
         }
     }
 
     // Method to handle reset
-    void reset_array() {
+    void reset_process() {
         if (rst.read()) {
-            // Initialize the array to zero
-            for (int i = 0; i < 7; i++) {
+            // Reset the internal array to zero
+            for (int i = 0; i < n; i++) {
                 arr[i] = 0;
             }
         }
     }
-
-    // Method to update output array
-    SC_METHOD(update_output) {
-        if (!rst.read()) {
-            for (int i = 0; i < 7; i++) {
-                out_array[i].write(arr[i]);
-            }
-        }
-    }
 };
-
 ```
 
-### Explanation of the SystemC Code
+### Explanation of SystemC Code
 
-1. **Module Declaration**:
-   - `Rotator` is a SystemC module that takes a clock signal `clk`, a reset signal `rst`, an input array `in_array`, and an output array `out_array`.
+1. **Module Definition**:
+   - The `Rotator` module is defined with the required signals (`clk`, `rst`, `d`, `in_array`, `out_array`).
 
 2. **Internal Array**:
-   - `arr` is an internal array used to store the elements of the input array after rotation.
+   - An internal array `arr` is used to store the input values temporarily.
 
 3. **Constructor**:
-   - The constructor initializes two processes: `handle_rotation` and `reset_array`.
-   - `handle_rotation` is sensitive to the positive edge of the clock signal and is triggered when the reset signal is not active.
-   - `reset_array` is also sensitive to the positive edge of the clock signal but is triggered when the reset signal is active.
+   - The constructor sets up the method `process` to be sensitive to the positive edge of the clock (`clk.pos()`).
+   - The `reset_process` method is set up to be sensitive to the positive edge of the reset signal (`rst.pos()`).
 
-4. **handle_rotation Method**:
-   - This method checks if the reset signal is not active.
-   - If not, it rotates the array by copying elements from `in_array` to `arr` based on the rotation value `d`.
+4. **Process Methods**:
+   - `process`: This method handles the main logic. If the reset signal is high, it resets the output array to zero. Otherwise, it copies the input array to the internal array, performs the rotation, and then copies the rotated array to the output array.
+   - `reset_process`: This method resets the internal array to zero when the reset signal is high.
 
-5. **reset_array Method**:
-   - This method checks if the reset signal is active.
-   - If so, it initializes the internal array `arr` to zero.
-
-6. **update_output Method**:
-   - This method updates the output array `out_array` with the elements of the internal array `arr` when the reset signal is not active.
-
-This SystemC code integrates the functionality of the original C++/C code into a high-level synthesis flow, utilizing the provided signals for seamless testbench integration.
+This SystemC code faithfully captures the logic of the original C++/C code and can be integrated with the provided signals for high-level synthesis.

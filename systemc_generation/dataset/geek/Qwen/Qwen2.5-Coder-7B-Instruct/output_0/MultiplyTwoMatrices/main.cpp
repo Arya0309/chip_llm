@@ -3,20 +3,28 @@
 
 
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[2][2];  // Input port for the first matrix
-    sc_in<int> B[2][2];  // Input port for the second matrix
-    sc_out<int> C[2][3]; // Output port for the resulting matrix
+    sc_in<int> A[2][2];  // Input port for Matrix-1
+    sc_in<int> B[2][3];  // Input port for Matrix-2
+    sc_out<int> C[2][3]; // Output port for the result matrix
 
-    // Constructor
     SC_CTOR(MatrixMultiplier) {
-        // Process to perform matrix multiplication
-        SC_METHOD(multiply);
-        sensitive << A << B;
+        for (int i = 0; i < 2; ++i) {
+            for (int j = 0; j < 2; ++j) {
+                sensitive << A[i][j];
+            }
+            for (int j = 0; j < 3; ++j) {
+                sensitive << B[i][j];
+            }
+        }
+        for (int i = 0; i < 2; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                sensitive << C[i][j];
+            }
+        }
     }
 
-    // Method to multiply the two matrices
-    void multiply() {
-        int rslt[2][3] = {0};
+    void mulMat() {
+        int rslt[2][3];
 
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 3; j++) {
@@ -29,6 +37,7 @@ SC_MODULE(MatrixMultiplier) {
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

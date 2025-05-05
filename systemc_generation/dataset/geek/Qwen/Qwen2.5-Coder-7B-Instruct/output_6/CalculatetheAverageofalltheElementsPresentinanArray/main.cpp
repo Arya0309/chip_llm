@@ -4,27 +4,32 @@
 // Module to calculate the average of an array
 
 SC_MODULE(AverageCalculator) {
-    // Input ports
-    sc_vector<sc_in<int>> data_in;  // Vector of input ports for the array elements
-    sc_in<int> n;  // Input port for the size of the array
-
-    // Output port
+    sc_vector<sc_in<int>> data_in;  // Input port for the array elements
     sc_out<double> average_out;  // Output port for the average
 
     // Constructor
-    SC_CTOR(AverageCalculator) {
+    SC_CTOR(AverageCalculator) : data_in("data_in", 9) {
         // Process to calculate the average
-        SC_THREAD(calculate_average);
-        sensitive << data_in << n;
+        SC_METHOD(calculate_average);
+
+        // Register each element of data_in as a sensitive signal
+        for (int i = 0; i < data_in.size(); i++) {
+            sensitive << data_in[i];
+        }
     }
 
-    // Thread to perform the calculation
+    // Method to calculate the average
     void calculate_average() {
         int sum = 0;
-        for (int i = 0; i < n.read(); i++) {
+        int n = data_in.size();
+
+        // Calculate sum of array elements
+        for (int i = 0; i < n; i++) {
             sum += data_in[i].read();
         }
-        average_out.write((double)sum / n.read());
+
+        // Calculate and write the average
+        average_out.write((double)sum / n);
     }
 };
 

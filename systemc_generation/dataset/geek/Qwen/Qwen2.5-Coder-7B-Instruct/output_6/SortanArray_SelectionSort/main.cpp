@@ -3,49 +3,62 @@
 
 
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
-    sc_out<bool> done;  // Done signal
-    sc_out<int> sorted_array[5];  // Output array
+    sc_in<bool> clk;          // Clock signal
+    sc_in<bool> start;        // Start signal
+    sc_out<bool> done;        // Done signal
+    sc_inout<int> arr[5];      // Input/output array
 
-    int arr[5] = {64, 25, 12, 22, 11};  // Input array
-    int n = 5;  // Size of the array
-
-    void selectionSort() {
-        int i, j, min_idx;
-        for (i = 0; i < n-1; i++) {
-            min_idx = i;
-            for (j = i+1; j < n; j++)
-                if (arr[j] < arr[min_idx])
-                    min_idx = j;
-            swap(&arr[min_idx], &arr[i]);
-        }
-    }
-
-    void printArray() {
-        for (int i = 0; i < n; i++)
-            sorted_array[i].write(arr[i]);
-    }
+    int n;                    // Size of the array
+    bool sorting_done;         // Flag to indicate sorting is done
 
     SC_CTOR(SelectionSort) {
-        SC_METHOD(selectionSort);
-        sensitive << clk.pos();
-        SC_METHOD(printArray);
+        n = 5;                  // Set the size of the array
+        sorting_done = false;
+
+        // Process to handle the sorting logic
+        SC_METHOD(sort);
         sensitive << clk.pos();
 
-        done.initialize(false);
+        // Process to update the output array and set the done signal
+        SC_METHOD(update_output);
+        sensitive << clk.pos();
     }
 
-    void selectionSort_process() {
+    void sort() {
         if (start.read()) {
-            selectionSort();
-            done.write(true);
+            for (int i = 0; i < n-1; i++) {
+                int min_idx = i;
+                for (int j = i+1; j < n; j++) {
+                    if (arr[j].read() < arr[min_idx].read()) {
+                        min_idx = j;
+                    }
+                }
+                // Swap the values without using pointers
+                int temp = arr[min_idx].read();
+                arr[min_idx] = arr[i].read();
+                arr[i] = temp;
+            }
+            sorting_done = true;
         }
     }
 
-    void printArray_process() {
-        if (done.read()) {
-            printArray();
+    void update_output() {
+        if (sorting_done) {
+            done.write(true);
+        } else {
+            done.write(false);
+        }
+    }
+
+    void load_array(int input[]) {
+        for (int i = 0; i < n; i++) {
+            arr[i] = input[i];
+        }
+    }
+
+    void read_array(int output[]) {
+        for (int i = 0; i < n; i++) {
+            output[i] = arr[i].read();
         }
     }
 };

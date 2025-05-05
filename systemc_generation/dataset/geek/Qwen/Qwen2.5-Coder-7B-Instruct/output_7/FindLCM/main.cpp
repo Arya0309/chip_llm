@@ -14,15 +14,20 @@ SC_MODULE(LcmCalculator) {
         sensitive << a << b;
     }
 
-    // Method to calculate LCM
+    // Method to calculate the LCM
     void calculate_lcm() {
+        if (a.read() <= 0 || b.read() <= 0) {
+            lcm_result.write(-1); // Return -1 or some other error value
+            return;
+        }
+
         int max_num = (a.read() > b.read()) ? a.read() : b.read();
-        int flag = 1;
+        bool flag = true;
 
         while (flag) {
             if (max_num % a.read() == 0 && max_num % b.read() == 0) {
                 lcm_result.write(max_num);
-                flag = 0; // Exit the loop
+                flag = false;
             } else {
                 ++max_num;
             }

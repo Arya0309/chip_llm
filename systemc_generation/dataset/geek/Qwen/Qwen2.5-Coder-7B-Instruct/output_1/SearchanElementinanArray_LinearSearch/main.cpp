@@ -1,33 +1,33 @@
 
-#include <systemc.h>
+   #include <systemc.h>
 
-
+   
 SC_MODULE(LinearSearch) {
-    sc_in<int> key;  // Input port for the key to search
-    sc_out<int> index; // Output port for the index of the found key
-    sc_vector<sc_in<int>> data; // Input vector of integers
+       sc_in<int> key;
+       sc_out<int> index;
+       sc_vector<sc_in<int>> data;
 
-    // Constructor
-    SC_CTOR(LinearSearch) {
-        // Process to perform linear search
-        SC_METHOD(search);
-        sensitive << key << data;
-    }
+       SC_CTOR(LinearSearch) : key("key"), index("index"), data("data") {
+           SC_METHOD(search);
+           sensitive << key;
+           for (int i = 0; i < data.size(); ++i) {
+               sensitive << data[i];
+           }
+       }
 
-    // Method to perform linear search
-    void search() {
-        int size = data.size();
-        for (int i = 0; i < size; i++) {
-            if (data[i].read() == key.read()) {
-                index.write(i);
-                return;
-            }
-        }
-        index.write(-1);
-    }
-};
+       void search() {
+           int size = data.size();
+           for (int i = 0; i < size; i++) {
+               if (data[i].read() == key.read()) {
+                   index.write(i);
+                   return;
+               }
+           }
+           index.write(-1);
+       }
+   };
 
-
+   
 
 SC_MODULE(Testbench) {
     sc_signal<int> key_sig;       // Signal for the search key

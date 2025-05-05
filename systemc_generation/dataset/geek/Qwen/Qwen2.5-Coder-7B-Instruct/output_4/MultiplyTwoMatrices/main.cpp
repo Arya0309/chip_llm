@@ -1,36 +1,35 @@
 
 #include <systemc.h>
 
+// MatrixMultiplier module
 
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[SIZE_A];  // Input ports for the first matrix
-    sc_in<int> B[SIZE_B];  // Input ports for the second matrix
-    sc_out<int> C[SIZE_RESULT]; // Output ports for the result matrix
+    sc_in<int> A[2][2];  // Input port for Matrix-1
+    sc_in<int> B[2][2];  // Input port for Matrix-2
+    sc_out<int> C[2][3]; // Output port for the result
 
     // Constructor
     SC_CTOR(MatrixMultiplier) {
         // Process to perform matrix multiplication
-        SC_METHOD(multiply);
-        sensitive << A << B;
+        SC_METHOD(mulMat);
     }
 
     // Method to multiply the two matrices
-    void multiply() {
-        int rslt[SIZE_A][SIZE_B];
+    void mulMat() {
+        int rslt[2][3] = {0};
 
-        for (int i = 0; i < SIZE_A; i++) {
-            for (int j = 0; j < SIZE_B; j++) {
-                rslt[i][j] = 0;
-
-                for (int k = 0; k < SIZE_B; k++) {
-                    rslt[i][j] += A[i][k] * B[k][j];
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 3; j++) {
+                for (int k = 0; k < 2; k++) {
+                    rslt[i][j] += A[i][k].read() * B[k][j].read();
                 }
-
                 C[i][j].write(rslt[i][j]);
             }
         }
     }
 };
+
+// Testbench module
 
 
 SC_MODULE(Testbench) {

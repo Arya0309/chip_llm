@@ -1,88 +1,66 @@
 
 #include <systemc.h>
 
-// Define the size of the matrix
-const int SIZE = 4;
-
-// Module to rotate a matrix
 
 SC_MODULE(MatrixRotator) {
-    sc_in<int> in[SIZE * SIZE];  // Input port for the matrix
-    sc_out<int> out[SIZE * SIZE]; // Output port for the rotated matrix
+    sc_in<int> in[4][4];  // Input matrix
+    sc_out<int> out[4][4]; // Output matrix
 
-    // Constructor
     SC_CTOR(MatrixRotator) {
-        // Process to perform matrix rotation
-        SC_METHOD(rotate_matrix);
-        sensitive << in;
-    }
-
-    // Method to rotate the matrix
-    void rotate_matrix() {
-        int mat[SIZE][SIZE];
-
-        // Convert input vector to 2D array
-        for (int i = 0; i < SIZE; ++i) {
-            for (int j = 0; j < SIZE; ++j) {
-                mat[i][j] = in[i * SIZE + j].read();
+        SC_METHOD(rotatematrix);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                sensitive << in[i][j];
             }
         }
+    }
 
-        int m = SIZE;
-        int n = SIZE;
+    void rotatematrix() {
         int row = 0, col = 0;
         int prev, curr;
+        int m = 4, n = 4;
 
         while (row < m && col < n) {
-            if (row + 1 == m || col + 1 == n) break;
+            if (row + 1 == m || col + 1 == n)
+                break;
 
-            prev = mat[row + 1][col];
+            prev = in[row + 1][col];
 
-            // Move elements of first row from the remaining rows
-            for (int i = col; i < n; ++i) {
-                curr = mat[row][i];
-                mat[row][i] = prev;
+            for (int i = col; i < n; i++) {
+                curr = in[row][i];
+                out[row][i] = prev;
                 prev = curr;
             }
             row++;
 
-            // Move elements of last column from the remaining columns
-            for (int i = row; i < m; ++i) {
-                curr = mat[i][n - 1];
-                mat[i][n - 1] = prev;
+            for (int i = row; i < m; i++) {
+                curr = in[i][n - 1];
+                out[i][n - 1] = prev;
                 prev = curr;
             }
             n--;
 
-            // Move elements of last row from the remaining rows
             if (row < m) {
-                for (int i = n - 1; i >= col; --i) {
-                    curr = mat[m - 1][i];
-                    mat[m - 1][i] = prev;
+                for (int i = n - 1; i >= col; i--) {
+                    curr = in[m - 1][i];
+                    out[m - 1][i] = prev;
                     prev = curr;
                 }
             }
             m--;
 
-            // Move elements of first column from the remaining rows
             if (col < n) {
-                for (int i = m - 1; i >= row; --i) {
-                    curr = mat[i][col];
-                    mat[i][col] = prev;
+                for (int i = m - 1; i >= row; i--) {
+                    curr = in[i][col];
+                    out[i][col] = prev;
                     prev = curr;
                 }
             }
             col++;
         }
-
-        // Convert 2D array back to output vector
-        for (int i = 0; i < SIZE; ++i) {
-            for (int j = 0; j < SIZE; ++j) {
-                out[i * SIZE + j].write(mat[i][j]);
-            }
-        }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

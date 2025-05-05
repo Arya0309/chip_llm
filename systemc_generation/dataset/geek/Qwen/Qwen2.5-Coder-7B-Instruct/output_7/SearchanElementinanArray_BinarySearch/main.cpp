@@ -4,37 +4,36 @@
 
 SC_MODULE(BinarySearchModule) {
     sc_in<int> target;  // Input port for the target value
-    sc_out<bool> found; // Output port indicating if the target is found
-    sc_vector<sc_in<int>> v; // Vector of integers to be searched
+    sc_out<bool> found; // Output port indicating if target is found
+    sc_vector<sc_in<int>> v; // Vector of integers as input ports
 
-    // Constructor
     SC_CTOR(BinarySearchModule) {
+        // Initialize the found signal to false
+        found.initialize(false);
+
         // Process to perform binary search
         SC_METHOD(search);
         sensitive << target;
-        for (unsigned i = 0; i < v.size(); ++i) {
+        for (int i = 0; i < v.size(); ++i) {
             sensitive << v[i];
         }
     }
 
-    // Method to perform binary search
     void search() {
+        bool found_local = false; // Initialize local variable
         int low = 0, high = v.size() - 1;
-        bool result = false;
-
         while (low <= high) {
             int mid = ((high - low) / 2) + low;
-            if (v[mid].read() == target.read()) {
-                result = true;
-                break;
+            if (mid >= 0 && mid < v.size() && v[mid].read() == target.read()) {
+                found_local = true; // Set local variable to true when target is found
+                break; // Exit the loop early
             }
-            if (v[mid].read() > target.read())
+            if (mid >= 0 && mid < v.size() && v[mid].read() > target.read())
                 high = mid - 1;
-            else
+            else if (mid >= 0 && mid < v.size())
                 low = mid + 1;
         }
-
-        found.write(result);
+        found.write(found_local); // Write the result to the found signal
     }
 };
 

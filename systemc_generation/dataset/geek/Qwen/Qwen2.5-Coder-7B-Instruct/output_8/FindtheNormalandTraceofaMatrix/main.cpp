@@ -1,41 +1,44 @@
 
 #include <systemc.h>
+#include <cmath>
+
+#define MAX 100
 
 
 SC_MODULE(MatrixOperations) {
-    sc_in<int> matrix[5][5];  // Input port for the matrix
-    sc_out<int> trace;       // Output port for the trace
-    sc_out<int> norm;        // Output port for the norm
+    sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
+    sc_out<int> trace; // Output port for the trace
+    sc_out<int> norm;  // Output port for the normal
 
     // Constructor
     SC_CTOR(MatrixOperations) {
-        // Process to calculate the trace
+        // Process to calculate trace
         SC_METHOD(calculate_trace);
         sensitive << matrix;
 
-        // Process to calculate the norm
-        SC_METHOD(calculate_norm);
+        // Process to calculate normal
+        SC_METHOD(calculate_normal);
         sensitive << matrix;
     }
 
     // Method to calculate the trace of the matrix
     void calculate_trace() {
         int sum = 0;
-        for (int i = 0; i < 5; i++) {
-            sum += matrix[i][i];
+        for (int i = 0; i < MAX; i++) {
+            sum += matrix[i][i].read();
         }
         trace.write(sum);
     }
 
-    // Method to calculate the norm of the matrix
-    void calculate_norm() {
-        int sum = 0;
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 5; j++) {
-                sum += matrix[i][j] * matrix[i][j];
+    // Method to calculate the normal of the matrix
+    void calculate_normal() {
+        double sum_of_squares = 0;
+        for (int i = 0; i < MAX; i++) {
+            for (int j = 0; j < MAX; j++) {
+                sum_of_squares += static_cast<double>(matrix[i][j].read()) * matrix[i][j].read();
             }
         }
-        norm.write(sqrt(sum));
+        norm.write(static_cast<int>(sqrt(sum_of_squares)));
     }
 };
 

@@ -1,34 +1,67 @@
 
 #include <systemc.h>
 
+// Define the size of the matrices
+static const int R1 = 2; // Number of rows in Matrix-1
+static const int C1 = 2; // Number of columns in Matrix-1
+static const int R2 = 2; // Number of rows in Matrix-2
+static const int C2 = 3; // Number of columns in Matrix-2
+
+// Define the matrix type
+typedef sc_signal<int> Matrix[R1][C1];
+
+// Define the result matrix type
+typedef sc_signal<int> ResultMatrix[R1][C2];
+
+// Module that multiplies two matrices
 
 SC_MODULE(MatrixMultiplier) {
-    sc_in<int> A[SIZE_A];  // Input port for Matrix-1
-    sc_in<int> B[SIZE_B];  // Input port for Matrix-2
-    sc_out<int> C[SIZE_RESULT];  // Output port for the result
+    // Input ports for the matrices
+    Matrix A;
+    Matrix B;
 
-    int rslt[SIZE_A][SIZE_B];  // Resultant matrix
+    // Output port for the result matrix
+    ResultMatrix C;
 
     // Constructor
     SC_CTOR(MatrixMultiplier) {
         // Process to perform matrix multiplication
-        SC_METHOD(mulMat);
-        sensitive << A << B;
+        SC_METHOD(multiply);
+        for (int i = 0; i < R1; i++) {
+            for (int j = 0; j < C1; j++) {
+                sensitive << A[i][j];
+            }
+        }
+        for (int i = 0; i < R2; i++) {
+            for (int j = 0; j < C2; j++) {
+                sensitive << B[i][j];
+            }
+        }
     }
 
-    // Method to multiply the two matrices
-    void mulMat() {
-        for (int i = 0; i < SIZE_A; i++) {
-            for (int j = 0; j < SIZE_B; j++) {
-                rslt[i][j] = 0;
-                for (int k = 0; k < SIZE_A; k++) {
-                    rslt[i][j] += A[i * SIZE_A + k] * B[k * SIZE_B + j];
+    // Method to perform matrix multiplication
+    void multiply() {
+        ResultMatrix rslt;
+
+        for (int i = 0; i < R1; i++) {
+            for (int j = 0; j < C2; j++) {
+                rslt[i][j].write(0);
+                for (int k = 0; k < C1; k++) {
+                    rslt[i][j].write(rslt[i][j].read() + A[i][k].read() * B[k][j].read());
                 }
-                C[i * SIZE_B + j].write(rslt[i][j]);
+            }
+        }
+
+        // Write the result to the output port
+        for (int i = 0; i < R1; i++) {
+            for (int j = 0; j < C2; j++) {
+                C[i][j].write(rslt[i][j].read());
             }
         }
     }
 };
+
+// Testbench module
 
 
 SC_MODULE(Testbench) {

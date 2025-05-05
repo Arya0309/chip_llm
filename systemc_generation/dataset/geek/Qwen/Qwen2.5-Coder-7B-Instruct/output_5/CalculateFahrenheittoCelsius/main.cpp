@@ -1,11 +1,10 @@
 
 #include <systemc.h>
 
-// SystemC module to convert Fahrenheit to Celsius
 
 SC_MODULE(TempConverter) {
-    sc_in<float> fahrenheit;  // Input port for the temperature in Fahrenheit
-    sc_out<float> celsius;     // Output port for the temperature in Celsius
+    sc_in<float> fahrenheit;  // Input port for the Fahrenheit temperature
+    sc_out<float> celsius;     // Output port for the Celsius temperature
 
     // Constructor
     SC_CTOR(TempConverter) {
@@ -19,8 +18,6 @@ SC_MODULE(TempConverter) {
         celsius.write((fahrenheit.read() - 32.0) * 5.0 / 9.0);
     }
 };
-
-// Testbench to drive the module
 
 
 SC_MODULE(Testbench) {

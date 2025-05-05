@@ -3,24 +3,40 @@
 
 
 SC_MODULE(MatrixSwapper) {
-    sc_in<int> in[4][4];  // Input port for the matrix
-    sc_out<int> out[4][4]; // Output port for the modified matrix
+    static const int SIZE = 4;  // Define the size of the matrix
 
-    // Constructor
+    sc_in<int> in[SIZE * SIZE];  // Input ports for the matrix elements
+    sc_out<int> out[SIZE * SIZE]; // Output ports for the modified matrix elements
+
     SC_CTOR(MatrixSwapper) {
-        // Process to perform the column swap
-        SC_METHOD(interchange);
-        sensitive << in;
+        // Process to perform the column interchange
+        SC_METHOD(interchangeColumns);
+        for (int i = 0; i < SIZE * SIZE; i++) {
+            sensitive << in[i];
+        }
     }
 
-    // Method to interchange the first and last columns of the matrix
-    void interchange() {
-        for (int i = 0; i < 4; i++) {
-            int t = in[i][0].read();
-            out[i][0].write(in[i][3].read());
-            out[i][3].write(t);
-            for (int j = 1; j < 3; j++) {
-                out[i][j].write(in[i][j].read());
+    void interchangeColumns() {
+        static int m[SIZE][SIZE];
+
+        // Copy input matrix into local array
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                m[i][j] = in[i * SIZE + j].read();
+            }
+        }
+
+        // Interchange the first and last columns
+        for (int i = 0; i < SIZE; i++) {
+            int t = m[i][0];
+            m[i][0] = m[i][SIZE - 1];
+            m[i][SIZE - 1] = t;
+        }
+
+        // Write the modified matrix to output ports
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                out[i * SIZE + j].write(m[i][j]);
             }
         }
     }

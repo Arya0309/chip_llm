@@ -5,30 +5,39 @@
 SC_MODULE(BinarySearchModule) {
     sc_in<int> target;  // Input port for the target value
     sc_out<bool> found; // Output port indicating if the target is found
-    sc_vector<sc_in<int>> v; // Vector of integers representing the sorted array
+    sc_vector<sc_in<int>> v; // Input vector of integers
 
     // Constructor
-    SC_CTOR(BinarySearchModule) {
+    SC_CTOR(BinarySearchModule) : v("v", 8) { // Initialize sc_vector with size 8
         // Process to perform binary search
         SC_METHOD(search);
-        sensitive << v << target;
+        sensitive << target;
+        for (unsigned int i = 0; i < v.size(); ++i) {
+            sensitive << v[i];
+        }
     }
 
     // Method to perform binary search
     void search() {
+        if (v.size() == 0) {
+            found.write(false);
+            return;
+        }
+
         int low = 0, high = v.size() - 1;
+        found.write(false); // Initialize found to false
+
         while (low <= high) {
             int mid = ((high - low) / 2) + low;
             if (v[mid].read() == target.read()) {
                 found.write(true);
-                return;
-            } else if (v[mid].read() > target.read()) {
-                high = mid - 1;
-            } else {
-                low = mid + 1;
+                break;
             }
+            if (v[mid].read() > target.read())
+                high = mid - 1;
+            else
+                low = mid + 1;
         }
-        found.write(false);
     }
 };
 

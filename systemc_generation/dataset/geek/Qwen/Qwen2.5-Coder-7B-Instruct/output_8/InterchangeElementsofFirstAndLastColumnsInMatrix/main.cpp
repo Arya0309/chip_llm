@@ -3,30 +3,35 @@
 
 
 SC_MODULE(MatrixSwapper) {
-    sc_in<int> in[4][4];  // Input port for the 4x4 matrix
-    sc_out<int> out[4][4]; // Output port for the modified 4x4 matrix
+    static const int SIZE = 4; // Define the size of the matrix
+    sc_in<int> in[SIZE][SIZE];  // Input port for the matrix
+    sc_out<int> out[SIZE][SIZE]; // Output port for the modified matrix
 
-    // Constructor
     SC_CTOR(MatrixSwapper) {
-        // Process to perform matrix row swap
-        SC_METHOD(swapRows);
-        sensitive << in;
+        // Process to perform row interchange
+        SC_METHOD(interchangeRows);
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                sensitive << in[i][j];
+            }
+        }
     }
 
-    // Method to swap the first and last rows of the matrix
-    void swapRows() {
-        for (int i = 0; i < 4; i++) {
-            int temp = in[0][i].read();
-            out[0][i].write(in[3][i].read());
-            out[3][i].write(temp);
+    void interchangeRows() {
+        int temp[SIZE];
+        for (int j = 0; j < SIZE; j++) {
+            temp[j] = in[0][j].read();
+            in[0][j].write(in[SIZE-1][j].read());
+            in[SIZE-1][j].write(temp[j]);
         }
-        for (int i = 1; i < 3; i++) {
-            for (int j = 0; j < 4; j++) {
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
                 out[i][j].write(in[i][j].read());
             }
         }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

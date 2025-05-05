@@ -1,14 +1,18 @@
 
 #include <systemc.h>
 
-// Module to calculate the average of an array
 
 SC_MODULE(AverageCalculator) {
-    sc_vector<sc_in<int>> data_in; // Input vector for the array elements
-    sc_out<double> average_out;   // Output port for the average
+    sc_vector<sc_in<int>> data_in;  // Input port for the array of integers
+    sc_out<double> average_out;     // Output port for the average
 
     // Constructor
-    SC_CTOR(AverageCalculator) : data_in("data_in", 9) {
+    SC_CTOR(AverageCalculator) : data_in("data_in", 9), average_out("average_out") {
+        // Register each port in data_in as sensitive
+        for (unsigned int i = 0; i < data_in.size(); i++) {
+            sensitive << data_in[i];
+        }
+
         // Process to calculate the average
         SC_METHOD(calculate_average);
         sensitive << data_in;
@@ -17,10 +21,11 @@ SC_MODULE(AverageCalculator) {
     // Method to calculate the average
     void calculate_average() {
         int sum = 0;
-        for (int i = 0; i < data_in.size(); i++) {
+        int n = data_in.size();
+        for (int i = 0; i < n; i++) {
             sum += data_in[i].read();
         }
-        average_out.write((double)sum / data_in.size());
+        average_out.write(static_cast<double>(sum) / n);
     }
 };
 

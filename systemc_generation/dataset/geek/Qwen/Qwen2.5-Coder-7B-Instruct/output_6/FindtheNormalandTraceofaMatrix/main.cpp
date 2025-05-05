@@ -1,43 +1,47 @@
 
 #include <systemc.h>
+#include <cmath>
 
 
 SC_MODULE(MatrixOperations) {
     sc_in<int> matrix[MAX][MAX];  // Input port for the matrix
-    sc_out<int> trace;            // Output port for the trace
-    sc_out<int> norm;             // Output port for the normal
+    sc_out<int> trace;  // Output port for the trace
+    sc_out<int> norm;   // Output port for the norm
 
     // Constructor
     SC_CTOR(MatrixOperations) {
-        // Process to compute trace
-        SC_METHOD(computeTrace);
+        // Process to calculate trace
+        SC_METHOD(calculateTrace);
         sensitive << matrix;
 
-        // Process to compute normal
-        SC_METHOD(computeNorm);
+        // Process to calculate norm
+        SC_METHOD(calculateNorm);
         sensitive << matrix;
     }
 
-    // Method to compute the trace
-    void computeTrace() {
+    // Method to calculate the trace
+    void calculateTrace() {
         int sum = 0;
-        for (int i = 0; i < MAX; i++) {
+        const int n = MAX;  // Use the MAX constant here
+        for (int i = 0; i < n; i++) {
             sum += matrix[i][i];
         }
         trace.write(sum);
     }
 
-    // Method to compute the normal
-    void computeNorm() {
+    // Method to calculate the norm
+    void calculateNorm() {
         int sum = 0;
-        for (int i = 0; i < MAX; i++) {
-            for (int j = 0; j < MAX; j++) {
+        const int n = MAX;  // Use the MAX constant here
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
                 sum += matrix[i][j] * matrix[i][j];
             }
         }
         norm.write(sqrt(sum));
     }
 };
+
 
 
 SC_MODULE(Testbench) {

@@ -5,33 +5,29 @@
 SC_MODULE(LcmCalculator) {
     sc_in<int> a;  // Input port for the first number
     sc_in<int> b;  // Input port for the second number
-    sc_out<int> lcm_result; // Output port for the LCM result
+    sc_out<int> lcm_result; // Output port for the LCM
 
-    int max_num, flag;
+    int max_num;
 
     // Constructor
     SC_CTOR(LcmCalculator) {
-        // Initialize max_num to the larger of a and b
-        if (a.read() > b.read()) {
-            max_num = a.read();
-        } else {
-            max_num = b.read();
-        }
-        flag = 1;
-
-        // Process to find the LCM
-        SC_METHOD(find_lcm);
+        // Process to calculate LCM
+        SC_METHOD(calculate_lcm);
         sensitive << a << b;
     }
 
-    // Method to find the LCM
-    void find_lcm() {
-        while (flag) {
+    // Method to calculate LCM
+    void calculate_lcm() {
+        max_num = (a.read() > b.read()) ? a.read() : b.read();
+        while (true) {
             if (max_num % a.read() == 0 && max_num % b.read() == 0) {
                 lcm_result.write(max_num);
-                flag = 0;  // Break the loop after finding the LCM
-            } else {
-                ++max_num;  // Increment max_num if not found yet
+                break;
+            }
+            ++max_num;
+            if (max_num > INT_MAX / 2) { // Prevent overflow
+                lcm_result.write(-1); // Indicate error
+                break;
             }
         }
     }

@@ -1,35 +1,40 @@
 
 #include <systemc.h>
+#include <cmath>
+#include <utility> // For std::swap
 
 
 SC_MODULE(DeterminantCalculator) {
-    sc_in<double> matrix[4]; // Input port for the matrix elements
-    sc_out<double> det;      // Output port for the determinant
+    static const int SIZE = 4; // Define the size of the matrix
+    sc_in<double> matrix[SIZE * SIZE];  // Input port for the matrix
+    sc_out<double> det;          // Output port for the determinant
 
     SC_CTOR(DeterminantCalculator) {
-        SC_THREAD(compute_determinant);
-        sensitive << matrix[0] << matrix[1] << matrix[2] << matrix[3];
+        SC_THREAD(calculate_determinant);
+        for (int i = 0; i < SIZE * SIZE; ++i) {
+            sensitive << matrix[i];
+        }
     }
 
-    void compute_determinant() {
-        double a[4][4];
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                a[i][j] = matrix[i].read();
+    void calculate_determinant() {
+        double a[SIZE][SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                a[i][j] = matrix[i * SIZE + j].read();
             }
         }
 
         double det_val = 1.0;
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < SIZE; i++) {
             int pivot = i;
-            for (int j = i + 1; j < 4; j++) {
-                if (abs(a[j][i]) > abs(a[pivot][i])) {
+            for (int j = i + 1; j < SIZE; j++) {
+                if (fabs(a[j][i]) > fabs(a[pivot][i])) {
                     pivot = j;
                 }
             }
             if (pivot != i) {
-                for (int k = 0; k < 4; k++) {
-                    swap(a[i][k], a[pivot][k]);
+                for (int k = 0; k < SIZE; k++) {
+                    std::swap(a[i][k], a[pivot][k]);
                 }
                 det_val *= -1;
             }
@@ -38,13 +43,14 @@ SC_MODULE(DeterminantCalculator) {
                 return;
             }
             det_val *= a[i][i];
-            for (int j = i + 1; j < 4; j++) {
+            for (int j = i + 1; j < SIZE; j++) {
                 double factor = a[j][i] / a[i][i];
-                for (int k = i + 1; k < 4; k++) {
+                for (int k = i + 1; k < SIZE; k++) {
                     a[j][k] -= factor * a[i][k];
                 }
             }
         }
+
         det.write(det_val);
     }
 };

@@ -3,31 +3,33 @@
 
 
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;  // Clock signal
-    sc_in<bool> start;  // Start signal
+    sc_in<bool> clk;     // Clock signal
+    sc_in<bool> start;   // Start signal
     sc_out<bool> done;  // Done signal
-    sc_out<int> sorted_array[5];  // Output array
 
-    int nums[5] = {1, 12, 6, 8, 10};
-    int size_nums = 5;
-    bool isSwapped;
+    sc_inout<int> nums[5]; // Array of integers to be sorted
+    sc_out<int> sorted_nums[5]; // Sorted array output
 
     // Constructor
     SC_CTOR(BubbleSort) {
-        // Process to perform sorting
-        SC_METHOD(sort);
+        SC_METHOD(sortArray);
         sensitive << clk.pos();
         async_reset_signal_is(clk, false);
     }
 
     // Method to sort the array
-    void sort() {
+    void sortArray() {
+        static bool isSwapped;
+        static int len = 5;
+
         if (start.read()) {
-            for (int i = 0; i < size_nums; i++) {
+            for (int i = 0; i < len; i++) {
                 isSwapped = false;
-                for (int j = 1; j < size_nums - i; j++) {
-                    if (nums[j] < nums[j - 1]) {
-                        swapNums(j, j - 1);
+                for (int j = 1; j < len - i; j++) {
+                    if (nums[j].read() < nums[j - 1].read()) {
+                        int curr = nums[j].read();
+                        nums[j].write(nums[j - 1].read());
+                        nums[j - 1].write(curr);
                         isSwapped = true;
                     }
                 }
@@ -39,20 +41,23 @@ SC_MODULE(BubbleSort) {
         } else {
             done.write(false);
         }
+    }
 
-        // Copy sorted array to output
-        for (int i = 0; i < size_nums; i++) {
-            sorted_array[i].write(nums[i]);
+    // Method to load array with input data
+    void load_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            nums[i].write(arr[i]);
         }
     }
 
-    // Swap two numbers in array
-    void swapNums(int first, int second) {
-        int curr = nums[first];
-        nums[first] = nums[second];
-        nums[second] = curr;
+    // Method to read sorted array
+    void read_array(int arr[]) {
+        for (int i = 0; i < 5; i++) {
+            arr[i] = nums[i].read();
+        }
     }
 };
+
 
 
 SC_MODULE(Testbench) {

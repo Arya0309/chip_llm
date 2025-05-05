@@ -1,73 +1,67 @@
 ### Analysis of the C++ Code
 
-The provided C++ code calculates the compound interest for a given principal amount, interest rate, and time period. Here's a detailed breakdown:
-
 #### Inputs and Outputs
-- **Inputs**:
-  - `principal`: The initial amount of money (double).
-  - `rate`: The annual interest rate (double).
-  - `time`: The time period in years (double).
-  
-- **Outputs**:
-  - `ci`: The calculated compound interest (double).
+- **Inputs**: 
+  - `principal`: The initial amount of money (double)
+  - `rate`: The annual interest rate (double)
+  - `time`: The time the money is invested for, in years (double)
+- **Output**: 
+  - `ci`: The compound interest calculated (double)
 
-#### Line-by-Line Explanation
+#### Detailed Explanation
 
-1. **Include Headers**
+1. **Include Statement**:
    ```cpp
    #include <bits/stdc++.h>
    ```
-   - Includes all standard C++ libraries.
+   This includes all standard library headers, which is not necessary for this simple program but often used for convenience.
 
-2. **Using Namespace**
+2. **Namespace Declaration**:
    ```cpp
    using namespace std;
    ```
-   - Uses the standard namespace to avoid prefixing standard library functions with `std::`.
+   This allows the use of standard library functions without the `std::` prefix.
 
-3. **Driver Code**
+3. **Main Function**:
    ```cpp
    int main()
    {
        double principal = 10000, rate = 5, time = 2;
    ```
-   - Declares and initializes the input variables `principal`, `rate`, and `time` with values 10000, 5, and 2 respectively.
+   - `principal`, `rate`, and `time` are initialized with the given values.
 
-4. **Calculate Compound Interest**
+4. **Calculate Compound Interest**:
    ```cpp
        double A = principal * ((pow((1 + rate / 100), time)));
-   ```
-   - Calculates the future value `A` using the compound interest formula: \( A = P \times (1 + \frac{r}{100})^t \).
-
-5. **Calculate Compound Interest Amount**
-   ```cpp
        double CI = A - principal;
    ```
-   - Calculates the compound interest `CI` as the difference between the future value `A` and the principal amount.
+   - `A` calculates the total amount after interest using the formula \( A = P \times (1 + r/n)^{nt} \), where \( P \) is the principal, \( r \) is the annual interest rate, \( n \) is the number of times interest applied per time period, and \( t \) is the time the money is invested for. Here, `n` is assumed to be 1 (interest applied once per year).
+   - `CI` calculates the compound interest by subtracting the principal from the total amount.
 
-6. **Output the Result**
+5. **Output the Result**:
    ```cpp
        cout << "Compound interest is " << CI;
    ```
-   - Prints the calculated compound interest to the console.
+   - This line prints the calculated compound interest to the console.
 
-7. **Return Statement**
+6. **Return Statement**:
    ```cpp
        return 0;
+   }
    ```
-   - Returns 0 indicating successful execution.
+   - The program returns 0, indicating successful execution.
 
-### SystemC Code Snippet
+### Equivalent SystemC Code
 
-To convert the above C++ code into a SystemC module, we need to create a SystemC module that takes the inputs (`principal`, `rate`, `time`) and produces the output (`ci`). Here is the equivalent SystemC code:
+To integrate this logic into a SystemC environment, we need to create a module that takes the inputs (`principal`, `rate`, `time`) and produces the output (`ci`). Here's how you can do it:
 
 ```cpp
 #include <systemc.h>
 
 SC_MODULE(CompoundInterestCalculator) {
     sc_in<double> principal;  // Input port for the principal amount
-    sc_in<double> rate;       // Input port for the interest rate
-    sc_in<double> time;       // Input port for the time period
+    sc_in<double> rate;       // Input port for the annual interest rate
+    sc_in<double> time;       // Input port for the time in years
     sc_out<double> ci;        // Output port for the compound interest
 
     // Constructor
@@ -85,78 +79,75 @@ SC_MODULE(CompoundInterestCalculator) {
     }
 };
 
+// Testbench to verify the module
+SC_MODULE(Testbench) {
+    sc_signal<double> p;  // Signal for principal
+    sc_signal<double> r;  // Signal for rate
+    sc_signal<double> t;  // Signal for time
+    sc_signal<double> c;  // Signal for compound interest
+
+    // Instance of the CompoundInterestCalculator module
+    CompoundInterestCalculator calc("calc");
+
+    // Constructor
+    SC_CTOR(Testbench) : calc("calc") {
+        // Binding signals to module ports
+        calc.principal(p);
+        calc.rate(r);
+        calc.time(t);
+        calc.ci(c);
+
+        // Process to drive inputs and check outputs
+        SC_THREAD(drive_inputs);
+        SC_THREAD(check_outputs);
+    }
+
+    // Thread to drive input values
+    void drive_inputs() {
+        p = 10000.0;
+        r = 5.0;
+        t = 2.0;
+        wait(10, SC_NS);  // Wait for 10ns
+        p = 15000.0;
+        r = 3.5;
+        t = 5.0;
+        wait(10, SC_NS);  // Wait for 10ns
+        sc_stop();  // Stop simulation after driving inputs
+    }
+
+    // Thread to check output values
+    void check_outputs() {
+        wait(20, SC_NS);  // Wait for the calculation to complete
+        cout << "Compound interest for principal=10000, rate=5, time=2 is " << c.read() << endl;
+        wait(20, SC_NS);  // Wait for the calculation to complete
+        cout << "Compound interest for principal=15000, rate=3.5, time=5 is " << c.read() << endl;
+    }
+};
+
 int sc_main(int argc, char* argv[]) {
-    // Instantiate the module
-    CompoundInterestCalculator cic("cic");
-
-    // Bind the ports (this part would typically be done in a testbench)
-    // cic.principal.bind(principal_signal);
-    // cic.rate.bind(rate_signal);
-    // cic.time.bind(time_signal);
-    // cic.ci.bind(ci_signal);
-
-    // Start the simulation
+    Testbench tb("tb");
     sc_start();
-
     return 0;
 }
 ```
 
 ### Explanation of the SystemC Code
 
-1. **Module Declaration**
-   ```cpp
-   SC_MODULE(CompoundInterestCalculator) {
-   ```
-   - Defines a SystemC module named `CompoundInterestCalculator`.
+1. **Module Definition**:
+   - `CompoundInterestCalculator` module takes three input ports (`principal`, `rate`, `time`) and one output port (`ci`).
 
-2. **Input and Output Ports**
-   ```cpp
-   sc_in<double> principal;  // Input port for the principal amount
-   sc_in<double> rate;       // Input port for the interest rate
-   sc_in<double> time;       // Input port for the time period
-   sc_out<double> ci;        // Output port for the compound interest
-   ```
-   - Declares input ports for `principal`, `rate`, and `time`, and an output port for `ci`.
+2. **Constructor**:
+   - The constructor binds the module ports to the corresponding signals.
+   - It also sets up a method `calculate_ci` to be sensitive to changes in the input signals.
 
-3. **Constructor**
-   ```cpp
-   SC_CTOR(CompoundInterestCalculator) {
-       // Process to calculate compound interest
-       SC_METHOD(calculate_ci);
-       sensitive << principal << rate << time;
-   }
-   ```
-   - Constructs the module and binds the `calculate_ci` method to the input ports. The method will be triggered whenever any of the input ports change.
+3. **Method to Calculate Compound Interest**:
+   - `calculate_ci` reads the input signals, performs the compound interest calculation, and writes the result to the output signal `ci`.
 
-4. **Method to Calculate Compound Interest**
-   ```cpp
-   void calculate_ci() {
-       double A = principal.read() * pow((1 + rate.read() / 100), time.read());
-       double CI = A - principal.read();
-       ci.write(CI);
-   }
-   ```
-   - Reads the values from the input ports, calculates the compound interest using the formula, and writes the result to the output port.
+4. **Testbench**:
+   - The `Testbench` module drives the input signals and checks the output signals.
+   - It uses threads to drive the inputs and check the outputs at specific times.
 
-5. **Main Function**
-   ```cpp
-   int sc_main(int argc, char* argv[]) {
-       // Instantiate the module
-       CompoundInterestCalculator cic("cic");
+5. **Main Function**:
+   - The `sc_main` function instantiates the testbench and starts the simulation.
 
-       // Bind the ports (this part would typically be done in a testbench)
-       // cic.principal.bind(principal_signal);
-       // cic.rate.bind(rate_signal);
-       // cic.time.bind(time_signal);
-       // cic.ci.bind(ci_signal);
-
-       // Start the simulation
-       sc_start();
-
-       return 0;
-   }
-   ```
-   - Instantiates the module and starts the simulation. The actual binding of ports to signals would typically be done in a separate testbench file.
-
-This SystemC code accurately captures the logic of the original C++ code and can be integrated into a high-level synthesis flow.
+This SystemC code faithfully captures the logic of the original C++ program and can be integrated into a high-level synthesis flow.

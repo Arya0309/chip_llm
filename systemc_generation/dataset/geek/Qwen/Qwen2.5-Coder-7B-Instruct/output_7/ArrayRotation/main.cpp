@@ -3,15 +3,14 @@
 
 
 SC_MODULE(Rotator) {
-    sc_in<bool> clk;
-    sc_in<bool> rst;
-    sc_in<int> d;
-    sc_in<int> in_array[7];
-    sc_out<int> out_array[7];
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> rst;  // Reset signal
+    sc_in<int> d;     // Number of positions to rotate
+    sc_in<int> in_array[7];  // Input array
+    sc_out<int> out_array[7];  // Output array
 
     int arr[7];
-    int N;
-    int temp[7];
+    int N = 7;
 
     SC_CTOR(Rotator) {
         SC_METHOD(process);
@@ -20,39 +19,31 @@ SC_MODULE(Rotator) {
     }
 
     void process() {
-        if (rst.read()) {
-            // Reset logic
-            for (int i = 0; i < 7; i++) {
+        if (rst) {
+            for (int i = 0; i < N; i++) {
                 arr[i] = 0;
                 out_array[i].write(0);
             }
         } else {
-            // Copy input array to local array
-            for (int i = 0; i < 7; i++) {
-                arr[i] = in_array[i].read();
-            }
+            Rotate(d.read());
+        }
+    }
 
-            // Calculate array size
-            N = 7;
+    void Rotate(int d) {
+        int temp[N];
+        int k = 0;
 
-            // Rotate the array
-            int k = 0;
-            for (int i = d.read(); i < N; i++) {
-                temp[k] = arr[i];
-                k++;
-            }
-            for (int i = 0; i < d.read(); i++) {
-                temp[k] = arr[i];
-                k++;
-            }
-            for (int i = 0; i < N; i++) {
-                arr[i] = temp[i];
-            }
+        for (int i = d; i < N; i++) {
+            temp[k++] = in_array[i].read();
+        }
 
-            // Copy the rotated array to output array
-            for (int i = 0; i < 7; i++) {
-                out_array[i].write(arr[i]);
-            }
+        for (int i = 0; i < d; i++) {
+            temp[k++] = in_array[i].read();
+        }
+
+        for (int i = 0; i < N; i++) {
+            arr[i] = temp[i];
+            out_array[i].write(arr[i]);
         }
     }
 };

@@ -8,7 +8,7 @@ SC_MODULE(BinaryToDecimalConverter) {
 
     // Constructor
     SC_CTOR(BinaryToDecimalConverter) {
-        // Process to perform binary to decimal conversion
+        // Process to perform conversion
         SC_METHOD(convert);
         sensitive << binary_in;
     }

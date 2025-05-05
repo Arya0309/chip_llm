@@ -3,70 +3,50 @@
 
 
 SC_MODULE(MinMax) {
-    sc_in<bool> clk;          // Clock signal
-    sc_in<bool> start;        // Start signal
-    sc_out<bool> done;        // Done signal
-    sc_out<int> min_val;      // Minimum value output
-    sc_out<int> max_val;      // Maximum value output
+    sc_in<bool> clk;  // Clock signal
+    sc_in<bool> start;  // Start signal
+    sc_out<bool> done;  // Done signal
+    sc_out<int> min_val;  // Output for minimum value
+    sc_out<int> max_val;  // Output for maximum value
 
-    int arr[100];             // Array to store input values
-    int n;                    // Size of the array
-    bool processing;           // Flag to indicate if processing is ongoing
+    int arr[5];  // Array to store input values
+    int n;  // Size of the array
+    bool processing = false;
 
     // Constructor
     SC_CTOR(MinMax) {
-        processing = false;
-
-        // Process to handle start signal and compute min/max
-        SC_METHOD(compute_min_max);
+        SC_METHOD(process);
         sensitive << clk.pos();
-        dont_initialize();
-
-        // Process to reset state
-        SC_METHOD(reset);
-        sensitive << start.neg();
-        dont_initialize();
     }
 
-    // Method to compute minimum and maximum values
-    void compute_min_max() {
-        if (start.read()) {
-            if (!processing) {
-                processing = true;
-                n = 0;
-            }
-        } else {
-            if (processing && n < 100) {
-                arr[n++] = 0;  // Placeholder for actual input value
-                if (n == 100) {
-                    processing = false;
-                    done.write(true);
-                }
-            }
+    // Method to load the array into the module
+    void load_array(int* input_arr, int size) {
+        for (int i = 0; i < size; ++i) {
+            arr[i] = input_arr[i];
         }
-
-        if (processing) {
-            int min_val_temp = arr[0];
-            int max_val_temp = arr[0];
-            for (int i = 1; i < n; ++i) {
-                if (arr[i] < min_val_temp) {
-                    min_val_temp = arr[i];
-                }
-                if (arr[i] > max_val_temp) {
-                    max_val_temp = arr[i];
-                }
-            }
-            min_val.write(min_val_temp);
-            max_val.write(max_val_temp);
-        }
+        n = size;
     }
 
-    // Method to reset state
-    void reset() {
-        processing = false;
-        done.write(false);
+    // Method to process the array and find min/max values
+    void process() {
+        if (start.read() && !processing) {
+            processing = true;
+            int minVal = *std::min_element(arr, arr + n);
+            int maxVal = *std::max_element(arr, arr + n);
+
+            // Assign values to output ports
+            min_val.write(minVal);
+            max_val.write(maxVal);
+
+            // Set done signal after processing
+            done.write(true);
+            processing = false;
+        } else if (!start.read()) {
+            done.write(false);
+        }
     }
 };
+
 
 
 SC_MODULE(Testbench) {
