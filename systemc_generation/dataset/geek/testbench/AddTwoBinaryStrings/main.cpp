@@ -1,128 +1,103 @@
-
 #include <systemc.h>
-#include <string>
-#include <algorithm>
 
-// Module that adds two binary strings
-SC_MODULE(BinaryAdder) {
-    sc_in<std::string> A;  // Input port for the first binary string
-    sc_in<std::string> B;  // Input port for the second binary string
-    sc_out<std::string> sum; // Output port for the sum of the binary strings
+// Module that adds two binary values represented as bit-vectors
+SC_MODULE(BinaryAdderBV) {
+    sc_in< sc_dt::sc_bv<8> > A;      // 8-bit input A
+    sc_in< sc_dt::sc_bv<8> > B;      // 8-bit input B
+    sc_out< sc_dt::sc_bv<9> > SUM;   // 9-bit sum (含進位)
 
-    // Constructor
-    SC_CTOR(BinaryAdder) {
-        // Process to perform binary addition
-        SC_METHOD(add_binary);
+    SC_CTOR(BinaryAdderBV) {
+        SC_METHOD(do_add);
         sensitive << A << B;
     }
 
-    // Method to add two binary strings
-    void add_binary() {
-        std::string a = A.read();
-        std::string b = B.read();
-
-        // Ensure a is the shorter string
-        if (a.length() > b.length())
-            return add_binary(b, a);
-
-        // Calculate length difference
-        int diff = b.length() - a.length();
-        std::string padding(diff, '0');
-        a = padding + a;
-
-        std::string res;
-        char carry = '0';
-
-        // Perform binary addition
-        for (int i = a.length() - 1; i >= 0; i--) {
-            if (a[i] == '1' && b[i] == '1') {
-                if (carry == '1')
-                    res.push_back('1'), carry = '1';
-                else
-                    res.push_back('0'), carry = '1';
-            } else if (a[i] == '0' && b[i] == '0') {
-                if (carry == '1')
-                    res.push_back('1'), carry = '0';
-                else
-                    res.push_back('0'), carry = '0';
-            } else if (a[i] != b[i]) {
-                if (carry == '1')
-                    res.push_back('0'), carry = '1';
-                else
-                    res.push_back('1'), carry = '0';
-            }
-        }
-
-        // Handle final carry
-        if (carry == '1')
-            res.push_back(carry);
-
-        // Reverse result and remove leading zeros
-        std::reverse(res.begin(), res.end());
-        int index = 0;
-        while (index + 1 < res.length() && res[index] == '0')
-            index++;
-        sum.write(res.substr(index));
+    void do_add() {
+        // 讀取 bit-vector，轉成 unsigned
+        unsigned a = A.read().to_uint();
+        unsigned b = B.read().to_uint();
+        unsigned s = a + b;
+        // 將結果轉回固定寬度的 bit-vector
+        sc_dt::sc_bv<9> result(s);
+        SUM.write(result);
     }
 };
 
-// Testbench module
+// Testbench 模組
 SC_MODULE(Testbench) {
-    sc_signal<std::string> a; // Signal for the first binary string
-    sc_signal<std::string> b; // Signal for the second binary string
-    sc_signal<std::string> sum; // Signal for the sum of the binary strings
+    sc_signal< sc_dt::sc_bv<8> > sig_a, sig_b;
+    sc_signal< sc_dt::sc_bv<9> > sig_sum;
 
-    BinaryAdder adder_inst; // Instance of the BinaryAdder module
+    BinaryAdderBV adder;  // 實例化加法器
 
-    // Constructor
-    SC_CTOR(Testbench) : adder_inst("adder") {
-        // Connect signals to ports
-        adder_inst.A(a);
-        adder_inst.B(b);
-        adder_inst.sum(sum);
-
-        // Process to run tests
+    SC_CTOR(Testbench)
+    : adder("adder") {
+        adder.A(sig_a);
+        adder.B(sig_b);
+        adder.SUM(sig_sum);
         SC_THREAD(run_tests);
     }
 
-    // Thread to run test cases
     void run_tests() {
-        // Test case 1: Simple addition
-        a = "1101"; b = "100";
-        wait(1, SC_NS); // Wait for the adder to process
-        assert(sum.read() == "10001");
-        std::cout << "Sum: " << sum.read() << std::endl;
+        auto trim = [&](const std::string &bv) {
+            auto pos = bv.find('1');
+            if (pos == std::string::npos) return std::string("0");
+            return bv.substr(pos);
+        };
 
-        // Test case 2: Different lengths
-        a = "1010"; b = "11010";
+        // Test case 1: "1101" + "100" => "10001"
+        sig_a.write("00001101");
+        sig_b.write("00000100");
         wait(1, SC_NS);
-        assert(sum.read() == "100100");
-        std::cout << "Sum: " << sum.read() << std::endl;
+        {
+            std::string s = sig_sum.read().to_string();
+            std::string output = trim(s);
+            std::cout << "1101 + 100 = 10001" << std::endl;
+            std::cout << "Output: " << output << std::endl;
+            assert(output == "10001");
+        }
 
-        // Test case 3: Leading zeros in result
-        a = "0"; b = "0";
+        // Test case 2: "1010" + "11010" => "100100"
+        sig_a.write("00001010");
+        sig_b.write("00011010");
         wait(1, SC_NS);
-        assert(sum.read() == "0");
-        std::cout << "Sum: " << sum.read() << std::endl;
+        {
+            std::string s = sig_sum.read().to_string();
+            std::string output = trim(s);
+            std::cout << "Test case 2: 1010 + 11010 = 100101" << std::endl;
+            std::cout << "Output: " << output << std::endl;
+            assert(output == "100101");
+        }
 
-        // Test case 4: Different values
-        a = "1111"; b = "1";
+        // Test case 3: "0" + "0" => "0"
+        sig_a.write("00000000");
+        sig_b.write("00000000");
         wait(1, SC_NS);
-        assert(sum.read() == "10000");
-        std::cout << "Sum: " << sum.read() << std::endl;
+        {
+            std::string s = sig_sum.read().to_string();
+            std::string t = trim(s);
+            std::cout << "0 + 0 = " << t << std::endl;
+            assert(t == "0");
+        }
 
-        // Print success message
+        // Test case 4: "1111" + "1" => "10000"
+        sig_a.write("00001111");
+        sig_b.write("00000001");
+        wait(1, SC_NS);
+        {
+            std::string s = sig_sum.read().to_string();
+            std::string t = trim(s);
+            std::cout << "1111 + 1 = " << t << std::endl;
+            assert(t == "10000");
+        }
+
         std::cout << "All tests passed successfully." << std::endl;
-
-        sc_stop(); // Stop the simulation
+        sc_stop();
     }
 };
 
+// sc_main
 int sc_main(int argc, char* argv[]) {
-    Testbench tb("tb"); // Create an instance of the Testbench
-
-    // Start the simulation
+    Testbench tb("tb");
     sc_start();
-
     return 0;
 }

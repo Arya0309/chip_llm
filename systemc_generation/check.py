@@ -77,6 +77,13 @@ class GenCodeChecker:
             # 執行成功但單元測試失敗
             self.table["runtime_success"] += 1
             self.table["unit_test_fail"] += 1
+
+            out = self.unit_test_result.stdout.decode("utf-8", "ignore")
+
+            err = self.unit_test_result.stderr.decode("utf-8", "ignore")
+            _, sep, after = err.partition("Assertion")
+            msg = out + sep + after
+
             self.recorder.append(
                 {
                     "dir": dir,
@@ -85,7 +92,7 @@ class GenCodeChecker:
                     "execution_pass": True,
                     "unit_test_pass": False,
                     "status": self.status,
-                    "error_msg": self.unit_test_result.stdout.decode("utf-8", "ignore"),
+                    "error_msg": msg,
                     "generated_code": None,
                 }
             )
@@ -101,7 +108,7 @@ class GenCodeChecker:
                     "execution_pass": True,
                     "unit_test_pass": True,
                     "status": self.status,
-                    "error_msg": self.unit_test_result.stdout.decode("utf-8", "ignore"),
+                    "error_msg": None,
                     "generated_code": None,
                 }
             )
