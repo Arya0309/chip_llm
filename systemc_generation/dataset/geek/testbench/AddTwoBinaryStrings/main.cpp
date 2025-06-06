@@ -63,9 +63,9 @@ SC_MODULE(Testbench) {
         {
             std::string s = sig_sum.read().to_string();
             std::string output = trim(s);
-            std::cout << "Test case 2: 1010 + 11010 = 100101" << std::endl;
+            std::cout << "Test case 2: 1010 + 11010 = 100100" << std::endl;
             std::cout << "Output: " << output << std::endl;
-            assert(output == "100101");
+            assert(output == "100100");
         }
 
         // Test case 3: "0" + "0" => "0"

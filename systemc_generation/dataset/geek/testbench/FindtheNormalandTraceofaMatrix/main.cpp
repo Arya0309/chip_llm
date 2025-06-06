@@ -1,14 +1,9 @@
 #include <systemc.h>
 
-
-// Use static const for constants
-static const int N = 5;        // Dimension of the matrix (5x5)
-static const int SIZE = N * N; // Total number of matrix elements
-
 // Module that computes the trace and normal (Frobenius norm) of a matrix
 SC_MODULE(MatrixOperations) {
     // Input ports: flattened matrix (1D array representing N x N matrix)
-    sc_in<int> matrix[SIZE];
+    sc_in<int> matrix[5*5];
 
     // Output ports for computed trace and normal
     sc_out<int> trace;
@@ -17,7 +12,7 @@ SC_MODULE(MatrixOperations) {
     SC_CTOR(MatrixOperations) {
         SC_METHOD(compute);
         // Make the method sensitive to all matrix elements
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 5*5; i++) {
             sensitive << matrix[i];
         }
     }
@@ -28,9 +23,9 @@ SC_MODULE(MatrixOperations) {
         int sum_sq = 0;  // Variable to hold the sum of squares of all elements
 
         // Loop through each element in the matrix (using 2D indexing on a flattened array)
-        for (int row = 0; row < N; row++) {
-            for (int col = 0; col < N; col++) {
-                int index = row * N + col;
+        for (int row = 0; row < 5; row++) {
+            for (int col = 0; col < 5; col++) {
+                int index = row * 5 + col;
                 int val = matrix[index].read();
                 sum_sq += val * val;  // Add square of the element to the sum
                 if (row == col) {      // Check if the element is on the diagonal
@@ -46,11 +41,9 @@ SC_MODULE(MatrixOperations) {
 
 // Testbench module to drive the matrix signals and verify outputs
 SC_MODULE(Testbench) {
-    // Use static const for constants
-    static const int N = 5;        // Dimension of the matrix (5x5)
-    static const int SIZE = N * N; // Total number of matrix elements   
+ 
     // Signals to connect with the MatrixOperations module
-    sc_signal<int> matrix[SIZE];
+    sc_signal<int> matrix[5*5];
     sc_signal<int> trace_signal;
     sc_signal<int> norm_signal;
 
@@ -62,7 +55,7 @@ SC_MODULE(Testbench) {
         matrixOps = new MatrixOperations("matrixOps");
 
         // Connect the matrix signals to the module ports
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 5*5; i++) {
             matrixOps->matrix[i](matrix[i]);
         }
         matrixOps->trace(trace_signal);
@@ -81,9 +74,9 @@ SC_MODULE(Testbench) {
         //   {3, 3, 3, 3, 3},
         //   {4, 4, 4, 4, 4},
         //   {5, 5, 5, 5, 5}
-        for (int row = 0; row < N; row++) {
-            for (int col = 0; col < N; col++) {
-                int index = row * N + col;
+        for (int row = 0; row < 5; row++) {
+            for (int col = 0; col < 5; col++) {
+                int index = row * 5 + col;
                 matrix[index].write(row + 1); // Set all elements in a row to row+1
             }
         }

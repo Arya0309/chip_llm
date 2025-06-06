@@ -2,28 +2,32 @@
 
 // LinearSearch module: performs a linear search over an externally provided data array.
 SC_MODULE(LinearSearch) {
-    sc_in<int> key;                     // Input port for the search key
-    sc_vector< sc_in<int> > data;         // Vector of input ports for the data array
-    sc_out<int> index;                  // Output port for the found index
+    // Eight individual data input ports
+    sc_in<int> data0, data1, data2, data3;
+    sc_in<int> data4, data5, data6, data7;
 
-    // Constructor accepts the number of elements in the data array.
-    LinearSearch(sc_module_name name, int n) 
-        : sc_module(name), data("data", n)
-    {
+    sc_in<int> key;        // Input port for the search key
+    sc_out<int> index;     // Output port for the found index
+
+    SC_CTOR(LinearSearch) {
         SC_METHOD(search);
-        sensitive << key;  // Trigger when the search key changes
-        // Optionally, you can also sensitize to data changes if needed
-        for (int i = 0; i < n; i++) {
-            sensitive << data[i];
-        }
+        dont_initialize();
+        sensitive << key
+                  << data0 << data1 << data2 << data3
+                  << data4 << data5 << data6 << data7;
     }
 
-    // Method to perform linear search over the data array.
     void search() {
-        int found_index = -1;  // Default result: not found
-        for (unsigned i = 0; i < data.size(); i++) {
-            if (data[i].read() == key.read()) {
-                found_index = i;  // Key found at index i
+        int arr[8] = {
+            data0.read(), data1.read(), data2.read(), data3.read(),
+            data4.read(), data5.read(), data6.read(), data7.read()
+        };
+
+        int found_index = -1;
+        int tgt = key.read();
+        for (int i = 0; i < 8; ++i) {
+            if (arr[i] == tgt) {
+                found_index = i;
                 break;
             }
         }
@@ -31,71 +35,73 @@ SC_MODULE(LinearSearch) {
     }
 };
 
-// Testbench module: supplies test data to the LinearSearch module and verifies the output.
+// Testbench module
 SC_MODULE(Testbench) {
-    sc_signal<int> key_sig;       // Signal for the search key
-    sc_signal<int> index_sig;     // Signal for the search result index
-    sc_vector< sc_signal<int> > data_signals; // Vector of signals for the data array
+    // Signals for data array
+    sc_signal<int> sig_data0, sig_data1, sig_data2, sig_data3;
+    sc_signal<int> sig_data4, sig_data5, sig_data6, sig_data7;
 
-    LinearSearch* ls_inst;        // Instance of the LinearSearch module
+    sc_signal<int> key_sig;    // key
+    sc_signal<int> index_sig;  // result
 
-    SC_CTOR(Testbench) : data_signals("data_signals", 8) {
-        // Instantiate LinearSearch with an array size of 8
-        ls_inst = new LinearSearch("ls_inst", 8);
-        ls_inst->key(key_sig);
-        ls_inst->index(index_sig);
-        for (int i = 0; i < 8; i++) {
-            ls_inst->data[i](data_signals[i]);
-        }
+    LinearSearch ls_inst;      // instance
 
-        // Initialize the data array in the testbench (no test data inside LinearSearch)
-        data_signals[0].write(1);
-        data_signals[1].write(2);
-        data_signals[2].write(3);
-        data_signals[3].write(4);
-        data_signals[4].write(5);
-        data_signals[5].write(8);
-        data_signals[6].write(9);
-        data_signals[7].write(11);
+    SC_CTOR(Testbench)
+    : ls_inst("ls_inst")
+    {
+        // bind data signals
+        ls_inst.data0(sig_data0);
+        ls_inst.data1(sig_data1);
+        ls_inst.data2(sig_data2);
+        ls_inst.data3(sig_data3);
+        ls_inst.data4(sig_data4);
+        ls_inst.data5(sig_data5);
+        ls_inst.data6(sig_data6);
+        ls_inst.data7(sig_data7);
+
+        ls_inst.key(key_sig);
+        ls_inst.index(index_sig);
+
+        // initialize array values
+        int vals[8] = {1,2,3,4,5,8,9,11};
+        sig_data0.write(vals[0]);
+        sig_data1.write(vals[1]);
+        sig_data2.write(vals[2]);
+        sig_data3.write(vals[3]);
+        sig_data4.write(vals[4]);
+        sig_data5.write(vals[5]);
+        sig_data6.write(vals[6]);
+        sig_data7.write(vals[7]);
 
         SC_THREAD(run_tests);
     }
 
-    // Thread that applies test cases and checks the outputs
     void run_tests() {
-        // Test Case 1: key = 8; expected index = 5
+        // Test 1: expect index 5
         key_sig.write(8);
         wait(1, SC_NS);
         assert(index_sig.read() == 5);
         std::cout << "Test 1 Passed: 8 found at index " << index_sig.read() << std::endl;
 
-        // Test Case 2: key = 10; expected index = -1 (not found)
+        // Test 2: expect -1
         key_sig.write(10);
         wait(1, SC_NS);
         assert(index_sig.read() == -1);
         std::cout << "Test 2 Passed: 10 not found (index: " << index_sig.read() << ")" << std::endl;
 
-        // Test Case 3: key = 1; expected index = 0
+        // Test 3: expect 0
         key_sig.write(1);
         wait(1, SC_NS);
         assert(index_sig.read() == 0);
         std::cout << "Test 3 Passed: 1 found at index " << index_sig.read() << std::endl;
 
         std::cout << "All tests completed successfully." << std::endl;
-        
-        // End simulation after tests
         sc_stop();
-    }
-
-    // Destructor to clean up dynamically allocated memory
-    ~Testbench() {
-        delete ls_inst;
     }
 };
 
-// sc_main: entry point for the SystemC simulation
 int sc_main(int argc, char* argv[]) {
     Testbench tb("tb");
-    sc_start();  // Start the simulation
+    sc_start();
     return 0;
 }

@@ -1,35 +1,31 @@
 #include <systemc.h>
 
-// Using static const for matrix dimensions instead of #define
-static const int N = 4;
-static const int SIZE = N * N;
-
 // Module that performs matrix rotation
 SC_MODULE(MatrixRotator) {
     // Input ports for the matrix (flattened as a 1D array)
-    sc_in<int> in[SIZE];
+    sc_in<int> in[4*4];
     // Output ports for the rotated matrix (flattened as a 1D array)
-    sc_out<int> out[SIZE];
+    sc_out<int> out[4*4];
 
     SC_CTOR(MatrixRotator) {
         SC_METHOD(do_rotate);
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             sensitive << in[i];
         }
     }
 
     // Method that rotates the matrix by one anti-clockwise ring
     void do_rotate() {
-        int mat[N][N];
+        int mat[4][4];
         // Read input signals into a 2D local matrix
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                mat[i][j] = in[i * N + j].read();
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                mat[i][j] = in[i * 4 + j].read();
             }
         }
 
         int row = 0, col = 0;
-        int m = N, n = N;
+        int m = 4, n = 4;
         int prev, curr;
 
         // Process one ring (layer) at a time
@@ -78,9 +74,9 @@ SC_MODULE(MatrixRotator) {
         }
 
         // Write the rotated matrix back to the output ports
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                out[i * N + j].write(mat[i][j]);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                out[i * 4 + j].write(mat[i][j]);
             }
         }
     }
@@ -88,13 +84,10 @@ SC_MODULE(MatrixRotator) {
 
 // Testbench module
 SC_MODULE(Testbench) {
-    // Using static const for matrix dimensions instead of #define
-    static const int N = 4;
-    static const int SIZE = N * N;
     
     // Signals to connect to the MatrixRotator ports
-    sc_signal<int> in[SIZE];
-    sc_signal<int> out[SIZE];
+    sc_signal<int> in[4*4];
+    sc_signal<int> out[4*4];
 
     MatrixRotator* matrixRotator;
 
@@ -102,7 +95,7 @@ SC_MODULE(Testbench) {
         // Instantiate the MatrixRotator module
         matrixRotator = new MatrixRotator("matrixRotator");
         // Connect the signals
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             matrixRotator->in[i](in[i]);
             matrixRotator->out[i](out[i]);
         }
@@ -116,13 +109,13 @@ SC_MODULE(Testbench) {
         //   5,  6,  7,  8,
         //   9, 10, 11, 12,
         //  13, 14, 15, 16 }
-        int init[SIZE] = {
+        int init[4*4] = {
             1, 2, 3, 4,
             5, 6, 7, 8,
             9, 10, 11, 12,
             13, 14, 15, 16
         };
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             in[i].write(init[i]);
         }
 
@@ -134,7 +127,7 @@ SC_MODULE(Testbench) {
         //  9  10   6   4
         // 13  11   7   8
         // 14  15  16  12
-        int expected[SIZE] = {
+        int expected[4*4] = {
             5, 1, 2, 3,
             9, 10, 6, 4,
             13, 11, 7, 8,
@@ -143,9 +136,9 @@ SC_MODULE(Testbench) {
 
         // Check the output matrix and print the result
         std::cout << "Rotated Matrix:" << std::endl;
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                int index = i * N + j;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                int index = i * 4 + j;
                 int result = out[index].read();
                 std::cout << result << " ";
                 // Validate the result using assert

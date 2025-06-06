@@ -73,6 +73,21 @@ class GenCodeChecker:
                     "generated_code": None,
                 }
             )
+        elif test_status == "timeout":
+            # 處理超時情況
+            self.table["runtime_error"] += 1
+            self.recorder.append(
+                {
+                    "dir": dir,
+                    "task": os.path.basename(dir),
+                    "compilable": True,
+                    "execution_pass": False,
+                    "unit_test_pass": False,
+                    "status": self.status,
+                    "error_msg": self.timeout_msg,
+                    "generated_code": None,
+                }
+            )
         elif test_status == "unit_test_fail":
             # 執行成功但單元測試失敗
             self.table["runtime_success"] += 1
@@ -164,9 +179,10 @@ class GenCodeChecker:
             )
         except subprocess.TimeoutExpired as e:
             print(Fore.RED + f"Timeout expired: {e}")
-            self.status = "runtime_error"
+            self.timeout_msg = str(e)
+            self.status = "timeout"
             # Return a specific status if you wish to differentiate a timeout
-            return "runtime_error"
+            return "timeout"
 
         self.unit_test_result = result
 

@@ -2,14 +2,10 @@
 #include <cassert>
 #include <iostream>
 
-// Define constants for matrix dimensions
-static const int N = 4;
-static const int SIZE = N * N;
-
 // Module that computes the diagonal sums of an N x N matrix (flattened as 1D array)
 SC_MODULE(DiagonalSum) {
     // Input port: flattened matrix (1D array)
-    sc_in<int> matrix[SIZE];
+    sc_in<int> matrix[4*4];
     // Output ports for the diagonal sums
     sc_out<int> principal;
     sc_out<int> secondary;
@@ -18,7 +14,7 @@ SC_MODULE(DiagonalSum) {
         // Combinational process to compute diagonal sums
         SC_METHOD(compute_diagonals);
         // Sensitivity list: all matrix elements
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             sensitive << matrix[i];
         }
     }
@@ -28,11 +24,11 @@ SC_MODULE(DiagonalSum) {
         int princ_sum = 0;
         int sec_sum = 0;
         // Loop over rows of the matrix
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < 4; i++) {
             // Compute index for principal diagonal element: (i, i)
-            princ_sum += matrix[i * N + i].read();
-            // Compute index for secondary diagonal element: (i, N-1-i)
-            sec_sum += matrix[i * N + (N - 1 - i)].read();
+            princ_sum += matrix[i * 4 + i].read();
+            // Compute index for secondary diagonal element: (i, 4-1-i)
+            sec_sum += matrix[i * 4 + (4 - 1 - i)].read();
         }
         // Write the computed sums to the output ports
         principal.write(princ_sum);
@@ -42,11 +38,9 @@ SC_MODULE(DiagonalSum) {
 
 // Testbench module for the DiagonalSum module
 SC_MODULE(Testbench) {
-    // Define constants for matrix dimensions
-    static const int N = 4;
-    static const int SIZE = N * N;
+
     // Signals for the flattened matrix and the outputs
-    sc_signal<int> matrix[SIZE];
+    sc_signal<int> matrix[4*4];
     sc_signal<int> principal;
     sc_signal<int> secondary;
 
@@ -57,7 +51,7 @@ SC_MODULE(Testbench) {
         // Instantiate the DiagonalSum module
         diagSum = new DiagonalSum("diagSum");
         // Connect the matrix signals and outputs
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             diagSum->matrix[i](matrix[i]);
         }
         diagSum->principal(principal);
@@ -75,7 +69,7 @@ SC_MODULE(Testbench) {
         //      {5, 6, 7, 8},
         //      {1, 2, 3, 4},
         //      {5, 6, 7, 8}
-        int mat[N][N] = {
+        int mat[4][4] = {
             {1, 2, 3, 4},
             {5, 6, 7, 8},
             {1, 2, 3, 4},
@@ -83,9 +77,9 @@ SC_MODULE(Testbench) {
         };
 
         // Write the matrix values to the flattened signal array
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                int index = i * N + j;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                int index = i * 4 + j;
                 matrix[index].write(mat[i][j]);
             }
         }

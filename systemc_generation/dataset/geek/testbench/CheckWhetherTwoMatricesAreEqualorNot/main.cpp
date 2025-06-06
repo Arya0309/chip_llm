@@ -2,15 +2,11 @@
 #include <cassert>
 #include <iostream>
 
-// Use static const for constants instead of #define
-static const int N = 4;
-static const int SIZE = N * N;
-
 // Module that compares two matrices element-by-element
 SC_MODULE(MatrixComparator) {
     // Input ports for matrices A and B (flattened as 1D arrays)
-    sc_in<int> A[SIZE];
-    sc_in<int> B[SIZE];
+    sc_in<int> A[4*4];
+    sc_in<int> B[4*4];
     // Output port: true if matrices are identical, false otherwise
     sc_out<bool> identical;
 
@@ -18,7 +14,7 @@ SC_MODULE(MatrixComparator) {
         // Combinational process to compare the matrices
         SC_METHOD(do_compare);
         // Make the method sensitive to every element of matrices A and B
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             sensitive << A[i] << B[i];
         }
     }
@@ -26,7 +22,7 @@ SC_MODULE(MatrixComparator) {
     // Method to check if matrices A and B are identical
     void do_compare() {
         bool same = true;
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             if (A[i].read() != B[i].read()) {
                 same = false;
                 break;
@@ -38,11 +34,9 @@ SC_MODULE(MatrixComparator) {
 
 // Testbench module
 SC_MODULE(Testbench) {
-    // Use static const for constants instead of #define
-    static const int N = 4;
-    static const int SIZE = N * N;
-    sc_signal<int> A[SIZE];
-    sc_signal<int> B[SIZE];
+
+    sc_signal<int> A[4*4];
+    sc_signal<int> B[4*4];
     sc_signal<bool> result;
 
     MatrixComparator* comparator;
@@ -51,7 +45,7 @@ SC_MODULE(Testbench) {
         // Instantiate the MatrixComparator module
         comparator = new MatrixComparator("comparator");
         // Connect signals to the module's ports
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             comparator->A[i](A[i]);
             comparator->B[i](B[i]);
         }
@@ -70,9 +64,9 @@ SC_MODULE(Testbench) {
         //   { 3, 3, 3, 3 },
         //   { 4, 4, 4, 4 }
         // Matrix B: identical to Matrix A.
-        for (int row = 0; row < N; row++) {
-            for (int col = 0; col < N; col++) {
-                int index = row * N + col;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                int index = row * 4 + col;
                 A[index].write(row + 1); // For row 0, write 1; row 1, write 2; etc.
                 B[index].write(row + 1);
             }

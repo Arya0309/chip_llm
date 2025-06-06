@@ -7,6 +7,7 @@ from debug_prompt import (
     prompt_compile_error,
     prompt_runtime_error,
     prompt_unit_test_error,
+    prompt_self_debugging_Expl,
 )
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -23,8 +24,13 @@ class SystemCDataset(Dataset):
                 "testbench",
                 "module_name",
                 "prompt",
+                "adoption",
             ]
         ].dropna()
+
+        mask = self.df["adoption"] == True
+        self.df = self.df[mask].reset_index(drop=True)
+        self.df.drop(columns=["adoption"], inplace=True)
 
         self.df["rounded_prompt"] = None
         self.df["generated_code"] = ""
@@ -106,6 +112,50 @@ class SystemCDataset(Dataset):
             return True, done_task
         else:
             return False, done_task
+
+    # def update_done(self, temp_dir, idx):
+    #     file_dir = os.path.join(temp_dir, ".log", f"compile_check_result_{idx}.json")
+    #     temp = pd.read_json(file_dir, orient="records")[
+    #         [
+    #             "task",
+    #             "unit_test_pass",
+    #             "status",
+    #             "error_msg",
+    #         ]
+    #     ]
+
+    #     # 1) 將"unit_test_pass, status, error_msg"的值更新到self.df中
+    #     temp_mapping = temp.set_index("task")
+    #     for col in ["unit_test_pass", "status", "error_msg"]:
+    #         self.df[col] = self.df["task"].map(temp_mapping[col])
+
+    #     # 2) 將"unit_test_pass"為True的task更新到done_task(list())中
+    #     done_task = []
+    #     # done_task = self.df[self.df["unit_test_pass"] == True]["task"].tolist()
+    #     # # 3) 並將self.df中"unit_test_pass"為True的task刪除
+    #     # self.df = self.df[self.df["unit_test_pass"] == False]
+
+    #     def make_prompt(x):
+    #         #     if len(x["error_msg"]) > 2000:  # 32768 token limit
+    #         #         x["error_msg"] = x["error_msg"][:2000]
+    #         #     status = x["status"]
+    #         #     if status == "compile_error":
+    #         #         return prompt_compile_error(x["generated_code"], x["error_msg"])
+    #         #     elif status == "runtime_error":
+    #         #         return prompt_runtime_error(x["generated_code"], x["error_msg"])
+    #         #     else:
+    #         #         return prompt_unit_test_error(x["generated_code"], x["error_msg"])
+    #         return prompt_self_debugging_Expl(x["generated_code"])
+
+    #     # 4) 目前已經剩下尚未完成的task，從第二回合開始，都會將上次的結果+錯誤組成新的prompt
+    #     self.df["rounded_prompt"] = self.df.apply(make_prompt, axis=1)
+    #     # 5) 更新self.df["input"]的內容
+    #     self._update_inputs()
+
+    #     if self.df.empty:
+    #         return True, done_task
+    #     else:
+    #         return False, done_task
 
 
 def collate_fn(batch):

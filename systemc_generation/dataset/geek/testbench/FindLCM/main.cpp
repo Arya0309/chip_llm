@@ -1,4 +1,3 @@
-
 #include <systemc.h>
 
 // Module to calculate the LCM of two numbers
@@ -12,6 +11,7 @@ SC_MODULE(LcmCalculator) {
     // Constructor: Register the method to compute LCM
     SC_CTOR(LcmCalculator) {
         SC_METHOD(compute_lcm);
+        dont_initialize();
         sensitive << a << b;
     }
 

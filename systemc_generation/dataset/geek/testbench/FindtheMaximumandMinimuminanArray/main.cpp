@@ -2,55 +2,43 @@
 #include <assert.h>
 #include <iostream>
 
-// Module: MinMax
-// Computes the minimum and maximum elements of an internal fixed-size array.
+//─────────────── MinMax (DUT) ───────────────
 SC_MODULE(MinMax) {
-    sc_in<bool> clk;      // Clock input
-    sc_in<bool> start;    // Signal to start computation
-    sc_out<bool> done;    // Signal to indicate computation completion
-    sc_out<int> min_val;  // Output: minimum element
-    sc_out<int> max_val;  // Output: maximum element
+    sc_in<bool>  clk;
+    sc_in<bool>  start;
+    sc_out<bool> done;
+    sc_out<int>  min_val;
+    sc_out<int>  max_val;
 
-    // Internal storage for the array (fixed size of 5 elements)
-    static const int SIZE = 5;
-    int arr[SIZE];
+    sc_in<int>   in_arr[5];   // 5-element input bus
 
-    // Constructor: Registers the compute_process with clock sensitivity.
     SC_CTOR(MinMax) {
         SC_THREAD(compute_process);
         sensitive << clk.pos();
     }
 
-    // Helper method to load an input array into the module
-    void load_array(const int input[SIZE]) {
-        for (int i = 0; i < SIZE; i++) {
-            arr[i] = input[i];
-        }
-    }
-
-    // Process that waits for the start signal and performs the computation
     void compute_process() {
+        const int N = 5;
         while (true) {
-            wait(); // Wait for the next clock cycle
-            if (start.read() == true) {
-                // Initialize local variables with the first array element
-                int local_min = arr[0];
-                int local_max = arr[0];
+            wait();                       // posedge clk
+            if (start.read()) {
+                /* 1. 讀入並初始化 */
+                int local_min = in_arr[0].read();
+                int local_max = local_min;
 
-                // Loop over the array to determine min and max
-                for (int i = 1; i < SIZE; i++) {
-                    if (arr[i] < local_min)
-                        local_min = arr[i];
-                    if (arr[i] > local_max)
-                        local_max = arr[i];
+                /* 2. 掃描其餘元素 */
+                for (int i = 1; i < N; ++i) {
+                    int v = in_arr[i].read();
+                    if (v < local_min) local_min = v;
+                    if (v > local_max) local_max = v;
                 }
 
-                // Write the computed values to the output ports
+                /* 3. 輸出結果 */
                 min_val.write(local_min);
                 max_val.write(local_max);
-                done.write(true);
 
-                // Wait one cycle to signal completion then reset 'done'
+                /* 4. done 拉高一個週期 */
+                done.write(true);
                 wait();
                 done.write(false);
             }
@@ -58,65 +46,63 @@ SC_MODULE(MinMax) {
     }
 };
 
-// Testbench Module: Sets up inputs, triggers computation, and verifies output
+//─────────────── Testbench ───────────────
 SC_MODULE(Testbench) {
-    sc_clock clk;           // Clock signal for synchronization
-    sc_signal<bool> start;  // Signal to trigger the computation
-    sc_signal<bool> done;   // Signal indicating computation completion
-    sc_signal<int> min_val; // Signal for minimum element output
-    sc_signal<int> max_val; // Signal for maximum element output
+    sc_clock        clk{"clk", 1, SC_NS};
+    sc_signal<bool> start, done;
+    sc_signal<int>  min_val, max_val;
+    sc_signal<int>  sig_in[5];
 
-    // Instance of the MinMax module
-    MinMax* minmax_inst;
+    MinMax*         dut;
 
-    SC_CTOR(Testbench)
-        : clk("clk", 1, SC_NS) // 1 ns clock period
-    {
-        minmax_inst = new MinMax("minmax_inst");
-        minmax_inst->clk(clk);
-        minmax_inst->start(start);
-        minmax_inst->done(done);
-        minmax_inst->min_val(min_val);
-        minmax_inst->max_val(max_val);
+    SC_CTOR(Testbench) {
+        /* 建立 DUT 並連線 */
+        dut = new MinMax("MinMax");
+        dut->clk(clk);
+        dut->start(start);
+        dut->done(done);
+        dut->min_val(min_val);
+        dut->max_val(max_val);
+        for (int i = 0; i < 5; ++i)
+            dut->in_arr[i](sig_in[i]);
 
         SC_THREAD(run_tests);
     }
 
-    // Process to run the test case
     void run_tests() {
-        // Define and load the input array
-        int input_arr[5] = {12, 1234, 45, 67, 1};
-        minmax_inst->load_array(input_arr);
+        int data[5] = {12, 1234, 45, 67, 1};
 
-        // Start the computation by asserting the start signal
+        /* ▸ 驅動輸入 */
+        for (int i = 0; i < 5; ++i)
+            sig_in[i].write(data[i]);
+
+        /* ▸ 觸發運算 */
+        wait(clk.posedge_event());
         start.write(true);
-        wait(1, SC_NS);
+        wait(clk.posedge_event());
         start.write(false);
 
-        // Wait until the MinMax module signals that computation is done
-        while (done.read() == false) {
-            wait(1, SC_NS);
-        }
+        /* ▸ 等待 done=1 */
+        wait(done.posedge_event());
 
-        // Retrieve computed results
+        /* ▸ 讀取並驗證結果 */
         int computed_min = min_val.read();
         int computed_max = max_val.read();
 
-        // Expected results: minimum = 1, maximum = 1234
         assert(computed_min == 1);
         assert(computed_max == 1234);
 
-        std::cout << "Computed minimum: " << computed_min << std::endl;
-        std::cout << "Computed maximum: " << computed_max << std::endl;
-        std::cout << "Test passed successfully." << std::endl;
+        std::cout << "Computed minimum: " << computed_min << '\n';
+        std::cout << "Computed maximum: " << computed_max << '\n';
+        std::cout << "Test passed successfully.\n";
 
-        sc_stop(); // End the simulation
+        sc_stop();
     }
 };
 
-// sc_main: Entry point for the SystemC simulation
-int sc_main(int argc, char* argv[]) {
-    Testbench tb("tb"); // Create the testbench instance
-    sc_start();         // Start the simulation
+//─────────────── sc_main ───────────────
+int sc_main(int, char*[]) {
+    Testbench tb{"tb"};
+    sc_start();
     return 0;
 }

@@ -1,18 +1,15 @@
 #include <systemc.h>
 
-// Use static const for constants
-static const int N = 4;
-static const int SIZE = N * N;
 
 SC_MODULE(DeterminantCalculator) {
     // Input port: matrix elements (flattened 1D array)
-    sc_in<double> matrix[SIZE];
+    sc_in<double> matrix[4*4];
     // Output port: determinant value
     sc_out<double> det;
 
     SC_CTOR(DeterminantCalculator) {
         SC_THREAD(calculate_det);
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             sensitive << matrix[i];
         }
     }
@@ -23,27 +20,27 @@ SC_MODULE(DeterminantCalculator) {
         wait(1, SC_NS);
 
         // Local 2D array to hold the matrix values
-        double a[N][N];
+        double a[4][4];
         // Read the flattened matrix into 2D local array
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                a[i][j] = matrix[i * N + j].read();
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                a[i][j] = matrix[i * 4 + j].read();
             }
         }
 
         double determinant_val = 1.0;
         // Gaussian elimination with partial pivoting
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < 4; i++) {
             int pivot = i;
             // Find pivot row for column i
-            for (int j = i + 1; j < N; j++) {
+            for (int j = i + 1; j < 4; j++) {
                 if (std::abs(a[j][i]) > std::abs(a[pivot][i])) {
                     pivot = j;
                 }
             }
             // Swap rows if needed and update sign of determinant
             if (pivot != i) {
-                for (int k = 0; k < N; k++) {
+                for (int k = 0; k < 4; k++) {
                     double temp = a[i][k];
                     a[i][k] = a[pivot][k];
                     a[pivot][k] = temp;
@@ -59,9 +56,9 @@ SC_MODULE(DeterminantCalculator) {
             }
             determinant_val *= a[i][i];
             // Eliminate entries below the pivot
-            for (int j = i + 1; j < N; j++) {
+            for (int j = i + 1; j < 4; j++) {
                 double factor = a[j][i] / a[i][i];
-                for (int k = i + 1; k < N; k++) {
+                for (int k = i + 1; k < 4; k++) {
                     a[j][k] -= factor * a[i][k];
                 }
             }
@@ -73,18 +70,15 @@ SC_MODULE(DeterminantCalculator) {
 };
 
 SC_MODULE(Testbench) {
-    // Use static const for constants
-    static const int N = 4;
-    static const int SIZE = N * N;
     
-    sc_signal<double> matrix[SIZE];
+    sc_signal<double> matrix[4*4];
     sc_signal<double> det;
 
     DeterminantCalculator* detCalc;
 
     SC_CTOR(Testbench) {
         detCalc = new DeterminantCalculator("detCalc");
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             detCalc->matrix[i](matrix[i]);
         }
         detCalc->det(det);
@@ -99,13 +93,13 @@ SC_MODULE(Testbench) {
         //   {3, 0, 0, 5},
         //   {2, 1, 4, -3},
         //   {1, 0, 5, 0} }
-        double init_matrix[SIZE] = {
+        double init_matrix[4*4] = {
             1, 0, 2, -1,
             3, 0, 0, 5,
             2, 1, 4, -3,
             1, 0, 5, 0
         };
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             matrix[i].write(init_matrix[i]);
         }
 

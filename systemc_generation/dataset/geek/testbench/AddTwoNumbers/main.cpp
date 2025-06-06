@@ -11,6 +11,7 @@ SC_MODULE(Adder) {
     SC_CTOR(Adder) {
         // Process to perform addition
         SC_METHOD(add);
+        dont_initialize();
         sensitive << a << b;
     }
 

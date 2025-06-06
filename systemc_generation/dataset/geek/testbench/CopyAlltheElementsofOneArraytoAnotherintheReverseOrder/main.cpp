@@ -1,118 +1,96 @@
 #include <systemc.h>
 
-// ArrayReverse Module: Reverses a fixed-size array of 5 elements.
+// ──────────────────── ArrayReverse ────────────────────
 SC_MODULE(ArrayReverse) {
-    sc_in<bool> clk;      // Clock input
-    sc_in<bool> start;    // Start signal to trigger reversal
-    sc_out<bool> done;    // Signal to indicate that reversal is complete
+    sc_in<bool>  clk;
+    sc_in<bool>  start;
+    sc_out<bool> done;
 
-    // Internal storage for the arrays
-    int original_arr[5];
-    int reversed_arr[5];
+    sc_in<int>   in_arr[5];   // 5-element input bus
+    sc_out<int>  out_arr[5];  // 5-element output bus
 
-    // Constructor: Register the process with sensitivity to the positive edge of the clock.
+    int buf[5];               // internal buffer
+
     SC_CTOR(ArrayReverse) {
         SC_THREAD(reverse_process);
         sensitive << clk.pos();
     }
 
-    // Process to reverse the array when start signal is asserted.
     void reverse_process() {
         while (true) {
-            wait(); // Wait for the next clock cycle.
-            if (start.read() == true) {
-                // Reverse the array: copied element by element.
-                for (int i = 0; i < 5; i++) {
-                    reversed_arr[i] = original_arr[5 - i - 1];
-                }
-                done.write(true); // Signal that reversal is done.
-                wait();           // Wait for one clock cycle.
+            wait();                      // posedge clk
+            if (start.read()) {
+                /* 1. 讀入資料 */
+                for (int i = 0; i < 5; ++i)
+                    buf[i] = in_arr[i].read();
+
+                /* 2. 反轉 */
+                for (int i = 0; i < 5; ++i)
+                    out_arr[i].write(buf[4 - i]);  // 直接寫回輸出埠
+
+                /* 3. 完成訊號 */
+                done.write(true);
+                wait();                // 再延一個週期
                 done.write(false);
             }
         }
     }
-
-    // Helper method to load an input array into the module.
-    void load_array(const int input[5]) {
-        for (int i = 0; i < 5; i++) {
-            original_arr[i] = input[i];
-        }
-    }
-
-    // Helper method to read the reversed array from the module.
-    void read_array(int output[5]) {
-        for (int i = 0; i < 5; i++) {
-            output[i] = reversed_arr[i];
-        }
-    }
 };
 
-// Testbench Module: Loads the array, triggers the reversal, and verifies the result.
+// ───────────────────── Testbench ─────────────────────
 SC_MODULE(Testbench) {
-    sc_clock clk;          // Clock signal for synchronization
-    sc_signal<bool> start; // Signal to trigger the reversal
-    sc_signal<bool> done;  // Signal indicating the reversal is complete
+    sc_clock        clk{"clk", 1, SC_NS};
+    sc_signal<bool> start, done;
+    sc_signal<int>  sig_in[5], sig_out[5];
 
-    // Instance of the ArrayReverse module
-    ArrayReverse* array_rev_inst;
+    ArrayReverse*   dut;
 
-    SC_CTOR(Testbench) : clk("clk", 1, SC_NS) {
-        array_rev_inst = new ArrayReverse("array_rev_inst");
-        array_rev_inst->clk(clk);
-        array_rev_inst->start(start);
-        array_rev_inst->done(done);
+    SC_CTOR(Testbench) {
+        dut = new ArrayReverse("ArrayReverse");
+        dut->clk(clk);
+        dut->start(start);
+        dut->done(done);
+        for (int i = 0; i < 5; ++i) {
+            dut->in_arr[i](sig_in[i]);
+            dut->out_arr[i](sig_out[i]);
+        }
 
-        SC_THREAD(run_tests);
+        SC_THREAD(run_tests);   // 無需 static sensitivity
     }
 
-    // Process to run the test cases.
     void run_tests() {
-        // Initialize the original array with fixed values {1, 2, 3, 4, 5}
         int original[5] = {1, 2, 3, 4, 5};
-        // Expected reversed result is {5, 4, 3, 2, 1}
         int expected[5] = {5, 4, 3, 2, 1};
 
-        // Load the original array into the ArrayReverse module.
-        array_rev_inst->load_array(original);
+        /* ▸ 驅動輸入 */
+        for (int i = 0; i < 5; ++i)
+            sig_in[i].write(original[i]);
 
-        // Trigger the reversal process.
+        /* ▸ 觸發反轉 */
+        wait(clk.posedge_event());
         start.write(true);
-        wait(1, SC_NS); // Wait for one clock cycle.
+        wait(clk.posedge_event());
         start.write(false);
 
-        // Wait until the module signals that the reversal is done.
-        while (done.read() != true) {
-            wait(1, SC_NS);
-        }
-        
-        // Retrieve the reversed array.
-        int result[5];
-        array_rev_inst->read_array(result);
+        /* ▸ 等待 done=1 */
+        wait(done.posedge_event());
 
-        // Print the original and reversed arrays.
-        cout << "Original Array: ";
-        for (int i = 0; i < 5; i++) {
-            cout << original[i] << " ";
+        /* ▸ 讀取結果並驗證 */
+        std::cout << "Reversed Array: ";
+        for (int i = 0; i < 5; ++i) {
+            int val = sig_out[i].read();
+            std::cout << val << " ";
+            assert(val == expected[i]);
         }
-        cout << "\nReversed Array: ";
-        for (int i = 0; i < 5; i++) {
-            cout << result[i] << " ";
-        }
-        cout << endl;
+        std::cout << "\nAll tests passed successfully.\n";
 
-        // Verify that the reversed array matches the expected result.
-        for (int i = 0; i < 5; i++) {
-            assert(result[i] == expected[i]);
-        }
-        cout << "All tests passed successfully." << endl;
-
-        sc_stop(); // End the simulation.
+        sc_stop();
     }
 };
 
-// sc_main: Entry point for the SystemC simulation.
+// ───────────────────── sc_main ─────────────────────
 int sc_main(int argc, char* argv[]) {
-    Testbench tb("tb"); // Create the testbench instance.
-    sc_start();         // Start the simulation.
+    Testbench tb{"tb"};
+    sc_start();
     return 0;
 }

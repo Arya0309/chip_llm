@@ -1,33 +1,29 @@
 #include <systemc.h>
 
-// Use static const for constants instead of #define
-static const int N = 4;
-static const int SIZE = N * N;
-
 // Module that swaps the first and last rows of a 4x4 matrix
 SC_MODULE(MatrixSwapper) {
     // Input ports for the matrix elements (flattened into a 1D array)
-    sc_in<int> in[SIZE];
+    sc_in<int> in[4*4];
     // Output ports for the swapped matrix elements (flattened into a 1D array)
-    sc_out<int> out[SIZE];
+    sc_out<int> out[4*4];
 
     SC_CTOR(MatrixSwapper) {
         SC_METHOD(do_swap);
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             sensitive << in[i];
         }
     }
 
     // Method to perform the swapping of first and last rows
     void do_swap() {
-        for (int row = 0; row < N; row++) {
-            for (int col = 0; col < N; col++) {
-                int idx = row * N + col;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                int idx = row * 4 + col;
                 if (row == 0) {
                     // For the first row, output the element from the last row
-                    int swap_index = (N - 1) * N + col;
+                    int swap_index = (4 - 1) * 4 + col;
                     out[idx].write(in[swap_index].read());
-                } else if (row == N - 1) {
+                } else if (row == 4 - 1) {
                     // For the last row, output the element from the first row
                     int swap_index = col;
                     out[idx].write(in[swap_index].read());
@@ -42,18 +38,16 @@ SC_MODULE(MatrixSwapper) {
 
 // Testbench module for the MatrixSwapper
 SC_MODULE(Testbench) {
-    // Use static const for constants instead of #define
-    static const int N = 4;
-    static const int SIZE = N * N;
+
     
-    sc_signal<int> in[SIZE];
-    sc_signal<int> out[SIZE];
+    sc_signal<int> in[4*4];
+    sc_signal<int> out[4*4];
     MatrixSwapper* swapper;
 
     SC_CTOR(Testbench) {
         swapper = new MatrixSwapper("swapper");
         // Connect the signals to the MatrixSwapper ports
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             swapper->in[i](in[i]);
             swapper->out[i](out[i]);
         }
@@ -67,11 +61,11 @@ SC_MODULE(Testbench) {
         //     {4, 7, 6, 5},
         //     {3, 2, 1, 8},
         //     {9, 9, 7, 7} }
-        int m[SIZE] = {8, 9, 7, 6,
+        int m[4*4] = {8, 9, 7, 6,
                        4, 7, 6, 5,
                        3, 2, 1, 8,
                        9, 9, 7, 7};
-        for (int i = 0; i < SIZE; i++) {
+        for (int i = 0; i < 4*4; i++) {
             in[i].write(m[i]);
         }
 
@@ -83,16 +77,16 @@ SC_MODULE(Testbench) {
         //     {4, 7, 6, 5},
         //     {3, 2, 1, 8},
         //     {8, 9, 7, 6} }
-        int expected[SIZE] = {9, 9, 7, 7,
+        int expected[4*4] = {9, 9, 7, 7,
                               4, 7, 6, 5,
                               3, 2, 1, 8,
                               8, 9, 7, 6};
 
         // Print and check the result matrix
         std::cout << "Swapped Matrix:" << std::endl;
-        for (int row = 0; row < N; row++) {
-            for (int col = 0; col < N; col++) {
-                int idx = row * N + col;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                int idx = row * 4 + col;
                 int result = out[idx].read();
                 std::cout << result << " ";
                 assert(result == expected[idx]);

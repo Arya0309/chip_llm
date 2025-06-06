@@ -4,12 +4,14 @@ set -euo pipefail
 # Path to your config directory
 CONFIG_DIR="./systemc_generation/config"
 
-echo "Running Qwen2.5-Coder-7B-Instruct..."
-python3 ./systemc_generation/vllm_generator.py \
-    --config_path "$CONFIG_DIR/Qwen2.5-Coder-7B-Instruct.yaml"
+echo "Running starcoder2-3b..."
+micromamba run -n chip_llm python3 ./systemc_generation/vllm_generator.py \
+    --config_path "$CONFIG_DIR/starcoder2-3b.yaml"
 
-echo "Running CodeLlama-7b-Instruct-hf..."
-python3 ./systemc_generation/vllm_generator.py \
-    --config_path "$CONFIG_DIR/CodeLlama-7b-Instruct-hf.yaml"
+echo "Running starcoder2-7b..."
+micromamba run -n chip_llm python3 ./systemc_generation/vllm_generator.py \
+    --config_path "$CONFIG_DIR/starcoder2-7b.yaml"
 
-echo "All runs completed."
+echo "Running starcoder2-15b..."
+micromamba run -n chip_llm python3 ./systemc_generation/vllm_generator.py \
+    --config_path "$CONFIG_DIR/starcoder2-15b.yaml"

@@ -130,3 +130,23 @@ def prompt_unit_test_error(
             ),
         },
     ]
+
+
+def prompt_self_debugging_Expl(generated_code):
+    return [
+        {"role": "assistant", "content": generated_code},
+        {
+            "role": "user",
+            "content": (
+                "You just generated the SystemC module above. This code may be syntactically or semantically incorrect.\n\n"
+                "Let's think through the code step by step:\n"
+                "1. For each section (includes, port declarations, processes, methods, constructors, etc.), explain its purpose and how it should function in a correct SystemC/C++ design.\n"
+                "2. Identify any issues—whether syntactic (e.g., missing headers, wrong syntax) or semantic (e.g., incorrect data types, flawed communication protocols, improper sensitivity lists).\n"
+                "3. For each issue you find, explain why it is problematic, referencing the specific line or construct.\n"
+                "4. Propose the exact edit needed to fix it (for example, add an `#include`, correct a type, adjust a sensitivity list).\n"
+                "5. Show the corrected snippet for that part.\n"
+                "6. If any errors were found, regenerate and provide the complete, corrected SystemC module code; otherwise, state that no changes are necessary and re-emit the original code.\n\n"
+                "Please walk through your full reasoning before presenting any fixes or confirming the code."
+            ),
+        },
+    ]

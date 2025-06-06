@@ -1,138 +1,115 @@
 #include <systemc.h>
 
-// BubbleSort Module: Implements the bubble sort algorithm
+// ───────────────── BubbleSort 模組 ─────────────────
 SC_MODULE(BubbleSort) {
-    sc_in<bool> clk;      // Clock input
-    sc_in<bool> start;    // Signal to start sorting
-    sc_out<bool> done;    // Signal to indicate sorting is complete
+    sc_in<bool>  clk;
+    sc_in<bool>  start;
+    sc_out<bool> done;
 
-    // Internal storage for the array (fixed size of 5 elements)
-    int arr[5];
+    // 5-element 資料匯流排
+    sc_in<int>   in_arr[5];
+    sc_out<int>  out_arr[5];
 
-    // Constructor: Register the process
+    int buf[5];                    // 內部緩衝
+
     SC_CTOR(BubbleSort) {
         SC_THREAD(sort_process);
         sensitive << clk.pos();
     }
 
-    // Process that waits for the start signal and performs sorting
     void sort_process() {
+        const int N = 5;
         while (true) {
-            wait(); // wait for a clock cycle
-            if (start.read() == true) {
-                bubbleSort(); // perform bubble sort
+            wait();                        // posedge clk
+            if (start.read()) {
+                /* 1. 讀入資料 */
+                for (int i = 0; i < N; ++i)
+                    buf[i] = in_arr[i].read();
+
+                /* 2. Bubble sort (early-exit) */
+                for (int i = 0; i < N; ++i) {
+                    bool swapped = false;
+                    for (int j = 1; j < N - i; ++j) {
+                        if (buf[j] < buf[j - 1]) {
+                            std::swap(buf[j], buf[j - 1]);
+                            swapped = true;
+                        }
+                    }
+                    if (!swapped) break;
+                }
+
+                /* 3. 寫回結果 */
+                for (int i = 0; i < N; ++i)
+                    out_arr[i].write(buf[i]);
+
+                /* 4. 完成旗標維持一個週期 */
                 done.write(true);
-                wait(); // wait one cycle to signal completion
+                wait();                    // 下一個時脈
                 done.write(false);
             }
         }
     }
-
-    // Bubble sort algorithm implementation (sorts the internal array)
-    void bubbleSort() {
-        const int n = 5; // Array size
-        bool isSwapped;
-        // Outer loop: each pass puts the largest unsorted element at the end
-        for (int i = 0; i < n; i++) {
-            isSwapped = false;
-            // Inner loop: compare adjacent elements
-            for (int j = 1; j < n - i; j++) {
-                if (arr[j] < arr[j - 1]) {
-                    // Swap the elements
-                    int temp = arr[j];
-                    arr[j] = arr[j - 1];
-                    arr[j - 1] = temp;
-                    isSwapped = true;
-                }
-            }
-            // If no swaps occurred, the array is sorted
-            if (!isSwapped)
-                break;
-        }
-    }
-
-    // Helper method to load an input array into the module
-    void load_array(const int input[5]) {
-        for (int i = 0; i < 5; i++) {
-            arr[i] = input[i];
-        }
-    }
-
-    // Helper method to read the sorted array from the module
-    void read_array(int output[5]) {
-        for (int i = 0; i < 5; i++) {
-            output[i] = arr[i];
-        }
-    }
 };
 
-// Testbench Module: Sets up the input array, triggers sorting, and verifies output
+// ─────────────────── Testbench ───────────────────
 SC_MODULE(Testbench) {
-    sc_clock clk;          // Clock signal for synchronization
-    sc_signal<bool> start; // Signal to trigger the sort
-    sc_signal<bool> done;  // Signal indicating sort completion
+    sc_clock        clk{"clk", 1, SC_NS};
+    sc_signal<bool> start, done;
+    sc_signal<int>  sig_in[5], sig_out[5];
 
-    // Instance of the BubbleSort module
-    BubbleSort* bubble_sort_inst;
+    BubbleSort*     dut;
 
-    SC_CTOR(Testbench) : clk("clk", 1, SC_NS) {
-        bubble_sort_inst = new BubbleSort("bubble_sort_inst");
-        bubble_sort_inst->clk(clk);
-        bubble_sort_inst->start(start);
-        bubble_sort_inst->done(done);
+    SC_CTOR(Testbench) {
+        // 建立 DUT 並連線
+        dut = new BubbleSort("BubbleSort");
+        dut->clk(clk);
+        dut->start(start);
+        dut->done(done);
+        for (int i = 0; i < 5; ++i) {
+            dut->in_arr[i](sig_in[i]);
+            dut->out_arr[i](sig_out[i]);
+        }
 
-        SC_THREAD(run_tests);
+        SC_THREAD(run_tests);             // thread 一開始即執行
     }
 
-    // Process to run the test cases
     void run_tests() {
-        // Initialize the array with unsorted values {1, 12, 6, 8, 10}
-        int arr_in[5] = {1, 12, 6, 8, 10};
-        bubble_sort_inst->load_array(arr_in);
+        int data[5]     = {1, 12, 6, 8, 10};
+        int expected[5] = {1, 6, 8, 10, 12};
 
-        // Print the array before sorting
-        cout << "Before sorting: ";
-        for (int i = 0; i < 5; i++) {
-            cout << arr_in[i] << " ";
+        /* ▸ 驅動輸入 */
+        std::cout << "Before sorting: ";
+        for (int i = 0; i < 5; ++i) {
+            sig_in[i].write(data[i]);
+            std::cout << data[i] << " ";
         }
-        cout << endl;
+        std::cout << std::endl;
 
-        // Start the sorting process
+        /* ▸ 觸發排序 */
+        wait(clk.posedge_event());
         start.write(true);
-        wait(1, SC_NS); // wait for one clock cycle
+        wait(clk.posedge_event());
         start.write(false);
 
-        // Wait until the BubbleSort module signals that sorting is complete
-        while (done.read() != true) {
-            wait(1, SC_NS);
-        }
-        
-        // Retrieve the sorted array from the BubbleSort module
-        int arr_out[5];
-        bubble_sort_inst->read_array(arr_out);
+        /* ▸ 等待 done=1 */
+        wait(done.posedge_event());
 
-        // Print the sorted array
-        cout << "After sorting: ";
-        for (int i = 0; i < 5; i++) {
-            cout << arr_out[i] << " ";
+        /* ▸ 讀取結果並驗證 */
+        std::cout << "After sorting:  ";
+        for (int i = 0; i < 5; ++i) {
+            int v = sig_out[i].read();
+            std::cout << v << " ";
+            assert(v == expected[i]);
         }
-        cout << endl;
+        std::cout << "\nAll tests passed successfully.\n";
 
-        // Expected sorted result is {1, 6, 8, 10, 12}
-        int expected[5] = {1, 6, 8, 10, 12};
-        for (int i = 0; i < 5; i++) {
-            assert(arr_out[i] == expected[i]);
-            cout << "Element " << i << " sorted value: " << arr_out[i] << endl;
-        }
-        cout << "All tests passed successfully." << endl;
-
-        sc_stop(); // End simulation
+        sc_stop();
     }
 };
 
-// sc_main: Entry point for the SystemC simulation
+// ───────────────────── sc_main ─────────────────────
 int sc_main(int argc, char* argv[]) {
-    Testbench tb("tb"); // Create the testbench instance
-    sc_start();         // Start the simulation
+    Testbench tb{"tb"};
+    sc_start();
     return 0;
 }

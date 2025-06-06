@@ -1,126 +1,103 @@
 #include <systemc.h>
 
-// SelectionSort Module: Implements the selection sort algorithm
+//─────────────────── DUT ───────────────────
 SC_MODULE(SelectionSort) {
-    sc_in<bool> clk;      // Clock input
-    sc_in<bool> start;    // Signal to start sorting
-    sc_out<bool> done;    // Signal to indicate sorting is complete
+    sc_in<bool>  clk;
+    sc_in<bool>  start;
+    sc_out<bool> done;
 
-    // Internal storage for the array (fixed size of 5 elements)
-    int arr[5];
+    sc_in<int>   in_arr[5];   // 輸入資料
+    sc_out<int>  out_arr[5];  // 排序結果
 
-    // Constructor: Register the process with the clock's positive edge
+    int buf[5];               // 內部緩衝
+
     SC_CTOR(SelectionSort) {
         SC_THREAD(sort_process);
         sensitive << clk.pos();
     }
 
-    // Process that waits for the start signal and performs selection sort
     void sort_process() {
+        const int N = 5;
         while (true) {
-            wait(); // Wait for a clock cycle
-            if (start.read() == true) {
-                selectionSort(); // Perform selection sort on the internal array
-                done.write(true); // Indicate sorting is complete
-                wait(); // Wait for one clock cycle to signal completion
+            wait();                           // posedge clk
+            if (start.read()) {
+                /* 1. 讀入資料 */
+                for (int i = 0; i < N; ++i)
+                    buf[i] = in_arr[i].read();
+
+                /* 2. selection sort */
+                for (int i = 0; i < N - 1; ++i) {
+                    int min_idx = i;
+                    for (int j = i + 1; j < N; ++j)
+                        if (buf[j] < buf[min_idx]) min_idx = j;
+                    std::swap(buf[i], buf[min_idx]);
+                }
+
+                /* 3. 寫回結果 */
+                for (int i = 0; i < N; ++i)
+                    out_arr[i].write(buf[i]);
+
+                /* 4. 拉高 done 一個週期 */
+                done.write(true);
+                wait();
                 done.write(false);
             }
         }
     }
-
-    // Selection sort algorithm implementation
-    void selectionSort() {
-        const int n = 5;
-        for (int i = 0; i < n - 1; i++) {
-            int min_idx = i;
-            // Find the minimum element in the unsorted portion
-            for (int j = i + 1; j < n; j++) {
-                if (arr[j] < arr[min_idx]) {
-                    min_idx = j;
-                }
-            }
-            // Swap the found minimum element with the first unsorted element
-            swap(arr[min_idx], arr[i]);
-        }
-    }
-
-    // Swap helper function
-    void swap(int &a, int &b) {
-        int temp = a;
-        a = b;
-        b = temp;
-    }
-
-    // Helper method to load an input array into the module
-    void load_array(const int input[5]) {
-        for (int i = 0; i < 5; i++) {
-            arr[i] = input[i];
-        }
-    }
-
-    // Helper method to read the sorted array from the module
-    void read_array(int output[5]) {
-        for (int i = 0; i < 5; i++) {
-            output[i] = arr[i];
-        }
-    }
 };
 
-// Testbench Module: Sets up the input array, triggers sorting, and verifies output
+//─────────────────── Testbench ───────────────────
 SC_MODULE(Testbench) {
-    sc_clock clk;              // Clock signal for synchronization
-    sc_signal<bool> start;     // Signal to trigger the sort
-    sc_signal<bool> done;      // Signal indicating sort completion
+    sc_clock        clk{"clk", 1, SC_NS};
+    sc_signal<bool> start, done;
+    sc_signal<int>  sig_in[5], sig_out[5];
 
-    // Instance of the SelectionSort module
-    SelectionSort* selection_sort_inst;
+    SelectionSort*  dut;
 
-    SC_CTOR(Testbench) : clk("clk", 1, SC_NS) {
-        selection_sort_inst = new SelectionSort("selection_sort_inst");
-        selection_sort_inst->clk(clk);
-        selection_sort_inst->start(start);
-        selection_sort_inst->done(done);
+    SC_CTOR(Testbench) {
+        dut = new SelectionSort("SelectionSort");
+        dut->clk(clk);
+        dut->start(start);
+        dut->done(done);
+        for (int i = 0; i < 5; ++i) {
+            dut->in_arr[i](sig_in[i]);
+            dut->out_arr[i](sig_out[i]);
+        }
 
         SC_THREAD(run_tests);
     }
 
-    // Process to run the test cases
     void run_tests() {
-        // Initialize the array with unsorted values {64, 25, 12, 22, 11}
-        int arr_in[5] = {64, 25, 12, 22, 11};
-        selection_sort_inst->load_array(arr_in);
-
-        // Start the sorting process
-        start.write(true);
-        wait(1, SC_NS); // Wait for one clock cycle
-        start.write(false);
-
-        // Wait until the SelectionSort module signals that sorting is done
-        while (done.read() != true) {
-            wait(1, SC_NS);
-        }
-        
-        // Retrieve the sorted array from the SelectionSort module
-        int arr_out[5];
-        selection_sort_inst->read_array(arr_out);
-
-        // Expected sorted result is {11, 12, 22, 25, 64}
+        int data[5]     = {64, 25, 12, 22, 11};
         int expected[5] = {11, 12, 22, 25, 64};
 
-        // Verify that each element is sorted as expected
-        for (int i = 0; i < 5; i++) {
-            assert(arr_out[i] == expected[i]);
-            cout << "Element " << i << " sorted value: " << arr_out[i] << endl;
-        }
-        cout << "All tests passed successfully." << endl;
+        /*  驅動輸入  */
+        for (int i = 0; i < 5; ++i)
+            sig_in[i].write(data[i]);
 
-        sc_stop(); // End simulation
+        /*  觸發排序  */
+        wait(clk.posedge_event());
+        start.write(true);
+        wait(clk.posedge_event());
+        start.write(false);
+
+        /*  等待 done  */
+        wait(done.posedge_event());
+
+        /*  讀取結果並驗證  */
+        for (int i = 0; i < 5; ++i) {
+            int v = sig_out[i].read();
+            std::cout << "Element " << i << " sorted value: " << v << '\n';
+            assert(v == expected[i]);
+        }
+        std::cout << "All tests passed successfully.\n";
+        sc_stop();
     }
 };
 
-// sc_main: Entry point for the SystemC simulation
+//─────────────────── sc_main ───────────────────
 int sc_main(int argc, char* argv[]) {
-    Testbench tb("tb"); // Create the testbench instance
-    sc_start();         // Start the simulation
+    Testbench tb{"tb"};
+    sc_start();
     return 0;
 }

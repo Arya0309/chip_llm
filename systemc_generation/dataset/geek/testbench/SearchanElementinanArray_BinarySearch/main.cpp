@@ -1,36 +1,37 @@
-
 #include <systemc.h>
 
-// Module to perform binary search
 SC_MODULE(BinarySearchModule) {
-    sc_vector<sc_in<int>> v; // Input vector (as individual ports)
-    sc_in<int> target;       // Target value to search for
-    sc_out<bool> found;      // Output indicating if the target is found
-
-    // Internal state variables
-    int low, high, mid;
+    // Eight individual input ports
+    sc_in<int> v0, v1, v2, v3, v4, v5, v6, v7;
+    sc_in<int> target;
+    sc_out<bool> found;
 
     // Constructor
     SC_CTOR(BinarySearchModule) {
-        // Process to perform binary search
         SC_METHOD(binary_search);
-        sensitive << target; // Sensitive to changes in target
+        dont_initialize();
+        sensitive << target
+                  << v0 << v1 << v2 << v3
+                  << v4 << v5 << v6 << v7;
     }
 
-    // Method to perform binary search
     void binary_search() {
-        low = 0;
-        high = v.size() - 1;
+        // Copy inputs into a local array for convenience
+        int arr[8] = {
+            v0.read(), v1.read(), v2.read(), v3.read(),
+            v4.read(), v5.read(), v6.read(), v7.read()
+        };
+
+        int low = 0, high = 7;
         bool result = false;
+        int tgt = target.read();
 
         while (low <= high) {
-            mid = ((high - low) / 2) + low;
-            int mid_value = v[mid].read();
-
-            if (mid_value == target.read()) {
+            int mid = low + (high - low) / 2;
+            if (arr[mid] == tgt) {
                 result = true;
                 break;
-            } else if (mid_value > target.read()) {
+            } else if (arr[mid] > tgt) {
                 high = mid - 1;
             } else {
                 low = mid + 1;
@@ -43,57 +44,62 @@ SC_MODULE(BinarySearchModule) {
 
 // Testbench module
 SC_MODULE(Testbench) {
-    sc_vector<sc_signal<int>> v_sig; // Signals for the vector elements
-    sc_signal<int> target_sig;       // Signal for the target value
-    sc_signal<bool> found_sig;       // Signal for the result
+    sc_signal<int> sig_v0, sig_v1, sig_v2, sig_v3;
+    sc_signal<int> sig_v4, sig_v5, sig_v6, sig_v7;
+    sc_signal<int> target_sig;
+    sc_signal<bool> found_sig;
 
-    BinarySearchModule bs_inst; // Instance of the BinarySearchModule
+    BinarySearchModule bs_inst;
 
-    // Constructor
     SC_CTOR(Testbench)
-    : bs_inst("bs_inst"), v_sig("v_sig", 8) { // Initialize vector size to 8
-        // Connect signals to module ports
-        for (size_t i = 0; i < v_sig.size(); ++i) {
-            bs_inst.v[i](v_sig[i]);
-        }
+    : bs_inst("bs_inst")
+    {
+        // Bind each port
+        bs_inst.v0(sig_v0);
+        bs_inst.v1(sig_v1);
+        bs_inst.v2(sig_v2);
+        bs_inst.v3(sig_v3);
+        bs_inst.v4(sig_v4);
+        bs_inst.v5(sig_v5);
+        bs_inst.v6(sig_v6);
+        bs_inst.v7(sig_v7);
         bs_inst.target(target_sig);
         bs_inst.found(found_sig);
 
-        // Process to run tests
         SC_THREAD(run_tests);
     }
 
-    // Thread to run test cases
     void run_tests() {
-        // Initialize the vector with sorted values
-        std::vector<int> v_values = {1, 2, 3, 4, 5, 8, 9, 11};
-        for (size_t i = 0; i < v_values.size(); ++i) {
-            v_sig[i].write(v_values[i]);
-        }
+        // Initialize sorted vector
+        int vals[8] = {1,2,3,4,5,8,9,11};
+        sig_v0.write(vals[0]);
+        sig_v1.write(vals[1]);
+        sig_v2.write(vals[2]);
+        sig_v3.write(vals[3]);
+        sig_v4.write(vals[4]);
+        sig_v5.write(vals[5]);
+        sig_v6.write(vals[6]);
+        sig_v7.write(vals[7]);
 
-        // Test case 1: Target found
+        // Test 1: found
         target_sig.write(8);
-        wait(1, SC_NS); // Wait for the module to process
+        wait(1, SC_NS);
         assert(found_sig.read() == true);
-        cout << "Target " << target_sig.read() << " found: " << found_sig.read() << endl;
+        std::cout << "Found 8: " << found_sig.read() << std::endl;
 
-        // Test case 2: Target not found
+        // Test 2: not found
         target_sig.write(7);
-        wait(1, SC_NS); // Wait for the module to process
+        wait(1, SC_NS);
         assert(found_sig.read() == false);
-        cout << "Target " << target_sig.read() << " found: " << found_sig.read() << endl;
+        std::cout << "Found 7: " << found_sig.read() << std::endl;
 
-        // End simulation after successful test
-        cout << "All tests passed successfully." << endl;
+        std::cout << "All tests completed successfully." << std::endl;
         sc_stop();
     }
 };
 
 int sc_main(int argc, char* argv[]) {
-    Testbench tb("tb"); // Create an instance of the Testbench
-
-    // Start the simulation
+    Testbench tb("tb");
     sc_start();
-
     return 0;
 }

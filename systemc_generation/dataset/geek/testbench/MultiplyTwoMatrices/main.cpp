@@ -1,30 +1,20 @@
 #include <systemc.h>
 
-// Use static const for matrix dimensions
-static const int R1 = 2;      // Rows in Matrix-1
-static const int C1 = 2;      // Columns in Matrix-1
-static const int R2 = 2;      // Rows in Matrix-2
-static const int C2 = 3;      // Columns in Matrix-2
-
-static const int SIZE_A = R1 * C1;      // Total elements in Matrix-1
-static const int SIZE_B = R2 * C2;      // Total elements in Matrix-2
-static const int SIZE_RESULT = R1 * C2; // Total elements in the Result matrix
-
 // Module that performs matrix multiplication
 SC_MODULE(MatrixMultiplier) {
     // Input ports for matrices A and B (flattened as 1D arrays)
-    sc_in<int> A[SIZE_A];
-    sc_in<int> B[SIZE_B];
+    sc_in<int> A[2*2];
+    sc_in<int> B[2*3];
     // Output ports for matrix C (flattened as 1D array)
-    sc_out<int> C[SIZE_RESULT];
+    sc_out<int> C[2*3];
 
     SC_CTOR(MatrixMultiplier) {
         SC_METHOD(do_mult);
         // Sensitivity to all input signals
-        for (int i = 0; i < SIZE_A; i++) {
+        for (int i = 0; i < 2*2; i++) {
             sensitive << A[i];
         }
-        for (int i = 0; i < SIZE_B; i++) {
+        for (int i = 0; i < 2*3; i++) {
             sensitive << B[i];
         }
     }
@@ -32,16 +22,16 @@ SC_MODULE(MatrixMultiplier) {
     // Combinational process to perform matrix multiplication
     void do_mult() {
         // For each row in Matrix A
-        for (int i = 0; i < R1; i++) {
+        for (int i = 0; i < 2; i++) {
             // For each column in Matrix B
-            for (int j = 0; j < C2; j++) {
+            for (int j = 0; j < 3; j++) {
                 int sum = 0;
                 // Compute dot product of row i of A and column j of B
-                for (int k = 0; k < C1; k++) {
-                    sum += A[i * C1 + k].read() * B[k * C2 + j].read();
+                for (int k = 0; k < 2; k++) {
+                    sum += A[i * 2 + k].read() * B[k * 3 + j].read();
                 }
                 // Write the result into the output matrix at position [i][j]
-                C[i * C2 + j].write(sum);
+                C[i * 3 + j].write(sum);
             }
         }
     }
@@ -49,20 +39,11 @@ SC_MODULE(MatrixMultiplier) {
 
 // Testbench module for MatrixMultiplier
 SC_MODULE(Testbench) {
-    // Use static const for matrix dimensions
-    static const int R1 = 2;      // Rows in Matrix-1
-    static const int C1 = 2;      // Columns in Matrix-1
-    static const int R2 = 2;      // Rows in Matrix-2
-    static const int C2 = 3;      // Columns in Matrix-2
-
-    static const int SIZE_A = R1 * C1;      // Total elements in Matrix-1
-    static const int SIZE_B = R2 * C2;      // Total elements in Matrix-2
-    static const int SIZE_RESULT = R1 * C2; // Total elements in the Result matrix
     
     // Signals to connect to the MatrixMultiplier ports
-    sc_signal<int> A[SIZE_A];
-    sc_signal<int> B[SIZE_B];
-    sc_signal<int> C[SIZE_RESULT];
+    sc_signal<int> A[2*2];
+    sc_signal<int> B[2*3];
+    sc_signal<int> C[2*3];
 
     MatrixMultiplier* mm;
 
@@ -70,13 +51,13 @@ SC_MODULE(Testbench) {
         // Instantiate the MatrixMultiplier module
         mm = new MatrixMultiplier("mm");
         // Connect signals to the module's ports
-        for (int i = 0; i < SIZE_A; i++) {
+        for (int i = 0; i < 2*2; i++) {
             mm->A[i](A[i]);
         }
-        for (int i = 0; i < SIZE_B; i++) {
+        for (int i = 0; i < 2*3; i++) {
             mm->B[i](B[i]);
         }
-        for (int i = 0; i < SIZE_RESULT; i++) {
+        for (int i = 0; i < 2*3; i++) {
             mm->C[i](C[i]);
         }
         // Create a thread to run the test cases
@@ -113,10 +94,10 @@ SC_MODULE(Testbench) {
         // For result[1][0]: 2*1 + 2*2 = 6
         // For result[1][1]: 2*1 + 2*2 = 6
         // For result[1][2]: 2*1 + 2*2 = 6
-        int expected[SIZE_RESULT] = {3, 3, 3, 6, 6, 6};
+        int expected[2*3] = {3, 3, 3, 6, 6, 6};
 
         std::cout << "Matrix multiplication result:" << std::endl;
-        for (int i = 0; i < SIZE_RESULT; i++) {
+        for (int i = 0; i < 2*3; i++) {
             int res = C[i].read();
             std::cout << res << " ";
             // Assert the computed result matches the expected value

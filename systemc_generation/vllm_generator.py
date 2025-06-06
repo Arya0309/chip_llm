@@ -192,79 +192,71 @@ class SystemCGenerator:
         return outputs
 
     def _code_extractor(self, response: str, true_module_name) -> str:
-        pattern_1 = r"```cpp(.*?)```"
-        pattern_2 = r"```(.*?)```"
+        pattern = r"```(.*?)```"
 
-        def pattern_extractor(pattern, response):
-            matches = re.findall(pattern, response, re.DOTALL)
-            matches = [m for m in matches if "#include <systemc.h>" in m]
+        matches = re.findall(pattern, response, re.DOTALL)
+        matches = [m for m in matches if "#include <systemc.h>" in m]
 
-            if not matches:
-                warnings.warn("Warning: No SystemC code snippet found in the response.")
-                # print(response)
-                return ""
-            # Extract the match that is longest in length
-            code_snippet = max(matches, key=len)
-            modules = re.split(r"(SC_MODULE|int sc_main)", code_snippet)
-            if len(modules) <= 1:
-                warnings.warn(
-                    "Warning: The extracted code snippet does not contain the expected SystemC tokens."
-                )
-                # print(code_snippet)
-                return ""
+        if not matches:
+            warnings.warn("Warning: No SystemC code snippet found in the response.")
+            # print(response)
+            return ""
+        # Extract the match that is longest in length
+        code_snippet = max(matches, key=len)
+        modules = re.split(r"(SC_MODULE|int sc_main)", code_snippet)
+        if len(modules) <= 1:
+            warnings.warn(
+                "Warning: The extracted code snippet does not contain the expected SystemC tokens."
+            )
+            # print(code_snippet)
+            return ""
 
-            header = modules[0]
-            modules = modules[1:]
-            try:
-                modules = [
-                    modules[i] + modules[i + 1] for i in range(0, len(modules), 2)
-                ]
-            except IndexError as e:
-                warnings.warn(
-                    "Warning: Module splitting did not occur as expected. Please check the formatting of the code snippet."
-                )
-                # print(modules)
-                return ""
+        header = modules[0]
+        try:
+            header = "#include <systemc.h>" + header.split("#include <systemc.h>")[1]
+        except IndexError as e:
+            warnings.warn(
+                "Warning: The header does not contain the expected SystemC include statement."
+            )
+            # print(header)
+            return ""
+        modules = modules[1:]
+        try:
+            modules = [modules[i] + modules[i + 1] for i in range(0, len(modules), 2)]
+        except IndexError as e:
+            warnings.warn(
+                "Warning: Module splitting did not occur as expected. Please check the formatting of the code snippet."
+            )
+            # print(modules)
+            return ""
 
-            # Remove testbench and main, if present
-            modules = [
-                module
-                for module in modules
-                if "sc_module(testbench)" not in module.lower()
-            ]
-            modules = [module for module in modules if "sc_main" not in module.lower()]
+        # Remove testbench and main, if present
+        modules = [
+            module for module in modules if "sc_module(testbench)" not in module.lower()
+        ]
+        modules = [module for module in modules if "sc_main" not in module.lower()]
 
-            if not modules:
-                warnings.warn(
-                    "Warning: No modules found in the code snippet after filtering."
-                )
-                # print(code_snippet)
-                return ""
+        if not modules:
+            warnings.warn(
+                "Warning: No modules found in the code snippet after filtering."
+            )
+            # print(code_snippet)
+            return ""
 
-            # Change the name of the first module
-            module_name_pattern = r"SC_MODULE\((.*?)\)"
-            modules_name = re.findall(module_name_pattern, modules[0])
-            if not modules_name:
-                warnings.warn(
-                    "Warning: Could not extract module name from the first module."
-                )
-                # print(modules[0])
-                return ""
+        # Change the name of the first module
+        module_name_pattern = r"SC_MODULE\((.*?)\)"
+        modules_name = re.findall(module_name_pattern, modules[0])
+        if not modules_name:
+            warnings.warn(
+                "Warning: Could not extract module name from the first module."
+            )
+            # print(modules[0])
+            return ""
 
-            modules_name = modules_name[0]
-            code_snippet = header + "\n" + "\n".join(modules)
-            code_snippet = code_snippet.replace(modules_name, true_module_name)
-            return code_snippet
-
-        if re.search(pattern_1, response, re.DOTALL):
-            return pattern_extractor(pattern_1, response)
-        else:
-            if re.search(pattern_2, response, re.DOTALL):
-                return pattern_extractor(pattern_2, response)
-            else:
-                warnings.warn("Warning: No code snippet found in the response.")
-                # print(response)
-                return ""  # No code snippet found
+        modules_name = modules_name[0]
+        code_snippet = header + "\n" + "\n".join(modules)
+        code_snippet = code_snippet.replace(modules_name, true_module_name)
+        return code_snippet
 
     def save_systemc(self, df: pd.DataFrame, temp=False):
         """Saves the generated SystemC code to files.
@@ -301,7 +293,7 @@ class SystemCGenerator:
                 with open(os.path.join(file_dir, "response.txt"), "w") as f:
                     f.write(row["response"])
 
-    def check_results(self, temp=False, timeout=20):
+    def check_results(self, temp=False, timeout=5):
         if temp:
             directory = temp_dir
             log_dir = directory
