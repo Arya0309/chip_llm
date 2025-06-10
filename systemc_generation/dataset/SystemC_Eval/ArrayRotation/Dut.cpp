@@ -9,11 +9,9 @@ Dut::Dut(sc_module_name n) : sc_module(n) {
     /* === Fixed Format End === */
 
 #ifndef NATIVE_SYSTEMC
-    /* === Variable Section === */
 	i_d.clk_rst(i_clk, i_rst);
     i_in_array.clk_rst(i_clk, i_rst);
     o_out_array.clk_rst(i_clk, i_rst);
-    /* === Variable Section End === */
 #endif
 
 }
@@ -23,11 +21,9 @@ void Dut::do_compute() {
     {
 #ifndef NATIVE_SYSTEMC
         HLS_DEFINE_PROTOCOL("main_reset");
-        /* === Variable Section === */
         i_d.reset();
         i_in_array.reset();
         o_out_array.reset();
-        /* === Variable Section End === */
 #endif
         wait();
     }
@@ -37,7 +33,6 @@ void Dut::do_compute() {
         // Read input array into a local array.
         int arr[7];
 #ifndef NATIVE_SYSTEMC
-        /* === Variable Section === */
         for (int i = 0; i < 7; i++) {
             arr[i] = i_in_array.get();
         }
@@ -47,9 +42,8 @@ void Dut::do_compute() {
             arr[i] = i_in_array.read();
         }
         int rotation = i_d.read();
-        /* === Variable Section End === */
 #endif
-        /* === Main Function ===*/
+
         // Temporary array to store rotated elements.
         int temp[7];
         int k = 0;
@@ -62,15 +56,12 @@ void Dut::do_compute() {
         for (int i = 0; i < rotation; i++) {
             temp[k++] = arr[i];
         }
-        /* === Main Function End ===*/
         // Write the rotated array to output ports.
         for (int i = 0; i < 7; i++) {        
 #ifndef NATIVE_SYSTEMC
-            /* === Variable Section === */
 		    o_out_array.put(temp[i]);
 #else
 		    o_out_array.write(temp[i]);
-            /* === Variable Section End === */
 #endif
         }
 

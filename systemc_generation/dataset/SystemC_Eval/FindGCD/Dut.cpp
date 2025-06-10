@@ -1,3 +1,10 @@
+/* 
+Instructions:
+Fix Format: DO NOT MODIFY THIS SECTION
+Variable Section: There are 2 input ports (i_a, i_b) and 1 output port (o_result) initially, change if needed.
+Main function Section: Modify the function of the DUT here.
+*/
+
 #include "Dut.h"
 
 Dut::Dut(sc_module_name n) : sc_module(n) {
@@ -33,28 +40,31 @@ void Dut::do_compute() {
     }
 
     while (true) {
-
 #ifndef NATIVE_SYSTEMC
         /* === Variable Section === */
         int x = i_a.get();
         int y = i_b.get();
+        /* === Variable Section End === */
 #else
+        /* === Variable Section === */
         int x = i_a.read();
         int y = i_b.read();
         /* === Variable Section End === */
 #endif
-        /* === Main Function ===*/
-        int res = (x < y) ? x : y; 
+        /* === Main function Section === */
+        int res = (x < y) ? x : y;
         while (res > 1) {
             if ((x % res == 0) && (y % res == 0))
                 break;
             res--;
         }
-        /* === Main Function End ===*/
+        /* === Main function Section End === */
 #ifndef NATIVE_SYSTEMC
         /* === Variable Section === */
 		o_result.put(res);
+        /* === Variable Section End === */
 #else
+        /* === Variable Section === */
 		o_result.write(res);
         /* === Variable Section End === */
 #endif

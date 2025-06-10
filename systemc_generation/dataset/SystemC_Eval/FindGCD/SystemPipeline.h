@@ -13,6 +13,7 @@ using namespace sc_core;
 #include "Dut.h"
 #endif
 
+/* === Fixed Format === */
 class SystemPipeline: public sc_module
 {
 public:
@@ -29,6 +30,7 @@ private:
 
 	sc_clock clk;
 	sc_signal<bool> rst;
+/* === Fixed Format End === */
 
 /* === Variable Section === */
 #ifndef NATIVE_SYSTEMC
