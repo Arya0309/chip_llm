@@ -32,13 +32,13 @@ private:
 
 /* === Variable Section === */
 #ifndef NATIVE_SYSTEMC
-	cynw_p2p<int> channel_a;
-	cynw_p2p<int> channel_b;
-	cynw_p2p<int> channel_result;
+	cynw_p2p<int> channel_A;
+	cynw_p2p<int> channel_B;
+	cynw_p2p<int> channel_C;
 #else
-	sc_fifo<int> channel_a;
-    sc_fifo<int> channel_b;
-    sc_fifo<int> channel_result;
+	sc_fifo<int> channel_A;
+    sc_fifo<int> channel_B;
+    sc_fifo<int> channel_C;
 #endif
 /* === Variable Section End === */
 

@@ -9,13 +9,13 @@ SystemPipeline::SystemPipeline( sc_module_name n ): sc_module( n ),
 	dut.i_rst(rst);
 
 	/* === Variable Section === */
-	tb.o_a(channel_a);
-	tb.o_b(channel_b);
-	tb.i_result(channel_result);
+	tb.o_A(channel_A);
+	tb.o_B(channel_B);
+	tb.i_C(channel_C);
 
-	dut.i_a(channel_a);
-	dut.i_b(channel_b);
-	dut.o_result(channel_result);
+	dut.i_A(channel_A);
+	dut.i_B(channel_B);
+	dut.o_C(channel_C);
 	/* === Variable Section End === */
 
 }
