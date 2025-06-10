@@ -9,9 +9,11 @@ Dut::Dut(sc_module_name n) : sc_module(n) {
     /* === Fixed Format End === */
 
 #ifndef NATIVE_SYSTEMC
+    /* === Variable Section === */
 	i_A.clk_rst(i_clk, i_rst);
     i_B.clk_rst(i_clk, i_rst);
     o_C.clk_rst(i_clk, i_rst);
+    /* === Variable Section End === */
 #endif
 
 }
@@ -21,9 +23,11 @@ void Dut::do_compute() {
     {
 #ifndef NATIVE_SYSTEMC
         HLS_DEFINE_PROTOCOL("main_reset");
+        /* === Variable Section === */
         i_A.reset();
         i_B.reset();
         o_C.reset();
+        /* === Variable Section End === */
 #endif
         wait();
     }
@@ -34,6 +38,7 @@ void Dut::do_compute() {
         int B[2*3];
 
 #ifndef NATIVE_SYSTEMC
+        /* === Variable Section === */
         A[0] = i_A.get(); // Row 0, Column 0
         A[1] = i_A.get(); // Row 0, Column 1
         A[2] = i_A.get(); // Row 1, Column 0
@@ -57,9 +62,10 @@ void Dut::do_compute() {
         B[3] = i_B.read(); // Row 1, Column 0
         B[4] = i_B.read(); // Row 1, Column 1
         B[5] = i_B.read(); // Row 1, Column 2
+        /* === Variable Section End === */
 #endif
 
-
+        /* === Main Function ===*/
         // For each row in Matrix A
         for (int i = 0; i < 2; i++) {
             // For each column in Matrix B
@@ -70,10 +76,13 @@ void Dut::do_compute() {
                     sum += A[i * 2 + k] * B[k * 3 + j];
                 }
                 // Write the result into the output matrix at position [i][j]
+        /* === Main Function End === */
 #ifndef NATIVE_SYSTEMC
+                /* === Variable Section === */
                 o_C.put(sum);
 #else
                 o_C.write(sum);
+                /* === Variable Section End === */
 #endif
             }
         }
