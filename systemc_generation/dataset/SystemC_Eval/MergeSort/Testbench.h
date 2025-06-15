@@ -12,20 +12,14 @@ class Testbench : public sc_module {
 public:
   sc_in_clk i_clk;
   sc_out<bool> o_rst;
-  static const int A_ROWS = 2;
-  static const int A_COLS = 2;
-  static const int B_ROWS = 2;
-  static const int B_COLS = 3;
 
 /* === Variable Section === */
 #ifndef NATIVE_SYSTEMC
-	cynw_p2p<int>::base_out o_A;
-  cynw_p2p<int>::base_out o_B;
-	cynw_p2p<int>::base_in i_C;
+  cynw_p2p<int>::base_out o_in_array;
+	cynw_p2p<int>::base_in i_out_array;
 #else
-  sc_fifo_out<int> o_A;
-  sc_fifo_out<int> o_B;
-  sc_fifo_in<int> i_C;
+  sc_fifo_out<int> o_in_array;
+  sc_fifo_in<int> i_out_array;
 #endif
 /* === Variable Section End === */
 

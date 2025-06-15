@@ -18,6 +18,15 @@ fi
 
 cd "$TARGET_DIR"
 
+# ----------------------------------------------------------------------------
+# 只要腳本結束（EXIT），就執行 cleanup()
+cleanup() {
+  echo "=== Cleaning up build directory ==="
+  rm -rf build
+}
+trap cleanup EXIT
+# ----------------------------------------------------------------------------
+
 # build
 mkdir -p build
 cd build
@@ -29,7 +38,3 @@ cd ..
 ./build/test-dut
 
 echo "=== Test for '$PROBLEM_NAME' complete ==="
-
-# cleanup
-rm -rf build
-echo "=== Cleaned up build directory ==="

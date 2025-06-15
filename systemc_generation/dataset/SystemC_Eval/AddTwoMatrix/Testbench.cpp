@@ -7,6 +7,7 @@
 #include <vector>
 #include "Testbench.h"
 
+
 struct Testcase {
     std::vector<int> A;
     std::vector<int> B;

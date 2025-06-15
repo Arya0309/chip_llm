@@ -9,7 +9,6 @@
 
 struct Testcase {
     std::vector<int> A;
-    std::vector<int> B;
     std::vector<int> expected;
 };
 
@@ -39,23 +38,20 @@ void Testbench::do_feed() {
         std::vector<int> tokens;
         int val;
         while (iss >> val) tokens.push_back(val);
-        const size_t expected_size = A_ROWS*A_COLS + B_ROWS*B_COLS + A_ROWS*B_COLS;
+        const size_t expected_size = A_ROWS*A_COLS + A_ROWS*A_COLS; // A + expected
         if (tokens.size() != expected_size) {
             std::cerr << "Warning: Skipping line due to incorrect token count: " << line << "\n";
             continue;
         }
         Testcase tc;
         tc.A.assign(tokens.begin(), tokens.begin() + A_ROWS*A_COLS);
-        tc.B.assign(tokens.begin() + A_ROWS*A_COLS,
-                    tokens.begin() + A_ROWS*A_COLS + B_ROWS*B_COLS);
-        tc.expected.assign(tokens.begin() + A_ROWS*A_COLS + B_ROWS*B_COLS, tokens.end());
+        tc.expected.assign(tokens.begin() + A_ROWS*A_COLS, tokens.end());
         tests.push_back(tc);
     }
     fin.close();
 
 #ifndef NATIVE_SYSTEMC
     o_A.reset();
-    o_B.reset();
 #endif
 
     // Apply reset
@@ -73,14 +69,6 @@ void Testbench::do_feed() {
             o_A.put(tc.A[i]);
 #else
             o_A.write(tc.A[i]);
-#endif
-        }
-        // Write Matrix B
-        for (int i = 0; i < B_ROWS * B_COLS; ++i) {
-#ifndef NATIVE_SYSTEMC
-            o_B.put(tc.B[i]);
-#else
-            o_B.write(tc.B[i]);
 #endif
         }
         // Wait one clock to latch inputs
@@ -111,13 +99,11 @@ void Testbench::do_fetch() {
         std::vector<int> tokens;
         int val;
         while (iss >> val) tokens.push_back(val);
-        const size_t expected_size = A_ROWS*A_COLS + B_ROWS*B_COLS + A_ROWS*B_COLS;
+        const size_t expected_size = A_ROWS*A_COLS + A_ROWS*A_COLS; // A + expected
         if (tokens.size() != expected_size) continue;
         Testcase tc;
         tc.A.assign(tokens.begin(), tokens.begin() + A_ROWS*A_COLS);
-        tc.B.assign(tokens.begin() + A_ROWS*A_COLS,
-                    tokens.begin() + A_ROWS*A_COLS + B_ROWS*B_COLS);
-        tc.expected.assign(tokens.begin() + A_ROWS*A_COLS + B_ROWS*B_COLS, tokens.end());
+        tc.expected.assign(tokens.begin() + A_ROWS*A_COLS, tokens.end());
         tests.push_back(tc);
     }
     fin.close();
@@ -128,7 +114,7 @@ void Testbench::do_fetch() {
         const Testcase &tc = tests[idx];
         std::vector<int> results;
         bool passed = true;
-        for (int i = 0; i < A_ROWS*B_COLS; ++i) {
+        for (int i = 0; i < A_ROWS*A_COLS; ++i) {
 #ifndef NATIVE_SYSTEMC
             int res = i_C.get();
 #else
@@ -144,48 +130,37 @@ void Testbench::do_fetch() {
 
         if (passed) {
             std::cout << "Test case " << idx+1 << " passed." << std::endl;
-            std::cout << "Input Matrix A:" << std::endl;
+            std::cout << "Input Matrix:" << std::endl;
             for (int r = 0; r < A_ROWS; ++r) {
                 for (int c = 0; c < A_COLS; ++c)
                     std::cout << tc.A[r*A_COLS + c] << " ";
                 std::cout << std::endl;
             }
-            std::cout << "Input Matrix B:" << std::endl;
-            for (int r = 0; r < B_ROWS; ++r) {
-                for (int c = 0; c < B_COLS; ++c)
-                    std::cout << tc.B[r*B_COLS + c] << " ";
-                std::cout << std::endl;
-            }
-            std::cout << "Output Matrix C:" << std::endl;
+
+            std::cout << "Output Matrix:" << std::endl;
             for (int r = 0; r < A_ROWS; ++r) {
-                for (int c = 0; c < B_COLS; ++c)
-                    std::cout << results[r*B_COLS + c] << " ";
+                for (int c = 0; c < A_COLS; ++c)
+                    std::cout << results[r*A_COLS + c] << " ";
                 std::cout << std::endl;
             }
         } else {
             std::cerr << "Test case " << idx+1 << " failed." << std::endl;
-            std::cerr << "Input Matrix A:" << std::endl;
+            std::cerr << "Input Matrix:" << std::endl;
             for (int r = 0; r < A_ROWS; ++r) {
                 for (int c = 0; c < A_COLS; ++c)
                     std::cerr << tc.A[r*A_COLS + c] << " ";
                 std::cerr << std::endl;
             }
-            std::cerr << "Input Matrix B:" << std::endl;
-            for (int r = 0; r < B_ROWS; ++r) {
-                for (int c = 0; c < B_COLS; ++c)
-                    std::cerr << tc.B[r*B_COLS + c] << " ";
+            std::cerr << "Output Matrix:" << std::endl;
+            for (int r = 0; r < A_ROWS; ++r) {
+                for (int c = 0; c < A_COLS; ++c)
+                    std::cerr << results[r*A_COLS + c] << " ";
                 std::cerr << std::endl;
             }
-            std::cerr << "Output Matrix C:" << std::endl;
+            std::cerr << "Expected Output Matrix:" << std::endl;
             for (int r = 0; r < A_ROWS; ++r) {
-                for (int c = 0; c < B_COLS; ++c)
-                    std::cerr << results[r*B_COLS + c] << " ";
-                std::cerr << std::endl;
-            }
-            std::cerr << "Expected Output Matrix C:" << std::endl;
-            for (int r = 0; r < A_ROWS; ++r) {
-                for (int c = 0; c < B_COLS; ++c)
-                    std::cerr << tc.expected[r*B_COLS + c] << " ";
+                for (int c = 0; c < A_COLS; ++c)
+                    std::cerr << tc.expected[r*A_COLS + c] << " ";
                 std::cerr << std::endl;
             }
         }

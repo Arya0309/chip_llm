@@ -12,10 +12,10 @@ class Testbench : public sc_module {
 public:
   sc_in_clk i_clk;
   sc_out<bool> o_rst;
-  static const int A_ROWS = 2;
-  static const int A_COLS = 2;
-  static const int B_ROWS = 2;
-  static const int B_COLS = 3;
+  static constexpr int A_ROWS = 4;
+  static constexpr int A_COLS = 4;
+  static constexpr int B_ROWS = 4;
+  static constexpr int B_COLS = 4;
 
 /* === Variable Section === */
 #ifndef NATIVE_SYSTEMC
