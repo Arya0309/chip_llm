@@ -1,21 +1,51 @@
+
 #include "Dut.h"
 
-int gcd(int a, int b) {
-    // Find Minimum of a and b
-    int res = min(a, b);
+#include <vector>
+using namespace std;
 
-    // Testing divisibility with all numbers starting from
-    // min(a, b) to 1
+void merge(vector<int>& vec, int left, int mid, int right) {
+    int i, j, k;
+    int n1 = mid - left + 1;
+    int n2 = right - mid;
 
-    while (res > 1) {
+    // Create temporary vectors
+    vector<int> leftVec(n1), rightVec(n2);
 
-        // If any number divide both a and b, so we
-        // got the answer
-        if (a % res == 0 && b % res == 0)
-            break;
-        res--;
+    // Copy data to temporary vectors
+    for (i = 0; i < n1; i++)
+        leftVec[i] = vec[left + i];
+    for (j = 0; j < n2; j++)
+        rightVec[j] = vec[mid + 1 + j];
+
+    // Merge the temporary vectors back into vec[left..right]
+    i = 0;
+    j = 0;
+    k = left;
+    while (i < n1 && j < n2) {
+        if (leftVec[i] <= rightVec[j]) {
+            vec[k] = leftVec[i];
+            i++;
+        } else {
+            vec[k] = rightVec[j];
+            j++;
+        }
+        k++;
     }
-    return res;
+
+    // Copy the remaining elements of leftVec[], if any
+    while (i < n1) {
+        vec[k] = leftVec[i];
+        i++;
+        k++;
+    }
+
+    // Copy the remaining elements of rightVec[], if any
+    while (j < n2) {
+        vec[k] = rightVec[j];
+        j++;
+        k++;
+    }
 }
 
 Dut::Dut(sc_module_name n) : sc_module(n) {
@@ -31,16 +61,18 @@ void Dut::do_compute() {
     wait();
     while (true) {
         /* === Variable Section === */
-        int a = i_a.read();
-        int b = i_b.read();
+        int left = i_left.read();
+        int mid = i_mid.read();
+        int right = i_right.read();
+        vector<int> vec = i_vec.read();
         /* === Variable Section End === */
 
         /* === Main function Section === */
-        int res = gcd(a, b);
+        merge(vec, left, mid, right);
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        o_result.write(res);
+        o_vec.write(vec);
         /* === Variable Section End === */
     }
 }

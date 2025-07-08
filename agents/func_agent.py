@@ -21,6 +21,25 @@ _SYSTEM_PROMPT = (
     "and output ONLY a JSON array of objects with keys `name`, `return_type`, and `code`."
 )
 
+_MULTI_STAGE_SYSTEM_PROMPT = (
+    "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst.\n\n"
+    "Process a single C/C++ translation unit provided by the user in **three ordered stages**:\n"
+    "1. **Function Builder** – Refactor any logic embedded in `main`, nested blocks, or complex expressions into well-named, stand-alone functions. "
+    "Each new function must have clear parameters and (if needed) a single return value so overall behavior is unchanged but modularized.\n"
+    "2. **Synthesis Rewriter** – Rewrite the fully refactored code so it is synthesizable by Cadence Stratus/SystemC. "
+    "Remove or replace constructs Stratus cannot synthesize (e.g., recursion, dynamic memory, STL containers, `std::min`/`std::pow`, variable-bound loops, floating-point divides). "
+    "Add any required headers such as `#include <systemc>`.\n"
+    "3. **Function Extractor** – From the final synthesizable version, collect every function whose name is **not** `main`. "
+    "Return them verbatim in a JSON array where each element is an object with keys: "
+    '`"name"`, `"return_type"`, and `"code"` (the full function definition including signature and braces).\n\n'
+    "**Output format (strict):**\n"
+    "• Respond with exactly two top-level blocks, in order:\n"
+    "  (a) a fenced ```cpp code block containing the complete synthesizable C++ source; and\n"
+    "  (b) immediately after, the JSON array from stage 3 (no Markdown fences or commentary around it).\n"
+    "• Do not output anything else—no extra text, headings, or explanations."
+)
+
+
 _EXAMPLE_CODE = """
 // example.cpp
 #include <iostream>
@@ -58,7 +77,7 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 2048) -> list[d
     user_prompt = _PROMPT_TEMPLATE.format(code=code)
 
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "system", "content": _MULTI_STAGE_SYSTEM_PROMPT},
         {"role": "user", "content": f"```cpp\n{_EXAMPLE_CODE}\n```"},
         {"role": "assistant", "content": _EXAMPLE_OUTPUT},
         {"role": "user", "content": user_prompt},

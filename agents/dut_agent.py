@@ -28,7 +28,7 @@ _SYSTEM_PROMPT = (
 
 # Example input function and its Dut.cpp output
 _EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
-_EXAMPLE_DUT = """
+_EXAMPLE_DUT_CPP = """
 #include "Dut.h"
 
 int add(int a, int b) { return a + b; }
@@ -61,27 +61,74 @@ void Dut::do_compute() {
 }
 """
 
+_EXAMPLE_DUT_H = """
+#ifndef DUT_H_
+#define DUT_H_
+
+#include <systemc>
+using namespace sc_core;
+
+class Dut : public sc_module {
+public:
+  sc_in_clk i_clk;
+  sc_in<bool> i_rst;
+
+/* === Variable Section === */
+  sc_fifo_in<int> i_a;
+  sc_fifo_in<int> i_b;
+  sc_fifo_out<int> o_result;
+/* === Variable Section End === */
+
+  SC_HAS_PROCESS(Dut);
+  Dut(sc_module_name n);
+  ~Dut() = default;
+
+private:
+  void do_compute();
+};
+"""
+
 
 # ---------------------------------------------------------------------------
 # Generate Dut.cpp via one-shot in-context learning
 # ---------------------------------------------------------------------------
-def generate_dut(func_code: str) -> str:
+def generate_dut(func_code: str) -> dict[str, str]:
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": f"Example function:\n```cpp\n{_EXAMPLE_FUNC}\n```"},
-        {"role": "assistant", "content": _EXAMPLE_DUT},
+        {
+            "role": "assistant",
+            "content": json.dumps(
+                [
+                    {"name": "Dut.cpp", "code": _EXAMPLE_DUT_CPP},
+                    {"name": "Dut.h", "code": _EXAMPLE_DUT_H},
+                ],
+                ensure_ascii=False,
+                indent=2,
+            ),
+        },
         {
             "role": "user",
-            "content": f"Now generate Dut.cpp for this function:\n```cpp\n{func_code.strip()}\n```",
+            "content": f"Now generate Dut.cpp and Dut.h for this function:\n```cpp\n{func_code.strip()}\n```",
         },
     ]
+
     formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted, temperature=0.0)
-    # Return from first include
-    idx = raw.find("#include")
-    return raw[idx:].strip() if idx != -1 else raw.strip()
+    raw = _llm.generate(formatted, temperature=0.0).strip()
+
+    try:
+        file_list = json.loads(raw.split("```")[-1].strip() if "```" in raw else raw)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Failed to parse JSON: {e}\n---- Raw ----\n{raw}")
+
+    file_map = {f["name"]: f["code"] for f in file_list if "name" in f and "code" in f}
+    for req in ("Dut.cpp", "Dut.h"):
+        if req not in file_map:
+            raise RuntimeError(f"Missing '{req}' in model output")
+
+    return file_map
 
 
 # ---------------------------------------------------------------------------
@@ -104,5 +151,9 @@ if __name__ == "__main__":
         sys.stderr.write(f"Function '{target}' not found.\n")
         sys.exit(1)
 
-    dut_cpp = generate_dut(item["code"])
-    sys.stdout.write(dut_cpp)
+    dut_files = generate_dut(item["code"])
+
+    for fname, code in dut_files.items():
+        Path(fname).write_text(code, encoding="utf-8")
+
+    sys.stdout.write(dut_files["Dut.cpp"])

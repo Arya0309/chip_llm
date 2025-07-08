@@ -56,16 +56,29 @@ def main() -> None:
         entry = functions[0]
 
     try:
-        dut_cpp = dut_agent.generate_dut(entry["code"])
+        dut_files = dut_agent.generate_dut(entry["code"])  # ← 這裡回傳 dict
     except Exception as e:
         sys.exit(f"[dut_agent] {e}")
 
     if args.out:
         out_path = Path(args.out).expanduser()
-        out_path.write_text(dut_cpp, encoding="utf-8")
-        print(f"[OK] Dut.cpp written to {out_path}")
+
+        if out_path.suffix:
+            dir_path = out_path.parent
+            cpp_path = out_path
+        else:
+            dir_path = out_path
+            cpp_path = dir_path / "Dut.cpp"
+
+        dir_path.mkdir(parents=True, exist_ok=True)
+
+        cpp_path.write_text(dut_files["Dut.cpp"], encoding="utf-8")
+        (dir_path / "Dut.h").write_text(dut_files["Dut.h"], encoding="utf-8")
+
+        print(f"[OK] Dut.cpp → {cpp_path}")
+        print(f"[OK] Dut.h  → {dir_path / 'Dut.h'}")
     else:
-        print(dut_cpp)
+        print(dut_files["Dut.cpp"])
 
 
 if __name__ == "__main__":
