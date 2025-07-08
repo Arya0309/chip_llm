@@ -53,9 +53,7 @@ _PROMPT_TEMPLATE = (
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-def extract_functions_via_llm(
-    src_path: str | Path, *, max_tokens: int = 2048
-) -> list[dict]:
+def extract_functions(src_path: str | Path, *, max_tokens: int = 2048) -> list[dict]:
     code = Path(src_path).read_text(encoding="utf-8", errors="ignore")
     user_prompt = _PROMPT_TEMPLATE.format(code=code)
 
@@ -98,7 +96,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        functions = extract_functions_via_llm(src_file)
+        functions = extract_functions(src_file)
         print(json.dumps(functions, ensure_ascii=False, indent=2))
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)

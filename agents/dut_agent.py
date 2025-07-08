@@ -16,7 +16,7 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = (
     "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
-    "Given exactly one C++ function, generate a complete Dut.cpp that is synthesizable by Stratus HLS.\n"
+    "Given exactly one C++ function, generate a complete Dut.cpp.\n"
     "Your output must include: \n"
     "  - The original function verbatim.\n"
     "  - The Dut constructor with: SC_THREAD(do_compute), sensitive << i_clk.pos(), dont_initialize(), reset_signal_is(i_rst, false).\n"
