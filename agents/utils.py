@@ -50,7 +50,6 @@ class VLLMGenerator:
         tokenize: bool = False,
         add_generation_prompt: bool = True,
     ):
-        """直接沿用 transformers 的 chat-template API"""
         return self.tokenizer.apply_chat_template(
             messages,
             tokenize=tokenize,

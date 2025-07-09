@@ -145,13 +145,19 @@ if __name__ == "__main__":
         sys.stderr.write("func.json must be a list from func_agent\n")
         sys.exit(1)
 
-    target = sys.argv[2] if len(sys.argv) == 3 else entries[0]["name"]
-    item = next((e for e in entries if e["name"] == target), None)
-    if item is None:
-        sys.stderr.write(f"Function '{target}' not found.\n")
-        sys.exit(1)
+    if len(sys.argv) == 3:
+        target = sys.argv[2]
+        item = next((e for e in entries if e["name"] == target), None)
+        if item is None:
+            sys.stderr.write(f"Function '{target}' not found.\n")
+            sys.exit(1)
+        func_code = item["code"]
+        out_prefix = item["name"]
+    else:
+        func_code = "\n\n".join(e["code"] for e in entries)
+        out_prefix = "combined"
 
-    dut_files = generate_dut(item["code"])
+    dut_files = generate_dut(func_code)
 
     for fname, code in dut_files.items():
         Path(fname).write_text(code, encoding="utf-8")

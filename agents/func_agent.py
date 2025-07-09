@@ -27,8 +27,7 @@ _MULTI_STAGE_SYSTEM_PROMPT = (
     "1. **Function Builder** – Refactor any logic embedded in `main`, nested blocks, or complex expressions into well-named, stand-alone functions. "
     "Each new function must have clear parameters and (if needed) a single return value so overall behavior is unchanged but modularized.\n"
     "2. **Synthesis Rewriter** – Rewrite the fully refactored code so it is synthesizable by Cadence Stratus/SystemC. "
-    "Remove or replace constructs Stratus cannot synthesize (e.g., recursion, dynamic memory, STL containers, `std::min`/`std::pow`, variable-bound loops, floating-point divides). "
-    "Add any required headers such as `#include <systemc>`.\n"
+    "Remove or replace constructs Stratus cannot synthesize (e.g., recursion, dynamic memory, STL containers, `std::pow`, variable-bound loops, etc). "
     "3. **Function Extractor** – From the final synthesizable version, collect every function whose name is **not** `main`. "
     "Return them verbatim in a JSON array where each element is an object with keys: "
     '`"name"`, `"return_type"`, and `"code"` (the full function definition including signature and braces).\n\n'
@@ -72,7 +71,7 @@ _PROMPT_TEMPLATE = (
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-def extract_functions(src_path: str | Path, *, max_tokens: int = 2048) -> list[dict]:
+def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[dict]:
     code = Path(src_path).read_text(encoding="utf-8", errors="ignore")
     user_prompt = _PROMPT_TEMPLATE.format(code=code)
 
