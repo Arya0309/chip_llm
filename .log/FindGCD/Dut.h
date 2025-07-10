@@ -1,8 +1,8 @@
-
 #ifndef DUT_H_
 #define DUT_H_
 
 #include <systemc>
+#include <algorithm>
 using namespace sc_core;
 
 class Dut : public sc_module {
@@ -23,3 +23,5 @@ public:
 private:
   void do_compute();
 };
+
+#endif // DUT_H_

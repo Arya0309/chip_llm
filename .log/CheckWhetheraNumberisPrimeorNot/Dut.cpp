@@ -1,24 +1,27 @@
-#include "Dut.h"
-#include <cmath>
 
-bool isPrime(int n) {
+#include "Dut.h"
+
+bool is_prime(int n) {
     if (n <= 1)
         return false;
 
-    for (int i = 2; i <= sqrt(n); i++) {
+    int cnt = 0;
+
+    // Check for divisors from 1 to n
+    for (int i = 1; i <= n; i++) {
+        // Check how many number is divisible
+        // by n
         if (n % i == 0)
-            return false;
+            cnt++;
     }
 
-    return true;
-}
-
-bool isPossible(int N) {
-    // if the number is prime, and number-2 is also prime
-    if (isPrime(N) && isPrime(N - 2))
-        return true;
-    else
+    // If n is divisible by more than 2 numbers
+    // then it is not prime
+    if (cnt > 2)
         return false;
+
+    // else it is prime
+    return true;
 }
 
 Dut::Dut(sc_module_name n) : sc_module(n) {
@@ -34,11 +37,11 @@ void Dut::do_compute() {
     wait();
     while (true) {
         /* === Variable Section === */
-        int N = i_N.read();
+        int n = i_n.read();
         /* === Variable Section End === */
 
         /* === Main function Section === */
-        bool res = isPossible(N);
+        bool res = is_prime(n);
         /* === Main function Section End === */
 
         /* === Variable Section === */

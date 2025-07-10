@@ -20,6 +20,7 @@ _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior Syste
 _FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
 
 # Example input function and its Dut.cpp output
+_EXAMPLE_REQUIREMENT = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers."
 _EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
 _EXAMPLE_DUT_CPP = """
 #include "Dut.h"
@@ -88,7 +89,10 @@ private:
 def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
-        {"role": "user", "content": f"Example function:\n```cpp\n{_EXAMPLE_FUNC}\n```"},
+        {
+            "role": "user",
+            "content": f"[Requirement]\n{_FORMAT_PROMPT}\n{_EXAMPLE_REQUIREMENT}\n```cpp\n{_EXAMPLE_FUNC}\n```",
+        },
         {
             "role": "assistant",
             "content": json.dumps(
@@ -104,6 +108,7 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
             "role": "user",
             "content": (
                 (f"[Requirement]\n{requirement}\n\n" if requirement else "")
+                + f"\n{_FORMAT_PROMPT}"
                 + "\n```cpp\n"
                 + func_code.strip()
                 + "\n```"

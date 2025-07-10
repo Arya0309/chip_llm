@@ -2,11 +2,8 @@
 #define DUT_H_
 
 #include <systemc>
+#include <unordered_set>
 using namespace sc_core;
-
-#define INPUT_SIZE 10
-#define HIDDEN_SIZE 20
-#define OUTPUT_SIZE 5
 
 class Dut : public sc_module {
 public:
@@ -14,12 +11,8 @@ public:
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<float> i_input[INPUT_SIZE];
-  sc_fifo_in<float> i_b1[HIDDEN_SIZE];
-  sc_fifo_in<float> i_b2[OUTPUT_SIZE];
-  sc_fifo_in<float> i_w1[HIDDEN_SIZE][INPUT_SIZE];
-  sc_fifo_in<float> i_w2[OUTPUT_SIZE][HIDDEN_SIZE];
-  sc_fifo_out<float> o_output[OUTPUT_SIZE];
+  sc_fifo_in<int> i_a[6];
+  sc_fifo_out<int> o_result;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);

@@ -22,4 +22,5 @@ public:
 private:
   void do_compute();
 };
+
 #endif // DUT_H_

@@ -1,12 +1,12 @@
 #include "Dut.h"
 
-void interchangeFirstLast(int m[][n]) {
+void interchangeFirstLast(int m[][4]) {
 	// swapping of element between first
 	// and last columns
-	for (int i = 0; i < n; i++) {
+	for (int i = 0; i < 4; i++) {
 		int t = m[i][0];
-		m[i][0] = m[i][n - 1];
-		m[i][n - 1] = t;
+		m[i][0] = m[i][3];
+		m[i][3] = t;
 	}
 }
 
@@ -23,10 +23,10 @@ void Dut::do_compute() {
     wait();
     while (true) {
         /* === Variable Section === */
-        int m[n][n];
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                m[i][j] = i * n + j;
+        int m[4][4];
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                m[i][j] = i * 4 + j;
             }
         }
         /* === Variable Section End === */
@@ -37,8 +37,8 @@ void Dut::do_compute() {
 
         /* === Variable Section === */
         // Print the modified matrix for verification
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
                 std::cout << m[i][j] << " ";
             }
             std::cout << std::endl;

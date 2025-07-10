@@ -4,9 +4,10 @@
 #include <systemc>
 using namespace sc_core;
 
-#define DIM 3
-#define NUM_TRAIN 10
-#define K 5
+#define R1 2
+#define C1 2
+#define R2 2
+#define C2 3
 
 class Dut : public sc_module {
 public:
@@ -14,10 +15,9 @@ public:
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<double> i_train[NUM_TRAIN][DIM];
-  sc_fifo_in<int> i_labels[NUM_TRAIN];
-  sc_fifo_in<double> i_query_point[DIM];
-  sc_fifo_out<int> o_result;
+  sc_fifo_in<int> i_a[R1*C1];
+  sc_fifo_in<int> i_b[R2*C2];
+  // No output ports for results in this example
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);

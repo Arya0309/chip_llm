@@ -12,7 +12,7 @@ public:
 
 /* === Variable Section === */
   sc_fifo_in<int> i_n;
-  sc_fifo_out<int> o_res;
+  sc_fifo_out<int> o_dec_value;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);

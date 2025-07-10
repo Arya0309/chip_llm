@@ -112,16 +112,19 @@ void Dut::do_compute() {
         unsigned char in[16];
         unsigned char key[16];
         unsigned char out[16];
-        /* === Variable Section End === */
-
-        /* === Main function Section === */
-        for(int i=0;i<16;i++) {
+        for(int i=0; i<16; i++) {
             in[i] = i_in[i].read();
             key[i] = i_key[i].read();
         }
+        /* === Variable Section End === */
+
+        /* === Main function Section === */
         AES128Encrypt(in, key, out);
-        for(int i=0;i<16;i++)
-            o_out[i].write(out[i]);
         /* === Main function Section End === */
+
+        /* === Variable Section === */
+        for(int i=0; i<16; i++)
+            o_out[i].write(out[i]);
+        /* === Variable Section End === */
     }
 }
