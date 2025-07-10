@@ -1,4 +1,3 @@
-
 #ifndef DUT_H_
 #define DUT_H_
 
@@ -12,11 +11,9 @@ public:
   sc_in_clk i_clk;
   sc_in<bool> i_rst;
 
-/* === Variable Section === */
   sc_fifo_in<vector<int>> i_v;
   sc_fifo_in<int> i_target;
   sc_fifo_out<bool> o_result;
-/* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);
   Dut(sc_module_name n);
@@ -25,3 +22,5 @@ public:
 private:
   void do_compute();
 };
+
+#endif // DUT_H_

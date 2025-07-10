@@ -13,8 +13,8 @@ public:
 /* === Variable Section === */
   sc_fifo_in<int> i_length;
   sc_fifo_in<int> i_window_size;
-  sc_fifo_in<sc_dt::sc_lv<32>> i_input;
-  sc_fifo_out<sc_dt::sc_lv<32>> o_output;
+  sc_fifo_in<sc_dt::sc_vector<int>> i_input;
+  sc_fifo_out<sc_dt::sc_vector<int>> i_output;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);

@@ -1,4 +1,3 @@
-
 #ifndef DUT_H_
 #define DUT_H_
 
@@ -13,7 +12,7 @@ public:
 /* === Variable Section === */
   sc_fifo_in<int> i_a;
   sc_fifo_in<int> i_b;
-  // No output needed as the result is printed directly in the main function
+  sc_fifo_out<int> o_result;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);
@@ -23,3 +22,4 @@ public:
 private:
   void do_compute();
 };
+#endif // DUT_H_

@@ -39,21 +39,12 @@ void Dut::do_compute() {
     while (true) {
         /* === Variable Section === */
         int length = i_length.read();
-        double input[length];
-        for (int i = 0; i < length; ++i) {
-            input[i] = i_input[i].read();
-        }
-        double output[length];
+        const double* input = i_input.read().data();
+        double* output = o_output.write().data();
         /* === Variable Section End === */
 
         /* === Main function Section === */
         softmax(input, output, length);
         /* === Main function Section End === */
-
-        /* === Variable Section === */
-        for (int i = 0; i < length; ++i) {
-            o_output[i].write(output[i]);
-        }
-        /* === Variable Section End === */
     }
 }

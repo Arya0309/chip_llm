@@ -1,7 +1,4 @@
-
 #include "Dut.h"
-
-const int N = 4; // Define the size of the matrices
 
 void add(int A[][N], int B[][N], int C[][N]) {
     int i, j;
@@ -23,15 +20,9 @@ void Dut::do_compute() {
     wait();
     while (true) {
         /* === Variable Section === */
-        int A[N][N];
-        int B[N][N];
-        int C[N][N];
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                A[i][j] = i_A[i][j].read();
-                B[i][j] = i_B[i][j].read();
-            }
-        }
+        int A[N][N] = {{0}};
+        int B[N][N] = {{0}};
+        int C[N][N] = {{0}};
         /* === Variable Section End === */
 
         /* === Main function Section === */
@@ -39,10 +30,13 @@ void Dut::do_compute() {
         /* === Main function Section End === */
 
         /* === Variable Section === */
+        // Assuming o_result is a vector or some other data structure to store the result
+        // For simplicity, we'll just print the result here
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                o_C[i][j].write(C[i][j]);
+                std::cout << C[i][j] << " ";
             }
+            std::cout << std::endl;
         }
         /* === Variable Section End === */
     }

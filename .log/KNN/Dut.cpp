@@ -1,4 +1,3 @@
-
 #include "Dut.h"
 
 int knn(const double train[][DIM], const int labels[], int num_train, const double query_point[]) {
@@ -54,18 +53,18 @@ void Dut::do_compute() {
     wait();
     while (true) {
         /* === Variable Section === */
-        const double train[DIM][NUM_TRAIN] = i_train.read().to_array();
-        const int labels[NUM_TRAIN] = i_labels.read().to_array();
-        int num_train = i_num_train.read();
-        const double query_point[DIM] = i_query_point.read().to_array();
+        const double train[NUM_TRAIN][DIM] = { /* ... */ }; // Initialize with actual data
+        const int labels[NUM_TRAIN] = { /* ... */ }; // Initialize with actual data
+        int num_train = NUM_TRAIN;
+        const double query_point[DIM] = { /* ... */ }; // Initialize with actual data
         /* === Variable Section End === */
 
         /* === Main function Section === */
-        int res = knn(train, labels, num_train, query_point);
+        int result = knn(train, labels, num_train, query_point);
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        o_result.write(res);
+        o_result.write(result);
         /* === Variable Section End === */
     }
 }

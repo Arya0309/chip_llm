@@ -43,15 +43,15 @@ void Dut::do_compute() {
     while (true) {
         /* === Variable Section === */
         const int* input = i_input.read().data;
-        int in_h = i_in_h.read();
-        int in_w = i_in_w.read();
-        int pool_h = i_pool_h.read();
-        int pool_w = i_pool_w.read();
-        int stride_h = i_stride_h.read();
-        int stride_w = i_stride_w.read();
-        int* output = i_output.read().data;
-        int& out_h = i_out_h.read();
-        int& out_w = i_out_w.read();
+        int in_h = i_input.read().in_h;
+        int in_w = i_input.read().in_w;
+        int pool_h = i_input.read().pool_h;
+        int pool_w = i_input.read().pool_w;
+        int stride_h = i_input.read().stride_h;
+        int stride_w = i_input.read().stride_w;
+        int* output = i_output.write().data;
+        int& out_h = i_output.write().out_h;
+        int& out_w = i_output.write().out_w;
         /* === Variable Section End === */
 
         /* === Main function Section === */
@@ -59,8 +59,7 @@ void Dut::do_compute() {
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        o_out_h.write(out_h);
-        o_out_w.write(out_w);
+        i_output.write().done = true;
         /* === Variable Section End === */
     }
 }

@@ -68,9 +68,5 @@ void Dut::do_compute() {
         /* === Main function Section === */
         sobelEdgeDetection(input, output, width, height);
         /* === Main function Section End === */
-
-        /* === Variable Section === */
-        // No need to write anything back as output is written directly in sobelEdgeDetection
-        /* === Variable Section End === */
     }
 }

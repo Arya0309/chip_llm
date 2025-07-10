@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from utils import VLLMGenerator
@@ -14,17 +15,9 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 # One-shot in-context example without instruction header block
 # ---------------------------------------------------------------------------
-_SYSTEM_PROMPT = (
-    "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
-    "Given exactly one C++ function, generate a complete Dut.cpp.\n"
-    "Your output must include: \n"
-    "  - The original function verbatim.\n"
-    "  - The Dut constructor with: SC_THREAD(do_compute), sensitive << i_clk.pos(), dont_initialize(), reset_signal_is(i_rst, false).\n"
-    "  - In do_compute():\n"
-    "      * A Variable Section to read each input port: <type> <name> = i_<name>.read();\n"
-    "      * A Main function Section that calls the function, assigning return to res if non-void.\n"
-    "      * A Variable Section that writes the result: o_result.write(res); if return not void.\n"
-)
+_SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
+
+_FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
 
 # Example input function and its Dut.cpp output
 _EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
@@ -92,7 +85,7 @@ private:
 # ---------------------------------------------------------------------------
 # Generate Dut.cpp via one-shot in-context learning
 # ---------------------------------------------------------------------------
-def generate_dut(func_code: str) -> dict[str, str]:
+def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": f"Example function:\n```cpp\n{_EXAMPLE_FUNC}\n```"},
@@ -109,7 +102,12 @@ def generate_dut(func_code: str) -> dict[str, str]:
         },
         {
             "role": "user",
-            "content": f"Now generate Dut.cpp and Dut.h for this function:\n```cpp\n{func_code.strip()}\n```",
+            "content": (
+                (f"[Requirement]\n{requirement}\n\n" if requirement else "")
+                + "\n```cpp\n"
+                + func_code.strip()
+                + "\n```"
+            ),
         },
     ]
 
@@ -118,10 +116,18 @@ def generate_dut(func_code: str) -> dict[str, str]:
     )
     raw = _llm.generate(formatted, temperature=0.0).strip()
 
+    match = re.search(r"\[.*\]", raw, re.S)
+    if not match:
+        raise ValueError(
+            "LLM output did not contain a JSON array.\n--- OUTPUT START ---\n"
+            + raw
+            + "\n--- OUTPUT END ---"
+        )
+
     try:
-        file_list = json.loads(raw.split("```")[-1].strip() if "```" in raw else raw)
+        file_list = json.loads(match.group(0))
     except json.JSONDecodeError as e:
-        raise RuntimeError(f"Failed to parse JSON: {e}\n---- Raw ----\n{raw}")
+        raise ValueError(f"Failed to parse JSON: {e}\nRaw output:\n{raw}")
 
     file_map = {f["name"]: f["code"] for f in file_list if "name" in f and "code" in f}
     for req in ("Dut.cpp", "Dut.h"):

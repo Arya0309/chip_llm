@@ -5,14 +5,21 @@
 #include <systemc>
 using namespace sc_core;
 
-struct InputData {
+struct Input {
     const int* data;
-    int size;
+    int in_h;
+    int in_w;
+    int pool_h;
+    int pool_w;
+    int stride_h;
+    int stride_w;
 };
 
-struct OutputData {
+struct Output {
     int* data;
-    int& size;
+    int& out_h;
+    int& out_w;
+    bool done;
 };
 
 class Dut : public sc_module {
@@ -21,16 +28,8 @@ public:
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<InputData> i_input;
-  sc_fifo_in<int> i_in_h;
-  sc_fifo_in<int> i_in_w;
-  sc_fifo_in<int> i_pool_h;
-  sc_fifo_in<int> i_pool_w;
-  sc_fifo_in<int> i_stride_h;
-  sc_fifo_in<int> i_stride_w;
-  sc_fifo_in<OutputData> i_output;
-  sc_fifo_out<int> o_out_h;
-  sc_fifo_out<int> o_out_w;
+  sc_fifo<Input> i_input;
+  sc_fifo<Output> i_output;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);

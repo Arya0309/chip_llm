@@ -1,4 +1,3 @@
-
 #ifndef DUT_H_
 #define DUT_H_
 
@@ -15,18 +14,19 @@ public:
   sc_in_clk i_clk;
   sc_in<bool> i_rst;
 
-/* === Variable Section === */
-  sc_fifo_in<int> i_n;
-  sc_fifo_in<double> i_real;
-  sc_fifo_in<double> i_imag;
-  sc_fifo_out<double> o_real;
-  sc_fifo_out<double> o_imag;
-/* === Variable Section End === */
+  sc_in<int> i_n;
+  sc_in<sc_lv<32>> i_real[1024];
+  sc_in<sc_lv<32>> i_imag[1024];
+
+  sc_out<sc_lv<32>> o_real[1024];
+  sc_out<sc_lv<32>> o_imag[1024];
 
   SC_HAS_PROCESS(Dut);
   Dut(sc_module_name n);
   ~Dut() = default;
 
 private:
-  void do_compute();
+  void do_fft();
 };
+
+#endif // DUT_H_

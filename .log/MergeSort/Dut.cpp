@@ -50,7 +50,6 @@ void merge(vector<int>& vec, int left, int mid, int right) {
 
 void mergeSort(vector<int>& vec, int left, int right) {
     if (left < right) {
-
         // Calculate the midpoint
         int mid = left + (right - left) / 2;
 

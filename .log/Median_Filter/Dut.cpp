@@ -44,17 +44,12 @@ void Dut::do_compute() {
         /* === Variable Section === */
         int length = i_length.read();
         int window_size = i_window_size.read();
-        const int* input = i_input.read().to_int_array(length);
-        int* output = new int[length];
+        const int* input = i_input.read().to_int_array();
+        int* output = i_output.write().to_int_array();
         /* === Variable Section End === */
 
         /* === Main function Section === */
         median_filter(input, output, length, window_size);
         /* === Main function Section End === */
-
-        /* === Variable Section === */
-        o_output.write(output, length);
-        delete[] output;
-        /* === Variable Section End === */
     }
 }

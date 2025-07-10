@@ -6,13 +6,13 @@
 using namespace sc_core;
 
 struct InputPacket {
-    const unsigned char* data;
-    int size;
+    unsigned char* data;
+    int width;
+    int height;
 };
 
 struct OutputPacket {
     unsigned char* data;
-    int size;
 };
 
 class Dut : public sc_module {
@@ -21,10 +21,8 @@ public:
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo<InputPacket> i_input;
-  sc_fifo<OutputPacket> i_output;
-  sc_fifo<int> i_width;
-  sc_fifo<int> i_height;
+  sc_fifo_in<InputPacket> i_input;
+  sc_fifo_out<OutputPacket> i_output;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);

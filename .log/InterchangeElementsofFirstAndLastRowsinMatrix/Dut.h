@@ -1,9 +1,10 @@
-
 #ifndef DUT_H_
 #define DUT_H_
 
 #include <systemc>
 using namespace sc_core;
+
+#define n 3
 
 class Dut : public sc_module {
 public:
@@ -22,3 +23,5 @@ public:
 private:
   void do_compute();
 };
+
+#endif // DUT_H_

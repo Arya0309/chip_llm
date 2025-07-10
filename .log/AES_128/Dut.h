@@ -1,9 +1,11 @@
-
 #ifndef DUT_H_
 #define DUT_H_
 
 #include <systemc>
 using namespace sc_core;
+
+extern unsigned char sbox[256];
+extern unsigned char Rcon[11];
 
 class Dut : public sc_module {
 public:
@@ -11,9 +13,9 @@ public:
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<int> i_n;
-  sc_fifo_in<int> i_a[100]; // Assuming maximum array size of 100
-  sc_fifo_out<int> o_result;
+  sc_fifo_in<unsigned char> i_in[16];
+  sc_fifo_in<unsigned char> i_key[16];
+  sc_fifo_out<unsigned char> o_out[16];
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);
@@ -23,3 +25,5 @@ public:
 private:
   void do_compute();
 };
+
+#endif // DUT_H_

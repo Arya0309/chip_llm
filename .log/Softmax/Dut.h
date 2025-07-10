@@ -5,6 +5,8 @@
 #include <systemc>
 using namespace sc_core;
 
+#include <vector>
+
 class Dut : public sc_module {
 public:
   sc_in_clk i_clk;
@@ -12,8 +14,8 @@ public:
 
 /* === Variable Section === */
   sc_fifo_in<int> i_length;
-  sc_fifo_in<double> i_input[1024]; // 假設最大長度為1024
-  sc_fifo_out<double> o_output[1024]; // 假設最大長度為1024
+  sc_fifo_in<std::vector<double>> i_input;
+  sc_fifo_out<std::vector<double>> o_output;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);

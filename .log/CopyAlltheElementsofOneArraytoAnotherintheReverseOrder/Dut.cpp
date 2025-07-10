@@ -22,10 +22,7 @@ void Dut::do_compute() {
     while (true) {
         /* === Variable Section === */
         int len = i_len.read();
-        int* arr = new int[len];
-        for (int j = 0; j < len; j++) {
-            arr[j] = i_arr[j].read();
-        }
+        int* arr = i_arr.read();
         /* === Variable Section End === */
 
         /* === Main function Section === */
@@ -33,7 +30,7 @@ void Dut::do_compute() {
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        delete[] arr;
+        // No output needed in this case
         /* === Variable Section End === */
     }
 }

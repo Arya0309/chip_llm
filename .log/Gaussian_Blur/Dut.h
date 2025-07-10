@@ -1,34 +1,25 @@
-
 #ifndef DUT_H_
 #define DUT_H_
 
 #include <systemc>
 using namespace sc_core;
 
-struct InputData {
-    const float* data;
-    int width;
-    int height;
-};
-
-struct OutputData {
-    float* data;
-};
-
 class Dut : public sc_module {
 public:
-  sc_in_clk i_clk;
-  sc_in<bool> i_rst;
+    sc_in_clk i_clk;
+    sc_in<bool> i_rst;
 
-/* === Variable Section === */
-  sc_fifo<InputData> i_input;
-  sc_fifo<OutputData> i_output;
-/* === Variable Section End === */
+    sc_in<int> i_width;
+    sc_in<int> i_height;
+    sc_in<sc_vector<float>> i_input;
+    sc_out<sc_vector<float>> i_output;
 
-  SC_HAS_PROCESS(Dut);
-  Dut(sc_module_name n);
-  ~Dut() = default;
+    SC_HAS_PROCESS(Dut);
+    Dut(sc_module_name n);
+    ~Dut() = default;
 
 private:
-  void do_compute();
+    void do_compute();
 };
+
+#endif // DUT_H_

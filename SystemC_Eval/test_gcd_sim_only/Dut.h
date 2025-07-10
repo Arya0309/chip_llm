@@ -22,3 +22,4 @@ public:
 private:
   void do_compute();
 };
+#endif

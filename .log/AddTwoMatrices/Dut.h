@@ -1,9 +1,10 @@
-
 #ifndef DUT_H_
 #define DUT_H_
 
 #include <systemc>
 using namespace sc_core;
+
+#define N 4  // Define the size of the matrices
 
 class Dut : public sc_module {
 public:
@@ -11,9 +12,9 @@ public:
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<int> i_A[N][N];
-  sc_fifo_in<int> i_B[N][N];
-  sc_fifo_out<int> o_C[N][N];
+  sc_fifo_in<int> i_A[N*N];
+  sc_fifo_in<int> i_B[N*N];
+  sc_fifo_out<int> o_C[N*N];
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);
@@ -23,3 +24,5 @@ public:
 private:
   void do_compute();
 };
+
+#endif // DUT_H_

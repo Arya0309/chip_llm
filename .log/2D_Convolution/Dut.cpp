@@ -2,60 +2,88 @@
 #include "Dut.h"
 
 #include <iostream>
-#include <cstring>
 
-extern "C" double* conv2D(
-    const double* input, int in_h, int in_w,
-    const double* kernel, int ker_h, int ker_w);
+/* === Fixed Format === */
+SC_MODULE(Dut) {
+    sc_in_clk i_clk;
+    sc_in<bool> i_rst;
 
-Dut::Dut(sc_module_name n) : sc_module(n) {
-    /* === Fixed Format === */
-    SC_THREAD(do_compute);
-    sensitive << i_clk.pos();
-    dont_initialize();
-    reset_signal_is(i_rst, false);
-    /* === Fixed Format End === */
-}
+    sc_fifo_in<double*> i_input;
+    sc_fifo_in<int> i_in_h;
+    sc_fifo_in<int> i_in_w;
+    sc_fifo_in<double*> i_kernel;
+    sc_fifo_in<int> i_ker_h;
+    sc_fifo_in<int> i_ker_w;
+    sc_fifo_out<double*> o_output;
 
-void Dut::do_compute() {
-    wait();
-    while (true) {
-        /* === Variable Section === */
-        int in_h = i_in_h.read();
-        int in_w = i_in_w.read();
-        int ker_h = i_ker_h.read();
-        int ker_w = i_ker_w.read();
-        sc_vector<sc_signal<double>> input_vec(in_h * in_w);
-        sc_vector<sc_signal<double>> kernel_vec(ker_h * ker_w);
-        for (int i = 0; i < in_h * in_w; ++i) {
-            input_vec[i].write(i_input.read()[i]);
-        }
-        for (int i = 0; i < ker_h * ker_w; ++i) {
-            kernel_vec[i].write(i_kernel.read()[i]);
-        }
-        /* === Variable Section End === */
-
-        /* === Main function Section === */
-        double* input_arr = new double[in_h * in_w];
-        double* kernel_arr = new double[ker_h * ker_w];
-        for (int i = 0; i < in_h * in_w; ++i) {
-            input_arr[i] = input_vec[i].read();
-        }
-        for (int i = 0; i < ker_h * ker_w; ++i) {
-            kernel_arr[i] = kernel_vec[i].read();
-        }
-        double* output_arr = conv2D(input_arr, in_h, in_w, kernel_arr, ker_h, ker_w);
-        /* === Main function Section End === */
-
-        /* === Variable Section === */
-        sc_vector<sc_signal<double>> output_vec(in_h * in_w);
-        for (int i = 0; i < in_h * in_w; ++i) {
-            output_vec[i].write(output_arr[i]);
-        }
-        o_output.write(output_vec);
-        delete[] input_arr;
-        delete[] kernel_arr;
-        delete[] output_arr;
-        /* === Variable Section End === */
+    SC_HAS_PROCESS(Dut);
+    Dut(sc_module_name n) : sc_module(n) {
+        SC_THREAD(do_conv2D);
+        sensitive << i_clk.pos();
+        dont_initialize();
+        reset_signal_is(i_rst, false);
     }
-}
+
+    void do_conv2D() {
+        wait();
+        while (true) {
+            /* === Variable Section === */
+            double* input = i_input.read();
+            int in_h = i_in_h.read();
+            int in_w = i_in_w.read();
+            double* kernel = i_kernel.read();
+            int ker_h = i_ker_h.read();
+            int ker_w = i_ker_w.read();
+            /* === Variable Section End === */
+
+            /* === Main function Section === */
+            double* output = conv2D(input, in_h, in_w, kernel, ker_h, ker_w);
+            /* === Main function Section End === */
+
+            /* === Variable Section === */
+            o_output.write(output);
+            /* === Variable Section End === */
+        }
+    }
+
+    double* conv2D(
+        const double* input, int in_h, int in_w,
+        const double* kernel, int ker_h, int ker_w)
+    {
+        int pad_h = ker_h / 2;
+        int pad_w = ker_w / 2;
+        int padded_h = in_h + 2 * pad_h;
+        int padded_w = in_w + 2 * pad_w;
+        int out_h = in_h;
+        int out_w = in_w;
+
+        // 動態配置並初始化為 0
+        double* padded = new double[padded_h * padded_w]();
+        double* output = new double[out_h * out_w];
+
+        // 將原始輸入複製到 padded 內
+        for (int i = 0; i < in_h; ++i) {
+            for (int j = 0; j < in_w; ++j) {
+                padded[(i + pad_h) * padded_w + (j + pad_w)] = input[i * in_w + j];
+            }
+        }
+
+        // 執行卷積
+        for (int i = 0; i < out_h; ++i) {
+            for (int j = 0; j < out_w; ++j) {
+                double sum = 0.0;
+                for (int m = 0; m < ker_h; ++m) {
+                    for (int n = 0; n < ker_w; ++n) {
+                        sum += padded[(i + m) * padded_w + (j + n)]
+                             * kernel[m * ker_w + n];
+                    }
+                }
+                output[i * out_w + j] = sum;
+            }
+        }
+
+        delete[] padded;
+        return output;
+    }
+};
+/* === Fixed Format End === */

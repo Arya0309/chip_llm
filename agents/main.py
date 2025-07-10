@@ -2,18 +2,20 @@
 """
 Usage
 -----
-# 1. 單檔：維持舊行為
-python main.py path/to/example.cpp                # 提取所有非-main 函式
-python main.py path/to/example.cpp -f add         # 只提取 add()
-python main.py path/to/example.cpp -o Dut.cpp     # 輸出到指定檔名
+# 1. Single file (legacy behavior)
+python main.py path/to/example.cpp                # extract every non-main function
+python main.py path/to/example.cpp -f add         # extract only add()
+python main.py path/to/example.cpp -o Dut.cpp     # write output to Dut.cpp
 
-# 2. 資料夾：掃描該資料夾下每個 .cpp
-python main.py path/to/dir_with_cpp/
+# 2. JSON batch input
+python main.py path/to/data_input.json            # build DUTs from the JSON list
 """
+
 from __future__ import annotations
 
 import argparse
 import sys
+import json
 from pathlib import Path
 
 import func_agent
@@ -30,7 +32,8 @@ def parse_args() -> argparse.Namespace:
         description="Convert C++ function(s) → SystemC Dut.cpp via LLM agents"
     )
     ap.add_argument(
-        "src_path", help="Single .cpp file **or** a directory that contains .cpp files"
+        "src_path",
+        help="Path to (i) a single .cpp, (ii) a directory with .cpp, **or** (iii) a data_input.json",
     )
     ap.add_argument(
         "-f",
@@ -48,14 +51,19 @@ def parse_args() -> argparse.Namespace:
 
 # ---------- 工具函式 ----------
 def iter_cpp_files(p: Path) -> list[Path]:
-    """回傳所有要處理的 .cpp 檔案（不遞迴）。"""
     if p.is_file():
         return [p]
     return sorted(f for f in p.iterdir() if f.suffix == ".cpp" and f.is_file())
 
 
+def load_json_entries(p: Path) -> list[dict]:
+    data = json.loads(p.read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        raise ValueError("JSON must be a list of objects")
+    return data
+
+
 def extract_entry(cpp_path: Path, func_name: str | None) -> dict[str, str]:
-    """呼叫 func_agent，回傳 {'name': ..., 'code': ...}。可額外合併函式。"""
     functions = func_agent.extract_functions(cpp_path)
     if not functions:
         raise RuntimeError("No non-main functions were extracted.")
@@ -72,7 +80,6 @@ def extract_entry(cpp_path: Path, func_name: str | None) -> dict[str, str]:
 
 
 def write_outputs(dut_files: dict[str, str], out_dir: Path, custom_cpp: Path | None):
-    """將 Dut.cpp / Dut.h 寫到目標路徑。custom_cpp 只在單檔模式才會帶值。"""
     if custom_cpp:  # 單檔 + -o 指定
         dir_path = custom_cpp.parent
         cpp_path = custom_cpp
@@ -97,30 +104,20 @@ def main() -> None:
         sys.exit(f"[Error] Path not found: {src_path}")
 
     # ------------------------------------------------------------
-    #  A. 資料夾模式
+    #  A. JSON model
     # ------------------------------------------------------------
-    if src_path.is_dir():
-        if args.out or args.function:
-            print("[Warn] -o / -f 參數在資料夾模式下會被忽略。")
-
-        cpp_files = iter_cpp_files(src_path)
-        if not cpp_files:
-            sys.exit("[Error] Directory contains no .cpp files.")
-
-        print(f"[Info] Found {len(cpp_files)} .cpp files in {src_path}\n")
-
-        for cpp in cpp_files:
-            print(f"--- Processing {cpp.name} ---")
-            try:
-                entry = extract_entry(cpp, None)  # 合併函式
-                dut_files = dut_agent.generate_dut(entry["code"])
-                out_dir = LOG_ROOT / cpp.stem  # .log/<檔名去副檔>
-                write_outputs(dut_files, out_dir, None)
-            except Exception as e:
-                print(f"[Error] {cpp.name}: {e}")
-            print()
-
-        return  # 全部跑完就結束
+    if src_path.suffix == ".json":
+        entries = load_json_entries(src_path)
+        for item in entries:
+            func_code = item["code"]
+            requirement = item["requirement"]  # 可無
+            dut_files = dut_agent.generate_dut(
+                func_code, requirement=requirement  # 新增參數
+            )
+            # 以 new_name 優先作子資料夾；若沒有就用 name
+            out_dir = LOG_ROOT / item.get("new_name", item["name"])
+            write_outputs(dut_files, out_dir, None)
+        return
 
     # ------------------------------------------------------------
     #  B. 單檔模式（維持舊行為）

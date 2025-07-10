@@ -1,4 +1,3 @@
-
 #include "Dut.h"
 
 void mlp_feedforward(
@@ -42,25 +41,38 @@ void Dut::do_compute() {
     while (true) {
         /* === Variable Section === */
         float input[INPUT_SIZE];
-        for (int i = 0; i < INPUT_SIZE; ++i) {
-            input[i] = i_input[i].read();
-        }
         float hidden[HIDDEN_SIZE];
         float output[OUTPUT_SIZE];
-        const float w1[HIDDEN_SIZE][INPUT_SIZE] = {{...}};  // Initialize weights
-        const float b1[HIDDEN_SIZE] = {...};  // Initialize biases
-        const float w2[OUTPUT_SIZE][HIDDEN_SIZE] = {{...}};  // Initialize weights
-        const float b2[OUTPUT_SIZE] = {...};  // Initialize biases
+        float w1[HIDDEN_SIZE][INPUT_SIZE];
+        float b1[HIDDEN_SIZE];
+        float w2[OUTPUT_SIZE][HIDDEN_SIZE];
+        float b2[OUTPUT_SIZE];
         /* === Variable Section End === */
 
         /* === Main function Section === */
+        for (int i = 0; i < INPUT_SIZE; ++i) {
+            input[i] = i_input[i].read();
+        }
+        for (int i = 0; i < HIDDEN_SIZE; ++i) {
+            b1[i] = i_b1[i].read();
+        }
+        for (int i = 0; i < OUTPUT_SIZE; ++i) {
+            b2[i] = i_b2[i].read();
+        }
+        for (int i = 0; i < HIDDEN_SIZE; ++i) {
+            for (int j = 0; j < INPUT_SIZE; ++j) {
+                w1[i][j] = i_w1[i][j].read();
+            }
+        }
+        for (int i = 0; i < OUTPUT_SIZE; ++i) {
+            for (int j = 0; j < HIDDEN_SIZE; ++j) {
+                w2[i][j] = i_w2[i][j].read();
+            }
+        }
         mlp_feedforward(input, hidden, output, w1, b1, w2, b2);
-        /* === Main function Section End === */
-
-        /* === Variable Section === */
         for (int i = 0; i < OUTPUT_SIZE; ++i) {
             o_output[i].write(output[i]);
         }
-        /* === Variable Section End === */
+        /* === Main function Section End === */
     }
 }

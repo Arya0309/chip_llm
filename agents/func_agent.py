@@ -15,15 +15,10 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 # Prompts & Examples
 # ---------------------------------------------------------------------------
-_SYSTEM_PROMPT = (
-    "You are Qwen, created by Alibaba Cloud. You are a precise code analyst. "
-    "Extract every non-main function from provided C++ code, "
-    "and output ONLY a JSON array of objects with keys `name`, `return_type`, and `code`."
-)
+_SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
 
-_MULTI_STAGE_SYSTEM_PROMPT = (
-    "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst.\n\n"
-    "Process a single C/C++ translation unit provided by the user in **three ordered stages**:\n"
+_MULTI_STAGE_USER_PROMPT = (
+    "Process the C++ translation unit in **three ordered stages**:\n"
     "1. **Function Builder** – Refactor any logic embedded in `main`, nested blocks, or complex expressions into well-named, stand-alone functions. "
     "Each new function must have clear parameters and (if needed) a single return value so overall behavior is unchanged but modularized.\n"
     "2. **Synthesis Rewriter** – Rewrite the fully refactored code so it is synthesizable by Cadence Stratus/SystemC. "
@@ -38,8 +33,7 @@ _MULTI_STAGE_SYSTEM_PROMPT = (
     "• Do not output anything else—no extra text, headings, or explanations."
 )
 
-
-_EXAMPLE_CODE = """
+_STRUCTURE_FEW_SHOT_CODE_1 = """
 // example.cpp
 #include <iostream>
 // add two numbers
@@ -49,7 +43,7 @@ double add(double a, double b) {
 int main() { std::cout << add(2.0, 3.0); return 0; }
 """
 
-_EXAMPLE_OUTPUT = json.dumps(
+_STRUCTURE_FEW_SHOT_OUTPUT_1 = json.dumps(
     [
         {
             "name": "add",
@@ -59,6 +53,65 @@ _EXAMPLE_OUTPUT = json.dumps(
     ],
     ensure_ascii=False,
 )
+
+_STRUCTURE_FEW_SHOT_CODE_2 = """
+// stats_utils.cpp
+#include <iostream>
+#include <cmath>
+
+// accumulate array values
+double calc_sum(const double* arr, size_t n) {
+    double s = 0.0;
+    for (size_t i = 0; i < n; ++i)
+        s += arr[i];
+    return s;
+}
+
+// mean = sum / n
+double calc_mean(const double* arr, size_t n) {
+    return calc_sum(arr, n) / static_cast<double>(n);
+}
+
+// variance = Σ(x - μ)^2 / n
+double calc_variance(const double* arr, size_t n) {
+    double mu = calc_mean(arr, n);
+    double var = 0.0;
+    for (size_t i = 0; i < n; ++i) {
+        double diff = arr[i] - mu;
+        var += diff * diff;
+    }
+    return var / static_cast<double>(n);
+}
+
+int main() {
+    double data[6] = {1.2, 3.4, 2.1, 4.8, 5.6, 3.3};
+    std::cout << "mean     = " << calc_mean(data, 6)     << std::endl;
+    std::cout << "variance = " << calc_variance(data, 6) << std::endl;
+    return 0;
+}
+"""
+
+_STRUCTURE_FEW_SHOT_OUTPUT_2 = json.dumps(
+    [
+        {
+            "name": "calc_sum",
+            "return_type": "double",
+            "code": "double calc_sum(const double* arr, size_t n) {\n    double s = 0.0;\n    for (size_t i = 0; i < n; ++i)\n        s += arr[i];\n    return s;\n}",
+        },
+        {
+            "name": "calc_mean",
+            "return_type": "double",
+            "code": "double calc_mean(const double* arr, size_t n) {\n    return calc_sum(arr, n) / static_cast<double>(n);\n}",
+        },
+        {
+            "name": "calc_variance",
+            "return_type": "double",
+            "code": "double calc_variance(const double* arr, size_t n) {\n    double mu = calc_mean(arr, n);\n    double var = 0.0;\n    for (size_t i = 0; i < n; ++i) {\n        double diff = arr[i] - mu;\n        var += diff * diff;\n    }\n    return var / static_cast<double>(n);\n}",
+        },
+    ],
+    ensure_ascii=False,
+)
+
 
 _PROMPT_TEMPLATE = (
     "Now extract every non-main function from the following C++ code.\n"
@@ -76,9 +129,17 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
     user_prompt = _PROMPT_TEMPLATE.format(code=code)
 
     messages = [
-        {"role": "system", "content": _MULTI_STAGE_SYSTEM_PROMPT},
-        {"role": "user", "content": f"```cpp\n{_EXAMPLE_CODE}\n```"},
-        {"role": "assistant", "content": _EXAMPLE_OUTPUT},
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": f"{_MULTI_STAGE_USER_PROMPT}\n\n```cpp\n{_STRUCTURE_FEW_SHOT_CODE_1}\n```",
+        },
+        {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_1},
+        {
+            "role": "user",
+            "content": f"```{_MULTI_STAGE_USER_PROMPT}\n\ncpp\n{_STRUCTURE_FEW_SHOT_CODE_2}\n```",
+        },
+        {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_2},
         {"role": "user", "content": user_prompt},
     ]
 

@@ -1,13 +1,12 @@
-
 #include "Dut.h"
 
 #include <cmath>
-using namespace std;
 
-/* === Function Definitions === */
+const double PI = 3.14159265358979323846;
+
 double sin_approx(double x) {
-    while (x > M_PI)  x -= 2 * M_PI;
-    while (x < -M_PI) x += 2 * M_PI;
+    while (x > PI)  x -= 2 * PI;
+    while (x < -PI) x += 2 * PI;
     double x3 = x * x * x;
     double x5 = x3 * x * x;
     double x7 = x5 * x * x;
@@ -15,8 +14,8 @@ double sin_approx(double x) {
 }
 
 double cos_approx(double x) {
-    while (x > M_PI)  x -= 2 * M_PI;
-    while (x < -M_PI) x += 2 * M_PI;
+    while (x > PI)  x -= 2 * PI;
+    while (x < -PI) x += 2 * PI;
     double x2 = x * x;
     double x4 = x2 * x2;
     double x6 = x4 * x2;
@@ -34,7 +33,7 @@ void fft(Complex *a, int n) {
     fft(even, n/2);
     fft(odd,  n/2);
     for (int k = 0; k < n/2; ++k) {
-        double angle = -2 * M_PI * k / n;
+        double angle = -2 * PI * k / n;
         Complex w(cos_approx(angle), sin_approx(angle));
         Complex t = w * odd[k];
         a[k]         = even[k] + t;
@@ -43,39 +42,29 @@ void fft(Complex *a, int n) {
     delete[] even;
     delete[] odd;
 }
-/* === Function Definitions End === */
 
 Dut::Dut(sc_module_name n) : sc_module(n) {
-    /* === Fixed Format === */
-    SC_THREAD(do_compute);
+    SC_THREAD(do_fft);
     sensitive << i_clk.pos();
     dont_initialize();
     reset_signal_is(i_rst, false);
-    /* === Fixed Format End === */
 }
 
-void Dut::do_compute() {
+void Dut::do_fft() {
     wait();
     while (true) {
-        /* === Variable Section === */
         int n = i_n.read();
         Complex *a = new Complex[n];
         for (int i = 0; i < n; ++i) {
             a[i].real = i_real[i].read();
             a[i].imag = i_imag[i].read();
         }
-        /* === Variable Section End === */
-
-        /* === Main function Section === */
         fft(a, n);
-        /* === Main function Section End === */
-
-        /* === Variable Section === */
         for (int i = 0; i < n; ++i) {
             o_real[i].write(a[i].real);
             o_imag[i].write(a[i].imag);
         }
         delete[] a;
-        /* === Variable Section End === */
+        wait();
     }
 }

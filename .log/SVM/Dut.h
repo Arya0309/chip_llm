@@ -4,20 +4,23 @@
 #include <systemc>
 using namespace sc_core;
 
-#define DIM 3
-#define NUM_TRAIN 10
-#define K 5
-
 class Dut : public sc_module {
 public:
   sc_in_clk i_clk;
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<double> i_train[NUM_TRAIN][DIM];
-  sc_fifo_in<int> i_labels[NUM_TRAIN];
-  sc_fifo_in<double> i_query_point[DIM];
+  sc_fifo_in<sc_dt::sc_vector<double>> i_X;
+  sc_fifo_in<sc_dt::sc_vector<int>> i_y;
+  sc_fifo_in<int> i_n;
+  sc_fifo_in<int> i_d;
+  sc_fifo_in<double> i_C;
+  sc_fifo_in<double> i_lr;
+  sc_fifo_in<int> i_epochs;
+  sc_fifo_in<sc_dt::sc_vector<double>> i_w;
+  sc_fifo_in<double> i_b;
   sc_fifo_out<int> o_result;
+  sc_fifo_in<sc_dt::sc_vector<double>> i_x;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);

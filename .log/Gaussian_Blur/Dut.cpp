@@ -1,4 +1,3 @@
-
 #include "Dut.h"
 
 void gaussianBlur(const float* input, float* output, int width, int height) {
@@ -35,30 +34,20 @@ void gaussianBlur(const float* input, float* output, int width, int height) {
 }
 
 Dut::Dut(sc_module_name n) : sc_module(n) {
-    /* === Fixed Format === */
     SC_THREAD(do_compute);
     sensitive << i_clk.pos();
     dont_initialize();
     reset_signal_is(i_rst, false);
-    /* === Fixed Format End === */
 }
 
 void Dut::do_compute() {
     wait();
     while (true) {
-        /* === Variable Section === */
-        const float* input = i_input.read().data;
-        float* output = i_output.write().data;
         int width = i_width.read();
         int height = i_height.read();
-        /* === Variable Section End === */
+        const float* input = i_input.read().data();
+        float* output = i_output.write().data();
 
-        /* === Main function Section === */
         gaussianBlur(input, output, width, height);
-        /* === Main function Section End === */
-
-        /* === Variable Section === */
-        // No need to write anything back as output is written directly in gaussianBlur
-        /* === Variable Section End === */
     }
 }

@@ -12,9 +12,9 @@ public:
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<string> i_A;
-  sc_fifo_in<string> i_B;
-  sc_fifo_out<string> o_result;
+  sc_fifo_in<std::string> i_a;
+  sc_fifo_in<std::string> i_b;
+  sc_fifo_out<std::string> o_result;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);
