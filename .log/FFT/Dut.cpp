@@ -53,18 +53,14 @@ Dut::Dut(sc_module_name n) : sc_module(n) {
 void Dut::do_fft() {
     wait();
     while (true) {
-        int n = i_n.read();
-        Complex *a = new Complex[n];
-        for (int i = 0; i < n; ++i) {
-            a[i].real = i_real[i].read();
-            a[i].imag = i_imag[i].read();
+        Complex a[8];
+        for (int i = 0; i < 8; ++i) {
+            a[i].real = i_a[i].read().real;
+            a[i].imag = i_a[i].read().imag;
         }
-        fft(a, n);
-        for (int i = 0; i < n; ++i) {
-            o_real[i].write(a[i].real);
-            o_imag[i].write(a[i].imag);
+        fft(a, 8);
+        for (int i = 0; i < 8; ++i) {
+            o_result[i].write(Complex(a[i].real, a[i].imag));
         }
-        delete[] a;
-        wait();
     }
 }

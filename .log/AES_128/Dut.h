@@ -4,8 +4,8 @@
 #include <systemc>
 using namespace sc_core;
 
-extern unsigned char sbox[256];
-extern unsigned char Rcon[11];
+#define Rcon 0x01
+#define sbox 0x02
 
 class Dut : public sc_module {
 public:
@@ -25,5 +25,3 @@ public:
 private:
   void do_compute();
 };
-
-#endif // DUT_H_

@@ -1,4 +1,3 @@
-
 #include "Dut.h"
 
 int gcd(int a, int b) {

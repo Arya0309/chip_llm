@@ -5,7 +5,7 @@ int binaryToDecimal(int n) {
     int num = n;
     int dec_value = 0;
 
-    // Initializing base value to
+    // Initializing base value to 
     // 1, i.e 2^0
     int base = 1;
 
@@ -37,11 +37,11 @@ void Dut::do_compute() {
         /* === Variable Section End === */
 
         /* === Main function Section === */
-        int res = binaryToDecimal(n);
+        int dec_value = binaryToDecimal(n);
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        o_res.write(res);
+        o_dec_value.write(dec_value);
         /* === Variable Section End === */
     }
 }

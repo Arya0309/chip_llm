@@ -1,27 +1,13 @@
 #include "Dut.h"
-#include <iostream>
 
-int main()
-{
-    int a = 15, b = 20, max_num, flag = 1;
-
-    // Use ternary operator to get the
-    // large number
-    max_num = (a > b) ? a : b;
-
-    while (flag) {
-        // if statement checks max_num is completely
-        // divisible by n1 and n2.
+int calculate_lcm(int a, int b) {
+    int max_num = (a > b) ? a : b;
+    while (true) {
         if (max_num % a == 0 && max_num % b == 0) {
-            std::cout << "LCM of " << a << " and " << b << " is "
-                      << max_num;
-            break;
+            return max_num;
         }
-
-        // update by 1 on each iteration
         ++max_num;
     }
-    return 0;
 }
 
 Dut::Dut(sc_module_name n) : sc_module(n) {
@@ -42,20 +28,11 @@ void Dut::do_compute() {
         /* === Variable Section End === */
 
         /* === Main function Section === */
-        int max_num = (a > b) ? a : b;
-        int flag = 1;
-        while (flag) {
-            if (max_num % a == 0 && max_num % b == 0) {
-                o_result.write(max_num);
-                flag = 0;
-            } else {
-                ++max_num;
-            }
-        }
+        int res = calculate_lcm(a, b);
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        // No need to write anything here as the result is written directly in the main function section
+        o_result.write(res);
         /* === Variable Section End === */
     }
 }

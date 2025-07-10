@@ -4,16 +4,14 @@
 #include <systemc>
 using namespace sc_core;
 
-#define n 3
-
 class Dut : public sc_module {
 public:
   sc_in_clk i_clk;
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<int> i_m[n][n];
-  sc_fifo_out<int> o_m[n][n];
+  sc_fifo_in<int> i_matrix[4][4];
+  sc_fifo_out<int> o_matrix[4][4];
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);
@@ -23,5 +21,3 @@ public:
 private:
   void do_compute();
 };
-
-#endif // DUT_H_

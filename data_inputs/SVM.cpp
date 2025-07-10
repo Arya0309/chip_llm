@@ -39,15 +39,6 @@ void trainSVM(double* X, int* y,
     }
 }
 
-// 線性 SVM 預測：回傳 +1 或 -1
-int predictSVM(double* x, double* w, double b, int d) {
-    double sum = 0.0;
-    for (int j = 0; j < d; j++)
-        sum += w[j] * x[j];
-    sum += b;
-    return (sum >= 0) ? 1 : -1;
-}
-
 int main() {
     // 範例資料：4 筆樣本，每筆 2 維特徵
     const int n = 4, d = 2;
@@ -73,11 +64,6 @@ int main() {
     for (int j = 0; j < d; j++)
         cout << w[j] << " ";
     cout << "\nBias: " << b << endl;
-
-    // 測試
-    double x_test[d] = { 2.0, 2.0 };
-    int label = predictSVM(x_test, w, b, d);
-    cout << "Prediction for (2,2): " << label << endl;
 
     return 0;
 }

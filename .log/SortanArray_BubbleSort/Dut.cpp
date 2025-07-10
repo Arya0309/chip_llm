@@ -1,4 +1,3 @@
-
 #include "Dut.h"
 
 void swap(int* arr, int i, int j) {
@@ -29,11 +28,11 @@ void Dut::do_compute() {
     wait();
     while (true) {
         /* === Variable Section === */
-        int n = i_n.read();
-        int arr[n];
-        for (int i = 0; i < n; i++) {
-            arr[i] = i_arr[i].read();
+        int arr[6];
+        for (int i = 0; i < 6; i++) {
+            arr[i] = i_a[i].read();
         }
+        int n = 6;
         /* === Variable Section End === */
 
         /* === Main function Section === */
@@ -41,8 +40,8 @@ void Dut::do_compute() {
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        for (int i = 0; i < n; i++) {
-            o_arr[i].write(arr[i]);
+        for (int i = 0; i < 6; i++) {
+            o_result[i].write(arr[i]);
         }
         /* === Variable Section End === */
     }
