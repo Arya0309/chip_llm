@@ -1,12 +1,19 @@
+
 #include "Dut.h"
 
-#define N 4
+void swap(int* arr, int i, int j) {
+    int temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+}
 
-void add(int A[][N], int B[][N], int C[][N]) {
-    int i, j;
-    for (i = 0; i < N; i++)
-        for (j = 0; j < N; j++)
-            C[i][j] = A[i][j] + B[i][j];
+void bubbleSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1])
+                swap(arr, j, j + 1);
+        }
+    }
 }
 
 Dut::Dut(sc_module_name n) : sc_module(n) {
@@ -22,24 +29,20 @@ void Dut::do_compute() {
     wait();
     while (true) {
         /* === Variable Section === */
-        int A[N][N], B[N][N], C[N][N];
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                A[i][j] = i_a[i][j].read();
-                B[i][j] = i_b[i][j].read();
-            }
+        int arr[6];
+        for (int i = 0; i < 6; i++) {
+            arr[i] = i_a[i].read();
         }
+        int n = 6;
         /* === Variable Section End === */
 
         /* === Main function Section === */
-        add(A, B, C);
+        bubbleSort(arr, n);
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                o_result[i][j].write(C[i][j]);
-            }
+        for (int i = 0; i < 6; i++) {
+            o_result[i].write(arr[i]);
         }
         /* === Variable Section End === */
     }

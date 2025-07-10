@@ -1,12 +1,22 @@
+
 #include "Dut.h"
 
-#define N 4
+int countTriplets(int a[], int n) {
+    unordered_set<int> s;
+    for (int i = 0; i < n; i++)
+        s.insert(a[i]);
 
-void add(int A[][N], int B[][N], int C[][N]) {
-    int i, j;
-    for (i = 0; i < N; i++)
-        for (j = 0; j < N; j++)
-            C[i][j] = A[i][j] + B[i][j];
+    int count = 0;
+
+    for (int i = 0; i < n-1; i++) {
+        for (int j = i + 1; j < n; j++) {
+            int xr = a[i] ^ a[j];
+            if (s.find(xr) != s.end() && xr != a[i] && xr != a[j])
+                count++;
+        }
+    }
+
+    return count / 3;
 }
 
 Dut::Dut(sc_module_name n) : sc_module(n) {
@@ -22,25 +32,19 @@ void Dut::do_compute() {
     wait();
     while (true) {
         /* === Variable Section === */
-        int A[N][N], B[N][N], C[N][N];
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                A[i][j] = i_a[i][j].read();
-                B[i][j] = i_b[i][j].read();
-            }
+        int a[6];
+        for (int i = 0; i < 6; i++) {
+            a[i] = i_a[i].read();
         }
+        int n = 6;
         /* === Variable Section End === */
 
         /* === Main function Section === */
-        add(A, B, C);
+        int res = countTriplets(a, n);
         /* === Main function Section End === */
 
         /* === Variable Section === */
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                o_result[i][j].write(C[i][j]);
-            }
-        }
+        o_result.write(res);
         /* === Variable Section End === */
     }
 }

@@ -15,17 +15,15 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 # Prompts & Examples
 # ---------------------------------------------------------------------------
-_SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
-
-_USER_PROMPT = (
-    "Given the C++ code below, extract every non-main function from the following C++ code.\n"
-    "Return a JSON array of objects with keys `name`, `return_type`, and `code`.\n"
-    "Do not wrap in markdown or add explanations.\n"
-    "Here is the code:\n```cpp\n{code}\n```"
+_SYSTEM_PROMPT = (
+    "You are Qwen, created by Alibaba Cloud. You are a precise code analyst. "
+    "Extract every non-main function from provided C++ code, "
+    "and output ONLY a JSON array of objects with keys `name`, `return_type`, and `code`."
 )
 
-_MULTI_STAGE_USER_PROMPT = (
-    "Given the C++ code below, process the code in **three ordered stages**:\n"
+_MULTI_STAGE_SYSTEM_PROMPT = (
+    "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst.\n\n"
+    "Process a single C/C++ translation unit provided by the user in **three ordered stages**:\n"
     "1. **Function Builder** – Refactor any logic embedded in `main`, nested blocks, or complex expressions into well-named, stand-alone functions. "
     "Each new function must have clear parameters and (if needed) a single return value so overall behavior is unchanged but modularized.\n"
     "2. **Synthesis Rewriter** – Rewrite the fully refactored code so it is synthesizable by Cadence Stratus/SystemC. "
@@ -34,10 +32,12 @@ _MULTI_STAGE_USER_PROMPT = (
     "Return them verbatim in a JSON array where each element is an object with keys: "
     '`"name"`, `"return_type"`, and `"code"` (the full function definition including signature and braces).\n\n'
     "**Output format (strict):**\n"
-    "• Respond with a **single top-level JSON array** from stage 3.\n"
-    "• Do **not** include the refactored C++ source, markdown fences, or any extra commentary—return **only** the JSON array.\n\n"
-    "Here is the code:\n```cpp\n{code}\n```"
+    "• Respond with exactly two top-level blocks, in order:\n"
+    "  (a) a fenced ```cpp code block containing the complete synthesizable C++ source; and\n"
+    "  (b) immediately after, the JSON array from stage 3 (no Markdown fences or commentary around it).\n"
+    "• Do not output anything else—no extra text, headings, or explanations."
 )
+
 
 _STRUCTURE_FEW_SHOT_CODE_1 = """
 // example.cpp
@@ -119,23 +119,31 @@ _STRUCTURE_FEW_SHOT_OUTPUT_2 = json.dumps(
 )
 
 
+_PROMPT_TEMPLATE = (
+    "Now extract every non-main function from the following C++ code.\n"
+    "Return a JSON array of objects with keys `name`, `return_type`, and `code`.\n"
+    "Do not wrap in markdown or add explanations.\n"
+    "Here is the code:\n```cpp\n{code}\n```"
+)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[dict]:
     code = Path(src_path).read_text(encoding="utf-8", errors="ignore")
-    user_prompt = _MULTI_STAGE_USER_PROMPT.format(code=code)
+    user_prompt = _PROMPT_TEMPLATE.format(code=code)
 
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "system", "content": _MULTI_STAGE_SYSTEM_PROMPT},
         {
             "role": "user",
-            "content": _MULTI_STAGE_USER_PROMPT.format(code=_STRUCTURE_FEW_SHOT_CODE_1),
+            "content": _PROMPT_TEMPLATE.format(code=_STRUCTURE_FEW_SHOT_CODE_1),
         },
         {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_1},
         {
             "role": "user",
-            "content": f"```{_MULTI_STAGE_USER_PROMPT}\n\ncpp\n{_STRUCTURE_FEW_SHOT_CODE_2}\n```",
+            "content": _PROMPT_TEMPLATE.format(code=_STRUCTURE_FEW_SHOT_CODE_2),
         },
         {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_2},
         {"role": "user", "content": user_prompt},
