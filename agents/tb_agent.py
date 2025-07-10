@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from utils import VLLMGenerator
@@ -13,10 +14,9 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 # One-shot in-context example without instruction header block
 # ---------------------------------------------------------------------------
-_SYSTEM_PROMPT = (
-    "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
-    "Given exactly one C++ function, generate a complete SystemC testbench consisting of Testbench.h and Testbench.cpp.\n"
-)
+_SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
+
+_FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
 
 # Example input function and its Testbench.cpp, Testbench.h outputs
 _EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
@@ -182,7 +182,7 @@ private:
 # ---------------------------------------------------------------------------
 # Generate Testbench.cpp, Testbench.h via one-shot in-context learning
 # ---------------------------------------------------------------------------
-def generate_tb(func_code: str) -> dict[str, str]:
+def generate_tb(func_code: str, requirement: str = "") -> dict[str, str]:
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
         {"role": "user", "content": f"Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers.\n```cpp\n{_EXAMPLE_FUNC}\n```"},
@@ -199,7 +199,12 @@ def generate_tb(func_code: str) -> dict[str, str]:
         },
         {
             "role": "user",
-            "content": f"Now generate Testbench.cpp and Testbench.h for this function:\n```cpp\n{func_code.strip()}\n```",
+            "content": (
+                (f"[Requirement]\n{requirement}\n\n" if requirement else "")
+                + "\n```cpp\n"
+                + func_code.strip()
+                + "\n```"
+            ),
         },
     ]
 
@@ -208,10 +213,18 @@ def generate_tb(func_code: str) -> dict[str, str]:
     )
     raw = _llm.generate(formatted, temperature=0.0).strip()
 
+    match = re.search(r"\[.*\]", raw, re.S)
+    if not match:
+        raise ValueError(
+            "LLM output did not contain a JSON array.\n--- OUTPUT START ---\n"
+            + raw
+            + "\n--- OUTPUT END ---"
+        )
+
     try:
-        file_list = json.loads(raw.split("```")[-1].strip() if "```" in raw else raw)
+        file_list = json.loads(match.group(0))
     except json.JSONDecodeError as e:
-        raise RuntimeError(f"Failed to parse JSON: {e}\n---- Raw ----\n{raw}")
+        raise ValueError(f"Failed to parse JSON: {e}\nRaw output:\n{raw}")
 
     file_map = {f["name"]: f["code"] for f in file_list if "name" in f and "code" in f}
     for req in ("Testbench.cpp", "Testbench.h"):
