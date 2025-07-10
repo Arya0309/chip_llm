@@ -17,8 +17,7 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
 
-_FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
-
+_FORMAT_PROMPT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Dut.cpp" and the second "name": "Dut.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 # Example input function and its Dut.cpp output
 _EXAMPLE_REQUIREMENT = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers."
 _EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
@@ -91,7 +90,7 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
         {"role": "system", "content": _SYSTEM_PROMPT},
         {
             "role": "user",
-            "content": f"[Requirement]\n{_FORMAT_PROMPT}\n{_EXAMPLE_REQUIREMENT}\n```cpp\n{_EXAMPLE_FUNC}\n```",
+            "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC}\n```",
         },
         {
             "role": "assistant",
@@ -137,7 +136,7 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
     file_map = {f["name"]: f["code"] for f in file_list if "name" in f and "code" in f}
     for req in ("Dut.cpp", "Dut.h"):
         if req not in file_map:
-            raise RuntimeError(f"Missing '{req}' in model output")
+            raise RuntimeError(f"Missing '{req}' in model output\nRaw output:\n{raw}")
 
     return file_map
 
