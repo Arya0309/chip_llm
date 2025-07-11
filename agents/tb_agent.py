@@ -16,9 +16,12 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
 
-_FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
+# _FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
+
+_FORMAT_PROMPT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 # Example input function and its Testbench.cpp, Testbench.h outputs
+_EXAMPLE_REQUIREMENT = "Given the C++ program below, convert it into a functionally equivalent SystemC code . The expected input consists of two integer numbers."
 _EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
 _EXAMPLE_TESTBENCH_CPP = """
 #include <fstream>
@@ -185,7 +188,10 @@ private:
 def generate_tb(func_code: str, requirement: str = "") -> dict[str, str]:
     messages = [
         {"role": "system", "content": _SYSTEM_PROMPT},
-        {"role": "user", "content": f"Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers.\n```cpp\n{_EXAMPLE_FUNC}\n```"},
+        {
+            "role": "user",
+            "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC}\n```",
+        },
         {
             "role": "assistant",
             "content": json.dumps(
@@ -201,6 +207,7 @@ def generate_tb(func_code: str, requirement: str = "") -> dict[str, str]:
             "role": "user",
             "content": (
                 (f"[Requirement]\n{requirement}\n\n" if requirement else "")
+                + f"\n{_FORMAT_PROMPT}"
                 + "\n```cpp\n"
                 + func_code.strip()
                 + "\n```"
@@ -229,7 +236,7 @@ def generate_tb(func_code: str, requirement: str = "") -> dict[str, str]:
     file_map = {f["name"]: f["code"] for f in file_list if "name" in f and "code" in f}
     for req in ("Testbench.cpp", "Testbench.h"):
         if req not in file_map:
-            raise RuntimeError(f"Missing '{req}' in model output")
+            raise RuntimeError(f"Missing '{req}' in model output\nRaw output:\n{raw}")
 
     return file_map
 
