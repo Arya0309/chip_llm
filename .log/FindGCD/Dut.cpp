@@ -1,8 +1,9 @@
+
 #include "Dut.h"
 
 int gcd(int a, int b) {
     // Find Minimum of a and b
-    int res = std::min(a, b);
+    int res = min(a, b);
 
     // Testing divisibility with all numbers starting from
     // min(a, b) to 1

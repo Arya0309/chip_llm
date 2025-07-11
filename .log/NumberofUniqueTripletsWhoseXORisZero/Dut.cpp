@@ -1,3 +1,4 @@
+
 #include "Dut.h"
 
 int countTriplets(int a[], int n) {

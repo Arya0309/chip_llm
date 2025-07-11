@@ -34,10 +34,8 @@ _MULTI_STAGE_USER_PROMPT = (
     "Return them verbatim in a JSON array where each element is an object with keys: "
     '`"name"`, `"return_type"`, and `"code"` (the full function definition including signature and braces).\n\n'
     "**Output format (strict):**\n"
-    "• Respond with exactly two top-level blocks, in order:\n"
-    "  (a) a fenced ```cpp code block containing the complete synthesizable C++ source; and\n"
-    "  (b) immediately after, the JSON array from stage 3 (no Markdown fences or commentary around it).\n"
-    "• Do not output anything else—no extra text, headings, or explanations.\n"
+    "• Respond with a **single top-level JSON array** from stage 3.\n"
+    "• Do **not** include the refactored C++ source, markdown fences, or any extra commentary—return **only** the JSON array.\n\n"
     "Here is the code:\n```cpp\n{code}\n```"
 )
 

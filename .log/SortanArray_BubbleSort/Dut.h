@@ -1,3 +1,4 @@
+
 #ifndef DUT_H_
 #define DUT_H_
 
@@ -21,5 +22,3 @@ public:
 private:
   void do_compute();
 };
-
-#endif // DUT_H_

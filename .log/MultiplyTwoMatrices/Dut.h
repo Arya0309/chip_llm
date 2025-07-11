@@ -15,9 +15,9 @@ public:
   sc_in<bool> i_rst;
 
 /* === Variable Section === */
-  sc_fifo_in<int> i_a[R1*C1];
-  sc_fifo_in<int> i_b[R2*C2];
-  // No output ports for results in this example
+  sc_fifo_in<int> i_mat1[R1][C1];
+  sc_fifo_in<int> i_mat2[R2][C2];
+  sc_fifo_out<int> o_result[R1][C2];
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Dut);
@@ -25,7 +25,7 @@ public:
   ~Dut() = default;
 
 private:
-  void do_compute();
+  void mulMat();
 };
 
 #endif // DUT_H_

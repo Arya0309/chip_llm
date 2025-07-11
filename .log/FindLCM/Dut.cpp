@@ -1,38 +1,64 @@
 #include "Dut.h"
+#include <iostream>
 
-int calculate_lcm(int a, int b) {
-    int max_num = (a > b) ? a : b;
-    while (true) {
+void find_lcm(int a, int b) {
+    int max_num, flag = 1;
+
+    // Use ternary operator to get the
+    // large number
+    max_num = (a > b) ? a : b;
+
+    while (flag) {
+        // if statement checks max_num is completely
+        // divisible by n1 and n2.
         if (max_num % a == 0 && max_num % b == 0) {
-            return max_num;
+            std::cout << "LCM of " << a << " and " << b << " is "
+                      << max_num;
+            break;
         }
+
+        // update by 1 on each iteration
         ++max_num;
     }
 }
 
-Dut::Dut(sc_module_name n) : sc_module(n) {
-    /* === Fixed Format === */
-    SC_THREAD(do_compute);
-    sensitive << i_clk.pos();
-    dont_initialize();
-    reset_signal_is(i_rst, false);
-    /* === Fixed Format End === */
-}
+SC_MODULE(Dut) {
+    sc_in_clk i_clk;
+    sc_in<bool> i_rst;
 
-void Dut::do_compute() {
-    wait();
-    while (true) {
-        /* === Variable Section === */
-        int a = i_a.read();
-        int b = i_b.read();
-        /* === Variable Section End === */
+    sc_in<int> i_a;
+    sc_in<int> i_b;
+    sc_out<int> o_result;
 
-        /* === Main function Section === */
-        int res = calculate_lcm(a, b);
-        /* === Main function Section End === */
-
-        /* === Variable Section === */
-        o_result.write(res);
-        /* === Variable Section End === */
+    SC_CTOR(Dut) {
+        SC_THREAD(find_lcm_thread);
+        sensitive << i_clk.pos();
+        dont_initialize();
+        reset_signal_is(i_rst, false);
     }
-}
+
+    void find_lcm_thread() {
+        wait();
+        while (true) {
+            int a = i_a.read();
+            int b = i_b.read();
+            int max_num, flag = 1;
+
+            // Use ternary operator to get the
+            // large number
+            max_num = (a > b) ? a : b;
+
+            while (flag) {
+                // if statement checks max_num is completely
+                // divisible by n1 and n2.
+                if (max_num % a == 0 && max_num % b == 0) {
+                    o_result.write(max_num);
+                    break;
+                }
+
+                // update by 1 on each iteration
+                ++max_num;
+            }
+        }
+    }
+};
