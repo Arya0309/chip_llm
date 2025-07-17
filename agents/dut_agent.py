@@ -18,10 +18,16 @@ _llm = VLLMGenerator(MODEL_NAME)
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
 
 _FORMAT_PROMPT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Dut.cpp" and the second "name": "Dut.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
+
 # Example input function and its Dut.cpp output
-_EXAMPLE_REQUIREMENT = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers."
-_EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
-_EXAMPLE_DUT_CPP = """
+_EXAMPLE_USER_PROMPT_1 = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers."
+_EXAMPLE_USER_PROMPT_1_V1 = (
+    "Given the C++ program below, convert it into a functionally equivalent "
+    "SystemC implementation that uses FIFO streams for all data transfer. "
+    "The expected input consists of two integer numbers."
+)
+_EXAMPLE_FUNC_1 = "int add(int a, int b) { return a + b; }"
+_EXAMPLE_DUT_CPP_1 = """
 #include "Dut.h"
 
 int add(int a, int b) { return a + b; }
@@ -54,7 +60,7 @@ void Dut::do_compute() {
 }
 """
 
-_EXAMPLE_DUT_H = """
+_EXAMPLE_DUT_H_1 = """
 #ifndef DUT_H_
 #define DUT_H_
 
@@ -81,6 +87,93 @@ private:
 };
 """
 
+# Another few-shot example: element-wise addition of two fixed-size arrays
+_EXAMPLE_USER_PROMPT_2 = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two 4-element integer array."
+_EXAMPLE_FUNC_2 = (
+    "void add_arrays(const int A[N], const int B[N], int C[N]) { "
+    "for (int i = 0; i < N; ++i) C[i] = A[i] + B[i]; }"
+)
+
+_EXAMPLE_DUT_CPP_2 = """
+#include "Dut.h"
+
+// original array-addition function
+void add_arrays(const int A[N], const int B[N], int C[N]) {
+    for(int i = 0; i < N; ++i) {
+        C[i] = A[i] + B[i];
+    }
+}
+
+Dut::Dut(sc_module_name n) : sc_module(n) {
+    /* === Fixed Format === */
+    SC_THREAD(do_compute);
+    sensitive << i_clk.pos();
+    dont_initialize();
+    reset_signal_is(i_rst, false);
+    /* === Fixed Format End === */
+}
+
+void Dut::do_compute() {
+    wait();
+    while (true) {
+        /* === Variable Section === */
+        int A[N];
+        int B[N];
+        // read two arrays element-by-element
+        for (int i = 0; i < N; ++i) {
+            A[i] = i_a.read();
+        }
+        for (int i = 0; i < N; ++i) {
+            B[i] = i_b.read();
+        }
+        /* === Variable Section End === */
+
+        /* === Main function Section === */
+        int C[N];
+        add_arrays(A, B, C);
+        /* === Main function Section End === */
+
+        /* === Variable Section === */
+        // write result array back out
+        for (int i = 0; i < N; ++i) {
+            o_result.write(C[i]);
+        }
+        /* === Variable Section End === */
+    }
+}
+"""
+
+_EXAMPLE_DUT_H_2 = """
+#ifndef DUT_H_
+#define DUT_H_
+
+#include <systemc>
+using namespace sc_core;
+
+class Dut : public sc_module {
+public:
+  static constexpr int N = 4;
+  
+  sc_in_clk i_clk;
+  sc_in<bool> i_rst;
+
+  /* === Variable Section === */
+  sc_fifo_in<int> i_a;
+  sc_fifo_in<int> i_b;
+  sc_fifo_out<int> o_result;
+  /* === Variable Section End === */
+
+  SC_HAS_PROCESS(Dut);
+  Dut(sc_module_name n);
+  ~Dut() = default;
+
+private:
+  void do_compute();
+};
+
+#endif // DUT_H_
+"""
+
 
 # ---------------------------------------------------------------------------
 # Generate Dut.cpp via one-shot in-context learning
@@ -90,14 +183,29 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
         {"role": "system", "content": _SYSTEM_PROMPT},
         {
             "role": "user",
-            "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC}\n```",
+            "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_1}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
         },
         {
             "role": "assistant",
             "content": json.dumps(
                 [
-                    {"name": "Dut.cpp", "code": _EXAMPLE_DUT_CPP},
-                    {"name": "Dut.h", "code": _EXAMPLE_DUT_H},
+                    {"name": "Dut.cpp", "code": _EXAMPLE_DUT_CPP_1},
+                    {"name": "Dut.h", "code": _EXAMPLE_DUT_H_1},
+                ],
+                ensure_ascii=False,
+                indent=2,
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_2}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC_2}\n```",
+        },
+        {
+            "role": "assistant",
+            "content": json.dumps(
+                [
+                    {"name": "Dut.cpp", "code": _EXAMPLE_DUT_CPP_2},
+                    {"name": "Dut.h", "code": _EXAMPLE_DUT_H_2},
                 ],
                 ensure_ascii=False,
                 indent=2,

@@ -135,7 +135,7 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
         {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_1},
         {
             "role": "user",
-            "content": f"```{_MULTI_STAGE_USER_PROMPT}\n\ncpp\n{_STRUCTURE_FEW_SHOT_CODE_2}\n```",
+            "content": _MULTI_STAGE_USER_PROMPT.format(code=_STRUCTURE_FEW_SHOT_CODE_2),
         },
         {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_2},
         {"role": "user", "content": user_prompt},

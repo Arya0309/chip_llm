@@ -114,7 +114,7 @@ void Dut::do_compute() {
         for (int i = 0; i < 4; i++) {
             // For each column in Matrix B
             for (int j = 0; j < 4; j++) {
-                int sum = A[i][j]+B[i][j];
+                int sum = A[i*4+j]+B[i*4+j];
                 // Write the result into the output matrix at position [i][j]
         /* === Main Function End === */
 #ifndef NATIVE_SYSTEMC
