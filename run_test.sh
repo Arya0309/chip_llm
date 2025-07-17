@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR="./SystemC_Eval"
+BASE_DIR="./test"
 
 if [[ $# -ne 1 ]]; then
   echo "Usage: $0 <problem_name>"
