@@ -5,7 +5,7 @@ Usage
 # 1. 單檔：維持舊行為
 python main.py path/to/example.cpp                # 提取所有非-main 函式
 python main.py path/to/example.cpp -f add         # 只提取 add()
-python main.py path/to/example.cpp -o Testbench.cpp     # 輸出到指定檔名
+python main.py path/to/example.cpp -o Dut.cpp     # 輸出到指定檔名
 
 # 2. 資料夾：掃描該資料夾下每個 .cpp
 python main.py path/to/dir_with_cpp/
@@ -21,17 +21,18 @@ import os, contextlib
 from typing import Union
 
 import func_agent
+import dut_agent
 import tb_agent
 
 # ---------- 全域常數 ----------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
-LOG_ROOT = PROJECT_ROOT / ".log_tb"  # /home/.../chip_llm/.log_tb
+LOG_ROOT = PROJECT_ROOT / ".log_mix"  # /home/.../chip_llm/.log
 # --------------------------------
 
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
-        description="Convert C++ function(s) → SystemC Testbench.cpp via LLM agents"
+        description="Convert C++ function(s) → SystemC Dut.cpp via LLM agents"
     )
     ap.add_argument(
         "src_path",
@@ -103,19 +104,22 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
     return {"name": "combined", "code": "\n\n".join(f["code"] for f in functions)}
 
 
-def write_outputs(tb_files: dict[str, str], out_dir: Path, custom_cpp: Path | None):
+def write_outputs(dut_files: dict[str, str], tb_files: dict[str, str], out_dir: Path, custom_cpp: Path | None):
     if custom_cpp:  # 單檔 + -o 指定
         dir_path = custom_cpp.parent
         cpp_path = custom_cpp
     else:  # (1) 單檔沒 -o；(2) 資料夾模式
         dir_path = out_dir
-        cpp_path = dir_path / "Testbench.cpp"
 
     dir_path.mkdir(parents=True, exist_ok=True)
-    cpp_path.write_text(tb_files["Testbench.cpp"], encoding="utf-8")
+    (dir_path / "Dut.cpp").write_text(dut_files["Dut.cpp"], encoding="utf-8")
+    (dir_path / "Dut.h").write_text(dut_files["Dut.h"], encoding="utf-8")
+    (dir_path / "Testbench.cpp").write_text(tb_files["Testbench.cpp"], encoding="utf-8")
     (dir_path / "Testbench.h").write_text(tb_files["Testbench.h"], encoding="utf-8")
 
-    print(f"[OK] Testbench.cpp → {cpp_path}")
+    print(f"[OK] Dut.cpp → {dir_path / 'Dut.cpp'}")
+    print(f"[OK] Dut.h  → {dir_path / 'Dut.h'}")
+    print(f"[OK] Testbench.cpp → {dir_path / 'Testbench.cpp'}")
     print(f"[OK] Testbench.h  → {dir_path / 'Testbench.h'}")
 
 
@@ -138,16 +142,19 @@ def main() -> None:
             requirement = item.get("requirement", "")  # 可無
             try:
                 entry = extract_entry(func_code, None)
+                dut_files = dut_agent.generate_dut(entry["code"], requirement)
                 
-                # tb_files = tb_agent.generate_tb(func_code=entry["code"], requirement=requirement)
+                item["Dut.cpp"] = dut_files["Dut.cpp"]
+                item["Dut.h"] = dut_files["Dut.h"]
+
                 tb_files = tb_agent.generate_tb(
-                    dut_cpp=item.get("Dut.cpp", ""),
-                    dut_h=item.get("Dut.h", ""),
+                    dut_cpp=item["Dut.cpp"],
+                    dut_h=item["Dut.h"],
                     requirement=requirement,
                 )
                 # 以 new_name 優先作子資料夾；若沒有就用 name
                 out_dir = LOG_ROOT / item.get("new_name", item["name"])
-                write_outputs(tb_files, out_dir, None)
+                write_outputs(dut_files, tb_files, out_dir, None)
             except Exception as e:
                 print(f"[Error] {item['name']}: {e}")
         return
@@ -169,9 +176,9 @@ def main() -> None:
             print(f"--- Processing {cpp.name} ---")
             try:
                 entry = extract_entry(cpp, None)  # 合併函式
-                tb_files = tb_agent.generate_tb(entry["code"])
+                dut_files = dut_agent.generate_dut(entry["code"])
                 out_dir = LOG_ROOT / cpp.stem  # .log/<檔名去副檔>
-                write_outputs(tb_files, out_dir, None)
+                write_outputs(dut_files, out_dir, None)
             except Exception as e:
                 print(f"[Error] {cpp.name}: {e}")
             print()
@@ -183,7 +190,7 @@ def main() -> None:
     # ------------------------------------------------------------
     try:
         entry = extract_entry(src_path, args.function)
-        tb_files = tb_agent.generate_tb(entry["code"])
+        dut_files = dut_agent.generate_dut(entry["code"])
     except Exception as e:
         sys.exit(f"[Error] {e}")
 
@@ -191,13 +198,13 @@ def main() -> None:
     if args.out:
         custom_path = Path(args.out).expanduser()
         write_outputs(
-            tb_files,
+            dut_files,
             custom_path.parent if custom_path.suffix else custom_path,
             custom_path if custom_path.suffix else None,
         )
     else:
         # 預設：印到 stdout
-        print(tb_files["Testbench.cpp"])
+        print(dut_files["Dut.cpp"])
 
 
 if __name__ == "__main__":

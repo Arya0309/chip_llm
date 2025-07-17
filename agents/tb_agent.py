@@ -18,18 +18,79 @@ _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior Syste
 
 # _FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
 
-_FORMAT_PROMPT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
+_FORMAT_PROMPT_WITH_FUNC = 'The DUT has already been implemented. Please generate the testbench as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
+
+_REQUIREMENT_WITH_DUT = 'Given the SystemC DUT code below, generate the corresponding testbench code.'
+_FORMAT_PROMPT_WITH_DUT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 # Example input function and its Testbench.cpp, Testbench.h outputs
-_EXAMPLE_REQUIREMENT = "Given the C++ program below, convert it into a functionally equivalent SystemC code . The expected input consists of two integer numbers."
+_EXAMPLE_REQUIREMENT = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers."
 _EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
+_EXAMPLE_DUT_CPP = """
+#include \\"Dut.h\\"
+
+int add(int a, int b) { return a + b; }
+
+Dut::Dut(sc_module_name n) : sc_module(n) {
+    /* === Fixed Format === */
+    SC_THREAD(do_compute);
+    sensitive << i_clk.pos();
+    dont_initialize();
+    reset_signal_is(i_rst, false);
+    /* === Fixed Format End === */
+}
+
+void Dut::do_compute() {
+    wait();
+    while (true) {
+        /* === Variable Section === */
+        int a = i_a.read();
+        int b = i_b.read();
+        /* === Variable Section End === */
+
+        /* === Main function Section === */
+        int res = add(a, b);
+        /* === Main function Section End === */
+
+        /* === Variable Section === */
+        o_result.write(res);
+        /* === Variable Section End === */
+    }
+}
+"""
+_EXAMPLE_DUT_H = """
+#ifndef DUT_H_
+#define DUT_H_
+
+#include <systemc>
+using namespace sc_core;
+
+class Dut : public sc_module {
+public:
+  sc_in_clk i_clk;
+  sc_in<bool> i_rst;
+
+/* === Variable Section === */
+  sc_fifo_in<int> i_a;
+  sc_fifo_in<int> i_b;
+  sc_fifo_out<int> o_result;
+/* === Variable Section End === */
+
+  SC_HAS_PROCESS(Dut);
+  Dut(sc_module_name n);
+  ~Dut() = default;
+
+private:
+  void do_compute();
+};
+"""
 _EXAMPLE_TESTBENCH_CPP = """
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include "Testbench.h"
+#include \\"Testbench.h\\"
 
 /* === Fixed Format === */
 Testbench::Testbench(sc_module_name n)
@@ -46,9 +107,9 @@ Testbench::Testbench(sc_module_name n)
 void Testbench::do_feed() {
     struct Testcase { int a, b, expected; };
     std::vector<Testcase> tests;
-    std::ifstream fin("testcases.txt");
+    std::ifstream fin(\\"testcases.txt\\");
     if (!fin.is_open()) {
-        std::cerr << "Error: Unable to open testcases.txt\\n";
+        std::cerr << \\"Error: Unable to open testcases.txt\\n\\";
         sc_stop();
         return;
     }
@@ -59,7 +120,7 @@ void Testbench::do_feed() {
         /* === Variable Section === */
         Testcase tc;
         if (!(iss >> tc.a >> tc.b >> tc.expected)) {
-            std::cerr << "Warning: Incorrect format, skipping line: " << line << "\\n";
+            std::cerr << \\"Warning: Incorrect format, skipping line: \\" << line << \\"\\n\\";
             continue;
         }
         tests.push_back(tc);
@@ -92,9 +153,9 @@ void Testbench::do_fetch() {
     std::vector<int> input_a;
     std::vector<int> input_b;
     std::vector<int> expecteds;
-    std::ifstream fout("testcases.txt");
+    std::ifstream fout(\\"testcases.txt\\");
     if (!fout.is_open()) {
-        std::cerr << "Error: Unable to open testcases.txt\\n";
+        std::cerr << \\"Error: Unable to open testcases.txt\\n\\";
         sc_stop();
         return;
     }
@@ -128,23 +189,23 @@ void Testbench::do_fetch() {
         }
 
         if (passed) {
-            std::cout << "Test case " << idx + 1 << " passed.\\n";
-            std::cout << "Input: a = " << input_a[idx] << ", b = " << input_b[idx] << '\\n';
-            std::cout << "Output: " << result << "\\n\\n";
+            std::cout << \\"Test case \\" << idx + 1 << \\" passed.\\n\\";
+            std::cout << \\"Input: a = \\" << input_a[idx] << \\", b = \\" << input_b[idx] << '\\n';
+            std::cout << \\"Output: \\" << result << \\"\\n\\n\\";
         } else {
-            std::cerr << "Test case " << idx + 1 << " failed.\\n";
-            std::cerr << "Input: a = " << input_a[idx] << ", b = " << input_b[idx] << '\\n';
-            std::cerr << "Output: " << result << ", Expected: " << expecteds[idx] << "\\n\\n";
+            std::cerr << \\"Test case \\" << idx + 1 << \\" failed.\\n\\";
+            std::cerr << \\"Input: a = \\" << input_a[idx] << \\", b = \\" << input_b[idx] << '\\n';
+            std::cerr << \\"Output: \\" << result << \\", Expected: \\" << expecteds[idx] << \\"\\n\\n\\";
             global_flag = false;
         }
     }
     /* === Variable Section End === */
 
     if (global_flag) {
-        std::cout << "All tests passed successfully." << std::endl;
+        std::cout << \\"All tests passed successfully.\\" << std::endl;
     }
     else {
-        SC_REPORT_FATAL("Testbench", "Assertion failed");
+        SC_REPORT_FATAL(\\"Testbench\\", \\"Assertion failed\\");
     }
     sc_stop();
 }
@@ -185,36 +246,70 @@ private:
 # ---------------------------------------------------------------------------
 # Generate Testbench.cpp, Testbench.h via one-shot in-context learning
 # ---------------------------------------------------------------------------
-def generate_tb(func_code: str, requirement: str = "") -> dict[str, str]:
-    messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
-        {
-            "role": "user",
-            "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC}\n```",
-        },
-        {
-            "role": "assistant",
-            "content": json.dumps(
-                [
-                    {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP},
-                    {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H},
-                ],
-                ensure_ascii=False,
-                indent=2,
-            ),
-        },
-        {
-            "role": "user",
-            "content": (
-                (f"[Requirement]\n{requirement}\n\n" if requirement else "")
-                + f"\n{_FORMAT_PROMPT}"
-                + "\n```cpp\n"
-                + func_code.strip()
-                + "\n```"
-            ),
-        },
-    ]
-
+def generate_tb(func_code: str = "", dut_cpp: str = "", dut_h: str = "", requirement: str = "") -> dict[str, str]:
+    if func_code:
+        messages = [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT_WITH_FUNC}\n```cpp\n{_EXAMPLE_FUNC}\n```",
+            },
+            {
+                "role": "assistant",
+                "content": json.dumps(
+                    [
+                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP},
+                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H},
+                    ],
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    (f"[Requirement]\n{requirement}" if requirement else "")
+                    + f"\n{_FORMAT_PROMPT_WITH_FUNC}"
+                    + "\n```cpp\n"
+                    + func_code.strip()
+                    + "\n```"
+                ),
+            },
+        ]
+    elif dut_cpp and dut_h:
+        messages = [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n{_FORMAT_PROMPT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H}\n```",
+            },
+            {
+                "role": "assistant",
+                "content": json.dumps(
+                    [
+                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP},
+                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H},
+                    ],
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    (f"[Requirement]\n{_REQUIREMENT_WITH_DUT}")
+                    + f"\n{_FORMAT_PROMPT_WITH_DUT}"
+                    + "\n[Dut.cpp]\n```cpp\n"
+                    + dut_cpp.strip()
+                    + "\n```"
+                    + "\n[Dut.h]\n```cpp\n"
+                    + dut_h.strip()
+                    + "\n```"
+                ),
+            },
+        ]
+    else:
+        raise ValueError("Either func_code or both dut_cpp and dut_h must be provided.")
     formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
