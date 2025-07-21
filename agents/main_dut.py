@@ -2,14 +2,44 @@
 """
 Usage
 -----
-# 1. 單檔：維持舊行為
-python main.py path/to/example.cpp                # 提取所有非-main 函式
-python main.py path/to/example.cpp -f add         # 只提取 add()
-python main.py path/to/example.cpp -o Dut.cpp     # 輸出到指定檔名
+The script supports three modes of operation:
 
-# 2. 資料夾：掃描該資料夾下每個 .cpp
-python main.py path/to/dir_with_cpp/
+1. Single‐file mode (default behavior)
+   Process one .cpp file, extract non‐main function(s), and generate SystemC DUT files.
+
+   # Extract all non‐main functions and print Dut.cpp to stdout
+   python main.py path/to/example.cpp
+
+   # Extract only the 'add' function
+   python main.py path/to/example.cpp -f add
+
+   # Extract all functions, but write outputs to a specific file
+   python main.py path/to/example.cpp -o output/Dut.cpp
+
+2. Directory mode
+   Scan a directory for every .cpp file and process each in turn. Outputs are written to
+   .log/<basename> subdirectories.
+
+   python main.py path/to/dir_with_cpp/
+
+3. JSON input mode
+   Read a JSON file containing an array of objects, each with:
+     • "name"        – identifier for this entry
+     • "code"        – raw C/C++ source string
+     • "requirement" – (optional) additional instructions
+     • "new_name"    – (optional) folder name override for output
+
+   Outputs for each entry go to .log/<new_name or name>.
+
+   python main.py path/to/data_input.json
+
+Arguments
+---------
+  src_path              Path to a .cpp file, a directory containing .cpp files, or a .json file.
+  -f, --function NAME   (file mode only) Target function name to extract; ignored otherwise.
+  -o, --out FILE        (file mode only) Custom output path for Dut.cpp; ignored otherwise.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -22,11 +52,10 @@ from typing import Union
 
 import func_agent
 import dut_agent
-import tb_agent
 
 # ---------- 全域常數 ----------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
-LOG_ROOT = PROJECT_ROOT / ".log_mix"  # /home/.../chip_llm/.log
+LOG_ROOT = PROJECT_ROOT / ".log"  # /home/.../chip_llm/.log
 # --------------------------------
 
 
@@ -104,23 +133,20 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
     return {"name": "combined", "code": "\n\n".join(f["code"] for f in functions)}
 
 
-def write_outputs(dut_files: dict[str, str], tb_files: dict[str, str], out_dir: Path, custom_cpp: Path | None):
+def write_outputs(dut_files: dict[str, str], out_dir: Path, custom_cpp: Path | None):
     if custom_cpp:  # 單檔 + -o 指定
         dir_path = custom_cpp.parent
         cpp_path = custom_cpp
     else:  # (1) 單檔沒 -o；(2) 資料夾模式
         dir_path = out_dir
+        cpp_path = dir_path / "Dut.cpp"
 
     dir_path.mkdir(parents=True, exist_ok=True)
-    (dir_path / "Dut.cpp").write_text(dut_files["Dut.cpp"], encoding="utf-8")
+    cpp_path.write_text(dut_files["Dut.cpp"], encoding="utf-8")
     (dir_path / "Dut.h").write_text(dut_files["Dut.h"], encoding="utf-8")
-    (dir_path / "Testbench.cpp").write_text(tb_files["Testbench.cpp"], encoding="utf-8")
-    (dir_path / "Testbench.h").write_text(tb_files["Testbench.h"], encoding="utf-8")
 
-    print(f"[OK] Dut.cpp → {dir_path / 'Dut.cpp'}")
+    print(f"[OK] Dut.cpp → {cpp_path}")
     print(f"[OK] Dut.h  → {dir_path / 'Dut.h'}")
-    print(f"[OK] Testbench.cpp → {dir_path / 'Testbench.cpp'}")
-    print(f"[OK] Testbench.h  → {dir_path / 'Testbench.h'}")
 
 
 # ---------- 主程式 ----------
@@ -142,19 +168,11 @@ def main() -> None:
             requirement = item.get("requirement", "")  # 可無
             try:
                 entry = extract_entry(func_code, None)
-                dut_files = dut_agent.generate_dut(entry["code"], requirement)
-                
-                item["Dut.cpp"] = dut_files["Dut.cpp"]
-                item["Dut.h"] = dut_files["Dut.h"]
 
-                tb_files = tb_agent.generate_tb(
-                    dut_cpp=item["Dut.cpp"],
-                    dut_h=item["Dut.h"],
-                    requirement=requirement,
-                )
+                dut_files = dut_agent.generate_dut(entry["code"], requirement)
                 # 以 new_name 優先作子資料夾；若沒有就用 name
                 out_dir = LOG_ROOT / item.get("new_name", item["name"])
-                write_outputs(dut_files, tb_files, out_dir, None)
+                write_outputs(dut_files, out_dir, None)
             except Exception as e:
                 print(f"[Error] {item['name']}: {e}")
         return
