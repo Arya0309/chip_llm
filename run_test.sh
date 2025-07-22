@@ -1,40 +1,32 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env zsh
 
-BASE_DIR="./test"
+# Usage:
+#   ./run_test.sh path/to/data_input.json
+#
+# Description:
+#   Runs agents/main.py with the given JSON input.
+#   Automatically resolves the project root based on script location.
+#
+# Requirements:
+#   - Activate the environment manually before running:
+#       micromamba activate chip_llm_env
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <problem_name>"
-  exit 1
+# Determine script directory for both zsh and bash
+if [[ -n "$BASH_SOURCE" ]]; then
+    SCRIPT_PATH="${BASH_SOURCE[0]}"
+else
+    SCRIPT_PATH="${(%):-%N}"
 fi
 
-PROBLEM_NAME="$1"
-TARGET_DIR="$BASE_DIR/$PROBLEM_NAME"
+PROGRAM_ROOT="$( cd "$( dirname "$SCRIPT_PATH" )" && pwd )"
 
-if [[ ! -d "$TARGET_DIR" ]]; then
-  echo "Error: Problem directory '$TARGET_DIR' does not exist." >&2
-  exit 1
+# Check for input argument
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 path/to/data_input.json"
+    exit 1
 fi
 
-cd "$TARGET_DIR"
+JSON_PATH="$1"
 
-# ----------------------------------------------------------------------------
-# 只要腳本結束（EXIT），就執行 cleanup()
-cleanup() {
-  echo "=== Cleaning up build directory ==="
-  rm -rf build
-}
-trap cleanup EXIT
-# ----------------------------------------------------------------------------
-
-# build
-mkdir -p build
-cd build
-cmake ..
-cmake --build .
-
-# run from the folder that has testcases.txt
-cd ..
-./build/test-dut
-
-echo "=== Test for '$PROBLEM_NAME' complete ==="
+cd "$PROGRAM_ROOT/agents"
+python main.py "$PROGRAM_ROOT/$JSON_PATH"
