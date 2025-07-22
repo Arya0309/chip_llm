@@ -1,5 +1,7 @@
 # utils.py
 from __future__ import annotations
+from pathlib import Path
+import os
 
 from typing import Any, Dict
 import torch
@@ -7,6 +9,8 @@ from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-Coder-7B-Instruct"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
+INPUT_DATA_DIR = PROJECT_ROOT / "data_inputs"  # /home/.../chip_llm/data_inputs
 
 
 class VLLMGenerator:
@@ -112,9 +116,20 @@ target_link_libraries(test-dut systemc)"""
     return cmake_list
 
 
-if __name__ == "__main__":
-    model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
-    generator = VLLMGenerator(model_name)
+def get_testcases(task: str) -> list[str]:
+    with open(os.path.join(INPUT_DATA_DIR, task, "testcases.txt")) as f:
+        return f.read()
 
-    prompt = "Write a Python function to calculate the factorial of a number."
-    print(generator(prompt))
+
+def get_golden(task: str) -> str:
+    with open(os.path.join(INPUT_DATA_DIR, task, "golden.txt")) as f:
+        return f.read()
+
+
+if __name__ == "__main__":
+    # model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
+    # generator = VLLMGenerator(model_name)
+
+    # prompt = "Write a Python function to calculate the factorial of a number."
+    # print(generator(prompt))
+    print(get_testcases("FindGCD"))

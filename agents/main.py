@@ -87,6 +87,7 @@ def parse_args() -> argparse.Namespace:
 
 # --------------- Helpers ----------------
 
+
 def iter_cpp_files(p: Path) -> list[Path]:
     if p.is_file():
         return [p]
@@ -124,7 +125,9 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
         entry = next((f for f in functions if f["name"] == func_name), None)
         if entry is None:
             available = ", ".join(f["name"] for f in functions)
-            raise RuntimeError(f'Function "{func_name}" not found. Available: {available}')
+            raise RuntimeError(
+                f'Function "{func_name}" not found. Available: {available}'
+            )
         return entry
 
     # merge all by default
@@ -133,11 +136,13 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
 
 # ---------- I/O ----------
 
+
 def write_outputs(
     dut_files: dict[str, str],
     tb_files: dict[str, str],
     pipe_files: dict[str, str],
     out_dir: Path,
+    task_name: str | None = None,
 ):
     """Write Dut.*, Testbench.*, SystemPipeline.* into *out_dir*."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -155,14 +160,19 @@ def write_outputs(
     (out_dir / "SystemPipeline.h").write_text(
         pipe_files["SystemPipeline.h"], encoding="utf-8"
     )
-    (out_dir / "CMakeLists.txt").write_text(
-        utils.get_cmake_list(), encoding="utf-8"
+    (out_dir / "CMakeLists.txt").write_text(utils.get_cmake_list(), encoding="utf-8")
+    (out_dir / "testcases.txt").write_text(
+        utils.get_testcases(task_name or "default"), encoding="utf-8"
     )
-    
+    (out_dir / "golden.txt").write_text(
+        utils.get_golden(task_name or "default"), encoding="utf-8"
+    )
+
     print(f"[OK] All files written to {out_dir}")
 
 
 # ----------------- Main -----------------
+
 
 def main() -> None:
     args = parse_args()
@@ -197,8 +207,8 @@ def main() -> None:
                 )
 
                 # 5) Output dir
-                out_dir = LOG_ROOT / item.get("new_name", item["name"])
-                write_outputs(dut_files, tb_files, pipe_files, out_dir)
+                out_dir = LOG_ROOT / item["name"]
+                write_outputs(dut_files, tb_files, pipe_files, out_dir, item["name"])
             except Exception as e:
                 print(f"[Error] {item['name']}: {e}")
         return
@@ -228,7 +238,7 @@ def main() -> None:
                     dut_files["Dut.h"], tb_files["Testbench.h"]
                 )
                 out_dir = LOG_ROOT / cpp.stem
-                write_outputs(dut_files, tb_files, pipe_files, out_dir)
+                write_outputs(dut_files, tb_files, pipe_files, out_dir, cpp.stem)
             except Exception as e:
                 print(f"[Error] {cpp.name}: {e}")
             print()
@@ -255,7 +265,7 @@ def main() -> None:
         out_dir = custom_path.parent if custom_path.suffix else custom_path
     else:
         out_dir = LOG_ROOT / src_path.stem
-    write_outputs(dut_files, tb_files, pipe_files, out_dir)
+    write_outputs(dut_files, tb_files, pipe_files, out_dir, src_path.stem)
 
 
 if __name__ == "__main__":
