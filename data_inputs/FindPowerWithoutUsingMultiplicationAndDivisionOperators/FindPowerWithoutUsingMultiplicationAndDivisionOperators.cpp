@@ -1,9 +1,6 @@
-// C++ code for power function 
 #include <bits/stdc++.h> 
 using namespace std; 
 
-// Works only if a >= 0 
-// and b >= 0 
 int pow(int a, int b) 
 { 
 	if (b == 0) 
@@ -22,11 +19,8 @@ int pow(int a, int b)
 	return answer; 
 } 
 
-// Driver Code 
 int main() 
 { 
 	cout << pow(5, 3); 
 	return 0; 
 } 
-
-// This code is contributed by rathbhupendra 
