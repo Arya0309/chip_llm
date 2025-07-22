@@ -36,14 +36,14 @@ void SubBytes(unsigned char state[4][4]) {
 
 void ShiftRows(unsigned char state[4][4]) {
     unsigned char tmp;
-    // row 1
+
     tmp = state[1][0];
     for(int c=0;c<3;c++) state[1][c] = state[1][c+1];
     state[1][3] = tmp;
-    // row 2
+
     swap(state[2][0], state[2][2]);
     swap(state[2][1], state[2][3]);
-    // row 3
+
     tmp = state[3][3];
     for(int c=3;c>0;c--) state[3][c] = state[3][c-1];
     state[3][0] = tmp;
@@ -77,12 +77,12 @@ void KeyExpansion(const unsigned char key[16], unsigned char roundKeys[176]) {
     while(bytesGenerated < 176) {
         for(int i=0;i<4;i++) temp[i] = roundKeys[bytesGenerated - 4 + i];
         if(bytesGenerated % 16 == 0) {
-            // rotate
+
             unsigned char t = temp[0];
             temp[0]=temp[1]; temp[1]=temp[2]; temp[2]=temp[3]; temp[3]=t;
-            // subbytes
+
             for(int i=0;i<4;i++) temp[i] = sbox[temp[i]];
-            // Rcon
+
             temp[0] ^= Rcon[rconIter];
             rconIter++;
         }
@@ -97,24 +97,24 @@ void AES128Encrypt(const unsigned char in[16], const unsigned char key[16], unsi
     unsigned char state[4][4];
     unsigned char roundKeys[176];
     KeyExpansion(key, roundKeys);
-    // load state
+
     for(int r=0;r<4;r++)
         for(int c=0;c<4;c++)
             state[r][c] = in[c*4 + r];
-    // initial round
+
     AddRoundKey(state, roundKeys);
-    // 9 main rounds
+
     for(int round=1; round<=9; round++) {
         SubBytes(state);
         ShiftRows(state);
         MixColumns(state);
         AddRoundKey(state, roundKeys + round*16);
     }
-    // final round
+
     SubBytes(state);
     ShiftRows(state);
     AddRoundKey(state, roundKeys + 160);
-    // output
+
     for(int r=0;r<4;r++)
         for(int c=0;c<4;c++)
             out[c*4 + r] = state[r][c];

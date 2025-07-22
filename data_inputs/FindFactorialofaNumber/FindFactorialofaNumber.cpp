@@ -1,9 +1,6 @@
-// C++ program for factorial of a number
 #include <iostream>
 using namespace std;
 
-// Function to find factorial of
-// given number
 unsigned int factorial(unsigned int n)
 {
 	int res = 1, i;
@@ -12,7 +9,6 @@ unsigned int factorial(unsigned int n)
 	return res;
 }
 
-// Driver code
 int main()
 {
 	int num = 5;

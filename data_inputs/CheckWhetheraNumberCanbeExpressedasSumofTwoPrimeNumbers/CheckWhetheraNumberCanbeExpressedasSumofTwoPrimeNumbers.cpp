@@ -1,9 +1,6 @@
-// C++ program to check if a prime number can be expressed as sum of two Prime Numbers 
 #include <bits/stdc++.h> 
 using namespace std; 
 
-// Function to check whether 
-// a number is prime or not 
 bool isPrime(int n) 
 { 
 	if (n <= 1) 
@@ -18,20 +15,16 @@ bool isPrime(int n)
 	return true; 
 } 
 
-// Function to check if a prime number 
-// can be expressed as sum of 
-// two Prime Numbers 
-bool isPossible(int N) 
+bool isPossible(int n) 
 { 
-	// if the number is prime, 
-	// and number-2 is also prime 
-	if (isPrime(N) && isPrime(N - 2)) 
-		return true; 
-	else
-		return false; 
+	for (int i = 2; i <= n / 2; i++) {
+		if (isPrime(i) && isPrime(n - i)) {
+			return true;
+		}
+	}
+	return false;
 } 
 
-// Driver code 
 int main() 
 { 
 	int n = 13; 
