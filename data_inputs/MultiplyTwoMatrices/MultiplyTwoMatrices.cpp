@@ -1,14 +1,10 @@
-// C++ program to multiply two matrices
-
 #include <bits/stdc++.h>
 using namespace std;
 
-// Edit MACROs here, according to your Matrix Dimensions for
-// mat1[R1][C1] and mat2[R2][C2]
-#define R1 2 // number of rows in Matrix-1
-#define C1 2 // number of columns in Matrix-1
-#define R2 2 // number of rows in Matrix-2
-#define C2 3 // number of columns in Matrix-2
+#define R1 2
+#define C1 2
+#define R2 2
+#define C2 3
 
 void mulMat(int mat1[][C1], int mat2[][C2])
 {
@@ -31,11 +27,8 @@ void mulMat(int mat1[][C1], int mat2[][C2])
 	}
 }
 
-// Driver code
 int main()
 {
-	// R1 = 4, C1 = 4 and R2 = 4, C2 = 4 (Update these
-	// values in MACROs)
 	int mat1[R1][C1] = { { 1, 1 }, { 2, 2 } };
 
 	int mat2[R2][C2] = { { 1, 1, 1 }, { 2, 2, 2 } };
@@ -52,7 +45,6 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-	// Function call
 	mulMat(mat1, mat2);
 
 	return 0;

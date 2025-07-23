@@ -4,14 +4,12 @@ using namespace std;
 #define ROWS 5
 #define COLS 6
 
-// Perform a median filter on a 2D integer matrix
 void median_filter(const int input[ROWS][COLS], int output[ROWS][COLS], int rows, int cols, int window_size) {
     int half = window_size / 2;
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
             int count = 0;
             int* window = new int[window_size * window_size];
-            // Gather values in the window
             for (int wi = i - half; wi <= i + half; ++wi) {
                 for (int wj = j - half; wj <= j + half; ++wj) {
                     if (wi >= 0 && wi < rows && wj >= 0 && wj < cols) {
@@ -19,7 +17,6 @@ void median_filter(const int input[ROWS][COLS], int output[ROWS][COLS], int rows
                     }
                 }
             }
-            // Simple sorting (bubble sort) of the window
             for (int x = 0; x < count - 1; ++x) {
                 for (int y = x + 1; y < count; ++y) {
                     if (window[x] > window[y]) {
@@ -29,7 +26,6 @@ void median_filter(const int input[ROWS][COLS], int output[ROWS][COLS], int rows
                     }
                 }
             }
-            // Pick median
             output[i][j] = window[count / 2];
             delete[] window;
         }
@@ -49,7 +45,6 @@ int main() {
 
     median_filter(input, output, ROWS, COLS, window_size);
 
-    // Print filtered result
     for (int i = 0; i < ROWS; ++i) {
         for (int j = 0; j < COLS; ++j) {
             cout << output[i][j] << " ";

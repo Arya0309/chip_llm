@@ -47,7 +47,7 @@ int main() {
                stride_h, stride_w,
                output, out_h, out_w);
 
-    cout << "Output (" << out_h << "x" << out_w << "):\n";
+    cout << "Output:\n";
     for (int i = 0; i < out_h; ++i) {
         for (int j = 0; j < out_w; ++j) {
             cout << output[i * out_w + j] << " ";
