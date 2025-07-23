@@ -40,19 +40,26 @@ Changes in this version (2025-07-21)
 from __future__ import annotations
 
 import argparse
-import contextlib
-import json
 import os
 import sys
-from pathlib import Path
+import json
+import contextlib
 from tempfile import NamedTemporaryFile
 from typing import Union
+from pathlib import Path
 
+early = argparse.ArgumentParser(add_help=False)
+early.add_argument("--model", dest="llm_model")
+early_args, _ = early.parse_known_args()
+if early_args.llm_model:
+    os.environ["LLM_MODEL"] = early_args.llm_model
+
+from pathlib import Path
 import utils
-import func_agent
-import dut_agent
-import tb_agent
-import pipe_agent  # NEW – for SystemPipeline generation
+import agent_dut
+import agent_func
+import agent_tb
+import agent_pipe
 
 # ---------- Constants ----------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
@@ -63,9 +70,8 @@ LOG_ROOT = PROJECT_ROOT / ".log"
 # ----------------- CLI -----------------
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
-        description=(
-            "Convert C++ ⇒ synthesizable SystemC (DUT + TB + Pipeline) via LLM agents"
-        )
+        parents=[early],
+        description="Convert C++ ⇒ SystemC via LLM agents",
     )
     ap.add_argument(
         "src_path",
@@ -105,7 +111,7 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
     """Return {name, code} where *code* contains one or more non‑main functions."""
     # ------ Path branch ------
     if isinstance(cpp_src, Path):
-        functions = func_agent.extract_functions(cpp_src)
+        functions = agent_func.extract_functions(cpp_src)
     # ------ Raw‑string branch ------
     else:
         raw_code: str = cpp_src
@@ -113,7 +119,7 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
             tmp.write(raw_code)
             tmp_path = Path(tmp.name)
         try:
-            functions = func_agent.extract_functions(tmp_path)
+            functions = agent_func.extract_functions(tmp_path)
         finally:
             with contextlib.suppress(FileNotFoundError):
                 os.remove(tmp_path)
@@ -198,15 +204,15 @@ def main() -> None:
                 entry = extract_entry(item["code"], None)
 
                 # 2) DUT
-                dut_files = dut_agent.generate_dut(entry["code"], requirement)
+                dut_files = agent_dut.generate_dut(entry["code"], requirement)
                 # 3) Testbench
-                tb_files = tb_agent.generate_tb(
+                tb_files = agent_tb.generate_tb(
                     dut_cpp=dut_files["Dut.cpp"],
                     dut_h=dut_files["Dut.h"],
                     requirement=requirement,
                 )
                 # 4) Pipeline
-                pipe_files = pipe_agent.generate_pipeline(
+                pipe_files = agent_pipe.generate_pipeline(
                     dut_files["Dut.h"], tb_files["Testbench.h"]
                 )
 
@@ -234,11 +240,11 @@ def main() -> None:
             print(f"--- Processing {cpp.name} ---")
             try:
                 entry = extract_entry(cpp, None)
-                dut_files = dut_agent.generate_dut(entry["code"])
-                tb_files = tb_agent.generate_tb(
+                dut_files = agent_dut.generate_dut(entry["code"])
+                tb_files = agent_tb.generate_tb(
                     dut_cpp=dut_files["Dut.cpp"], dut_h=dut_files["Dut.h"]
                 )
-                pipe_files = pipe_agent.generate_pipeline(
+                pipe_files = agent_pipe.generate_pipeline(
                     dut_files["Dut.h"], tb_files["Testbench.h"]
                 )
                 out_dir = LOG_ROOT / cpp.stem
@@ -253,11 +259,11 @@ def main() -> None:
     # =============================================================
     try:
         entry = extract_entry(src_path, args.function)
-        dut_files = dut_agent.generate_dut(entry["code"])
-        tb_files = tb_agent.generate_tb(
+        dut_files = agent_dut.generate_dut(entry["code"])
+        tb_files = agent_tb.generate_tb(
             dut_cpp=dut_files["Dut.cpp"], dut_h=dut_files["Dut.h"]
         )
-        pipe_files = pipe_agent.generate_pipeline(
+        pipe_files = agent_pipe.generate_pipeline(
             dut_files["Dut.h"], tb_files["Testbench.h"]
         )
     except Exception as e:

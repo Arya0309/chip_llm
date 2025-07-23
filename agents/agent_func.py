@@ -4,12 +4,12 @@ import re
 import sys
 from pathlib import Path
 
-from utils import VLLMGenerator
+from utils import DEFAULT_MODEL, VLLMGenerator
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = os.getenv("FUNC_AGENT_MODEL", "Qwen/Qwen2.5-Coder-14B-Instruct")
+MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
 _llm = VLLMGenerator(MODEL_NAME)
 
 # ---------------------------------------------------------------------------

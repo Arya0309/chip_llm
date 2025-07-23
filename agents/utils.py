@@ -8,7 +8,7 @@ import torch
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 
-DEFAULT_MODEL = "Qwen/Qwen2.5-Coder-7B-Instruct"
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-Coder-7B-Instruct")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
 INPUT_DATA_DIR = PROJECT_ROOT / "data_inputs"  # /home/.../chip_llm/data_inputs
 

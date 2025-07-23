@@ -20,8 +20,8 @@ from tempfile import NamedTemporaryFile
 import os, contextlib
 from typing import Union
 
-import func_agent
-import tb_agent
+import agents.agent_func as agent_func
+import agents.agent_tb as agent_tb
 
 # ---------- 全域常數 ----------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
@@ -73,7 +73,7 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
     """
     # ---------- Path branch (unchanged) ----------
     if isinstance(cpp_src, Path):
-        functions = func_agent.extract_functions(cpp_src)
+        functions = agent_func.extract_functions(cpp_src)
 
     # ---------- Raw-string branch (new) ----------
     else:
@@ -82,7 +82,7 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
             tmp.write(raw_code)
             tmp_path = Path(tmp.name)
         try:
-            functions = func_agent.extract_functions(tmp_path)
+            functions = agent_func.extract_functions(tmp_path)
         finally:
             # ensure the temp file is removed even if parsing fails
             with contextlib.suppress(FileNotFoundError):
@@ -140,7 +140,7 @@ def main() -> None:
                 entry = extract_entry(func_code, None)
                 
                 # tb_files = tb_agent.generate_tb(func_code=entry["code"], requirement=requirement)
-                tb_files = tb_agent.generate_tb(
+                tb_files = agent_tb.generate_tb(
                     dut_cpp=item.get("Dut.cpp", ""),
                     dut_h=item.get("Dut.h", ""),
                     requirement=requirement,
@@ -169,7 +169,7 @@ def main() -> None:
             print(f"--- Processing {cpp.name} ---")
             try:
                 entry = extract_entry(cpp, None)  # 合併函式
-                tb_files = tb_agent.generate_tb(entry["code"])
+                tb_files = agent_tb.generate_tb(entry["code"])
                 out_dir = LOG_ROOT / cpp.stem  # .log/<檔名去副檔>
                 write_outputs(tb_files, out_dir, None)
             except Exception as e:
@@ -183,7 +183,7 @@ def main() -> None:
     # ------------------------------------------------------------
     try:
         entry = extract_entry(src_path, args.function)
-        tb_files = tb_agent.generate_tb(entry["code"])
+        tb_files = agent_tb.generate_tb(entry["code"])
     except Exception as e:
         sys.exit(f"[Error] {e}")
 

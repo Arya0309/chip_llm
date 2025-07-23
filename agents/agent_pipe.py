@@ -1,30 +1,16 @@
 from __future__ import annotations
 
-"""Generate SystemPipeline.cpp/h from Dut.h + Testbench.h via in‑context LLM prompting.
-
-Usage (CLI):
-    python pipe_agent.py path/to/Dut.h path/to/Testbench.h
-
-The script sends Dut.h/Testbench.h to an LLM (via utils.VLLMGenerator)
-with a one‑shot demonstration so the model returns a JSON list:
-[
-  {"name": "SystemPipeline.cpp", "code": "..."},
-  {"name": "SystemPipeline.h",  "code": "..."}
-]
-Each file is then written to disk.
-"""
-
 import json
 import os
 import re
 import sys
 from pathlib import Path
-from utils import VLLMGenerator
+from utils import DEFAULT_MODEL, VLLMGenerator
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = os.getenv("PIPE_AGENT_MODEL", "Qwen/Qwen2.5-Coder-14B-Instruct")
+MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
 _llm = VLLMGenerator(MODEL_NAME)
 
 # ---------------------------------------------------------------------------

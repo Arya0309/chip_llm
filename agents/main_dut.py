@@ -50,8 +50,8 @@ from tempfile import NamedTemporaryFile
 import os, contextlib
 from typing import Union
 
-import func_agent
-import dut_agent
+import agents.agent_func as agent_func
+import agents.agent_dut as agent_dut
 
 # ---------- 全域常數 ----------
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
@@ -103,7 +103,7 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
     """
     # ---------- Path branch (unchanged) ----------
     if isinstance(cpp_src, Path):
-        functions = func_agent.extract_functions(cpp_src)
+        functions = agent_func.extract_functions(cpp_src)
 
     # ---------- Raw-string branch (new) ----------
     else:
@@ -112,7 +112,7 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
             tmp.write(raw_code)
             tmp_path = Path(tmp.name)
         try:
-            functions = func_agent.extract_functions(tmp_path)
+            functions = agent_func.extract_functions(tmp_path)
         finally:
             # ensure the temp file is removed even if parsing fails
             with contextlib.suppress(FileNotFoundError):
@@ -169,7 +169,7 @@ def main() -> None:
             try:
                 entry = extract_entry(func_code, None)
 
-                dut_files = dut_agent.generate_dut(entry["code"], requirement)
+                dut_files = agent_dut.generate_dut(entry["code"], requirement)
                 # 以 new_name 優先作子資料夾；若沒有就用 name
                 out_dir = LOG_ROOT / item.get("new_name", item["name"])
                 write_outputs(dut_files, out_dir, None)
@@ -194,7 +194,7 @@ def main() -> None:
             print(f"--- Processing {cpp.name} ---")
             try:
                 entry = extract_entry(cpp, None)  # 合併函式
-                dut_files = dut_agent.generate_dut(entry["code"])
+                dut_files = agent_dut.generate_dut(entry["code"])
                 out_dir = LOG_ROOT / cpp.stem  # .log/<檔名去副檔>
                 write_outputs(dut_files, out_dir, None)
             except Exception as e:
@@ -208,7 +208,7 @@ def main() -> None:
     # ------------------------------------------------------------
     try:
         entry = extract_entry(src_path, args.function)
-        dut_files = dut_agent.generate_dut(entry["code"])
+        dut_files = agent_dut.generate_dut(entry["code"])
     except Exception as e:
         sys.exit(f"[Error] {e}")
 
