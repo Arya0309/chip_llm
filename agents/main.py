@@ -161,6 +161,7 @@ def write_outputs(
         pipe_files["SystemPipeline.h"], encoding="utf-8"
     )
     (out_dir / "CMakeLists.txt").write_text(utils.get_cmake_list(), encoding="utf-8")
+    (out_dir / "main.cpp").write_text(utils.get_main_cpp(), encoding="utf-8")
     (out_dir / "testcases.txt").write_text(
         utils.get_testcases(task_name or "default"), encoding="utf-8"
     )

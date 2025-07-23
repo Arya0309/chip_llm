@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR="./test"
+BASE_DIR="./.log"
 
 if [[ $# -ne 1 ]]; then
   echo "Usage: $0 <problem_name>"
