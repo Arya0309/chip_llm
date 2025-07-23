@@ -89,7 +89,6 @@ private:
 #endif
 """
 _EXAMPLE_TESTBENCH_CPP = """
-#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -120,7 +119,7 @@ void Testbench::do_feed() {
     }
     std::string line;
     while (std::getline(fin, line)) {
-        if (line.empty() || line[0] == \\"#\\") continue;
+        if (line.empty() || line[0] == \\'#\\') continue;
         std::istringstream iss(line);
         /* === Variable Section === */
         Testcase tc;
@@ -167,7 +166,7 @@ void Testbench::do_fetch() {
     }
     std::string line;
     while (std::getline(fin, line)) {
-        if (line.empty() || line[0] == \\"#\\") continue;
+        if (line.empty() || line[0] == \\'#\\') continue;
         std::istringstream iss(line);
         /* === Variable Section === */
         Testcase tc;
@@ -190,7 +189,7 @@ void Testbench::do_fetch() {
         }
         std::string line;
         while (std::getline(fin, line)) {
-            if (line.empty() || line[0] == \\"#\\") continue;
+            if (line.empty() || line[0] == \\'#\\') continue;
             std::istringstream iss(line);
             Golden g;
             if (!(iss >> g.expected)) {

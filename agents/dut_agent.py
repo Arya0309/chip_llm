@@ -98,6 +98,8 @@ _EXAMPLE_FUNC_2 = (
 _EXAMPLE_DUT_CPP_2 = """
 #include "Dut.h"
 
+constexpr int N = 4;
+
 // original array-addition function
 void add_arrays(const int A[N], const int B[N], int C[N]) {
     for(int i = 0; i < N; ++i) {
@@ -150,8 +152,6 @@ _EXAMPLE_DUT_H_2 = """
 
 #include <systemc>
 using namespace sc_core;
-
-constexpr int N = 4;
 
 class Dut : public sc_module {
 public:

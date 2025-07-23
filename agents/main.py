@@ -162,15 +162,15 @@ def write_outputs(
     )
     (out_dir / "CMakeLists.txt").write_text(utils.get_cmake_list(), encoding="utf-8")
     (out_dir / "main.cpp").write_text(utils.get_main_cpp(), encoding="utf-8")
-    # (out_dir / "testcases.txt").write_text(
-    #     utils.get_testcases(task_name or "default"), encoding="utf-8"
-    # )
-    # (out_dir / "golden.txt").write_text(
-    #     utils.get_golden(task_name or "default"), encoding="utf-8"
-    # )
     (out_dir / "testcases.txt").write_text(
-        utils.get_testcases_and_golden(task_name or "default"), encoding="utf-8"
+        utils.get_testcases(task_name or "default"), encoding="utf-8"
     )
+    (out_dir / "golden.txt").write_text(
+        utils.get_golden(task_name or "default"), encoding="utf-8"
+    )
+    # (out_dir / "testcases.txt").write_text(
+    #     utils.get_testcases_and_golden(task_name or "default"), encoding="utf-8"
+    # )
 
     print(f"[OK] All files written to {out_dir}")
 

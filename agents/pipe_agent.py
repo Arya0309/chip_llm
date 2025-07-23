@@ -32,11 +32,10 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus integration engineer."
 
-_USER_PROMPT = (
-    "Given the following Dut.h and Testbench.h, generate SystemPipeline.cpp and SystemPipeline.h.\n"
-    "--- Dut.h ---\n```cpp\n{dut_h}\n```\n"
-    "--- Testbench.h ---\n```cpp\n{tb_h}\n```"
-)
+_USER_PROMPT = "Given the following Dut.h and Testbench.h, generate SystemPipeline.cpp and SystemPipeline.h.\n"
+
+_FORMAT_PROMPT_WITH_DUT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "SystemPipeline.cpp" and the second "name": "SystemPipeline.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
+
 
 _EXAMPLE_DUT_H = """#ifndef DUT_H_
 #define DUT_H_
@@ -153,9 +152,7 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
         {"role": "system", "content": _SYSTEM_PROMPT},
         {
             "role": "user",
-            "content": _USER_PROMPT.format(
-                dut_h=_EXAMPLE_DUT_H.strip(), tb_h=_EXAMPLE_TB_H.strip()
-            ),
+            "content": f"{_USER_PROMPT}\n{_FORMAT_PROMPT_WITH_DUT}--- Dut.h ---\n```cpp\n{_EXAMPLE_DUT_H}\n```\n--- Testbench.h ---\n```cpp\n{_EXAMPLE_TB_H}\n```",
         },
         {
             "role": "assistant",
@@ -170,9 +167,7 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
         },
         {
             "role": "user",
-            "content": _USER_PROMPT.format(
-                dut_h=dut_h_code.strip(), tb_h=testbench_h_code.strip()
-            ),
+            "content": f"{_USER_PROMPT}\n{_FORMAT_PROMPT_WITH_DUT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
         },
     ]
     prompt = _llm.apply_chat_template(
