@@ -7,6 +7,7 @@ States
 compile_error   – CMake configure/build failed or binary missing
 runtime_error   – binary exit code non-zero OR exceeded time limit
 unit_test_pass  – binary exited 0 within the time limit
+format_error    – project directory empty (no generated files)
 """
 from __future__ import annotations
 
@@ -23,9 +24,12 @@ from pathlib import Path
 # Use tqdm if available; fall back to a no-op iterator otherwise.
 try:
     from tqdm import tqdm
-except ModuleNotFoundError:                         # pragma: no cover
-    def tqdm(it, **kwargs):                         # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+
+    def tqdm(it, **kwargs):  # type: ignore
         return it
+
+
 # ---------------------------------------------------------------------------
 
 
@@ -37,7 +41,7 @@ def run(cmd: list[str], cwd: Path, timeout: float | None = None) -> tuple[int, s
             cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,          # decode with locale encoding
+            text=True,  # decode with locale encoding
             timeout=timeout,
         )
         return proc.returncode, proc.stdout
@@ -75,12 +79,21 @@ def safe_concat(a: str, b: str | bytes) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", default="./.log",
-                        help="Directory with one project per sub-directory")
-    parser.add_argument("--timeout", type=float, default=3.0,
-                        help="Seconds allowed for each test-dut (default 3)")
-    parser.add_argument("--json", default="results.json", help="Output JSON file")
-    parser.add_argument("--csv", default="summary.csv", help="Output CSV file")
+    parser.add_argument(
+        "--root", default="./.log", help="Directory with one project per sub-directory"
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=3.0,
+        help="Seconds allowed for each test-dut (default 3)",
+    )
+    parser.add_argument(
+        "--json", default="data_output/results.json", help="Output JSON file"
+    )
+    parser.add_argument(
+        "--csv", default="data_output/summary.csv", help="Output CSV file"
+    )
     args = parser.parse_args()
 
     root = Path(args.root).expanduser().resolve()
@@ -90,17 +103,39 @@ def main() -> None:
     projects = sorted(p for p in root.iterdir() if p.is_dir())
 
     results: list[dict] = []
-    counter = {"compile_error": 0, "runtime_error": 0, "unit_test_pass": 0}
+    counter = {
+        "compile_error": 0,
+        "runtime_error": 0,
+        "unit_test_pass": 0,
+        "format_error": 0,
+    }
 
     for project in tqdm(projects, desc="Checking projects"):
         name = project.name
-        build_dir = project / "build"
-        state = "compile_error"
+        state = "format_error"  # default, may be overridden
         combined_out = ""
+
+        # --- 新增：空資料夾偵測 ---
+        if not any(project.iterdir()):
+            combined_out = (
+                "Project directory is empty – likely extraction/formatting failure."
+            )
+            counter[state] += 1
+            results.append(
+                {
+                    "name": name,
+                    "state": state,
+                    "error_message": combined_out,
+                }
+            )
+            continue  # 不再嘗試 build / run
+
+        build_dir = project / "build"
         try:
             # Configure
-            cfg_rc, cfg_out = run(["cmake", "-S", str(project), "-B", str(build_dir)],
-                                  cwd=project)
+            cfg_rc, cfg_out = run(
+                ["cmake", "-S", str(project), "-B", str(build_dir)], cwd=project
+            )
             # Build
             bld_rc, bld_out = run(["cmake", "--build", str(build_dir)], cwd=project)
 
@@ -122,11 +157,15 @@ def main() -> None:
             combined_out = f"Unexpected error: {err}"
 
         counter[state] += 1
-        results.append({
-            "name": name,
-            "state": state,
-            "error_message": "" if state == "unit_test_pass" else combined_out.strip(),
-        })
+        results.append(
+            {
+                "name": name,
+                "state": state,
+                "error_message": (
+                    "" if state == "unit_test_pass" else combined_out.strip()
+                ),
+            }
+        )
 
     # Write JSON
     Path(args.json).write_text(json.dumps(results, indent=2), encoding="utf-8")

@@ -151,7 +151,6 @@ def write_outputs(
     task_name: str | None = None,
 ):
     """Write Dut.*, Testbench.*, SystemPipeline.* into *out_dir*."""
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     # DUT
     (out_dir / "Dut.cpp").write_text(dut_files["Dut.cpp"], encoding="utf-8")
@@ -199,6 +198,10 @@ def main() -> None:
         for item in entries:
             print(f"--- Processing {item['name']} ---")
             requirement = item.get("requirement", "")
+
+            out_dir = LOG_ROOT / item["name"]
+            out_dir.mkdir(parents=True, exist_ok=True)
+
             try:
                 # 1) extract functions
                 entry = extract_entry(item["code"], None)
