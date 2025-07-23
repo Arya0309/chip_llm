@@ -9,7 +9,7 @@ from utils import VLLMGenerator
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = os.getenv("FUNC_AGENT_MODEL", "Qwen/Qwen2.5-Coder-7B-Instruct")
+MODEL_NAME = os.getenv("FUNC_AGENT_MODEL", "Qwen/Qwen2.5-Coder-14B-Instruct")
 _llm = VLLMGenerator(MODEL_NAME)
 
 # ---------------------------------------------------------------------------
@@ -85,6 +85,7 @@ public:
 private:
   void do_compute();
 };
+#endif // DUT_H_
 """
 
 # Another few-shot example: element-wise addition of two fixed-size arrays
@@ -150,9 +151,10 @@ _EXAMPLE_DUT_H_2 = """
 #include <systemc>
 using namespace sc_core;
 
+constexpr int N = 4;
+
 class Dut : public sc_module {
 public:
-  static constexpr int N = 4;
   
   sc_in_clk i_clk;
   sc_in<bool> i_rst;

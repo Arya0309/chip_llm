@@ -8,7 +8,7 @@ from utils import VLLMGenerator
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = os.getenv("FUNC_AGENT_MODEL", "Qwen/Qwen2.5-Coder-7B-Instruct")
+MODEL_NAME = os.getenv("FUNC_AGENT_MODEL", "Qwen/Qwen2.5-Coder-14B-Instruct")
 _llm = VLLMGenerator(MODEL_NAME)
 
 # ---------------------------------------------------------------------------
@@ -20,7 +20,9 @@ _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior Syste
 
 _FORMAT_PROMPT_WITH_FUNC = 'The DUT has already been implemented. Please generate the testbench as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
-_REQUIREMENT_WITH_DUT = 'Given the SystemC DUT code below, generate the corresponding testbench code.'
+_REQUIREMENT_WITH_DUT = (
+    "Given the SystemC DUT code below, generate the corresponding testbench code."
+)
 _FORMAT_PROMPT_WITH_DUT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 # Example input function and its Testbench.cpp, Testbench.h outputs
@@ -243,10 +245,13 @@ private:
 #endif
 """
 
+
 # ---------------------------------------------------------------------------
 # Generate Testbench.cpp, Testbench.h via one-shot in-context learning
 # ---------------------------------------------------------------------------
-def generate_tb(func_code: str = "", dut_cpp: str = "", dut_h: str = "", requirement: str = "") -> dict[str, str]:
+def generate_tb(
+    func_code: str = "", dut_cpp: str = "", dut_h: str = "", requirement: str = ""
+) -> dict[str, str]:
     if func_code:
         messages = [
             {"role": "system", "content": _SYSTEM_PROMPT},

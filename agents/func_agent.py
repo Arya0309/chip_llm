@@ -9,7 +9,7 @@ from utils import VLLMGenerator
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = os.getenv("FUNC_AGENT_MODEL", "Qwen/Qwen2.5-Coder-7B-Instruct")
+MODEL_NAME = os.getenv("FUNC_AGENT_MODEL", "Qwen/Qwen2.5-Coder-14B-Instruct")
 _llm = VLLMGenerator(MODEL_NAME)
 
 # ---------------------------------------------------------------------------

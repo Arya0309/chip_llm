@@ -185,10 +185,26 @@ def get_golden(task: str) -> str:
         return f.read()
 
 
+def get_testcases_and_golden(task: str) -> None:
+    testcases = get_testcases(task).splitlines()
+    golden = get_golden(task).splitlines()
+    txt: list[str] = []
+
+    for line_tc, line_gn in zip(testcases, golden):
+        if line_tc.startswith("#"):
+            continue
+        line_tc = line_tc.strip()
+        line_gn = line_gn.strip()
+
+        txt.append(f"{line_tc}  {line_gn}")
+
+    return "\n".join(txt)
+
+
 if __name__ == "__main__":
     # model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
     # generator = VLLMGenerator(model_name)
 
     # prompt = "Write a Python function to calculate the factorial of a number."
     # print(generator(prompt))
-    print(get_testcases("FindGCD"))
+    get_testcases_and_golden("FindGCD")
