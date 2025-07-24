@@ -4,10 +4,11 @@ Batch SystemC checker with tqdm and per-test timeout.
 
 States
 ------
+format_error    – project directory empty (no generated files)
 compile_error   – CMake configure/build failed or binary missing
 runtime_error   – binary exit code non-zero OR exceeded time limit
+unit_test_fail  – binary ran but Testbench reported some failures
 unit_test_pass  – binary exited 0 within the time limit
-format_error    – project directory empty (no generated files)
 """
 from __future__ import annotations
 
@@ -41,7 +42,7 @@ def run(cmd: list[str], cwd: Path, timeout: float | None = None) -> tuple[int, s
             cwd=cwd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,  # decode with locale encoding
+            text=True,
             timeout=timeout,
         )
         return proc.returncode, proc.stdout
@@ -104,29 +105,28 @@ def main() -> None:
 
     results: list[dict] = []
     counter = {
+        "format_error": 0,
         "compile_error": 0,
         "runtime_error": 0,
+        "unit_test_fail": 0,
         "unit_test_pass": 0,
-        "format_error": 0,
     }
+
+    FAIL_PATTERN = "Fatal: Testbench: Some test cases failed."
 
     for project in tqdm(projects, desc="Checking projects"):
         name = project.name
         state = "format_error"  # default, may be overridden
         combined_out = ""
 
-        # --- 新增：空資料夾偵測 ---
+        # --- 空資料夾偵測 ---
         if not any(project.iterdir()):
             combined_out = (
                 "Project directory is empty – likely extraction/formatting failure."
             )
             counter[state] += 1
             results.append(
-                {
-                    "name": name,
-                    "state": state,
-                    "error_message": combined_out,
-                }
+                {"name": name, "state": state, "error_message": combined_out}
             )
             continue  # 不再嘗試 build / run
 
@@ -151,7 +151,12 @@ def main() -> None:
                 else:
                     build_fail = True  # treat as compile error
 
-            state = classify_state(build_fail, run_rc)
+            # --- 判斷 unit_test_fail ---
+            if not build_fail and FAIL_PATTERN in combined_out:
+                state = "unit_test_fail"
+            else:
+                state = classify_state(build_fail, run_rc)
+
         except Exception as err:  # catch any unexpected failure per project
             state = "runtime_error"
             combined_out = f"Unexpected error: {err}"
@@ -176,7 +181,7 @@ def main() -> None:
     with open(args.csv, "w", newline="", encoding="utf-8") as fp:
         w = csv.writer(fp)
         w.writerow(["state", "count"])
-        for s, c in counter.items():
+        for s, c in counter.items():  # 依插入順序輸出，format_error 會在最前
             w.writerow([s, c])
         w.writerow([])
         w.writerow(["unit_test_pass_rate", f"{pass_rate:.2%}"])
