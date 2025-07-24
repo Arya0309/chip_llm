@@ -17,6 +17,39 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
 
+_SYSTEM_PROMPT_V2 = """You are Qwen, created by Alibaba Cloud.
+
+Role
+----
+• Senior SystemC / Cadence Stratus design engineer.  
+• Convert user-supplied C/C++ function(s) into a **synthesizable DUT that uses FIFO streams ONLY** for all data communication.
+
+Hard Rules
+----------
+1. **Exactly one FIFO port per logical tensor** – arrays/matrices are serialised element-by-element; never declare `sc_fifo_in<T> foo[N]` or multi-dim FIFO.
+2. Keep the fixed scaffold:
+   ```cpp
+   SC_THREAD(do_compute);
+   sensitive << i_clk.pos();
+   dont_initialize();
+   reset_signal_is(i_rst, false);```
+   These lines must remain unmodified.
+3. Computation goes in do_compute(); place user logic between the comment markers /* === Main function Section === */.
+4. No global state, dynamic allocation, recursion, STL, or non-blocking FIFO ops.
+
+Output Format
+-------------
+Return **one JSON array with TWO objects only**:
+
+```json
+[
+  { "name": "Dut.cpp", "code": "<full source>" },
+  { "name": "Dut.h",   "code": "<full header>" }
+]
+```
+No markdown, no commentary, no extra fields.
+"""
+
 _FORMAT_PROMPT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Dut.cpp" and the second "name": "Dut.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 # Example input function and its Dut.cpp output
@@ -182,10 +215,14 @@ private:
 # ---------------------------------------------------------------------------
 def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "system", "content": _SYSTEM_PROMPT_V2},
+        # {
+        #     "role": "user",
+        #     "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_1}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
+        # },
         {
             "role": "user",
-            "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_1}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
+            "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_1}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
         },
         {
             "role": "assistant",
@@ -203,6 +240,10 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
             "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_2}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC_2}\n```",
         },
         {
+            "role": "user",
+            "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_2}\n```cpp\n{_EXAMPLE_FUNC_2}\n```",
+        },
+        {
             "role": "assistant",
             "content": json.dumps(
                 [
@@ -213,11 +254,20 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
                 indent=2,
             ),
         },
+        # {
+        #     "role": "user",
+        #     "content": (
+        #         (f"[Requirement]\n{requirement}\n\n" if requirement else "")
+        #         + f"\n{_FORMAT_PROMPT}"
+        #         + "\n```cpp\n"
+        #         + func_code.strip()
+        #         + "\n```"
+        #     ),
+        # },
         {
             "role": "user",
             "content": (
                 (f"[Requirement]\n{requirement}\n\n" if requirement else "")
-                + f"\n{_FORMAT_PROMPT}"
                 + "\n```cpp\n"
                 + func_code.strip()
                 + "\n```"

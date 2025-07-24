@@ -18,9 +18,43 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus integration engineer."
 
+_SYSTEM_PROMPT_V2 = """
+You are Qwen, created by Alibaba Cloud.
+
+Role
+----
+• Senior SystemC integration engineer.  
+• Connect an existing `Dut` and `Testbench` into a top-level module
+  **SystemPipeline**.
+
+Integration Rules
+-----------------
+1. Instantiate exactly ONE `Testbench tb` and ONE `Dut dut`.  
+2. Instantiate
+   ```cpp
+   sc_clock  clk("clk", CLOCK_PERIOD, SC_NS);
+   sc_signal<bool> rst("rst");
+   ```
+3. For every matching FIFO port pair (e.g. tb.o_a → dut.i_a) declare one sc_fifo<elem_t> channel_*; and bind as in the sample.
+4. Keep fixed comment blocks intact; user should be able to compile directly.
+5. No extra components, no fancy tracing.
+
+Output Format
+-------------
+Return **one JSON array with TWO objects only**:
+
+```json
+[
+  { "name": "SystemPipeline.cpp", "code": "<full source>" },
+  { "name": "SystemPipeline.h",   "code": "<full header>" }
+]
+```
+No markdown, no extra commentary, strict key order.
+"""
+
 _USER_PROMPT = "Given the following Dut.h and Testbench.h, generate SystemPipeline.cpp and SystemPipeline.h.\n"
 
-_FORMAT_PROMPT_WITH_DUT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "SystemPipeline.cpp" and the second "name": "SystemPipeline.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
+_FORMAT_PROMPT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "SystemPipeline.cpp" and the second "name": "SystemPipeline.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 
 _EXAMPLE_DUT_H = """#ifndef DUT_H_
@@ -135,10 +169,14 @@ private:
 def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
     """Return {file_name: code}. Raises on malformed LLM output."""
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "system", "content": _SYSTEM_PROMPT_V2},
+        # {
+        #     "role": "user",
+        #     "content": f"{_USER_PROMPT}\n{_FORMAT_PROMPT}--- Dut.h ---\n```cpp\n{_EXAMPLE_DUT_H}\n```\n--- Testbench.h ---\n```cpp\n{_EXAMPLE_TB_H}\n```",
+        # },
         {
             "role": "user",
-            "content": f"{_USER_PROMPT}\n{_FORMAT_PROMPT_WITH_DUT}--- Dut.h ---\n```cpp\n{_EXAMPLE_DUT_H}\n```\n--- Testbench.h ---\n```cpp\n{_EXAMPLE_TB_H}\n```",
+            "content": f"{_USER_PROMPT}--- Dut.h ---\n```cpp\n{_EXAMPLE_DUT_H}\n```\n--- Testbench.h ---\n```cpp\n{_EXAMPLE_TB_H}\n```",
         },
         {
             "role": "assistant",
@@ -151,9 +189,13 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
                 indent=2,
             ),
         },
-        {
+        # {
+        #     "role": "user",
+        #     "content": f"{_USER_PROMPT}\n{_FORMAT_PROMPT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
+        # },
+                {
             "role": "user",
-            "content": f"{_USER_PROMPT}\n{_FORMAT_PROMPT_WITH_DUT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
+            "content": f"{_USER_PROMPT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
         },
     ]
     prompt = _llm.apply_chat_template(

@@ -1,15 +1,3 @@
-#!/usr/bin/env python3
-"""
-Usage
------
-# 1. 單檔：維持舊行為
-python main.py path/to/example.cpp                # 提取所有非-main 函式
-python main.py path/to/example.cpp -f add         # 只提取 add()
-python main.py path/to/example.cpp -o Testbench.cpp     # 輸出到指定檔名
-
-# 2. 資料夾：掃描該資料夾下每個 .cpp
-python main.py path/to/dir_with_cpp/
-"""
 from __future__ import annotations
 
 import argparse

@@ -16,6 +16,40 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
 
+_SYSTEM_PROMPT_V2 = """
+You are Qwen, created by Alibaba Cloud.
+
+Role
+----
+• Senior SystemC verification engineer.  
+• Generate a **self-checking Testbench** for the given DUT *or* for an original
+  C++ function (when the DUT is yet to be generated).
+
+Behaviour
+---------
+1. Provide clock/reset using the fixed thread template shown in the examples.  
+2. Read `testcases.txt`, push inputs through the SAME FIFO ports declared in `Dut.h`; one write per datum (arrays looped).  
+3. Read `golden.txt`, compare against `i_result`, print PASS/FAIL, call `SC_REPORT_FATAL` if any case fails, then `sc_stop()`.
+
+Constraints & Style
+-------------------
+• Follow the same port names, types, and directions seen in the DUT.  
+• Use blocking `read()` / `write()` only.  
+• No dynamic memory, STL containers beyond `<vector>`, no recursion.
+
+Output Format
+-------------
+Return **one JSON array with TWO objects only**:
+
+```json
+[
+  { "name": "Testbench.cpp", "code": "<full source>" },
+  { "name": "Testbench.h",   "code": "<full header>" }
+]
+```
+Absolutely no markdown wrappers or explanatory text.
+"""
+
 # _FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
 
 _FORMAT_PROMPT_WITH_FUNC = 'The DUT has already been implemented. Please generate the testbench as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
@@ -276,10 +310,14 @@ def generate_tb(
 ) -> dict[str, str]:
     if func_code:
         messages = [
-            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "system", "content": _SYSTEM_PROMPT_V2},
+            # {
+            #     "role": "user",
+            #     "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT_WITH_FUNC}\n```cpp\n{_EXAMPLE_FUNC}\n```",
+            # },
             {
                 "role": "user",
-                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT_WITH_FUNC}\n```cpp\n{_EXAMPLE_FUNC}\n```",
+                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n```cpp\n{_EXAMPLE_FUNC}\n```",
             },
             {
                 "role": "assistant",
@@ -292,11 +330,20 @@ def generate_tb(
                     indent=2,
                 ),
             },
+            # {
+            #     "role": "user",
+            #     "content": (
+            #         (f"[Requirement]\n{requirement}" if requirement else "")
+            #         + f"\n{_FORMAT_PROMPT_WITH_FUNC}"
+            #         + "\n```cpp\n"
+            #         + func_code.strip()
+            #         + "\n```"
+            #     ),
+            # },
             {
                 "role": "user",
                 "content": (
                     (f"[Requirement]\n{requirement}" if requirement else "")
-                    + f"\n{_FORMAT_PROMPT_WITH_FUNC}"
                     + "\n```cpp\n"
                     + func_code.strip()
                     + "\n```"

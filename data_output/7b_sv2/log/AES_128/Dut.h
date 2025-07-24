@@ -1,0 +1,27 @@
+
+#ifndef DUT_H_
+#define DUT_H_
+
+#include <systemc>
+using namespace sc_core;
+
+class Dut : public sc_module {
+public:
+  sc_in_clk i_clk;
+  sc_in<bool> i_rst;
+
+  /* === Variable Section === */
+  sc_fifo_in<unsigned char> i_plaintext;
+  sc_fifo_in<unsigned char> i_key;
+  sc_fifo_out<unsigned char> o_ciphertext;
+  /* === Variable Section End === */
+
+  SC_HAS_PROCESS(Dut);
+  Dut(sc_module_name n);
+  ~Dut() = default;
+
+private:
+  void do_compute();
+};
+
+#endif // DUT_H_
