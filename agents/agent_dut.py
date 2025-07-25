@@ -235,10 +235,10 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
                 indent=2,
             ),
         },
-        {
-            "role": "user",
-            "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_2}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC_2}\n```",
-        },
+        # {
+        #     "role": "user",
+        #     "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_2}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC_2}\n```",
+        # },
         {
             "role": "user",
             "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_2}\n```cpp\n{_EXAMPLE_FUNC_2}\n```",
@@ -278,7 +278,7 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
     formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted, temperature=0.0).strip()
+    raw = _llm.generate(formatted, temperature=0.3).strip()
 
     match = re.search(r"\[.*\]", raw, re.S)
     if not match:

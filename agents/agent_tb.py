@@ -60,10 +60,10 @@ _REQUIREMENT_WITH_DUT = (
 _FORMAT_PROMPT_WITH_DUT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 # Example input function and its Testbench.cpp, Testbench.h outputs
-_EXAMPLE_REQUIREMENT = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers."
-_EXAMPLE_FUNC = "int add(int a, int b) { return a + b; }"
-_EXAMPLE_DUT_CPP = """
-#include \\"Dut.h\\"
+_EXAMPLE_REQUIREMENT_1 = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers."
+_EXAMPLE_FUNC_1 = "int add(int a, int b) { return a + b; }"
+_EXAMPLE_DUT_CPP_1 = """
+#include "Dut.h"
 
 int add(int a, int b) { return a + b; }
 
@@ -94,7 +94,7 @@ void Dut::do_compute() {
     }
 }
 """
-_EXAMPLE_DUT_H = """
+_EXAMPLE_DUT_H_1 = """
 #ifndef DUT_H_
 #define DUT_H_
 
@@ -122,13 +122,13 @@ private:
 
 #endif
 """
-_EXAMPLE_TESTBENCH_CPP = """
+_EXAMPLE_TESTBENCH_CPP_1 = """
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include \\"Testbench.h\\"
+#include "Testbench.h"
 
 /* === Fixed Format === */
 Testbench::Testbench(sc_module_name n)
@@ -145,20 +145,20 @@ Testbench::Testbench(sc_module_name n)
 void Testbench::do_feed() {
     struct Testcase { int a, b; };
     std::vector<Testcase> tests;
-    std::ifstream fin(\\"testcases.txt\\");
+    std::ifstream fin("testcases.txt");
     if (!fin.is_open()) {
-        std::cerr << \\"Error: Unable to open testcases.txt\\n\\";
+        std::cerr << "Error: Unable to open testcases.txt\\n";
         sc_stop();
         return;
     }
     std::string line;
     while (std::getline(fin, line)) {
-        if (line.empty() || line[0] == \\'#\\') continue;
+        if (line.empty() || line[0] == '#') continue;
         std::istringstream iss(line);
         /* === Variable Section === */
         Testcase tc;
         if (!(iss >> tc.a >> tc.b)) {
-            std::cerr << \\"Warning: Incorrect format, skipping line: \\" << line << \\"\\n\\";
+            std::cerr << "Warning: Incorrect format, skipping line: " << line << "\\n";
             continue;
         }
         tests.push_back(tc);
@@ -192,20 +192,20 @@ void Testbench::do_fetch() {
     struct Golden { int expected; };
 
     std::vector<Testcase> tests;
-    std::ifstream fin(\\"testcases.txt\\");
+    std::ifstream fin("testcases.txt");
     if (!fin.is_open()) {
-        std::cerr << \\"Error: Unable to open testcases.txt\\n\\";
+        std::cerr << "Error: Unable to open testcases.txt\\n";
         sc_stop();
         return;
     }
     std::string line;
     while (std::getline(fin, line)) {
-        if (line.empty() || line[0] == \\'#\\') continue;
+        if (line.empty() || line[0] == '#') continue;
         std::istringstream iss(line);
         /* === Variable Section === */
         Testcase tc;
         if (!(iss >> tc.a >> tc.b)) {
-            std::cerr << \\"Warning: Incorrect format in testcases.txt, skipping line: \\" << line << \\"\\n\\";
+            std::cerr << "Warning: Incorrect format in testcases.txt, skipping line: " << line << "\\n";
             continue;
         }
         tests.push_back(tc);
@@ -215,19 +215,19 @@ void Testbench::do_fetch() {
 
     std::vector<Golden> goldens;
     {
-        std::ifstream fin(\\"golden.txt\\");
+        std::ifstream fin("golden.txt");
         if (!fin.is_open()) {
-            std::cerr << \\"Error: Unable to open golden.txt\\n\\";
+            std::cerr << "Error: Unable to open golden.txt\\n";
             sc_stop();
             return;
         }
         std::string line;
         while (std::getline(fin, line)) {
-            if (line.empty() || line[0] == \\'#\\') continue;
+            if (line.empty() || line[0] == '#') continue;
             std::istringstream iss(line);
             Golden g;
             if (!(iss >> g.expected)) {
-                std::cerr << \\"Warning: Incorrect format in golden.txt, skip: \\" << line << \\"\\n\\";
+                std::cerr << "Warning: Incorrect format in golden.txt, skip: " << line << "\\n";
                 continue;
             }
             goldens.push_back(g);
@@ -247,28 +247,29 @@ void Testbench::do_fetch() {
         bool passed = (result == goldens[idx].expected);
 
         if (passed) {
-            std::cout << \\"Test case \\" << idx + 1 << \\" passed.\\n\\";
-            std::cout << \\"Input: a = \\" << tests[idx].a << \\", b = \\" << tests[idx].b << \\"\\n\\";
-            std::cout << \\"Output: \\" << result << \\"\\n\\n\\";
+            std::cout << "Test case " << idx + 1 << " passed.\\n";
+            std::cout << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\\n";
+            std::cout << "Output: " << result << "\\n\\n";
         } else {
-            std::cerr << \\"Test case \\" << idx + 1 << \\" failed.\\n\\";
-            std::cerr << \\"Input: a = \\" << tests[idx].a << \\", b = \\" << tests[idx].b << \\"\\n\\";
-            std::cerr << \\"Output: \\" << result << \\", Expected: \\" << goldens[idx].expected << \\"\\n\\n\\";
+            std::cerr << "Test case " << idx + 1 << " failed.\\n";
+            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\\n";
+            std::cerr << "Output: " << result << ", Expected: " << goldens[idx].expected << "\\n\\n";
             all_passed = false;
         }
     }
     /* === Variable Section End === */
 
     if (all_passed) {
-        std::cout << \\"All tests passed successfully.\\" << std::endl;
+        std::cout << "All tests passed successfully." << std::endl;
     }
     else {
-        SC_REPORT_FATAL(\\"Testbench\\", \\"Some test cases failed.\\");
+        SC_REPORT_FATAL("Testbench", "Assertion failed.");
     }
     sc_stop();
 }
 """
-_EXAMPLE_TESTBENCH_H = """
+
+_EXAMPLE_TESTBENCH_H_1 = """
 #ifndef TESTBENCH_H_
 #define TESTBENCH_H_
 
@@ -284,6 +285,289 @@ public:
   sc_fifo_out<int> o_a;
   sc_fifo_out<int> o_b;
   sc_fifo_in<int> i_result;
+/* === Variable Section End === */
+
+  SC_HAS_PROCESS(Testbench);
+
+  Testbench(sc_module_name n);
+  ~Testbench() = default;
+
+private:
+
+  void do_feed();
+  void do_fetch();
+
+};
+
+#endif
+"""
+
+_EXAMPLE_REQUIREMENT_2 = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer array."
+
+_EXAMPLE_FUNC_2 = """
+void add_arrays(const int A[N], const int B[N], int C[N]) {
+    for (int i = 0; i < N; ++i) C[i] = A[i] + B[i];
+}
+"""
+
+_EXAMPLE_DUT_CPP_2 = """
+#include "Dut.h"
+
+constexpr int N = 4;
+
+void add_arrays(const int A[N], const int B[N], int C[N]) {
+    for (int i = 0; i < N; ++i) C[i] = A[i] + B[i];
+}
+
+Dut::Dut(sc_module_name n) : sc_module(n) {
+    /* === Fixed Format === */
+    SC_THREAD(do_compute);
+    sensitive << i_clk.pos();
+    dont_initialize();
+    reset_signal_is(i_rst, false);
+    /* === Fixed Format End === */
+}
+
+void Dut::do_compute() {
+
+    {
+        wait();
+    }
+
+    while (true) {
+
+        int a[N];
+        int b[N];
+        int c[N];
+
+        for (int i = 0; i < N; i++) {
+            a[i] = i_a.read(); // Read from input FIFO
+            b[i] = i_b.read(); // Read from input FIFO
+        }
+        /* === Variable Section End === */
+
+        /* === Main Function ===*/
+        add_arrays(a, b, c);
+        /* === Main Function End === */
+
+        /* === Variable Section === */
+        for (int i = 0; i < N; ++i) {
+            o_c.write(c[i]);
+        }
+        /* === Variable Section End === */
+    }
+}
+"""
+
+_EXAMPLE_DUT_H_2 = """
+#ifndef DUT_H_
+#define DUT_H_
+
+#include <systemc>
+using namespace sc_core;
+
+class Dut : public sc_module {
+public:
+  sc_in_clk i_clk;
+  sc_in<bool> i_rst;
+
+/* === Variable Section === */
+  sc_fifo_in<int> i_a;
+  sc_fifo_in<int> i_b;
+  sc_fifo_out<int> o_c;
+/* === Variable Section End === */
+
+  SC_HAS_PROCESS(Dut);
+  Dut(sc_module_name n);
+  ~Dut() = default;
+
+private:
+  void do_compute();
+};
+#endif
+"""
+
+_EXAMPLE_TESTBENCH_CPP_2 = """
+#include <cassert>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include "Testbench.h"
+
+constexpr int N = 4;
+
+/* === Fixed Format === */
+Testbench::Testbench(sc_module_name n) : sc_module(n) {
+    SC_THREAD(do_feed);
+    sensitive << i_clk.pos();
+    dont_initialize();
+    SC_THREAD(do_fetch);
+    sensitive << i_clk.pos();
+    dont_initialize();
+}
+/* === Fixed Format End === */
+
+void Testbench::do_feed() {
+    struct Testcase { std::vector<int> A, B; };
+    std::vector<Testcase> tests;
+
+    std::ifstream fin("testcases.txt");
+    if (!fin.is_open()) {
+        std::cerr << "Error: Unable to open testcases.txt\\n";
+        sc_stop();
+        return;
+    }
+
+    std::string line;
+    while (std::getline(fin, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream iss(line);
+
+        std::vector<int> tokens;
+        int v;
+        while (iss >> v) tokens.push_back(v);
+        if (tokens.size() != 2 * N) {
+            std::cerr << "Warning: Skip line with incorrect token count: "
+                      << line << '\\n';
+            continue;
+        }
+        Testcase tc;
+        tc.A.assign(tokens.begin(),             tokens.begin() + N);
+        tc.B.assign(tokens.begin() + N,          tokens.end());
+        tests.push_back(std::move(tc));
+    }
+    fin.close();
+
+    o_rst.write(false);
+    wait(5);
+    o_rst.write(true);
+    wait(1);
+
+    for (const auto &tc : tests) {
+        for (int i = 0; i < N; ++i) o_a.write(tc.A[i]);
+        for (int i = 0; i < N; ++i) o_b.write(tc.B[i]);
+        wait();
+    }
+}
+
+void Testbench::do_fetch() {
+    struct Testcase { std::vector<int> A, B; };
+    struct Golden { std::vector<int> C; };
+
+    std::vector<Testcase> tests;
+
+    std::ifstream fin("testcases.txt");
+    if (!fin.is_open()) {
+        std::cerr << "Error: Unable to open testcases.txt\\n";
+        sc_stop();
+        return;
+    }
+
+    std::string line;
+    while (std::getline(fin, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream iss(line);
+
+        std::vector<int> tokens;
+        int v;
+        while (iss >> v) tokens.push_back(v);
+        if (tokens.size() != 2 * N) {
+            std::cerr << "Warning: Skip line with incorrect token count: "
+                      << line << '\\n';
+            continue;
+        }
+        Testcase tc;
+        tc.A.assign(tokens.begin(),             tokens.begin() + N);
+        tc.B.assign(tokens.begin() + N,          tokens.end());
+        tests.push_back(std::move(tc));
+    }
+    fin.close();
+
+    std::vector<Golden> goldens;
+
+    std::ifstream gin("golden.txt");
+    if (!gin.is_open()) {
+        std::cerr << "Error: Unable to open golden.txt\\n";
+        sc_stop();
+        return;
+    }
+
+    while (std::getline(gin, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream iss(line);
+
+        std::vector<int> vals;
+        int v;
+        while (iss >> v) vals.push_back(v);
+        if (vals.size() != N) {
+            std::cerr << "Warning: Skip golden line with incorrect length: "
+                      << line << '\\n';
+            continue;
+        }
+        goldens.push_back({std::move(vals)});
+    }
+    gin.close();
+
+    wait(1);
+
+    bool all_passed = true;
+    for (size_t idx = 0; idx < goldens.size(); ++idx) {
+        std::vector<int> result;
+        result.reserve(N);
+        for (int i = 0; i < N; ++i) {
+            int x = i_c.read();
+            result.push_back(x);
+        }
+
+        bool passed = (result == goldens[idx].C);
+        if (passed) {
+            std::cout << "Test case " << idx + 1 << " passed.\\n";
+        } else {
+            all_passed = false;
+            std::cerr << "Test case " << idx + 1 << " failed.\\n";
+            std::cerr << "Input: A = [";
+            for (int i = 0; i < N; ++i) {
+                std::cerr << tests[idx].A[i] << (i < N - 1 ? ", " : "");
+            }
+            std::cerr << "], B = [";
+            for (int i = 0; i < N; ++i) {
+                std::cerr << tests[idx].B[i] << (i < N - 1 ? ", " : "");
+            }
+            std::cerr << "]\\n";
+            std::cerr << "Output: ";
+            for (int x : result)        std::cerr << x << ' ';
+            std::cerr << "\\nExpected: ";
+            for (int x : goldens[idx].C) std::cerr << x << ' ';
+            std::cerr << '\\n';
+        }
+    }
+
+    if (!all_passed) {
+        SC_REPORT_FATAL("Testbench", "Assertion failed.");
+    }
+    sc_stop();
+}
+"""
+
+
+_EXAMPLE_TESTBENCH_H_2 = """
+#ifndef TESTBENCH_H_
+#define TESTBENCH_H_
+
+#include <systemc>
+using namespace sc_core;
+
+class Testbench : public sc_module {
+public:
+  sc_in_clk i_clk;
+  sc_out<bool> o_rst;
+
+/* === Variable Section === */
+  sc_fifo_out<int> o_a;
+  sc_fifo_out<int> o_b;
+  sc_fifo_in<int> i_c;
 /* === Variable Section End === */
 
   SC_HAS_PROCESS(Testbench);
@@ -317,14 +601,14 @@ def generate_tb(
             # },
             {
                 "role": "user",
-                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n```cpp\n{_EXAMPLE_FUNC}\n```",
+                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT_1}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
             },
             {
                 "role": "assistant",
                 "content": json.dumps(
                     [
-                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP},
-                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H},
+                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP_1},
+                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H_1},
                     ],
                     ensure_ascii=False,
                     indent=2,
@@ -352,17 +636,32 @@ def generate_tb(
         ]
     elif dut_cpp and dut_h:
         messages = [
-            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "system", "content": _SYSTEM_PROMPT_V2},
             {
                 "role": "user",
-                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n{_FORMAT_PROMPT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H}\n```",
+                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n{_FORMAT_PROMPT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_1}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_1}\n```",
             },
             {
                 "role": "assistant",
                 "content": json.dumps(
                     [
-                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP},
-                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H},
+                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP_1},
+                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H_1},
+                    ],
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n{_FORMAT_PROMPT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_2}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_2}\n```",
+            },
+            {
+                "role": "assistant",
+                "content": json.dumps(
+                    [
+                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP_2},
+                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H_2},
                     ],
                     ensure_ascii=False,
                     indent=2,
@@ -387,7 +686,7 @@ def generate_tb(
     formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted, temperature=0.0).strip()
+    raw = _llm.generate(formatted, temperature=0.3).strip()
 
     match = re.search(r"\[.*\]", raw, re.S)
     if not match:

@@ -65,7 +65,7 @@ class VLLMGenerator:
         prompt: str,
         *,
         max_new_tokens: int = 4096,
-        temperature: float = 0.7,
+        temperature: float = 0.3,
         top_p: float = 0.8,
         top_k: int = 20,
         repetition_penalty: float = 1.05,

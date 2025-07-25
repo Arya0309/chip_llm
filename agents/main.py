@@ -202,28 +202,64 @@ def main() -> None:
             out_dir = LOG_ROOT / item["name"]
             out_dir.mkdir(parents=True, exist_ok=True)
 
-            try:
-                # 1) extract functions
-                entry = extract_entry(item["code"], None)
+            def retry(fn, max_try=5, *, name):
+                for i in range(1, max_try + 1):
+                    try:
+                        return fn()
+                    except Exception as e:
+                        print(f"[{name}] attempt {i}/{max_try} failed: {e}")
 
-                # 2) DUT
-                dut_files = agent_dut.generate_dut(entry["code"], requirement)
-                # 3) Testbench
-                tb_files = agent_tb.generate_tb(
+            entry = retry(
+                lambda: extract_entry(item["code"], item.get("function")),
+                name="extract_entry",
+            )
+
+            dut_files = retry(
+                lambda: agent_dut.generate_dut(entry["code"], requirement), name="DUT"
+            )
+
+            tb_files = retry(
+                lambda: agent_tb.generate_tb(
                     dut_cpp=dut_files["Dut.cpp"],
                     dut_h=dut_files["Dut.h"],
                     requirement=requirement,
-                )
-                # 4) Pipeline
-                pipe_files = agent_pipe.generate_pipeline(
-                    dut_files["Dut.h"], tb_files["Testbench.h"]
-                )
+                ),
+                name="Testbench",
+            )
 
-                # 5) Output dir
-                out_dir = LOG_ROOT / item["name"]
+            pipe_files = retry(
+                lambda: agent_pipe.generate_pipeline(
+                    dut_files["Dut.h"], tb_files["Testbench.h"]
+                ),
+                name="Pipeline",
+            )
+            try:
                 write_outputs(dut_files, tb_files, pipe_files, out_dir, item["name"])
             except Exception as e:
                 print(f"[Error] {item['name']}: {e}")
+
+            # try:
+            #     # 1) extract functions
+            #     entry = extract_entry(item["code"], None)
+
+            #     # 2) DUT
+            #     dut_files = agent_dut.generate_dut(entry["code"], requirement)
+            #     # 3) Testbench
+            #     tb_files = agent_tb.generate_tb(
+            #         dut_cpp=dut_files["Dut.cpp"],
+            #         dut_h=dut_files["Dut.h"],
+            #         requirement=requirement,
+            #     )
+            #     # 4) Pipeline
+            #     pipe_files = agent_pipe.generate_pipeline(
+            #         dut_files["Dut.h"], tb_files["Testbench.h"]
+            #     )
+
+            #     # 5) Output dir
+            #     out_dir = LOG_ROOT / item["name"]
+            #     write_outputs(dut_files, tb_files, pipe_files, out_dir, item["name"])
+            # except Exception as e:
+            #     print(f"[Error] {item['name']}: {e}")
         return
 
     # =============================================================

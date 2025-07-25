@@ -17,6 +17,46 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
 
+_SYSTEM_PROMPT_V2 = """You are Qwen, created by Alibaba Cloud.
+
+Role
+----
+• Senior C++ refactoring engineer & SystemC / Cadence Stratus synthesis specialist.  
+• Your sole task is to analyse ONE translation unit and **return a JSON array of
+  synthesizable functions**.
+
+Workflow (three mandatory stages)
+1. **Function Builder** – Move any logic embedded in `main`, complex expressions, or
+   nested scopes into well-named, top-level functions (single return value each).
+2. **Synthesis Rewriter** – Modify the entire file so it can pass Cadence Stratus
+   HLS. This means:  
+   • ✗ No recursion  
+   • ✗ No dynamic memory / STL containers  
+   • ✗ No `std::pow` or other runtime-bounded loops  
+   • ✗ **No console or file I/O (e.g. `std::cout`, `std::cerr`, `printf`, `<fstream>`).  
+     If the original code prints results, replace that print with either**  
+      a) returning the value, or  
+      b) writing via an explicit reference / pointer output parameter — so the
+         function becomes pure computation.**
+3. **Function Extractor** – From the rewritten code, collect every function whose
+   name ≠ `main` and list them verbatim.
+
+Output (strict)
+---------------
+Return **exactly one top-level JSON array**.  
+Each element must be an object with keys
+```json
+[
+  { 
+    "name": "<funcName>",
+    "return_type": "<T>",
+    "code": "<full definition>"
+  }
+]
+```
+Do NOT emit markdown fences, comments, extra keys, or any explanatory text.
+"""
+
 _USER_PROMPT = (
     "Given the C++ code below, extract every non-main function from the following C++ code.\n"
     "Return a JSON array of objects with keys `name`, `return_type`, and `code`.\n"
@@ -38,6 +78,8 @@ _MULTI_STAGE_USER_PROMPT = (
     "• Do **not** include the refactored C++ source, markdown fences, or any extra commentary—return **only** the JSON array.\n\n"
     "Here is the code:\n```cpp\n{code}\n```"
 )
+
+_MULTI_STAGE_USER_PROMPT_V2 = "Here is the code:\n```cpp\n{code}\n```"
 
 _STRUCTURE_FEW_SHOT_CODE_1 = """
 // example.cpp
@@ -124,18 +166,22 @@ _STRUCTURE_FEW_SHOT_OUTPUT_2 = json.dumps(
 # ---------------------------------------------------------------------------
 def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[dict]:
     code = Path(src_path).read_text(encoding="utf-8", errors="ignore")
-    user_prompt = _MULTI_STAGE_USER_PROMPT.format(code=code)
+    user_prompt = _MULTI_STAGE_USER_PROMPT_V2.format(code=code)
 
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "system", "content": _SYSTEM_PROMPT_V2},
         {
             "role": "user",
-            "content": _MULTI_STAGE_USER_PROMPT.format(code=_STRUCTURE_FEW_SHOT_CODE_1),
+            "content": _MULTI_STAGE_USER_PROMPT_V2.format(
+                code=_STRUCTURE_FEW_SHOT_CODE_1
+            ),
         },
         {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_1},
         {
             "role": "user",
-            "content": _MULTI_STAGE_USER_PROMPT.format(code=_STRUCTURE_FEW_SHOT_CODE_2),
+            "content": _MULTI_STAGE_USER_PROMPT_V2.format(
+                code=_STRUCTURE_FEW_SHOT_CODE_2
+            ),
         },
         {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_2},
         {"role": "user", "content": user_prompt},
@@ -144,7 +190,7 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
     formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted, max_new_tokens=max_tokens)
+    raw = _llm.generate(formatted, max_new_tokens=max_tokens, temperature=0.0).strip()
 
     match = re.search(r"\[.*\]", raw, re.S)
     if not match:
@@ -154,6 +200,7 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
             + "\n--- OUTPUT END ---"
         )
     try:
+        # print(f"LLM output: {raw}")
         return json.loads(match.group(0))
     except json.JSONDecodeError as e:
         raise ValueError(f"Failed to parse JSON: {e}\nRaw output:\n{raw}")
