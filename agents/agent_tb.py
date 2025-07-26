@@ -16,9 +16,9 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
 
-_SYSTEM_PROMPT_V2 = """
-You are Qwen, created by Alibaba Cloud.
+_QWEN_SYSTEM_PROMPT_HEAD = """You are Qwen, created by Alibaba Cloud."""
 
+_SYSTEM_PROMPT_V2 = """
 Role
 ----
 • Senior SystemC verification engineer.  
@@ -592,9 +592,15 @@ private:
 def generate_tb(
     func_code: str = "", dut_cpp: str = "", dut_h: str = "", requirement: str = ""
 ) -> dict[str, str]:
+
+    if "qwen" in MODEL_NAME.lower():
+        system_prompt = _QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
+    else:
+        system_prompt = _SYSTEM_PROMPT_V2
+
     if func_code:
         messages = [
-            {"role": "system", "content": _SYSTEM_PROMPT_V2},
+            {"role": "system", "content": system_prompt},
             # {
             #     "role": "user",
             #     "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT_WITH_FUNC}\n```cpp\n{_EXAMPLE_FUNC}\n```",

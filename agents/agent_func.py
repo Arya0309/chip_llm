@@ -17,8 +17,9 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
 
-_SYSTEM_PROMPT_V2 = """You are Qwen, created by Alibaba Cloud.
+_QWEN_SYSTEM_PROMPT_HEAD = """You are Qwen, created by Alibaba Cloud."""
 
+_SYSTEM_PROMPT_V2 = """
 Role
 ----
 • Senior C++ refactoring engineer & SystemC / Cadence Stratus synthesis specialist.  
@@ -168,8 +169,13 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
     code = Path(src_path).read_text(encoding="utf-8", errors="ignore")
     user_prompt = _MULTI_STAGE_USER_PROMPT_V2.format(code=code)
 
+    if "qwen" in MODEL_NAME.lower():
+        system_prompt = _QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
+    else:
+        system_prompt = _SYSTEM_PROMPT_V2
+
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT_V2},
+        {"role": "system", "content": system_prompt},
         {
             "role": "user",
             "content": _MULTI_STAGE_USER_PROMPT_V2.format(

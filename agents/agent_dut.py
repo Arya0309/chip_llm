@@ -17,8 +17,9 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
 
-_SYSTEM_PROMPT_V2 = """You are Qwen, created by Alibaba Cloud.
+_QWEN_SYSTEM_PROMPT_HEAD = """You are Qwen, created by Alibaba Cloud."""
 
+_SYSTEM_PROMPT_V2 = """
 Role
 ----
 • Senior SystemC / Cadence Stratus design engineer.  
@@ -214,8 +215,13 @@ private:
 # Generate Dut.cpp via one-shot in-context learning
 # ---------------------------------------------------------------------------
 def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
+    if "qwen" in MODEL_NAME.lower():
+        system_prompt = _QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
+    else:
+        system_prompt = _SYSTEM_PROMPT_V2
+
     messages = [
-        {"role": "system", "content": _SYSTEM_PROMPT_V2},
+        {"role": "system", "content": system_prompt},
         # {
         #     "role": "user",
         #     "content": f"[Requirement]\n{_EXAMPLE_USER_PROMPT_1}\n{_FORMAT_PROMPT}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
