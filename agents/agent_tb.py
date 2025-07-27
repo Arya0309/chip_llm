@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from utils import DEFAULT_MODEL, VLLMGenerator
 
+import prompts as prompt
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -15,8 +17,6 @@ _llm = VLLMGenerator(MODEL_NAME)
 # One-shot in-context example without instruction header block
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus engineer.\n"
-
-_QWEN_SYSTEM_PROMPT_HEAD = """You are Qwen, created by Alibaba Cloud."""
 
 _SYSTEM_PROMPT_V2 = """
 Role
@@ -35,22 +35,37 @@ Constraints & Style
 -------------------
 • Follow the same port names, types, and directions seen in the DUT.  
 • Use blocking `read()` / `write()` only.  
-• No dynamic memory, STL containers beyond `<vector>`, no recursion.
 
-Output Format
--------------
-Return **one JSON array with TWO objects only**:
+Output format (STRICT)
+----------------------
+Your entire response must consist ONLY of the following blocks, in this order:
 
-```json
-[
-  { "name": "Testbench.cpp", "code": "<full source>" },
-  { "name": "Testbench.h",   "code": "<full header>" }
-]
+[ANALYSIS]
+<your chain‑of‑thought reasoning lives here>
+[/ANALYSIS]
+
+** FILE: Testbench.cpp **
+```cpp
+<full definition of Testbench.cpp>
 ```
-Absolutely no markdown wrappers or explanatory text.
+
+** FILE: Testbench.h **
+```cpp
+<full definition of Testbench.h>
+```
 """
 
-# _FORMAT_PROMPT = 'Please output the result as a JSON array of objects, each object having "name" and "code" fields.\n'
+_OUTPUT_FORMAT = """
+** FILE: Testbench.cpp **
+```cpp
+{Testbench.cpp}
+```
+
+** FILE: Testbench.h **
+```cpp
+{Testbench.h}
+```
+"""
 
 _FORMAT_PROMPT_WITH_FUNC = 'The DUT has already been implemented. Please generate the testbench as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
@@ -147,7 +162,7 @@ void Testbench::do_feed() {
     std::vector<Testcase> tests;
     std::ifstream fin("testcases.txt");
     if (!fin.is_open()) {
-        std::cerr << "Error: Unable to open testcases.txt\\n";
+        std::cerr << "Error: Unable to open testcases.txt\n";
         sc_stop();
         return;
     }
@@ -158,7 +173,7 @@ void Testbench::do_feed() {
         /* === Variable Section === */
         Testcase tc;
         if (!(iss >> tc.a >> tc.b)) {
-            std::cerr << "Warning: Incorrect format, skipping line: " << line << "\\n";
+            std::cerr << "Warning: Incorrect format, skipping line: " << line << "\n";
             continue;
         }
         tests.push_back(tc);
@@ -194,7 +209,7 @@ void Testbench::do_fetch() {
     std::vector<Testcase> tests;
     std::ifstream fin("testcases.txt");
     if (!fin.is_open()) {
-        std::cerr << "Error: Unable to open testcases.txt\\n";
+        std::cerr << "Error: Unable to open testcases.txt\n";
         sc_stop();
         return;
     }
@@ -205,7 +220,7 @@ void Testbench::do_fetch() {
         /* === Variable Section === */
         Testcase tc;
         if (!(iss >> tc.a >> tc.b)) {
-            std::cerr << "Warning: Incorrect format in testcases.txt, skipping line: " << line << "\\n";
+            std::cerr << "Warning: Incorrect format in testcases.txt, skipping line: " << line << "\n";
             continue;
         }
         tests.push_back(tc);
@@ -217,7 +232,7 @@ void Testbench::do_fetch() {
     {
         std::ifstream fin("golden.txt");
         if (!fin.is_open()) {
-            std::cerr << "Error: Unable to open golden.txt\\n";
+            std::cerr << "Error: Unable to open golden.txt\n";
             sc_stop();
             return;
         }
@@ -227,7 +242,7 @@ void Testbench::do_fetch() {
             std::istringstream iss(line);
             Golden g;
             if (!(iss >> g.expected)) {
-                std::cerr << "Warning: Incorrect format in golden.txt, skip: " << line << "\\n";
+                std::cerr << "Warning: Incorrect format in golden.txt, skip: " << line << "\n";
                 continue;
             }
             goldens.push_back(g);
@@ -247,13 +262,13 @@ void Testbench::do_fetch() {
         bool passed = (result == goldens[idx].expected);
 
         if (passed) {
-            std::cout << "Test case " << idx + 1 << " passed.\\n";
-            std::cout << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\\n";
-            std::cout << "Output: " << result << "\\n\\n";
+            std::cout << "Test case " << idx + 1 << " passed.\n";
+            std::cout << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\n";
+            std::cout << "Output: " << result << "\n\n";
         } else {
-            std::cerr << "Test case " << idx + 1 << " failed.\\n";
-            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\\n";
-            std::cerr << "Output: " << result << ", Expected: " << goldens[idx].expected << "\\n\\n";
+            std::cerr << "Test case " << idx + 1 << " failed.\n";
+            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\n";
+            std::cerr << "Output: " << result << ", Expected: " << goldens[idx].expected << "\n\n";
             all_passed = false;
         }
     }
@@ -415,7 +430,7 @@ void Testbench::do_feed() {
 
     std::ifstream fin("testcases.txt");
     if (!fin.is_open()) {
-        std::cerr << "Error: Unable to open testcases.txt\\n";
+        std::cerr << "Error: Unable to open testcases.txt\n";
         sc_stop();
         return;
     }
@@ -430,7 +445,7 @@ void Testbench::do_feed() {
         while (iss >> v) tokens.push_back(v);
         if (tokens.size() != 2 * N) {
             std::cerr << "Warning: Skip line with incorrect token count: "
-                      << line << '\\n';
+                      << line << '\n';
             continue;
         }
         Testcase tc;
@@ -460,7 +475,7 @@ void Testbench::do_fetch() {
 
     std::ifstream fin("testcases.txt");
     if (!fin.is_open()) {
-        std::cerr << "Error: Unable to open testcases.txt\\n";
+        std::cerr << "Error: Unable to open testcases.txt\n";
         sc_stop();
         return;
     }
@@ -475,7 +490,7 @@ void Testbench::do_fetch() {
         while (iss >> v) tokens.push_back(v);
         if (tokens.size() != 2 * N) {
             std::cerr << "Warning: Skip line with incorrect token count: "
-                      << line << '\\n';
+                      << line << '\n';
             continue;
         }
         Testcase tc;
@@ -489,7 +504,7 @@ void Testbench::do_fetch() {
 
     std::ifstream gin("golden.txt");
     if (!gin.is_open()) {
-        std::cerr << "Error: Unable to open golden.txt\\n";
+        std::cerr << "Error: Unable to open golden.txt\n";
         sc_stop();
         return;
     }
@@ -503,7 +518,7 @@ void Testbench::do_fetch() {
         while (iss >> v) vals.push_back(v);
         if (vals.size() != N) {
             std::cerr << "Warning: Skip golden line with incorrect length: "
-                      << line << '\\n';
+                      << line << '\n';
             continue;
         }
         goldens.push_back({std::move(vals)});
@@ -523,10 +538,10 @@ void Testbench::do_fetch() {
 
         bool passed = (result == goldens[idx].C);
         if (passed) {
-            std::cout << "Test case " << idx + 1 << " passed.\\n";
+            std::cout << "Test case " << idx + 1 << " passed.\n";
         } else {
             all_passed = false;
-            std::cerr << "Test case " << idx + 1 << " failed.\\n";
+            std::cerr << "Test case " << idx + 1 << " failed.\n";
             std::cerr << "Input: A = [";
             for (int i = 0; i < N; ++i) {
                 std::cerr << tests[idx].A[i] << (i < N - 1 ? ", " : "");
@@ -535,12 +550,12 @@ void Testbench::do_fetch() {
             for (int i = 0; i < N; ++i) {
                 std::cerr << tests[idx].B[i] << (i < N - 1 ? ", " : "");
             }
-            std::cerr << "]\\n";
+            std::cerr << "]\n";
             std::cerr << "Output: ";
             for (int x : result)        std::cerr << x << ' ';
-            std::cerr << "\\nExpected: ";
+            std::cerr << "\nExpected: ";
             for (int x : goldens[idx].C) std::cerr << x << ' ';
-            std::cerr << '\\n';
+            std::cerr << '\n';
         }
     }
 
@@ -594,42 +609,24 @@ def generate_tb(
 ) -> dict[str, str]:
 
     if "qwen" in MODEL_NAME.lower():
-        system_prompt = _QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
+        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
     else:
         system_prompt = _SYSTEM_PROMPT_V2
 
     if func_code:
         messages = [
             {"role": "system", "content": system_prompt},
-            # {
-            #     "role": "user",
-            #     "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT}\n{_FORMAT_PROMPT_WITH_FUNC}\n```cpp\n{_EXAMPLE_FUNC}\n```",
-            # },
             {
                 "role": "user",
                 "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT_1}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
             },
             {
                 "role": "assistant",
-                "content": json.dumps(
-                    [
-                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP_1},
-                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H_1},
-                    ],
-                    ensure_ascii=False,
-                    indent=2,
+                "content": _OUTPUT_FORMAT.format(
+                    Testbench_cpp=_EXAMPLE_TESTBENCH_CPP_1,
+                    Testbench_h=_EXAMPLE_TESTBENCH_H_1,
                 ),
             },
-            # {
-            #     "role": "user",
-            #     "content": (
-            #         (f"[Requirement]\n{requirement}" if requirement else "")
-            #         + f"\n{_FORMAT_PROMPT_WITH_FUNC}"
-            #         + "\n```cpp\n"
-            #         + func_code.strip()
-            #         + "\n```"
-            #     ),
-            # },
             {
                 "role": "user",
                 "content": (
@@ -645,39 +642,30 @@ def generate_tb(
             {"role": "system", "content": _SYSTEM_PROMPT_V2},
             {
                 "role": "user",
-                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n{_FORMAT_PROMPT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_1}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_1}\n```",
+                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_1}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_1}\n```",
             },
             {
                 "role": "assistant",
-                "content": json.dumps(
-                    [
-                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP_1},
-                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H_1},
-                    ],
-                    ensure_ascii=False,
-                    indent=2,
+                "content": _OUTPUT_FORMAT.format(
+                    Testbench_cpp=_EXAMPLE_TESTBENCH_CPP_1,
+                    Testbench_h=_EXAMPLE_TESTBENCH_H_1,
                 ),
             },
             {
                 "role": "user",
-                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n{_FORMAT_PROMPT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_2}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_2}\n```",
+                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_2}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_2}\n```",
             },
             {
                 "role": "assistant",
-                "content": json.dumps(
-                    [
-                        {"name": "Testbench.cpp", "code": _EXAMPLE_TESTBENCH_CPP_2},
-                        {"name": "Testbench.h", "code": _EXAMPLE_TESTBENCH_H_2},
-                    ],
-                    ensure_ascii=False,
-                    indent=2,
+                "content": _OUTPUT_FORMAT.format(
+                    Testbench_cpp=_EXAMPLE_TESTBENCH_CPP_2,
+                    Testbench_h=_EXAMPLE_TESTBENCH_H_2,
                 ),
             },
             {
                 "role": "user",
                 "content": (
                     (f"[Requirement]\n{_REQUIREMENT_WITH_DUT}")
-                    + f"\n{_FORMAT_PROMPT_WITH_DUT}"
                     + "\n[Dut.cpp]\n```cpp\n"
                     + dut_cpp.strip()
                     + "\n```"
@@ -694,26 +682,42 @@ def generate_tb(
     )
     raw = _llm.generate(formatted, temperature=0.3).strip()
 
-    match = re.search(r"\[.*\]", raw, re.S)
-    if not match:
+    # ------------------------------------------------------------
+    # ❶  Find every "** FILE: <name> ** … ```cpp … ```" block
+    # ------------------------------------------------------------
+    block_pat = re.compile(
+        r"""
+        \*\*\s*FILE:\s*              # "** FILE:" header
+        ([^*]+?)                     # ① filename   (lazy until next '*')
+        \s*\*\*\s*                   # closing "**"
+        \n```(?:[a-zA-Z0-9_+-]+)?\s* # opening ``` or ```cpp
+        (.*?)                        # ② file body  (non‑greedy, DOTALL)
+        \s*```                       # closing fence
+        """,
+        re.S | re.VERBOSE,
+    )
+
+    matches = block_pat.findall(raw)    #  <--  no stripping of [ANALYSIS]
+    if not matches:
         raise ValueError(
-            "LLM output did not contain a JSON array.\n--- OUTPUT START ---\n"
-            + raw
-            + "\n--- OUTPUT END ---"
+            "LLM output did not contain any FILE blocks.\n"
+            "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
         )
 
-    try:
-        file_list = json.loads(match.group(0))
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Failed to parse JSON: {e}\nRaw output:\n{raw}")
+    # ------------------------------------------------------------
+    # ❷  Build the original {filename: code} mapping
+    # ------------------------------------------------------------
+    file_map = {fname.strip(): code.strip() for fname, code in matches}
 
-    file_map = {f["name"]: f["code"] for f in file_list if "name" in f and "code" in f}
     for req in ("Testbench.cpp", "Testbench.h"):
         if req not in file_map:
-            raise RuntimeError(f"Missing '{req}' in model output\nRaw output:\n{raw}")
+            raise RuntimeError(
+                f"Missing '{req}' in model output\n--- OUTPUT START ---\n"
+                + raw
+                + "\n--- OUTPUT END ---"
+            )
 
     return file_map
-
 
 # ---------------------------------------------------------------------------
 # CLI

@@ -6,6 +6,8 @@ from pathlib import Path
 
 from utils import DEFAULT_MODEL, VLLMGenerator
 
+import prompts as prompt
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -15,48 +17,50 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 # Prompts & Examples
 # ---------------------------------------------------------------------------
-_SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
+_SYSTEM_PROMPT = "You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
 
-_QWEN_SYSTEM_PROMPT_HEAD = """You are Qwen, created by Alibaba Cloud."""
 
 _SYSTEM_PROMPT_V2 = """
 Role
 ----
-• Senior C++ refactoring engineer & SystemC / Cadence Stratus synthesis specialist.  
-• Your sole task is to analyse ONE translation unit and **return a JSON array of
-  synthesizable functions**.
+• Senior C++ refactoring engineer & SystemC / Cadence, Stratus synthesis specialist.  
+• Your sole task is to analyse ONE translation unit and deliver synthesizable functions.
 
 Workflow (three mandatory stages)
 1. **Function Builder** – Move any logic embedded in `main`, complex expressions, or
-   nested scopes into well-named, top-level functions (single return value each).
-2. **Synthesis Rewriter** – Modify the entire file so it can pass Cadence Stratus
-   HLS. This means:  
-   • ✗ No recursion  
-   • ✗ No dynamic memory / STL containers  
-   • ✗ No `std::pow` or other runtime-bounded loops  
-   • ✗ **No console or file I/O (e.g. `std::cout`, `std::cerr`, `printf`, `<fstream>`).  
-     If the original code prints results, replace that print with either**  
-      a) returning the value, or  
-      b) writing via an explicit reference / pointer output parameter — so the
-         function becomes pure computation.**
+   nested scopes into well‑named, top‑level functions (single return value each).
+2. **Synthesis Rewriter** – Modify the entire file so it can pass Cadence Stratus HLS.
+   ✗ No recursion  
+   ✗ No dynamic memory / STL containers  
+   ✗ No `std::pow` or other runtime‑bounded loops  
+   ✗ **No console or file I/O** (e.g. `std::cout`, `std::cerr`, `printf`, `<fstream>`).  
+     If the original code prints results, replace that print with either  
+       a) returning the value, or  
+       b) writing via an explicit reference / pointer output parameter — so the
+          function becomes pure computation.
 3. **Function Extractor** – From the rewritten code, collect every function whose
    name ≠ `main` and list them verbatim.
 
-Output (strict)
----------------
-Return **exactly one top-level JSON array**.  
-Each element must be an object with keys
-```json
-[
-  { 
-    "name": "<funcName>",
-    "return_type": "<T>",
-    "code": "<full definition>"
-  }
-]
+Output format (STRICT)
+----------------------
+Your entire response must consist ONLY of the following blocks, in this order:
+
+[ANALYSIS]
+<your chain‑of‑thought reasoning lives here>
+[/ANALYSIS]
+
+** FUNCTION: <funcName1> **
+```cpp
+<full definition of funcName1>
 ```
-Do NOT emit markdown fences, comments, extra keys, or any explanatory text.
+
+** FUNCTION: <funcName2> **
+```cpp
+<full definition of funcName2>
+```
+(…repeat for every remaining function…)
 """
+
 
 _USER_PROMPT = (
     "Given the C++ code below, extract every non-main function from the following C++ code.\n"
@@ -92,16 +96,18 @@ double add(double a, double b) {
 int main() { std::cout << add(2.0, 3.0); return 0; }
 """
 
-_STRUCTURE_FEW_SHOT_OUTPUT_1 = json.dumps(
-    [
-        {
-            "name": "add",
-            "return_type": "double",
-            "code": "double add(double a, double b) {\n    return a + b;\n}",
-        }
-    ],
-    ensure_ascii=False,
-)
+_STRUCTURE_FEW_SHOT_RESPOND_1 = """
+[ANALYSIS]
+The translation unit defines one helper function `add` and a `main` routine that performs console I/O.  To satisfy Cadence Stratus requirements we discard `main` (because of `std::cout`) and keep `add` verbatim: it is side‑effect‑free, uses only primitive arithmetic, and therefore is fully synthesizable.
+[/ANALYSIS]
+
+** FUNCTION: add **
+```cpp
+double add(double a, double b) {
+    return a + b;
+}
+```
+"""
 
 _STRUCTURE_FEW_SHOT_CODE_2 = """
 // stats_utils.cpp
@@ -140,27 +146,42 @@ int main() {
 }
 """
 
-_STRUCTURE_FEW_SHOT_OUTPUT_2 = json.dumps(
-    [
-        {
-            "name": "calc_sum",
-            "return_type": "double",
-            "code": "double calc_sum(const double* arr, size_t n) {\n    double s = 0.0;\n    for (size_t i = 0; i < n; ++i)\n        s += arr[i];\n    return s;\n}",
-        },
-        {
-            "name": "calc_mean",
-            "return_type": "double",
-            "code": "double calc_mean(const double* arr, size_t n) {\n    return calc_sum(arr, n) / static_cast<double>(n);\n}",
-        },
-        {
-            "name": "calc_variance",
-            "return_type": "double",
-            "code": "double calc_variance(const double* arr, size_t n) {\n    double mu = calc_mean(arr, n);\n    double var = 0.0;\n    for (size_t i = 0; i < n; ++i) {\n        double diff = arr[i] - mu;\n        var += diff * diff;\n    }\n    return var / static_cast<double>(n);\n}",
-        },
-    ],
-    ensure_ascii=False,
-)
+_STRUCTURE_FEW_SHOT_RESPOND_2 = """
+[ANALYSIS]
+The file offers three numerical helpers—calc_sum, calc_mean, and calc_variance—plus a main routine with console output. We eliminate main to remove I/O. All three helpers are pure, free of recursion, dynamic memory, and STL containers, so they are synthesizable by Cadence Stratus without modification.
+[/ANALYSIS]
 
+** FUNCTION: calc_sum **
+```cpp
+double calc_sum(const double* arr, size_t n) {
+    double s = 0.0;
+    for (size_t i = 0; i < n; ++i)
+        s += arr[i];
+    return s;
+}
+```
+
+** FUNCTION: calc_mean **
+```cpp
+double calc_mean(const double* arr, size_t n) {
+    return calc_sum(arr, n) / static_cast<double>(n);
+}
+```
+
+** FUNCTION: calc_variance **
+```cpp
+double calc_variance(const double* arr, size_t n) {
+    double mu = calc_mean(arr, n);
+    double var = 0.0;
+    for (size_t i = 0; i < n; ++i) {
+        double diff = arr[i] - mu;
+        var += diff * diff;
+    }
+    return var / static_cast<double>(n);
+}
+```
+"""
+     
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -170,7 +191,7 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
     user_prompt = _MULTI_STAGE_USER_PROMPT_V2.format(code=code)
 
     if "qwen" in MODEL_NAME.lower():
-        system_prompt = _QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
+        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
     else:
         system_prompt = _SYSTEM_PROMPT_V2
 
@@ -182,14 +203,14 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
                 code=_STRUCTURE_FEW_SHOT_CODE_1
             ),
         },
-        {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_1},
+        {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_RESPOND_1},
         {
             "role": "user",
             "content": _MULTI_STAGE_USER_PROMPT_V2.format(
                 code=_STRUCTURE_FEW_SHOT_CODE_2
             ),
         },
-        {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_OUTPUT_2},
+        {"role": "assistant", "content": _STRUCTURE_FEW_SHOT_RESPOND_2},
         {"role": "user", "content": user_prompt},
     ]
 
@@ -198,19 +219,16 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
     )
     raw = _llm.generate(formatted, max_new_tokens=max_tokens, temperature=0.0).strip()
 
-    match = re.search(r"\[.*\]", raw, re.S)
-    if not match:
+    pattern = re.compile(r"```(?:cpp)?\s*(.*?)\s*```", re.S)
+    blocks = pattern.findall(raw)
+    
+    if not blocks:
         raise ValueError(
-            "LLM output did not contain a JSON array.\n--- OUTPUT START ---\n"
+            "LLM output did not contain any code blocks.\n--- OUTPUT START ---\n"
             + raw
             + "\n--- OUTPUT END ---"
         )
-    try:
-        # print(f"LLM output: {raw}")
-        return json.loads(match.group(0))
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Failed to parse JSON: {e}\nRaw output:\n{raw}")
-
+    return blocks
 
 # ---------------------------------------------------------------------------
 # CLI Helper

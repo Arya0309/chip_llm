@@ -25,7 +25,7 @@ class VLLMGenerator:
         dtype: str | None = "auto",
         **engine_kwargs: Any,
     ):
-        tp_size = tp_size or torch.cuda.device_count() or 1export HF_HOME=/workspace/model
+        tp_size = tp_size or torch.cuda.device_count() or 1
 
         print(f"Using {tp_size} GPU(s) via tensor-parallelism")
 

@@ -237,29 +237,6 @@ def main() -> None:
                 write_outputs(dut_files, tb_files, pipe_files, out_dir, item["name"])
             except Exception as e:
                 print(f"[Error] {item['name']}: {e}")
-
-            # try:
-            #     # 1) extract functions
-            #     entry = extract_entry(item["code"], None)
-
-            #     # 2) DUT
-            #     dut_files = agent_dut.generate_dut(entry["code"], requirement)
-            #     # 3) Testbench
-            #     tb_files = agent_tb.generate_tb(
-            #         dut_cpp=dut_files["Dut.cpp"],
-            #         dut_h=dut_files["Dut.h"],
-            #         requirement=requirement,
-            #     )
-            #     # 4) Pipeline
-            #     pipe_files = agent_pipe.generate_pipeline(
-            #         dut_files["Dut.h"], tb_files["Testbench.h"]
-            #     )
-
-            #     # 5) Output dir
-            #     out_dir = LOG_ROOT / item["name"]
-            #     write_outputs(dut_files, tb_files, pipe_files, out_dir, item["name"])
-            # except Exception as e:
-            #     print(f"[Error] {item['name']}: {e}")
         return
 
     # =============================================================

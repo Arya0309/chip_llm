@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from utils import DEFAULT_MODEL, VLLMGenerator
 
+import prompts as prompt
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -18,14 +20,11 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are Qwen, created by Alibaba Cloud. You are a senior SystemC/Stratus integration engineer."
 
-_QWEN_SYSTEM_PROMPT_HEAD = """You are Qwen, created by Alibaba Cloud."""
-
 _SYSTEM_PROMPT_V2 = """
 Role
 ----
 • Senior SystemC integration engineer.  
-• Connect an existing `Dut` and `Testbench` into a top-level module
-  **SystemPipeline**.
+• Connect an existing `Dut` and `Testbench` into a top-level module **SystemPipeline**.
 
 Integration Rules
 -----------------
@@ -39,22 +38,38 @@ Integration Rules
 4. Keep fixed comment blocks intact; user should be able to compile directly.
 5. No extra components, no fancy tracing.
 
-Output Format
--------------
-Return **one JSON array with TWO objects only**:
+Output format (STRICT)
+----------------------
+Your entire response must consist ONLY of the following blocks, in this order:
 
-```json
-[
-  { "name": "SystemPipeline.cpp", "code": "<full source>" },
-  { "name": "SystemPipeline.h",   "code": "<full header>" }
-]
+[ANALYSIS]
+<your chain‑of‑thought reasoning lives here>
+[/ANALYSIS]
+
+** FILE: SystemPipeline.cpp **
+```cpp
+<full definition of Dut.cpp>
 ```
-No markdown, no extra commentary, strict key order.
+
+** FILE: SystemPipeline.h **
+```cpp
+<full definition of Dut.h>
+```
+"""
+
+_OUTPUT_FORMAT = """
+** FILE: SystemPipeline.cpp **
+```cpp
+{SYSTEM_PIPELINE_CPP}
+```
+
+** FILE: SystemPipeline.h **
+```cpp
+{SYSTEM_PIPELINE_H}
+```
 """
 
 _USER_PROMPT = "Given the following Dut.h and Testbench.h, generate SystemPipeline.cpp and SystemPipeline.h.\n"
-
-_FORMAT_PROMPT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "SystemPipeline.cpp" and the second "name": "SystemPipeline.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 
 _EXAMPLE_DUT_H = """#ifndef DUT_H_
@@ -169,36 +184,23 @@ private:
 def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
 
     if "qwen" in MODEL_NAME.lower():
-        system_prompt = _QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
+        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
     else:
         system_prompt = _SYSTEM_PROMPT_V2
 
     messages = [
         {"role": "system", "content": system_prompt},
-        # {
-        #     "role": "user",
-        #     "content": f"{_USER_PROMPT}\n{_FORMAT_PROMPT}--- Dut.h ---\n```cpp\n{_EXAMPLE_DUT_H}\n```\n--- Testbench.h ---\n```cpp\n{_EXAMPLE_TB_H}\n```",
-        # },
         {
             "role": "user",
             "content": f"{_USER_PROMPT}--- Dut.h ---\n```cpp\n{_EXAMPLE_DUT_H}\n```\n--- Testbench.h ---\n```cpp\n{_EXAMPLE_TB_H}\n```",
         },
         {
             "role": "assistant",
-            "content": json.dumps(
-                [
-                    {"name": "SystemPipeline.cpp", "code": _EXAMPLE_PIPE_CPP},
-                    {"name": "SystemPipeline.h", "code": _EXAMPLE_PIPE_H},
-                ],
-                ensure_ascii=False,
-                indent=2,
+            "content": _EXAMPLE_PIPE_CPP.format(
+                SYSTEM_PIPELINE_CPP=_EXAMPLE_PIPE_CPP, SYSTEM_PIPELINE_H=_EXAMPLE_PIPE_H
             ),
         },
-        # {
-        #     "role": "user",
-        #     "content": f"{_USER_PROMPT}\n{_FORMAT_PROMPT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
-        # },
-                {
+        {
             "role": "user",
             "content": f"{_USER_PROMPT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
         },
@@ -208,24 +210,43 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
     )
     raw = _llm.generate(prompt, temperature=0.0).strip()
 
-    match = re.search(r"\[.*\]", raw, re.S)
-    if not match:
+    # ------------------------------------------------------------
+    # ❶  Find every "** FILE: <name> ** … ```cpp … ```" block
+    # ------------------------------------------------------------
+    block_pat = re.compile(
+        r"""
+        \*\*\s*FILE:\s*              # "** FILE:" header
+        ([^*]+?)                     # ① filename   (lazy until next '*')
+        \s*\*\*\s*                   # closing "**"
+        \n```(?:[a-zA-Z0-9_+-]+)?\s* # opening ``` or ```cpp
+        (.*?)                        # ② file body  (non‑greedy, DOTALL)
+        \s*```                       # closing fence
+        """,
+        re.S | re.VERBOSE,
+    )
+
+    matches = block_pat.findall(raw)    #  <--  no stripping of [ANALYSIS]
+    if not matches:
         raise ValueError(
-            "LLM output missing JSON array.\n--- OUTPUT START ---\n"
-            + raw
-            + "\n--- OUTPUT END ---"
+            "LLM output did not contain any FILE blocks.\n"
+            "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
         )
 
-    try:
-        file_list = json.loads(match.group(0))
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Failed to parse JSON: {e}\nRaw output:\n{raw}")
+    # ------------------------------------------------------------
+    # ❷  Build the original {filename: code} mapping
+    # ------------------------------------------------------------
+    file_map = {fname.strip(): code.strip() for fname, code in matches}
 
-    file_map = {f["name"]: f["code"] for f in file_list if "name" in f and "code" in f}
     for req in ("SystemPipeline.cpp", "SystemPipeline.h"):
         if req not in file_map:
-            raise RuntimeError(f"Missing '{req}' in model output")
+            raise RuntimeError(
+                f"Missing '{req}' in model output\n--- OUTPUT START ---\n"
+                + raw
+                + "\n--- OUTPUT END ---"
+            )
+
     return file_map
+
 
 
 # ---------------------------------------------------------------------------
