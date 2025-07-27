@@ -58,12 +58,12 @@ Your entire response must consist ONLY of the following blocks, in this order:
 _OUTPUT_FORMAT = """
 ** FILE: Testbench.cpp **
 ```cpp
-{Testbench.cpp}
+{Testbench_cpp}
 ```
 
 ** FILE: Testbench.h **
 ```cpp
-{Testbench.h}
+{Testbench_h}
 ```
 """
 
@@ -137,7 +137,7 @@ private:
 
 #endif
 """
-_EXAMPLE_TESTBENCH_CPP_1 = """
+_EXAMPLE_TESTBENCH_CPP_1 = r"""
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -402,7 +402,7 @@ private:
 #endif
 """
 
-_EXAMPLE_TESTBENCH_CPP_2 = """
+_EXAMPLE_TESTBENCH_CPP_2 = r"""
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -680,7 +680,7 @@ def generate_tb(
     formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted, temperature=0.3).strip()
+    raw = _llm.generate(formatted).strip()
 
     # ------------------------------------------------------------
     # ❶  Find every "** FILE: <name> ** … ```cpp … ```" block
@@ -697,7 +697,7 @@ def generate_tb(
         re.S | re.VERBOSE,
     )
 
-    matches = block_pat.findall(raw)    #  <--  no stripping of [ANALYSIS]
+    matches = block_pat.findall(raw)  #  <--  no stripping of [ANALYSIS]
     if not matches:
         raise ValueError(
             "LLM output did not contain any FILE blocks.\n"
@@ -718,6 +718,7 @@ def generate_tb(
             )
 
     return file_map
+
 
 # ---------------------------------------------------------------------------
 # CLI

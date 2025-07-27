@@ -196,7 +196,7 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
         },
         {
             "role": "assistant",
-            "content": _EXAMPLE_PIPE_CPP.format(
+            "content": _OUTPUT_FORMAT.format(
                 SYSTEM_PIPELINE_CPP=_EXAMPLE_PIPE_CPP, SYSTEM_PIPELINE_H=_EXAMPLE_PIPE_H
             ),
         },
@@ -205,10 +205,10 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
             "content": f"{_USER_PROMPT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
         },
     ]
-    prompt = _llm.apply_chat_template(
+    formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(prompt, temperature=0.0).strip()
+    raw = _llm.generate(formatted).strip()
 
     # ------------------------------------------------------------
     # ❶  Find every "** FILE: <name> ** … ```cpp … ```" block
@@ -225,7 +225,7 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
         re.S | re.VERBOSE,
     )
 
-    matches = block_pat.findall(raw)    #  <--  no stripping of [ANALYSIS]
+    matches = block_pat.findall(raw)  #  <--  no stripping of [ANALYSIS]
     if not matches:
         raise ValueError(
             "LLM output did not contain any FILE blocks.\n"
@@ -246,7 +246,6 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
             )
 
     return file_map
-
 
 
 # ---------------------------------------------------------------------------

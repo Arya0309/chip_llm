@@ -8,15 +8,15 @@ from utils import DEFAULT_MODEL, VLLMGenerator
 
 import prompts as prompt
 
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Configuration
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
 _llm = VLLMGenerator(MODEL_NAME)
 
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # One-shot in-context example without instruction header block
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 _SYSTEM_PROMPT = "You are a senior SystemC/Stratus engineer.\n"
 
 _SYSTEM_PROMPT_V2 = """
@@ -265,7 +265,8 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
     formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted, temperature=0.3).strip()
+    raw = _llm.generate(formatted).strip()
+    # print(f"Dut generation:\n{raw}\n")
 
     # ------------------------------------------------------------
     # ❶  Find every "** FILE: <name> ** … ```cpp … ```" block
@@ -282,7 +283,7 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
         re.S | re.VERBOSE,
     )
 
-    matches = block_pat.findall(raw)    #  <--  no stripping of [ANALYSIS]
+    matches = block_pat.findall(raw)  #  <--  no stripping of [ANALYSIS]
     if not matches:
         raise ValueError(
             "LLM output did not contain any FILE blocks.\n"

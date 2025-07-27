@@ -17,7 +17,9 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 # Prompts & Examples
 # ---------------------------------------------------------------------------
-_SYSTEM_PROMPT = "You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
+_SYSTEM_PROMPT = (
+    "You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
+)
 
 
 _SYSTEM_PROMPT_V2 = """
@@ -181,7 +183,7 @@ double calc_variance(const double* arr, size_t n) {
 }
 ```
 """
-     
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -214,21 +216,71 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
         {"role": "user", "content": user_prompt},
     ]
 
+    # ------------------------------------------------------------------
+    # ❶  Generate the raw model output (unchanged)
+    # ------------------------------------------------------------------
     formatted = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted, max_new_tokens=max_tokens, temperature=0.0).strip()
+    raw = _llm.generate(
+        formatted,
+        max_new_tokens=max_tokens,
+        temperature=0.0,
+    ).strip()
 
-    pattern = re.compile(r"```(?:cpp)?\s*(.*?)\s*```", re.S)
-    blocks = pattern.findall(raw)
-    
-    if not blocks:
+    # ------------------------------------------------------------------
+    # ❷  Parse FUNCTION blocks instead of a JSON array
+    #     Support both styles:
+    #       ** FUNCTION: foo **
+    #   …or…
+    #       // === FUNCTION: foo ===
+    # ------------------------------------------------------------------
+    pattern = re.compile(
+        r"""
+        (?:\*\*|//\s*===)\s*FUNCTION:\s*      # block header prefix
+        ([A-Za-z_]\w*)                        # ① function name
+        .*?                                   # header tail (=== or **)
+        \n```(?:cpp)?\s*                      # opening fence  ```cpp
+        (.*?)                                 # ② whole function body
+        \s*```                                # closing fence  ```
+        """,
+        re.S | re.VERBOSE,
+    )
+
+    matches = pattern.findall(raw)
+    if not matches:
         raise ValueError(
-            "LLM output did not contain any code blocks.\n--- OUTPUT START ---\n"
-            + raw
-            + "\n--- OUTPUT END ---"
+            "LLM output did not contain any FUNCTION blocks.\n"
+            "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
         )
-    return blocks
+
+    # ------------------------------------------------------------------
+    # ❸  Build the list[dict] expected downstream
+    #     (Derive return_type from the first line of each function)
+    # ------------------------------------------------------------------
+    functions = []
+    for fname, fcode in matches:
+        fcode = fcode.strip()
+        sig_line = fcode.splitlines()[0].strip()
+
+        # crude return‑type extraction: everything before the function name
+        rt_match = re.match(
+            rf"(?:inline\s+|static\s+|constexpr\s+|virtual\s+)*"
+            rf"([^\s][^()]*?)\s+\*?&?\s*{re.escape(fname)}\b",
+            sig_line,
+        )
+        return_type = rt_match.group(1).strip() if rt_match else "void"
+
+        functions.append(
+            {
+                "name": fname,
+                "return_type": return_type,
+                "code": fcode,
+            }
+        )
+
+    return functions
+
 
 # ---------------------------------------------------------------------------
 # CLI Helper

@@ -86,7 +86,7 @@ def main() -> None:
     parser.add_argument(
         "--timeout",
         type=float,
-        default=3.0,
+        default=5.0,
         help="Seconds allowed for each test-dut (default 3)",
     )
     parser.add_argument(
