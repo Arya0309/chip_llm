@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEFAULT_BASE_DIR="./.log"
+DEFAULT_BASE_DIR="./.log/run_1"
 
 # 判斷參數數量，允許 1 或 2 個參數
 if [[ $# -lt 1 || $# -gt 2 ]]; then

@@ -788,8 +788,8 @@ def generate_tb_batch(
         try:
             results.append(_parse_tb_output(raw.strip()))
         except Exception as e:
-            # 若想保留錯誤資訊，可寫入 dict；或直接 raise 給外層 retry
-            raise RuntimeError(f"[generate_tb_batch] parse error: {e}") from e
+            print(f"[generate_tb_batch] parse error: {e}")
+            results.append({})
     return results
 
 

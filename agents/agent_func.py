@@ -299,7 +299,6 @@ def extract_functions_batch(
         raw = raw.strip()
         funcs = _parse_output(raw)  # 直接沿用單題解析
         results.append(funcs)
-
     return results
 
 
