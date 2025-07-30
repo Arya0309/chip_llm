@@ -89,11 +89,21 @@ void Testbench::do_fetch() {
     fin.close();
 
     std::vector<Golden> goldens;
-    {
-        std::ifstream fin("golden.txt");
-        if (!fin.is_open()) {
-            std::cerr << "Error: Unable to open golden.txt\n";
-            sc_stop();
+    std::ifstream gin("golden.txt");
+    if (!gin.is_open()) {
+        std::cerr << "Error: Unable to open golden.txt\n";
+        sc_stop();
+        return;
+    }
+
+    while (std::getline(gin, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream iss(line);
+        /* === Variable Section === */
+        Golden g;
+        if (!(iss >> g.expected)) {
+            std::cerr << "Warning: Incorrect format in golden.txt, skipping line: " << line << "\n";
+            continue;
             return;
         }
         std::string line;
@@ -108,7 +118,7 @@ void Testbench::do_fetch() {
             goldens.push_back(g);
         }
     }
-    fin.close();
+    gin.close();
 
     wait(1);
 
@@ -116,7 +126,6 @@ void Testbench::do_fetch() {
     /* === Variable Section === */
     for (size_t idx = 0; idx < goldens.size(); ++idx) {
         int result;
-
         result = i_result.read();
 
         bool passed = (result == goldens[idx].expected);
@@ -124,12 +133,11 @@ void Testbench::do_fetch() {
         if (passed) {
             ++passed_count;
             std::cout << "Test case " << idx + 1 << " passed.\n";
-            std::cout << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << '\n';
-            std::cout << "Output: " << result << "\n\n";
         } else {
             std::cerr << "Test case " << idx + 1 << " failed.\n";
-            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << '\n';
-            std::cerr << "Output: " << result << ", Expected: " << goldens[idx].expected << "\n\n";
+            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\n";
+            std::cerr << "Output: " << result << "\n";
+            std::cerr << "Expected: " << goldens[idx].expected << "\n\n";
         }
     }
     /* === Variable Section End === */
