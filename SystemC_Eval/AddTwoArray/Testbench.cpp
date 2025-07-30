@@ -124,7 +124,7 @@ void Testbench::do_fetch() {
 
     wait(1);
 
-    bool all_passed = true;
+    size_t passed_count = 0;
     for (size_t idx = 0; idx < goldens.size(); ++idx) {
         std::vector<int> result;
         result.reserve(N);
@@ -135,9 +135,9 @@ void Testbench::do_fetch() {
 
         bool passed = (result == goldens[idx].C);
         if (passed) {
+            ++passed_count;
             std::cout << "Test case " << idx + 1 << " passed.\n";
         } else {
-            all_passed = false;
             std::cerr << "Test case " << idx + 1 << " failed.\n";
             std::cerr << "Input: A = [";
             for (int i = 0; i < N; ++i) {
@@ -156,7 +156,7 @@ void Testbench::do_fetch() {
         }
     }
 
-    if (!all_passed) {
+    if (passed_count != goldens.size()) {
         SC_REPORT_FATAL("Testbench", "Some test cases failed.");
     }
     sc_stop();

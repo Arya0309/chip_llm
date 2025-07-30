@@ -253,7 +253,7 @@ void Testbench::do_fetch() {
 
     wait(1);
 
-    bool all_passed = true;
+    size_t passed_count = 0;
     /* === Variable Section === */
     for (size_t idx = 0; idx < goldens.size(); ++idx) {
         int result;
@@ -263,23 +263,20 @@ void Testbench::do_fetch() {
         bool passed = (result == goldens[idx].expected);
 
         if (passed) {
+            ++passed_count;
             std::cout << "Test case " << idx + 1 << " passed.\n";
-            std::cout << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\n";
+            std::cout << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << '\n';
             std::cout << "Output: " << result << "\n\n";
         } else {
             std::cerr << "Test case " << idx + 1 << " failed.\n";
-            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\n";
+            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << '\n';
             std::cerr << "Output: " << result << ", Expected: " << goldens[idx].expected << "\n\n";
-            all_passed = false;
         }
     }
     /* === Variable Section End === */
 
-    if (all_passed) {
-        std::cout << "All tests passed successfully." << std::endl;
-    }
-    else {
-        SC_REPORT_FATAL("Testbench", "Assertion failed.");
+    if (passed_count != goldens.size()) {
+        SC_REPORT_FATAL("Testbench", "Some test cases failed.");
     }
     sc_stop();
 }
@@ -528,7 +525,7 @@ void Testbench::do_fetch() {
 
     wait(1);
 
-    bool all_passed = true;
+    size_t passed_count = 0;
     for (size_t idx = 0; idx < goldens.size(); ++idx) {
         std::vector<int> result;
         result.reserve(N);
@@ -539,9 +536,9 @@ void Testbench::do_fetch() {
 
         bool passed = (result == goldens[idx].C);
         if (passed) {
+            ++passed_count;
             std::cout << "Test case " << idx + 1 << " passed.\n";
         } else {
-            all_passed = false;
             std::cerr << "Test case " << idx + 1 << " failed.\n";
             std::cerr << "Input: A = [";
             for (int i = 0; i < N; ++i) {
@@ -560,8 +557,8 @@ void Testbench::do_fetch() {
         }
     }
 
-    if (!all_passed) {
-        SC_REPORT_FATAL("Testbench", "Assertion failed.");
+    if (passed_count != goldens.size()) {
+        SC_REPORT_FATAL("Testbench", "Some test cases failed.");
     }
     sc_stop();
 }
@@ -797,31 +794,32 @@ def generate_tb_batch(
 # CLI
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    if len(sys.argv) not in {2, 3}:
-        sys.stderr.write("Usage: python tb_agent.py <func.json> [function_name]\n")
-        sys.exit(1)
+    # if len(sys.argv) not in {2, 3}:
+    #     sys.stderr.write("Usage: python tb_agent.py <func.json> [function_name]\n")
+    #     sys.exit(1)
 
-    json_path = Path(sys.argv[1])
-    entries = json.loads(json_path.read_text(encoding="utf-8"))
-    if not isinstance(entries, list):
-        sys.stderr.write("func.json must be a list from func_agent\n")
-        sys.exit(1)
+    # json_path = Path(sys.argv[1])
+    # entries = json.loads(json_path.read_text(encoding="utf-8"))
+    # if not isinstance(entries, list):
+    #     sys.stderr.write("func.json must be a list from func_agent\n")
+    #     sys.exit(1)
 
-    if len(sys.argv) == 3:
-        target = sys.argv[2]
-        item = next((e for e in entries if e["name"] == target), None)
-        if item is None:
-            sys.stderr.write(f"Function '{target}' not found.\n")
-            sys.exit(1)
-        func_code = item["code"]
-        out_prefix = item["name"]
-    else:
-        func_code = "\n\n".join(e["code"] for e in entries)
-        out_prefix = "combined"
+    # if len(sys.argv) == 3:
+    #     target = sys.argv[2]
+    #     item = next((e for e in entries if e["name"] == target), None)
+    #     if item is None:
+    #         sys.stderr.write(f"Function '{target}' not found.\n")
+    #         sys.exit(1)
+    #     func_code = item["code"]
+    #     out_prefix = item["name"]
+    # else:
+    #     func_code = "\n\n".join(e["code"] for e in entries)
+    #     out_prefix = "combined"
 
-    tb_files = generate_tb(func_code)
+    # tb_files = generate_tb(func_code)
 
-    for fname, code in tb_files.items():
-        Path(fname).write_text(code, encoding="utf-8")
+    # for fname, code in tb_files.items():
+    #     Path(fname).write_text(code, encoding="utf-8")
 
-    sys.stdout.write(tb_files["Testbench.cpp"])
+    # sys.stdout.write(tb_files["Testbench.cpp"])
+    print(_EXAMPLE_TESTBENCH_CPP_1)
