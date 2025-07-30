@@ -309,7 +309,7 @@ def generate_dut(
 def generate_dut_batch(
     func_codes: List[str],
     requirement: List[str] | None = None,
-    system_prompt: str = _SYSTEM_PROMPT,
+    system_prompt: str = _SYSTEM_PROMPT_V2,
     *,
     temperature: float = 0.3,
     top_p: float = 0.8,
@@ -325,15 +325,13 @@ def generate_dut_batch(
         _build_prompt(code, req, system_prompt=system_prompt)
         for code, req in zip(func_codes, requirement)
     ]
-    # print(f"[PROMPT]:\n{prompts[0]}\n...")  # Debug: print first prompt/
+
     raw_outputs = _llm.generate_batch(
         prompts,
         temperature=temperature,
         top_p=top_p,
         max_new_tokens=max_new_tokens,
     )
-
-    # print(f"[RAW OUTPUT]:\n{raw_outputs[0]}\n...") # Debug: print first raw output
 
     # 3) 解析，每條輸出都跑原本 regex
     results: List[Dict[str, str]] = []
