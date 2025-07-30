@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR="./.log"
+DEFAULT_BASE_DIR="./.log"
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <problem_name>"
+# 判斷參數數量，允許 1 或 2 個參數
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+  echo "Usage: $0 <problem_name> [base_dir]"
   exit 1
 fi
 
 PROBLEM_NAME="$1"
+BASE_DIR="${2:-$DEFAULT_BASE_DIR}"  # 如果沒有第二個參數，就用預設值
+
 TARGET_DIR="$BASE_DIR/$PROBLEM_NAME"
 
 if [[ ! -d "$TARGET_DIR" ]]; then
@@ -19,7 +22,7 @@ fi
 cd "$TARGET_DIR"
 
 # ----------------------------------------------------------------------------
-# 只要腳本結束（EXIT），就執行 cleanup()
+# 清理函式，在腳本結束時自動執行
 cleanup() {
   echo "=== Cleaning up build directory ==="
   rm -rf build

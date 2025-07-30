@@ -1,60 +1,46 @@
 #!/usr/bin/env python3
 """
+Convert C++ ⇒ SystemC via LLM agents (JSON‑only version)
+========================================================
 
 Usage
 -----
-1. **Single C++ file** (retains legacy behaviour)
-   python main.py path/to/example.cpp                      # extract every non-main function
-   python main.py path/to/example.cpp -f add               # only extract add()
-   python main.py path/to/example.cpp -o /tmp/out_dir/     # write outputs to custom directory
+python main.py path/to/batch.json              # outputs to <project_root>/.log
+python main.py path/to/batch.json -o /tmp/out  # custom output root
 
-2. **Directory** – process every `.cpp` inside the folder
-   python main.py path/to/dir_with_cpp/
+The JSON must be a list of objects:
+  • "name"        – identifier (required)
+  • "code"        – raw C/C++ source (required)
+  • "new_name"    – override output folder name (optional)
+  • "requirement" – extra hint forwarded to LLM agents (optional)
 
-3. **JSON batch mode** – list of translation units as raw strings
-   python main.py path/to/batch.json
-
-   Each list element may contain:
-     • "name"        – original identifier (required)
-     • "code"        – raw C/C++ source as a string (required)
-     • "new_name"    – override output folder name (optional)
-     • "requirement" – extra hint forwarded to LLM agents (optional)
-
-Outputs
--------
-For every input unit the script creates **six files** —
-   Dut.cpp, Dut.h,
-   Testbench.cpp, Testbench.h,
-   SystemPipeline.cpp, SystemPipeline.h
-which are placed under:
-   <project_root>/.log/<input_stem>/
-
-Changes in this version (2025-07-21)
-------------------------------------
-1. **pipe_agent integration** – after `dut_agent` + `tb_agent`, we now call
-   `pipe_agent.generate_pipeline()` to obtain `SystemPipeline.cpp/h`.
-2. **Unified `write_outputs()`** – now writes all six files into a single output folder.
-3. **Directory & JSON modes upgraded** – both now generate Testbench and Pipeline as well.
+For every entry six files are generated:
+  Dut.[cpp|h], Testbench.[cpp|h], SystemPipeline.[cpp|h]
+  plus helper files (CMakeLists.txt, main.cpp, testcases.txt, golden.txt)
+  under:
+     <out_dir>/<entry_name or new_name>/
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
+import json
 import os
 import sys
-import json
-import contextlib
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Union
-from pathlib import Path
 
+# --------------------------------------------------------------------------- #
+# Early CLI to allow --model before heavy imports
 early = argparse.ArgumentParser(add_help=False)
 early.add_argument("--model", dest="llm_model")
 early_args, _ = early.parse_known_args()
 if early_args.llm_model:
     os.environ["LLM_MODEL"] = early_args.llm_model
+# --------------------------------------------------------------------------- #
 
-from pathlib import Path
 import utils
 import agent_dut
 import agent_func
@@ -62,8 +48,8 @@ import agent_tb
 import agent_pipe
 
 # ---------- Constants ----------
-PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
-LOG_ROOT = PROJECT_ROOT / ".log"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_LOG_ROOT = PROJECT_ROOT / ".log"
 # --------------------------------
 
 
@@ -71,35 +57,23 @@ LOG_ROOT = PROJECT_ROOT / ".log"
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         parents=[early],
-        description="Convert C++ ⇒ SystemC via LLM agents",
+        description="Convert C++ ⇒ SystemC via LLM agents (JSON‑only)",
     )
     ap.add_argument(
-        "src_path",
-        help="Path to (i) a single .cpp, (ii) a directory of .cpp, or (iii) data_input.json",
-    )
-    ap.add_argument(
-        "-f",
-        "--function",
-        help="Target function name (only when src_path is a single .cpp)",
+        "json_path",
+        metavar="JSON",
+        help="Path to batch.json (list of translation units)",
     )
     ap.add_argument(
         "-o",
-        "--out",
-        metavar="FILE",
-        help="Custom output path (single‑file mode only)",
+        "--out_dir",
+        default=str(DEFAULT_LOG_ROOT),
+        help=f"Root directory to store outputs (default: {DEFAULT_LOG_ROOT})",
     )
     return ap.parse_args()
 
 
 # --------------- Helpers ----------------
-
-
-def iter_cpp_files(p: Path) -> list[Path]:
-    if p.is_file():
-        return [p]
-    return sorted(f for f in p.iterdir() if f.suffix == ".cpp" and f.is_file())
-
-
 def load_json_entries(p: Path) -> list[dict]:
     data = json.loads(p.read_text(encoding="utf-8"))
     if not isinstance(data, list):
@@ -109,7 +83,7 @@ def load_json_entries(p: Path) -> list[dict]:
 
 def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
     """Return {name, code} where *code* contains one or more non‑main functions."""
-    # ------ Path branch ------
+    # ------ Path branch (rarely used, kept for completeness) ------
     if isinstance(cpp_src, Path):
         functions = agent_func.extract_functions(cpp_src)
     # ------ Raw‑string branch ------
@@ -122,7 +96,7 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
             functions = agent_func.extract_functions(tmp_path)
         finally:
             with contextlib.suppress(FileNotFoundError):
-                os.remove(tmp_path)
+                tmp_path.unlink(missing_ok=True)
 
     if not functions:
         raise RuntimeError("No non‑main functions were extracted.")
@@ -141,8 +115,6 @@ def extract_entry(cpp_src: Union[str, Path], func_name: str | None):
 
 
 # ---------- I/O ----------
-
-
 def write_outputs(
     dut_files: dict[str, str],
     tb_files: dict[str, str],
@@ -150,7 +122,8 @@ def write_outputs(
     out_dir: Path,
     task_name: str | None = None,
 ):
-    """Write Dut.*, Testbench.*, SystemPipeline.* into *out_dir*."""
+    """Write Dut.*, Testbench.*, SystemPipeline.* and helper files into *out_dir*."""
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     # DUT
     (out_dir / "Dut.cpp").write_text(dut_files["Dut.cpp"], encoding="utf-8")
@@ -165,6 +138,7 @@ def write_outputs(
     (out_dir / "SystemPipeline.h").write_text(
         pipe_files["SystemPipeline.h"], encoding="utf-8"
     )
+    # Helpers
     (out_dir / "CMakeLists.txt").write_text(utils.get_cmake_list(), encoding="utf-8")
     (out_dir / "main.cpp").write_text(utils.get_main_cpp(), encoding="utf-8")
     (out_dir / "testcases.txt").write_text(
@@ -173,125 +147,67 @@ def write_outputs(
     (out_dir / "golden.txt").write_text(
         utils.get_golden(task_name or "default"), encoding="utf-8"
     )
-    # (out_dir / "testcases.txt").write_text(
-    #     utils.get_testcases_and_golden(task_name or "default"), encoding="utf-8"
-    # )
 
     print(f"[OK] All files written to {out_dir}")
 
 
 # ----------------- Main -----------------
-
-
 def main() -> None:
     args = parse_args()
-    src_path = Path(args.src_path).expanduser()
+    json_path = Path(args.json_path).expanduser()
 
-    if not src_path.exists():
-        sys.exit(f"[Error] Path not found: {src_path}")
+    if not json_path.exists():
+        sys.exit(f"[Error] File not found: {json_path}")
+    if json_path.suffix.lower() != ".json":
+        sys.exit("[Error] Only JSON batch mode is supported in this version.")
 
-    # =============================================================
-    # 0. JSON mode
-    # =============================================================
-    if src_path.suffix == ".json":
-        entries = load_json_entries(src_path)
-        for item in entries:
-            print(f"--- Processing {item['name']} ---")
-            requirement = item.get("requirement", "")
+    out_root = Path(args.out_dir).expanduser()
+    out_root.mkdir(parents=True, exist_ok=True)
 
-            out_dir = LOG_ROOT / item["name"]
-            out_dir.mkdir(parents=True, exist_ok=True)
+    entries = load_json_entries(json_path)
+    for item in entries:
+        name = item.get("new_name") or item["name"]
+        print(f"--- Processing {name} ---")
+        requirement = item.get("requirement", "")
 
-            def retry(fn, max_try=5, *, name):
-                for i in range(1, max_try + 1):
-                    try:
-                        return fn()
-                    except Exception as e:
-                        print(f"[{name}] attempt {i}/{max_try} failed: {e}")
+        out_dir = out_root / name
 
-            entry = retry(
-                lambda: extract_entry(item["code"], item.get("function")),
-                name="extract_entry",
-            )
+        def retry(fn, max_try=5, *, tag):
+            for i in range(1, max_try + 1):
+                try:
+                    return fn()
+                except Exception as e:
+                    print(f"[{tag}] attempt {i}/{max_try} failed: {e}")
 
-            dut_files = retry(
-                lambda: agent_dut.generate_dut(entry["code"], requirement), name="DUT"
-            )
-
-            tb_files = retry(
-                lambda: agent_tb.generate_tb(
-                    dut_cpp=dut_files["Dut.cpp"],
-                    dut_h=dut_files["Dut.h"],
-                    requirement=requirement,
-                ),
-                name="Testbench",
-            )
-
-            pipe_files = retry(
-                lambda: agent_pipe.generate_pipeline(
-                    dut_files["Dut.h"], tb_files["Testbench.h"]
-                ),
-                name="Pipeline",
-            )
-            try:
-                write_outputs(dut_files, tb_files, pipe_files, out_dir, item["name"])
-            except Exception as e:
-                print(f"[Error] {item['name']}: {e}")
-        return
-
-    # =============================================================
-    # A. Directory mode
-    # =============================================================
-    if src_path.is_dir():
-        if args.out or args.function:
-            print("[Warn] -o / -f parameters are ignored in directory mode.")
-
-        cpp_files = iter_cpp_files(src_path)
-        if not cpp_files:
-            sys.exit("[Error] Directory contains no .cpp files.")
-
-        print(f"[Info] Found {len(cpp_files)} .cpp files in {src_path}\n")
-
-        for cpp in cpp_files:
-            print(f"--- Processing {cpp.name} ---")
-            try:
-                entry = extract_entry(cpp, None)
-                dut_files = agent_dut.generate_dut(entry["code"])
-                tb_files = agent_tb.generate_tb(
-                    dut_cpp=dut_files["Dut.cpp"], dut_h=dut_files["Dut.h"]
-                )
-                pipe_files = agent_pipe.generate_pipeline(
-                    dut_files["Dut.h"], tb_files["Testbench.h"]
-                )
-                out_dir = LOG_ROOT / cpp.stem
-                write_outputs(dut_files, tb_files, pipe_files, out_dir, cpp.stem)
-            except Exception as e:
-                print(f"[Error] {cpp.name}: {e}")
-            print()
-        return
-
-    # =============================================================
-    # B. Single‑file mode
-    # =============================================================
-    try:
-        entry = extract_entry(src_path, args.function)
-        dut_files = agent_dut.generate_dut(entry["code"])
-        tb_files = agent_tb.generate_tb(
-            dut_cpp=dut_files["Dut.cpp"], dut_h=dut_files["Dut.h"]
+        entry = retry(
+            lambda: extract_entry(item["code"], item.get("function")),
+            tag="extract_entry",
         )
-        pipe_files = agent_pipe.generate_pipeline(
-            dut_files["Dut.h"], tb_files["Testbench.h"]
-        )
-    except Exception as e:
-        sys.exit(f"[Error] {e}")
 
-    # Decide output location
-    if args.out:
-        custom_path = Path(args.out).expanduser()
-        out_dir = custom_path.parent if custom_path.suffix else custom_path
-    else:
-        out_dir = LOG_ROOT / src_path.stem
-    write_outputs(dut_files, tb_files, pipe_files, out_dir, src_path.stem)
+        dut_files = retry(
+            lambda: agent_dut.generate_dut(entry["code"], requirement), tag="DUT"
+        )
+
+        tb_files = retry(
+            lambda: agent_tb.generate_tb(
+                dut_cpp=dut_files["Dut.cpp"],
+                dut_h=dut_files["Dut.h"],
+                requirement=requirement,
+            ),
+            tag="Testbench",
+        )
+
+        pipe_files = retry(
+            lambda: agent_pipe.generate_pipeline(
+                dut_files["Dut.h"], tb_files["Testbench.h"]
+            ),
+            tag="Pipeline",
+        )
+
+        try:
+            write_outputs(dut_files, tb_files, pipe_files, out_dir, name)
+        except Exception as e:
+            print(f"[Error] {name}: {e}")
 
 
 if __name__ == "__main__":

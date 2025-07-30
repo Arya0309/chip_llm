@@ -83,6 +83,29 @@ class VLLMGenerator:
 
     __call__ = generate  # 允許像函式一樣直接呼叫
 
+    def generate_batch(
+        self,
+        prompts: list[str],
+        *,
+        max_new_tokens: int = 4096,
+        temperature: float = 0.3,
+        top_p: float = 0.8,
+        top_k: int = 20,
+        repetition_penalty: float = 1.05,
+    ) -> list[str]:
+        """一次回傳 len(prompts) 條 completion；順序與輸入相同。"""
+        params = SamplingParams(
+            max_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            repetition_penalty=repetition_penalty,
+        )
+        outs = self.llm.generate(
+            prompts, params
+        )  # vLLM 支援多 prompt 併發 :contentReference[oaicite:0]{index=0}
+        return [o.outputs[0].text for o in outs]
+
 
 def get_cmake_list() -> str:
     cmake_list = """cmake_minimum_required(VERSION 3.8)

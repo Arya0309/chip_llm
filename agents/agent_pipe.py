@@ -5,6 +5,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import List, Dict
 from utils import DEFAULT_MODEL, VLLMGenerator
 
 import prompts as prompt
@@ -178,15 +179,11 @@ private:
 """
 
 
-# ---------------------------------------------------------------------------
-# Pipeline generation helper
-# --------------------------------------------------------------------------
-def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
-
+def _build_prompt(
+    dut_h_code: str, testbench_h_code: str, system_prompt: str = _SYSTEM_PROMPT
+) -> str:
     if "qwen" in MODEL_NAME.lower():
-        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
-    else:
-        system_prompt = _SYSTEM_PROMPT_V2
+        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + system_prompt
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -205,38 +202,32 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
             "content": f"{_USER_PROMPT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
         },
     ]
-    formatted = _llm.apply_chat_template(
+    return _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted).strip()
 
-    # ------------------------------------------------------------
-    # ❶  Find every "** FILE: <name> ** … ```cpp … ```" block
-    # ------------------------------------------------------------
-    block_pat = re.compile(
-        r"""
-        \*\*\s*FILE:\s*              # "** FILE:" header
-        ([^*]+?)                     # ① filename   (lazy until next '*')
-        \s*\*\*\s*                   # closing "**"
-        \n```(?:[a-zA-Z0-9_+-]+)?\s* # opening ``` or ```cpp
-        (.*?)                        # ② file body  (non‑greedy, DOTALL)
-        \s*```                       # closing fence
-        """,
-        re.S | re.VERBOSE,
-    )
 
-    matches = block_pat.findall(raw)  #  <--  no stripping of [ANALYSIS]
+_BLOCK_PAT = re.compile(
+    r"""
+    \*\*\s*FILE:\s*              # "** FILE:" header
+    ([^*]+?)                     # ① filename   (lazy until next '*')
+    \s*\*\*\s*                   # closing "**"
+    \n```(?:[a-zA-Z0-9_+-]+)?\s* # opening ``` or ```cpp
+    (.*?)                        # ② file body  (non‑greedy, DOTALL)
+    \s*```                       # closing fence
+    """,
+    re.S | re.VERBOSE,
+)
+
+
+def _parse_pipe_output(raw: str) -> Dict[str, str]:
+    matches = _BLOCK_PAT.findall(raw)
     if not matches:
         raise ValueError(
             "LLM output did not contain any FILE blocks.\n"
             "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
         )
-
-    # ------------------------------------------------------------
-    # ❷  Build the original {filename: code} mapping
-    # ------------------------------------------------------------
     file_map = {fname.strip(): code.strip() for fname, code in matches}
-
     for req in ("SystemPipeline.cpp", "SystemPipeline.h"):
         if req not in file_map:
             raise RuntimeError(
@@ -244,8 +235,54 @@ def generate_pipeline(dut_h_code: str, testbench_h_code: str) -> dict[str, str]:
                 + raw
                 + "\n--- OUTPUT END ---"
             )
-
     return file_map
+
+
+# ---------------------------------------------------------------------------
+# Pipeline generation helper
+# --------------------------------------------------------------------------
+def generate_pipeline(
+    dut_h_code: str, testbench_h_code: str, system_prompt: str = _SYSTEM_PROMPT
+) -> dict[str, str]:
+    messages = _build_prompt(dut_h_code, testbench_h_code, system_prompt=system_prompt)
+    raw = _llm.generate(messages).strip()
+
+    return _parse_pipe_output(raw)
+
+
+def generate_pipeline_batch(
+    dut_h_code: List[str],
+    testbench_h_code: List[str],
+    system_prompt: str = _SYSTEM_PROMPT,
+    *,
+    temperature: float = 0.3,
+    top_p: float = 0.8,
+    max_new_tokens: int = 4096,
+) -> List[Dict[str, str]]:
+
+    # 1) build prompts
+    prompts = [
+        _build_prompt(dh, th, system_prompt=system_prompt)
+        for dh, th in zip(dut_h_code, testbench_h_code)
+    ]
+
+    # 2) 透過 utils.VLLMGenerator 的批次 API 產生
+    raw_outputs = _llm.generate_batch(
+        prompts,
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+    )
+
+    # 3) 解析，每條輸出都跑原本 regex
+    results: List[Dict[str, str]] = []
+    for raw in raw_outputs:
+        try:
+            results.append(_parse_pipe_output(raw.strip()))
+        except Exception as e:
+            # 若想保留錯誤資訊，可寫入 dict；或直接 raise 給外層 retry
+            raise RuntimeError(f"[generate_pipeline_batch] parse error: {e}") from e
+    return results
 
 
 # ---------------------------------------------------------------------------

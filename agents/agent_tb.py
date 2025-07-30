@@ -3,6 +3,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import List, Dict
 from utils import DEFAULT_MODEL, VLLMGenerator
 
 import prompts as prompt
@@ -601,17 +602,15 @@ private:
 """
 
 
-# ---------------------------------------------------------------------------
-# Generate Testbench.cpp, Testbench.h via one-shot in-context learning
-# ---------------------------------------------------------------------------
-def generate_tb(
-    func_code: str = "", dut_cpp: str = "", dut_h: str = "", requirement: str = ""
-) -> dict[str, str]:
-
+def _build_prompt(
+    func_code: str = "",
+    dut_cpp: str = "",
+    dut_h: str = "",
+    requirement: str = "",
+    system_prompt: str = _SYSTEM_PROMPT,
+) -> str:
     if "qwen" in MODEL_NAME.lower():
-        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
-    else:
-        system_prompt = _SYSTEM_PROMPT_V2
+        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + system_prompt
 
     if func_code:
         messages = [
@@ -677,38 +676,32 @@ def generate_tb(
         ]
     else:
         raise ValueError("Either func_code or both dut_cpp and dut_h must be provided.")
-    formatted = _llm.apply_chat_template(
+    return _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted).strip()
 
-    # ------------------------------------------------------------
-    # ❶  Find every "** FILE: <name> ** … ```cpp … ```" block
-    # ------------------------------------------------------------
-    block_pat = re.compile(
-        r"""
-        \*\*\s*FILE:\s*              # "** FILE:" header
-        ([^*]+?)                     # ① filename   (lazy until next '*')
-        \s*\*\*\s*                   # closing "**"
-        \n```(?:[a-zA-Z0-9_+-]+)?\s* # opening ``` or ```cpp
-        (.*?)                        # ② file body  (non‑greedy, DOTALL)
-        \s*```                       # closing fence
-        """,
-        re.S | re.VERBOSE,
-    )
 
-    matches = block_pat.findall(raw)  #  <--  no stripping of [ANALYSIS]
+_BLOCK_PAT = re.compile(
+    r"""
+    \*\*\s*FILE:\s*              # "** FILE:" header
+    ([^*]+?)                     # ① filename   (lazy until next '*')
+    \s*\*\*\s*                   # closing "**"
+    \n```(?:[a-zA-Z0-9_+-]+)?\s* # opening ``` or ```cpp
+    (.*?)                        # ② file body  (non‑greedy, DOTALL)
+    \s*```                       # closing fence
+    """,
+    re.S | re.VERBOSE,
+)
+
+
+def _parse_tb_output(raw: str) -> Dict[str, str]:
+    matches = _BLOCK_PAT.findall(raw)
     if not matches:
         raise ValueError(
             "LLM output did not contain any FILE blocks.\n"
             "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
         )
-
-    # ------------------------------------------------------------
-    # ❷  Build the original {filename: code} mapping
-    # ------------------------------------------------------------
     file_map = {fname.strip(): code.strip() for fname, code in matches}
-
     for req in ("Testbench.cpp", "Testbench.h"):
         if req not in file_map:
             raise RuntimeError(
@@ -716,8 +709,88 @@ def generate_tb(
                 + raw
                 + "\n--- OUTPUT END ---"
             )
-
     return file_map
+
+
+# ---------------------------------------------------------------------------
+# Generate Testbench.cpp, Testbench.h via one-shot in-context learning
+# ---------------------------------------------------------------------------
+def generate_tb(
+    func_code: str = "",
+    dut_cpp: str = "",
+    dut_h: str = "",
+    requirement: str = "",
+    system_prompt: str = _SYSTEM_PROMPT,
+) -> dict[str, str]:
+
+    messages = _build_prompt(
+        func_code, dut_cpp, dut_h, requirement, system_prompt=system_prompt
+    )
+    raw = _llm.generate(messages).strip()
+
+    return _parse_tb_output(raw)
+
+
+def generate_tb_batch(
+    func_codes: List[str] | None = None,
+    dut_cpp: List[str] | None = None,
+    dut_h: List[str] | None = None,
+    requirement: List[str] | None = None,
+    system_prompt: str = _SYSTEM_PROMPT,
+    *,
+    max_new_tokens: int = 4096,
+    temperature: float = 0.3,
+    top_p: float = 0.8,
+) -> List[Dict[str, str]]:
+
+    if dut_cpp is not None and dut_h is not None:
+        # --- DUT mode (takes precedence even if func_codes is also given) ---
+        n = len(dut_cpp)
+        if len(dut_h) != n:
+            raise ValueError("dut_cpp and dut_h must have the same length")
+        if func_codes is None:
+            func_codes = [""] * n  # placeholder, not used in DUT mode
+        elif len(func_codes) != n:
+            raise ValueError("func_codes length must match dut_cpp/dut_h length")
+    else:
+        # --- Function‑call mode ---
+        if func_codes is None:
+            raise ValueError(
+                "Either func_codes must be provided, or both dut_cpp and dut_h must be provided."
+            )
+        n = len(func_codes)
+        dut_cpp = [""] * n  # placeholders for prompt builder
+        dut_h = [""] * n
+
+    # -------- requirement is optional --------
+    if requirement is None:
+        requirement = [""] * n
+    elif len(requirement) != n:
+        raise ValueError("requirement length must match batch size")
+
+    # 1) build prompts
+    prompts = [
+        _build_prompt(code, dut_cpp, dut_h, req, system_prompt=system_prompt)
+        for code, dut_cpp, dut_h, req in zip(func_codes, dut_cpp, dut_h, requirement)
+    ]
+
+    # 2) 透過 utils.VLLMGenerator 的批次 API 產生
+    raw_outputs = _llm.generate_batch(
+        prompts,
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+    )
+
+    # 3) 解析，每條輸出都跑原本 regex
+    results: List[Dict[str, str]] = []
+    for raw in raw_outputs:
+        try:
+            results.append(_parse_tb_output(raw.strip()))
+        except Exception as e:
+            # 若想保留錯誤資訊，可寫入 dict；或直接 raise 給外層 retry
+            raise RuntimeError(f"[generate_tb_batch] parse error: {e}") from e
+    return results
 
 
 # ---------------------------------------------------------------------------

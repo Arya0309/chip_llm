@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import List, Dict
 from utils import DEFAULT_MODEL, VLLMGenerator
 
 import prompts as prompt
@@ -220,14 +221,11 @@ private:
 """
 
 
-# ---------------------------------------------------------------------------
-# Generate Dut.cpp via one-shot in-context learning
-# ---------------------------------------------------------------------------
-def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
+def _build_prompt(
+    func_code: str, requirement: str = "", system_prompt: str = _SYSTEM_PROMPT
+) -> str:
     if "qwen" in MODEL_NAME.lower():
         system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
-    else:
-        system_prompt = _SYSTEM_PROMPT_V2
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -261,40 +259,33 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
             ),
         },
     ]
-
-    formatted = _llm.apply_chat_template(
+    # 交給 vLLM 做 chat‑template，產生最終文字 prompt
+    return _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(formatted).strip()
-    # print(f"Dut generation:\n{raw}\n")
 
-    # ------------------------------------------------------------
-    # ❶  Find every "** FILE: <name> ** … ```cpp … ```" block
-    # ------------------------------------------------------------
-    block_pat = re.compile(
-        r"""
-        \*\*\s*FILE:\s*              # "** FILE:" header
-        ([^*]+?)                     # ① filename   (lazy until next '*')
-        \s*\*\*\s*                   # closing "**"
-        \n```(?:[a-zA-Z0-9_+-]+)?\s* # opening ``` or ```cpp
-        (.*?)                        # ② file body  (non‑greedy, DOTALL)
-        \s*```                       # closing fence
-        """,
-        re.S | re.VERBOSE,
-    )
 
-    matches = block_pat.findall(raw)  #  <--  no stripping of [ANALYSIS]
+_BLOCK_PAT = re.compile(
+    r"""
+    \*\*\s*FILE:\s*              # "** FILE:" header
+    ([^*]+?)                     # ① filename   (lazy until next '*')
+    \s*\*\*\s*                   # closing "**"
+    \n```(?:[a-zA-Z0-9_+-]+)?\s* # opening ``` or ```cpp
+    (.*?)                        # ② file body  (non‑greedy, DOTALL)
+    \s*```                       # closing fence
+    """,
+    re.S | re.VERBOSE,
+)
+
+
+def _parse_dut_output(raw: str) -> Dict[str, str]:
+    matches = _BLOCK_PAT.findall(raw)
     if not matches:
         raise ValueError(
             "LLM output did not contain any FILE blocks.\n"
             "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
         )
-
-    # ------------------------------------------------------------
-    # ❷  Build the original {filename: code} mapping
-    # ------------------------------------------------------------
     file_map = {fname.strip(): code.strip() for fname, code in matches}
-
     for req in ("Dut.cpp", "Dut.h"):
         if req not in file_map:
             raise RuntimeError(
@@ -302,8 +293,57 @@ def generate_dut(func_code: str, requirement: str = "") -> dict[str, str]:
                 + raw
                 + "\n--- OUTPUT END ---"
             )
-
     return file_map
+
+
+def generate_dut(
+    func_code: str, requirement: str = "", system_prompt: str = _SYSTEM_PROMPT
+) -> dict[str, str]:
+
+    messages = _build_prompt(func_code, requirement, system_prompt=system_prompt)
+    raw = _llm.generate(messages).strip()
+
+    return _parse_dut_output(raw)
+
+
+def generate_dut_batch(
+    func_codes: List[str],
+    requirement: List[str] | None = None,
+    system_prompt: str = _SYSTEM_PROMPT,
+    *,
+    temperature: float = 0.3,
+    top_p: float = 0.8,
+    max_new_tokens: int = 4096,
+) -> List[Dict[str, str]]:
+
+    if requirement is None:
+        requirement = [""] * len(func_codes)
+    elif len(requirement) != len(func_codes):
+        raise ValueError("len(requirement) must equal len(func_codes)")
+
+    prompts = [
+        _build_prompt(code, req, system_prompt=system_prompt)
+        for code, req in zip(func_codes, requirement)
+    ]
+    # print(f"[PROMPT]:\n{prompts[0]}\n...")  # Debug: print first prompt/
+    raw_outputs = _llm.generate_batch(
+        prompts,
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+    )
+
+    # print(f"[RAW OUTPUT]:\n{raw_outputs[0]}\n...") # Debug: print first raw output
+
+    # 3) 解析，每條輸出都跑原本 regex
+    results: List[Dict[str, str]] = []
+    for raw in raw_outputs:
+        try:
+            results.append(_parse_dut_output(raw.strip()))
+        except Exception as e:
+            print(f"[generate_dut_batch] parse error: {e}")
+            results.append({})
+    return results
 
 
 # ---------------------------------------------------------------------------

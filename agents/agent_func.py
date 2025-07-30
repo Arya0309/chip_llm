@@ -3,6 +3,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import List, Dict
 
 from utils import DEFAULT_MODEL, VLLMGenerator
 
@@ -185,11 +186,7 @@ double calc_variance(const double* arr, size_t n) {
 """
 
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[dict]:
-    code = Path(src_path).read_text(encoding="utf-8", errors="ignore")
+def _build_prompt(code: str) -> str:
     user_prompt = _MULTI_STAGE_USER_PROMPT_V2.format(code=code)
 
     if "qwen" in MODEL_NAME.lower():
@@ -216,48 +213,32 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
         {"role": "user", "content": user_prompt},
     ]
 
-    # ------------------------------------------------------------------
-    # ❶  Generate the raw model output (unchanged)
-    # ------------------------------------------------------------------
-    formatted = _llm.apply_chat_template(
+    return _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
-    raw = _llm.generate(
-        formatted,
-        max_new_tokens=max_tokens,
-        temperature=0.0,
-    ).strip()
 
-    # ------------------------------------------------------------------
-    # ❷  Parse FUNCTION blocks instead of a JSON array
-    #     Support both styles:
-    #       ** FUNCTION: foo **
-    #   …or…
-    #       // === FUNCTION: foo ===
-    # ------------------------------------------------------------------
-    pattern = re.compile(
-        r"""
-        (?:\*\*|//\s*===)\s*FUNCTION:\s*      # block header prefix
-        ([A-Za-z_]\w*)                        # ① function name
-        .*?                                   # header tail (=== or **)
-        \n```(?:cpp)?\s*                      # opening fence  ```cpp
-        (.*?)                                 # ② whole function body
-        \s*```                                # closing fence  ```
-        """,
-        re.S | re.VERBOSE,
-    )
 
-    matches = pattern.findall(raw)
+_BLOCK_PAT = re.compile(
+    r"""
+    (?:\*\*|//\s*===)\s*FUNCTION:\s*      # block header prefix
+    ([A-Za-z_]\w*)                        # ① function name
+    .*?                                   # header tail (=== or **)
+    \n```(?:cpp)?\s*                      # opening fence  ```cpp
+    (.*?)                                 # ② whole function body
+    \s*```                                # closing fence  ```
+    """,
+    re.S | re.VERBOSE,
+)
+
+
+def _parse_output(raw: str) -> list[dict]:
+    matches = _BLOCK_PAT.findall(raw)
     if not matches:
         raise ValueError(
             "LLM output did not contain any FUNCTION blocks.\n"
             "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
         )
 
-    # ------------------------------------------------------------------
-    # ❸  Build the list[dict] expected downstream
-    #     (Derive return_type from the first line of each function)
-    # ------------------------------------------------------------------
     functions = []
     for fname, fcode in matches:
         fcode = fcode.strip()
@@ -280,6 +261,46 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
         )
 
     return functions
+
+
+def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[dict]:
+    code = Path(src_path).read_text(encoding="utf-8", errors="ignore")
+    messages = _build_prompt(code)
+    raw = _llm.generate(
+        messages,
+        max_new_tokens=max_tokens,
+    ).strip()
+
+    functions = _parse_output(raw)
+
+    return functions
+
+
+def extract_functions_batch(
+    code_strings: List[str],
+    *,
+    max_new_tokens: int = 4096,
+    temperature: float = 0.0,
+) -> List[List[dict]]:
+
+    # 1) build prompts
+    prompts = [_build_prompt(code) for code in code_strings]
+
+    # 2) 一次丟進 vLLM 批次 API
+    raw_outputs = _llm.generate_batch(
+        prompts,
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+    )
+
+    # 3) 逐條解析
+    results: List[List[dict]] = []
+    for raw in raw_outputs:
+        raw = raw.strip()
+        funcs = _parse_output(raw)  # 直接沿用單題解析
+        results.append(funcs)
+
+    return results
 
 
 # ---------------------------------------------------------------------------
