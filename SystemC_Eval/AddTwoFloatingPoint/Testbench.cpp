@@ -5,6 +5,8 @@
 #include <vector>
 #include "Testbench.h"
 
+static constexpr double EPSILON = 1e-6;
+
 /* === Fixed Format === */
 Testbench::Testbench(sc_module_name n)
     : sc_module(n) {
@@ -18,7 +20,7 @@ Testbench::Testbench(sc_module_name n)
 /* === Fixed Format End === */
 
 void Testbench::do_feed() {
-    struct Testcase { int a, b; };
+    struct Testcase { double a, b; };
     std::vector<Testcase> tests;
     std::ifstream fin("testcases.txt");
     if (!fin.is_open()) {
@@ -46,20 +48,19 @@ void Testbench::do_feed() {
     o_rst.write(true);
     wait(1);
 
-    for (const auto &tc : tests) {
+    for (const auto& tc : tests) {
         /* === Variable Section === */
         o_a.write(tc.a);
         o_b.write(tc.b);
         /* === Variable Section End === */
-
         wait();
     }
 }
 
 
 void Testbench::do_fetch() {
-    struct Testcase  { int a, b; };
-    struct Golden { int expected; };
+    struct Testcase  { double a, b; };
+    struct Golden { double expected; };
 
     std::vector<Testcase> tests;
     std::ifstream fin("testcases.txt");
@@ -84,21 +85,11 @@ void Testbench::do_fetch() {
     fin.close();
 
     std::vector<Golden> goldens;
-    std::ifstream gin("golden.txt");
-    if (!gin.is_open()) {
-        std::cerr << "Error: Unable to open golden.txt\n";
-        sc_stop();
-        return;
-    }
-
-    while (std::getline(gin, line)) {
-        if (line.empty() || line[0] == '#') continue;
-        std::istringstream iss(line);
-        /* === Variable Section === */
-        Golden g;
-        if (!(iss >> g.expected)) {
-            std::cerr << "Warning: Incorrect format in golden.txt, skipping line: " << line << "\n";
-            continue;
+    {
+        std::ifstream fin("golden.txt");
+        if (!fin.is_open()) {
+            std::cerr << "Error: Unable to open golden.txt\n";
+            sc_stop();
             return;
         }
         std::string line;
@@ -113,26 +104,29 @@ void Testbench::do_fetch() {
             goldens.push_back(g);
         }
     }
-    gin.close();
+    fin.close();
 
     wait(1);
 
     size_t passed_count = 0;
     /* === Variable Section === */
     for (size_t idx = 0; idx < goldens.size(); ++idx) {
-        int result;
-        result = i_result.read();
+        double result, diff;
 
-        bool passed = (result == goldens[idx].expected);
+        result = i_result.read();
+        diff = std::fabs(result - goldens[idx].expected);
+
+        bool passed = (diff < EPSILON);
 
         if (passed) {
             ++passed_count;
             std::cout << "Test case " << idx + 1 << " passed.\n";
+            std::cout << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << '\n';
+            std::cout << "Output: " << result << "\n\n";
         } else {
             std::cerr << "Test case " << idx + 1 << " failed.\n";
-            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\n";
-            std::cerr << "Output: " << result << "\n";
-            std::cerr << "Expected: " << goldens[idx].expected << "\n\n";
+            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << '\n';
+            std::cerr << "Output: " << result << ", Expected: " << goldens[idx].expected << "\n\n";
         }
     }
     /* === Variable Section End === */
