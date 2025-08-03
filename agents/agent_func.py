@@ -18,9 +18,23 @@ _llm = VLLMGenerator(MODEL_NAME)
 # ---------------------------------------------------------------------------
 # Prompts & Examples
 # ---------------------------------------------------------------------------
-_SYSTEM_PROMPT = (
-    "You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst."
-)
+_SYSTEM_PROMPT = """
+    You are a senior SystemC/Stratus refactoring engineer and an exact C++ analyst.
+
+    Your task is to receive a snippet of C/C++ source code and return **only** the pure
+    function definitions found (or created) in that code, strictly following the
+    output format declared in _OUTPUT_FORMAT below.
+
+    • If the input already contains standalone functions, extract each of them
+      verbatim. Do **not** include the main function, include-directives, or
+      any other non-function code.
+    • If the program’s behaviour is written entirely inside main (i.e. no
+      separate functions exist), first refactor the code by moving the logic
+      into one or more well-named standalone functions (conform to good C++
+      style and Stratus synthesizability), then output those newly-created
+      function definitions instead of main.
+    • Never output main itself in any case.
+"""
 
 
 _SYSTEM_PROMPT_V2 = """
@@ -43,7 +57,10 @@ Workflow (three mandatory stages)
           function becomes pure computation.
 3. **Function Extractor** – From the rewritten code, collect every function whose
    name ≠ `main` and list them verbatim.
+"""
 
+
+_OUTPUT_FORMAT = """
 Output format (STRICT)
 ----------------------
 Your entire response must consist ONLY of the following blocks, in this order:
@@ -186,13 +203,13 @@ double calc_variance(const double* arr, size_t n) {
 """
 
 
-def _build_prompt(code: str) -> str:
+def _build_prompt(code: str, system_prompt: str) -> str:
     user_prompt = _MULTI_STAGE_USER_PROMPT_V2.format(code=code)
 
     if "qwen" in MODEL_NAME.lower():
-        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + _SYSTEM_PROMPT_V2
+        system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + system_prompt + _OUTPUT_FORMAT
     else:
-        system_prompt = _SYSTEM_PROMPT_V2
+        system_prompt = system_prompt + _OUTPUT_FORMAT
 
     messages = [
         {"role": "system", "content": system_prompt},
@@ -263,9 +280,11 @@ def _parse_output(raw: str) -> list[dict]:
     return functions
 
 
-def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[dict]:
+def extract_functions(
+    src_path: str | Path, *, max_tokens: int = 4096, system_prompt: str
+) -> list[dict]:
     code = Path(src_path).read_text(encoding="utf-8", errors="ignore")
-    messages = _build_prompt(code)
+    messages = _build_prompt(code, system_prompt)
     raw = _llm.generate(
         messages,
         max_new_tokens=max_tokens,
@@ -278,13 +297,14 @@ def extract_functions(src_path: str | Path, *, max_tokens: int = 4096) -> list[d
 
 def extract_functions_batch(
     code_strings: List[str],
+    system_prompt: str = _SYSTEM_PROMPT_V2,
     *,
     max_new_tokens: int = 4096,
     temperature: float = 0.0,
 ) -> List[List[dict]]:
 
     # 1) build prompts
-    prompts = [_build_prompt(code) for code in code_strings]
+    prompts = [_build_prompt(code, system_prompt) for code in code_strings]
 
     # 2) 一次丟進 vLLM 批次 API
     raw_outputs = _llm.generate_batch(

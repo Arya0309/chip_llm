@@ -8,7 +8,7 @@ import torch
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 
-DEFAULT_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-Coder-7B-Instruct")
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-Coder-32B-Instruct")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
 INPUT_DATA_DIR = PROJECT_ROOT / "data_inputs"  # /home/.../chip_llm/data_inputs
 
@@ -70,6 +70,7 @@ class VLLMGenerator:
         top_p: float = 0.8,
         top_k: int = 20,
         repetition_penalty: float = 1.05,
+        use_tqdm: bool = True,
     ) -> str:
         sampling_params = SamplingParams(
             max_tokens=max_new_tokens,
@@ -78,7 +79,7 @@ class VLLMGenerator:
             top_k=top_k,
             repetition_penalty=repetition_penalty,
         )
-        outputs = self.llm.generate([prompt], sampling_params)
+        outputs = self.llm.generate([prompt], sampling_params, use_tqdm=use_tqdm)
         return outputs[0].outputs[0].text
 
     __call__ = generate  # 允許像函式一樣直接呼叫
@@ -92,6 +93,7 @@ class VLLMGenerator:
         top_p: float = 0.8,
         top_k: int = 20,
         repetition_penalty: float = 1.05,
+        use_tqdm: bool = True,
     ) -> list[str]:
         """一次回傳 len(prompts) 條 completion；順序與輸入相同。"""
         params = SamplingParams(
@@ -102,7 +104,7 @@ class VLLMGenerator:
             repetition_penalty=repetition_penalty,
         )
         outs = self.llm.generate(
-            prompts, params
+            prompts, params, use_tqdm=use_tqdm
         )  # vLLM 支援多 prompt 併發 :contentReference[oaicite:0]{index=0}
         return [o.outputs[0].text for o in outs]
 
