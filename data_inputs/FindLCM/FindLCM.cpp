@@ -1,19 +1,20 @@
 #include <iostream>
 using namespace std;
 
-int main()
-{
-	int a = 15, b = 20, max_num, flag = 1;
+int findLCM(int a, int b) {
+    int max_num = (a > b) ? a : b;
 
-	max_num = (a > b) ? a : b;
+    while (true) {
+        if (max_num % a == 0 && max_num % b == 0) {
+            return max_num;
+        }
+        ++max_num;
+    }
+}
 
-	while (flag) {
-		if (max_num % a == 0 && max_num % b == 0) {
-			cout << "LCM of " << a << " and " << b << " is "
-				<< max_num;
-			break;
-		}
-		++max_num;
-	}
-	return 0;
+int main() {
+    int a = 15, b = 20;
+    int lcm = findLCM(a, b);
+    cout << "LCM of " << a << " and " << b << " is " << lcm;
+    return 0;
 }
