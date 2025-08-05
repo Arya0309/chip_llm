@@ -79,7 +79,7 @@ def run_func_stage(codes: List[str], batch_size: int):
         for idx_chunk in chunks(active, batch_size):
             code_chunk = [codes[i] for i in idx_chunk]
             try:
-                outs = agent_func.extract_functions_batch(code_chunk)
+                outs = agent_func.extract_functions_batch(code_chunk, system_prompt=agent_func._SYSTEM_PROMPT_V2)
                 verify_len("FUNC", len(idx_chunk), len(outs))
             except Exception as e:
                 for i in idx_chunk:

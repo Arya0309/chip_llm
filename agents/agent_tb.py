@@ -70,9 +70,7 @@ _OUTPUT_FORMAT = """
 
 _FORMAT_PROMPT_WITH_FUNC = 'The DUT has already been implemented. Please generate the testbench as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
-_REQUIREMENT_WITH_DUT = (
-    "Given the SystemC DUT code below, generate the corresponding testbench code."
-)
+_REQUIREMENT_WITH_DUT = "Given the SystemC DUT code below, generate the corresponding testbench code."
 _FORMAT_PROMPT_WITH_DUT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 # Example input function and its Testbench.cpp, Testbench.h outputs
