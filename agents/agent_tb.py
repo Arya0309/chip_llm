@@ -287,7 +287,6 @@ void Testbench::do_fetch() {
     sc_stop();
 }
 """
-
 _EXAMPLE_TESTBENCH_H_1 = """
 #ifndef TESTBENCH_H_
 #define TESTBENCH_H_
@@ -322,13 +321,11 @@ private:
 """
 
 _EXAMPLE_REQUIREMENT_2 = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer array."
-
 _EXAMPLE_FUNC_2 = """
 void add_arrays(const int A[N], const int B[N], int C[N]) {
     for (int i = 0; i < N; ++i) C[i] = A[i] + B[i];
 }
 """
-
 _EXAMPLE_DUT_CPP_2 = """
 #include "Dut.h"
 
@@ -377,7 +374,6 @@ void Dut::do_compute() {
     }
 }
 """
-
 _EXAMPLE_DUT_H_2 = """
 #ifndef DUT_H_
 #define DUT_H_
@@ -405,7 +401,6 @@ private:
 };
 #endif
 """
-
 _EXAMPLE_TESTBENCH_CPP_2 = r"""
 #include <cassert>
 #include <fstream>
@@ -570,8 +565,6 @@ void Testbench::do_fetch() {
     sc_stop();
 }
 """
-
-
 _EXAMPLE_TESTBENCH_H_2 = """
 #ifndef TESTBENCH_H_
 #define TESTBENCH_H_
