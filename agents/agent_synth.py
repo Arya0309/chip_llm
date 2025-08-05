@@ -1,86 +1,106 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-agent_synth.py — Stratus synthesizability agent
-
-CLI modes
----------
-• report     – full analysis & (if needed) corrected code        (default)
-• verify     – verdict only: [STATE] PASS|FAIL [/STATE]
-• reflexion  – Actor/Environment loop; Environment feedback 餵回 Actor
-"""
-
 from __future__ import annotations
+
 import argparse
+import json
 import os
 import re
 import sys
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple, Any
 
 from utils import DEFAULT_MODEL, VLLMGenerator
 import prompts as prompt  # parity with agent_dut (even if unused)
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
-_llm = VLLMGenerator(MODEL_NAME)
+from openai import OpenAI
 
-# ---------------------------------------------------------------------------
+_oa_client = OpenAI(  # 如果沒設就會自動讀 OPENAI_API_KEY 環境變數
+    api_key=os.getenv("OPENAI_API_KEY", None)
+)
+# ------------------------------------------------------------------------
+# Configuration
+# ------------------------------------------------------------------------
+MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
+_llm: VLLMGenerator | None = None
+
+
+def _init_llm(model_name: str) -> None:
+    """Initialise the local vLLM generator (actor / env)."""
+    global MODEL_NAME, _llm
+    MODEL_NAME = model_name
+    os.environ["LLM_MODEL"] = MODEL_NAME
+    _llm = VLLMGenerator(MODEL_NAME)
+
+
+# ------------------------------------------------------------------------
 # Prompts
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 _SYSTEM_PROMPT_REPORT = """
-You are Qwen, created by Alibaba Cloud. You are an AI Stratus synthesizer.
-First analyse whether the following C/C++ code can be synthesized and write
-your reasoning inside:
+You are an AI Stratus synthesizer.
+First analyse whether the following C/C++ code can be synthesized and write your reasoning inside:
 [ANALYSIS]
 ...
 [/ANALYSIS]
 Then, *immediately after* the analysis block:
-  • If the code **is** synthesizable, output the original code wrapped in a
-    ```cpp``` fenced block.
-  • If the code **is NOT** synthesizable, list the blocking issues inside the
-    analysis, then provide a *corrected* synthesizable version, also wrapped in
-    ```cpp```.
-Do not output anything outside the [ANALYSIS]...[/ANALYSIS] block and the
-single fenced code block that follows it.
+  • If the code **is** synthesizable, output the original C++ code wrapped in a ```cpp``` fenced block.
+  • If the code **is NOT** synthesizable, list the blocking issues inside the analysis, then provide a *corrected* synthesizable version C++ code, also wrapped in ```cpp```.
+Do not output anything outside the [ANALYSIS]...[/ANALYSIS] block and the single fenced code block that follows it.
 """
 
-_SYSTEM_PROMPT_VERIFY = """
-You are Qwen, created by Alibaba Cloud. You are an expert on Cadence Stratus HLS synthesizability.
-First analyse whether the following C/C++ code can be synthesized and write your reasoning inside: 
-(Note: Any statement or helper function that performs printing or I/O is NON-synthesizable.)
+_SYSTEM_PROMPT_VERIFY = r"""
+Act as a **conservative Cadence Stratus HLS synthesizability checker**.
+
+Carefully inspect the following C/C++ translation unit. Follow the rules below:
+
+1. Read the code **twice**. Do not assume the existence of any undefined symbols.
+2. List every construct that Cadence Stratus **cannot synthesize**, including (but not limited to):
+   • any I/O (printf/scanf, cin/cout, fprintf, file access)  
+   • recursion (direct or indirect)  
+   • dynamic memory (new, delete, malloc, free, VLAs)  
+   • unbounded or data-dependent loops without a fixed max trip-count pragma  
+   • calls to library/math/STL functions Stratus cannot inline (pow, exp, log, std::swap, sort, etc.)  
+   • STL containers or algorithms (vector, list, map, string, std::function, …)  
+   • general-purpose pointers used as memory, or pointer arithmetic beyond fixed arrays  
+   • floating-point operations when FP synthesis support is not explicitly enabled  
+   • undefined-behaviour patterns (e.g. negative shift, out-of-bounds access)  
+3. **If any item in step 2 is present, or if you are NOT 100 % certain the design will synthesize, conclude FAIL.**
+4. Only when **no violations** are found and you are completely confident, conclude PASS.
+
+Output exactly:
+
 [FEEDBACK]
-...
+<bullet list of findings; if none, write “No violations found.”>
 [/FEEDBACK]
-Then, on a separate final line, output exactly one of:
-[STATE] PASS [/STATE]   # if synthesizable
-[STATE] FAIL [/STATE]   # if NOT synthesizable
+Then, on a separate final line, output **one and only one** of:
+[STATE] PASS [/STATE]      # only when absolutely sure
+[STATE] FAIL [/STATE]
+
+Do **not** output anything else outside the required tags.
 """
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # Regex helpers
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 _CODE_RE = re.compile(r"```cpp\s*(.*?)```", re.S)
 _STATE_RE = re.compile(r"\[STATE\]\s*(PASS|FAIL)\s*\[/STATE\]", re.I)
 _FEEDBACK_RE = re.compile(r"\[FEEDBACK\](.*?)\[/FEEDBACK\]", re.S | re.I)
 
-# ---------------------------------------------------------------------------
-# Message builders
-# ---------------------------------------------------------------------------
 
-
+# ------------------------------------------------------------------------
+# Message builder
+# ------------------------------------------------------------------------
 def _build_messages(
-    source_code: str, *, mode: str, feedback: str | None = None
+    source_code: str,
+    *,
+    mode: str,
+    feedback: str | None = None,
+    model: str | None = None,
 ) -> List[Dict[str, str]]:
-    """
-    Build chat messages.
-    • mode == 'report'  : use _SYSTEM_PROMPT_REPORT
-    • mode == 'verify'  : use _SYSTEM_PROMPT_VERIFY
-    • feedback != None  : prepend previous analysis to user message
-    """
+    """Return OpenAI-style chat messages."""
     sys_prompt = _SYSTEM_PROMPT_REPORT if mode == "report" else _SYSTEM_PROMPT_VERIFY
+    model = model or MODEL_NAME  # fallback to most-recent global
+
+    if "qwen" in model.lower():
+        sys_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + sys_prompt
 
     if feedback:
         user_content = (
@@ -105,17 +125,15 @@ def _build_messages(
 
 
 def _chat_to_prompt(messages: List[Dict[str, str]]) -> str:
-    """Convert chat messages to a single prompt string using vLLM template."""
+    """Convert chat messages to vLLM prompt string."""
     return _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
 
 
-# ---------------------------------------------------------------------------
-# Generation APIs
-# ---------------------------------------------------------------------------
-
-
+# ------------------------------------------------------------------------
+# Local vLLM generation helpers
+# ------------------------------------------------------------------------
 def _llm_generate(prompt_text: str, *, temperature: float, max_new_tokens: int) -> str:
     return _llm.generate(
         prompt_text,
@@ -132,9 +150,8 @@ def generate_synth(
     max_new_tokens: int = 2048,
     feedback: str | None = None,
 ) -> str:
-    """Full report; optional feedback for Reflexion."""
     prompt = _chat_to_prompt(
-        _build_messages(source_code, mode="report", feedback=feedback)
+        _build_messages(source_code, mode="report", feedback=feedback, model=MODEL_NAME)
     )
     return _llm_generate(prompt, temperature=temperature, max_new_tokens=max_new_tokens)
 
@@ -142,25 +159,52 @@ def generate_synth(
 def generate_synth_verifier(
     source_code: str, *, temperature: float = 0.3, max_new_tokens: int = 2048
 ) -> str:
-    prompt = _chat_to_prompt(_build_messages(source_code, mode="verify"))
+    prompt = _chat_to_prompt(
+        _build_messages(source_code, mode="verify", model=MODEL_NAME)
+    )
     return _llm_generate(prompt, temperature=temperature, max_new_tokens=max_new_tokens)
 
 
 def generate_synth_batch(
     sources: List[str], *, temperature: float = 0.3, max_new_tokens: int = 2048
 ) -> List[str]:
-    prompts = [_chat_to_prompt(_build_messages(src, mode="report")) for src in sources]
+    prompts = [
+        _chat_to_prompt(_build_messages(src, mode="report", model=MODEL_NAME))
+        for src in sources
+    ]
     outs = _llm.generate_batch(
         prompts, temperature=temperature, max_new_tokens=max_new_tokens
     )
     return [s.strip() for s in outs]
 
 
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------
+# OpenAI verifier (optional, new-style client API)
+# --------------------------------------------------------------------
+def verify_with_openai(
+    code_cpp: str,
+    *,
+    model_name: str,
+    temperature: float = 0.0,
+    max_tokens: int = 1024,
+) -> str:
+    """Run the strict VERIFY prompt on OpenAI model."""
+    if not model_name:
+        raise ValueError("verify_with_openai called with empty model_name")
+
+    messages = _build_messages(code_cpp, mode="verify", model=model_name)
+    resp = _oa_client.chat.completions.create(
+        model=model_name,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    return resp.choices[0].message.content.strip()
+
+
+# ------------------------------------------------------------------------
 # Reflexion loop
-# ---------------------------------------------------------------------------
-
-
+# ------------------------------------------------------------------------
 def _extract(regex: re.Pattern, text: str) -> str | None:
     m = regex.search(text)
     return m.group(1).strip() if m else None
@@ -174,116 +218,161 @@ def run_reflexion(
     temp_env: float = 0.0,
     max_tokens_actor: int = 2048,
     max_tokens_env: int = 1024,
-):
-    """Actor–Environment loop with feedback."""
-    current_code = original_code
-    current_feedback: str | None = None  # no feedback in first round
-    record: List[str] = []  # to store all reports
+) -> Tuple[str, List[str]]:
+    """Actor–Environment loop until local PASS or max_iter reached."""
+    current_code = original_code.split("int main()")[0].strip()
+    current_feedback: str | None = None
+    record: List[str] = []
 
     for step in range(1, max_iter + 1):
-        message = f"\n===== Reflexion Step {step} ====="
-        print(message)
-        record.append(message)
+        record.append(f"===== Reflexion Step {step} =====")
 
-        # --- Actor ---
-        message = "[Actor] Generating report...\n"
-        print(message)
-        record.append(message)
+        record.append("[Actor] Generating report…")
         report = generate_synth(
             current_code,
             temperature=temp_actor,
             max_new_tokens=max_tokens_actor,
             feedback=current_feedback,
         )
-        print(report)
         record.append(report)
 
         code_block = _extract(_CODE_RE, report)
         if not code_block:
-            message = "[Reflexion] No ```cpp``` block found in actor output. Abort."
-            print(message)
-            record.append(message)
+            record.append(
+                "[Reflexion] No ```cpp``` block found in actor output. Abort."
+            )
             return report, record
 
-        # --- Environment ---
-        message = "\n[Environment] Verifying synthesizability...\n"
-        print(message)
-        record.append(message)
-
+        record.append("[Environment] Verifying synthesizability…")
         verdict = generate_synth_verifier(
-            code_block,
-            temperature=temp_env,
-            max_new_tokens=max_tokens_env,
+            code_block, temperature=temp_env, max_new_tokens=max_tokens_env
         )
-        print(verdict)
         record.append(verdict)
 
         state = _extract(_STATE_RE, verdict)
         feedback = _extract(_FEEDBACK_RE, verdict)
-        if not feedback:
-            message = "[Reflexion] No [FEEDBACK] section found in verifier output."
-            print(message)
-            record.append(message)
         if state == "PASS":
-            message = "\n[Reflexion] PASS! Returning final code."
-            print(message)
-            record.append(message)
+            record.append("[Reflexion] PASS! Returning final code.")
             return code_block, record
 
-        message = "[Reflexion] FAIL. Feeding feedback back to Actor."
-        print(message)
-        record.append(message)
-        # 下一輪
-        current_code = code_block
-        current_feedback = f"[FEEDBACK]\n{feedback}\n[/FEEDBACK]"
+        if feedback:
+            current_code = code_block
+            current_feedback = f"[FEEDBACK]\n{feedback}\n[/FEEDBACK]"
+            record.append("[Reflexion] FAIL. Feeding feedback back to Actor.")
+        else:
+            record.append("[Reflexion] FAIL but no feedback; aborting.")
+            return report, record
 
-    message = "[Reflexion] Max iterations reached. Returning last report."
-    record.append(message)
-    print(message)
+    record.append("[Reflexion] Max iterations reached. Returning last report.")
     return report, record
 
 
-# ---------------------------------------------------------------------------
-# CLI helpers
-# ---------------------------------------------------------------------------
-
-
-def _read_source(path: Path) -> str:
-    if path.suffix.lower() in {".c", ".cc", ".cpp", ".h", ".hpp"}:
-        return path.read_text(encoding="utf-8")
-    raise ValueError(f"Unsupported file type: {path}")
-
-
-def _reinit_llm_if_needed(model_name: str | None) -> None:
-    global MODEL_NAME, _llm
-    if model_name and model_name != MODEL_NAME:
-        MODEL_NAME = model_name
-        os.environ["LLM_MODEL"] = MODEL_NAME
-        _llm = VLLMGenerator(MODEL_NAME)
-
-
-# ---------------------------------------------------------------------------
-# Output helpers
-# ---------------------------------------------------------------------------
-
-
-def _prepare_out_dir(out_root: Path, source_label: str) -> Path:
-    """Create <out_root>/<source_label>/ directory and return it."""
-    out_dir = out_root / source_label
+# ------------------------------------------------------------------------
+# I/O helpers
+# ------------------------------------------------------------------------
+def _prepare_out_dir(out_root: Path, label: str) -> Path:
+    out_dir = out_root / label
     out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir
 
 
 def _write_outputs(
-    out_dir: Path, result: str, record: List[str], source_label: str
+    out_dir: Path, result: str, record: List[str], label: str, mode: str
 ) -> None:
-    (out_dir / f"{source_label}.cpp").write_text(result, encoding="utf-8")
+    """Write .cpp (if not verify-only) and record.txt."""
+    if mode != "verify":
+        (out_dir / f"{label}.cpp").write_text(result, encoding="utf-8")
     (out_dir / "record.txt").write_text("\n\n".join(record), encoding="utf-8")
 
 
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# Core executor
+# ------------------------------------------------------------------------
+def _execute_single(
+    *,
+    source_code: str,
+    label: str,
+    args: argparse.Namespace,
+    out_root: Path,
+) -> Dict[str, Any]:
+    """Run one input; return summary dict for consolidated JSON."""
+    out_dir = _prepare_out_dir(out_root, label)
+
+    summary: Dict[str, Any] = {
+        "name": label,
+        "steps": 0,
+        "local_pass": False,
+        "gpt_pass": None,
+        "code": "",
+    }
+
+    # ---------------- mode: verify ----------------
+    if args.mode == "verify":
+        result = generate_synth_verifier(
+            source_code,
+            temperature=0.0,
+            max_new_tokens=min(args.max_new_tokens, 2048),
+        )
+        record = [result]
+        summary["local_pass"] = _extract(_STATE_RE, result) == "PASS"
+
+    # ---------------- mode: reflexion -------------
+    elif args.mode == "reflexion":
+        result, record = run_reflexion(
+            source_code,
+            max_iter=args.max_iter,
+            temp_actor=args.temperature,
+            temp_env=args.temperature,
+            max_tokens_actor=args.max_new_tokens,
+            max_tokens_env=min(args.max_new_tokens, 2048),
+        )
+        # Count steps & local pass
+        summary["steps"] = sum(
+            1 for line in record if line.startswith("===== Reflexion Step")
+        )
+        summary["local_pass"] = any(
+            "PASS! Returning final code." in line for line in record
+        )
+
+        # ---------- optional GPT verifier ----------
+        if args.oa_model:
+            oa_verdict = verify_with_openai(result, model_name=args.oa_model)
+            record.append("\n[OpenAI-Verifier] result:")
+            record.append(oa_verdict)
+
+            gpt_pass = _extract(_STATE_RE, oa_verdict) == "PASS"
+            summary["gpt_pass"] = gpt_pass
+
+            if not gpt_pass:
+                record.append(
+                    "[Warning] OpenAI verifier reports FAIL. Marking as NOT-synthesizable."
+                )
+                # result = oa_verdict
+
+    # ---------------- mode: report ----------------
+    else:  # report
+        result = generate_synth(
+            source_code,
+            temperature=args.temperature,
+            max_new_tokens=args.max_new_tokens,
+        )
+        record = [result]
+
+    # ---------- write artefacts ----------
+    _write_outputs(out_dir, result, record, label, args.mode)
+    print(f"[Saved] Outputs for '{label}' → {out_dir}")
+
+    summary["code"] = result
+    return summary
+
+
+# ------------------------------------------------------------------------
 # CLI entry
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+def _read_source(path: Path) -> str:
+    if path.suffix.lower() in {".c", ".cc", ".cpp", ".h", ".hpp"}:
+        return path.read_text(encoding="utf-8")
+    raise ValueError(f"Unsupported file type: {path}")
 
 
 def main(argv: List[str] | None = None) -> None:
@@ -291,13 +380,10 @@ def main(argv: List[str] | None = None) -> None:
         description="Stratus synthesizability agent (report / verify / reflexion)."
     )
     parser.add_argument(
-        "--mode",
-        choices=("report", "verify", "reflexion"),
-        default="report",
-        help="report (analysis & fix), verify (PASS/FAIL), reflexion (loop).",
+        "source", help="Path to a C/C++ file, a JSON batch file, or '-' for stdin."
     )
     parser.add_argument(
-        "source", help="Path to a C/C++ file, or '-' to read from stdin."
+        "--mode", choices=("report", "verify", "reflexion"), default="reflexion"
     )
     parser.add_argument(
         "-m",
@@ -308,62 +394,75 @@ def main(argv: List[str] | None = None) -> None:
     parser.add_argument("--temperature", type=float, default=0.3)
     parser.add_argument("--max-new-tokens", type=int, default=4096)
     parser.add_argument(
-        "--max-iter", type=int, default=5, help="Max reflexion iterations."
+        "--max-iter", type=int, default=10, help="Max reflexion iterations."
     )
     parser.add_argument(
-        "-o",
-        "--out-dir",
-        default=".log",
-        help="Output root directory (default: .log/<input_cpp_name>).",
+        "-o", "--out-dir", default=".log", help="Output root directory."
     )
-
+    parser.add_argument(
+        "--oa-model",
+        default="",  # empty string → GPT verifier disabled
+        help="OpenAI model for final verification (e.g. o1, gpt-4o). Leave blank to disable.",
+    )
     args = parser.parse_args(argv)
-    _reinit_llm_if_needed(args.model or os.getenv("LLM_MODEL"))
 
-    # Determine label for output subdirectory
+    _init_llm(args.model or os.getenv("LLM_MODEL", DEFAULT_MODEL))
+
+    out_root = Path(args.out_dir).expanduser().resolve()
+    out_root.mkdir(parents=True, exist_ok=True)
+
+    # ---------------- stdin as single ----------------
     if args.source == "-":
-        source_label = "stdin"
-        source_code = sys.stdin.read()
+        source_text = sys.stdin.read()
+        _execute_single(
+            source_code=source_text,
+            label="stdin",
+            args=args,
+            out_root=out_root,
+        )
+        return
+
+    src_path = Path(args.source).expanduser().resolve()
+
+    # ---------------- batch JSON ---------------------
+    if src_path.suffix.lower() == ".json":
+        print(f"[Mode] Batch-JSON: {src_path}")
+        entries: List[Dict[str, str]] = json.loads(src_path.read_text(encoding="utf-8"))
+
+        summaries: List[Dict[str, Any]] = []
+        for entry in entries:
+            name = entry["name"]
+            code = entry["code"]
+
+            summaries.append(
+                _execute_single(
+                    source_code=code,
+                    label=name,
+                    args=args,
+                    out_root=out_root,
+                )
+            )
+
+        # Consolidated summary
+        summary_path = out_root / "summary.json"
+        summary_path.write_text(
+            json.dumps(summaries, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"[Summary] Written to {summary_path}")
+
+    # ---------------- single file --------------------
     else:
-        source_path = Path(args.source)
-        source_label = source_path.stem
-        source_code = _read_source(source_path)
-
-    out_root = Path(args.out_dir)
-    out_dir = _prepare_out_dir(out_root, source_label)
-
-    # ---- dispatch ----
-    if args.mode == "verify":
-        result = generate_synth_verifier(
-            source_code,
-            temperature=0.0,
-            max_new_tokens=min(args.max_new_tokens, 2048),
+        print(f"[Mode] Single-file: {src_path}")
+        source_code = _read_source(src_path)
+        label = src_path.stem
+        _execute_single(
+            source_code=source_code,
+            label=label,
+            args=args,
+            out_root=out_root,
         )
-        record = [result]
-    elif args.mode == "reflexion":
-        result, record = run_reflexion(
-            source_code,
-            max_iter=args.max_iter,
-            temp_actor=args.temperature,
-            temp_env=0.0,
-            max_tokens_actor=args.max_new_tokens,
-            max_tokens_env=min(args.max_new_tokens, 2048),
-        )
-    else:  # report
-        result = generate_synth(
-            source_code,
-            temperature=args.temperature,
-            max_new_tokens=args.max_new_tokens,
-        )
-        record = [result]
 
-    # Persist outputs
-    _write_outputs(out_dir, result, record, source_label)
-
-    # Console echo
-    print("\n===== Final Output =====")
-    print(result)
-    print(f"\n[Saved] Results are stored under: {out_dir}\n")
+    print(f"\n[Done] All outputs are under: {out_root}\n")
 
 
 if __name__ == "__main__":

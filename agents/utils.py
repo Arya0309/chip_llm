@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 import os
+import random
 
 from typing import Any, Dict
 import torch
@@ -73,6 +74,7 @@ class VLLMGenerator:
         use_tqdm: bool = True,
     ) -> str:
         sampling_params = SamplingParams(
+            seed=random.randint(0, 2**31 - 1),
             max_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
@@ -97,6 +99,7 @@ class VLLMGenerator:
     ) -> list[str]:
         """一次回傳 len(prompts) 條 completion；順序與輸入相同。"""
         params = SamplingParams(
+            seed=random.randint(0, 2**31 - 1),
             max_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
