@@ -30,6 +30,9 @@ def parse_args():
     ap.add_argument("-o", "--out_dir", default=str(DEFAULT_OUT))
     ap.add_argument("--model", help="override env LLM_MODEL")
     ap.add_argument("--batch_size", type=int, default=8)
+    # ap.add_argument("--max_iter", type=int, default=10)
+    ap.add_argument("--temperature", type=float, default=0.3)
+    ap.add_argument("--max_new_tokens", type=int, default=4096)
     return ap.parse_args()
 
 
@@ -103,7 +106,13 @@ def run_func_stage(codes: List[str], batch_size: int):
 
 
 def run_dut_stage(
-    func_src: List[Optional[str]], reqs: List[str], batch_size: int, skip: Set[int]
+    func_src: List[Optional[str]], 
+    reqs: List[str], 
+    batch_size: int, 
+    skip: Set[int],
+    *,
+    max_new_tokens: int,
+    temperature: float,
 ):
     import agent_dut
 
@@ -122,7 +131,11 @@ def run_dut_stage(
             req_chunk = [reqs[i] for i in idx_chunk]
             try:
                 outs = agent_dut.generate_dut_batch(
-                    src_chunk, req_chunk, system_prompt=agent_dut._SYSTEM_PROMPT_V2
+                    src_chunk, 
+                    req_chunk, 
+                    system_prompt=agent_dut._SYSTEM_PROMPT_V2,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature,
                 )
                 verify_len("DUT", len(idx_chunk), len(outs))
             except Exception as e:
@@ -147,6 +160,9 @@ def run_tb_stage(
     reqs: List[str],
     batch_size: int,
     skip: Set[int],
+    *,
+    max_new_tokens: int,
+    temperature: float,
 ):
     import agent_tb
 
@@ -172,6 +188,8 @@ def run_tb_stage(
                     dut_h=dut_h_chunk,
                     requirement=req_chunk,
                     system_prompt=agent_tb._SYSTEM_PROMPT_V2,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature,
                 )
                 verify_len("TB", len(idx_chunk), len(outs))
             except Exception as e:
@@ -196,6 +214,9 @@ def run_pipe_stage(
     tb_res: List[Optional[Dict[str, str]]],
     batch_size: int,
     skip: Set[int],
+    *,
+    max_new_tokens: int,
+    temperature: float,
 ):
     import agent_pipe
 
@@ -216,7 +237,11 @@ def run_pipe_stage(
             tb_h_chunk = [tb_res[i]["Testbench.h"] for i in idx_chunk]
             try:
                 outs = agent_pipe.generate_pipeline_batch(
-                    dut_h_chunk, tb_h_chunk, system_prompt=agent_pipe._SYSTEM_PROMPT_V2
+                    dut_h_chunk, 
+                    tb_h_chunk, 
+                    system_prompt=agent_pipe._SYSTEM_PROMPT_V2,
+                    max_new_tokens=max_new_tokens,
+                    temperature=temperature
                 )
                 verify_len("PIPE", len(idx_chunk), len(outs))
             except Exception as e:
@@ -264,14 +289,21 @@ def main():
     func_src, func_abdn = run_func_stage(codes, args.batch_size)
 
     # Stage 2 — DUT
-    dut_res, dut_abdn = run_dut_stage(func_src, reqs, args.batch_size, func_abdn)
+    dut_res, dut_abdn = run_dut_stage(
+        func_src, reqs, args.batch_size, func_abdn,
+        max_new_tokens=args.max_new_tokens, temperature=args.temperature,
+        )
 
     # Stage 3 — TB
-    tb_res, tb_abdn = run_tb_stage(dut_res, reqs, args.batch_size, func_abdn | dut_abdn)
+    tb_res, tb_abdn = run_tb_stage(
+        dut_res, reqs, args.batch_size, func_abdn | dut_abdn,
+        max_new_tokens=args.max_new_tokens, temperature=args.temperature,
+        )
 
     # Stage 4 — PIPE
     pipe_res, pipe_abdn = run_pipe_stage(
-        dut_res, tb_res, args.batch_size, func_abdn | dut_abdn | tb_abdn
+        dut_res, tb_res, args.batch_size, func_abdn | dut_abdn | tb_abdn,
+        max_new_tokens=args.max_new_tokens, temperature=args.temperature,
     )
 
     # Write outputs

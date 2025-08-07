@@ -70,11 +70,18 @@ _OUTPUT_FORMAT = """
 
 _FORMAT_PROMPT_WITH_FUNC = 'The DUT has already been implemented. Please generate the testbench as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
-_REQUIREMENT_WITH_DUT = "Given the SystemC DUT code below, generate the corresponding testbench code."
+_DESCRIPTION_WITH_DUT = "Given the SystemC DUT code below, generate the corresponding testbench code."
 _FORMAT_PROMPT_WITH_DUT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 # Example input function and its Testbench.cpp, Testbench.h outputs
 _EXAMPLE_REQUIREMENT_1 = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer numbers."
+_EXAMPLE_REQUIREMENT_WITH_DUT_1 = """
+Given the SystemC DUT code below, generate the corresponding testbench code.
+Expected input consists of:
+    two numbers
+Expected output consists of:
+    a number
+"""
 _EXAMPLE_FUNC_1 = "int add(int a, int b) { return a + b; }"
 _EXAMPLE_DUT_CPP_1 = """
 #include "Dut.h"
@@ -268,21 +275,14 @@ void Testbench::do_fetch() {
         result = i_result.read();
 
         bool passed = (result == goldens[idx].expected);
-
-        if (passed) {
-            ++passed_count;
-            std::cout << "Test case " << idx + 1 << " passed.\n";
-        } else {
-            std::cerr << "Test case " << idx + 1 << " failed.\n";
-            std::cerr << "Input: a = " << tests[idx].a << ", b = " << tests[idx].b << "\n";
-            std::cerr << "Output: " << result << "\n";
-            std::cerr << "Expected: " << goldens[idx].expected << "\n\n";
-        }
+        if (passed) ++passed_count;
     }
     /* === Variable Section End === */
 
-    if (passed_count != goldens.size()) {
-        SC_REPORT_FATAL("Testbench", "Some test cases failed.");
+    if (passed_count == goldens.size()) {
+        std::cout << "All test cases passed!\n";
+    } else {
+        std::cerr << goldens.size() - passed_count << " out of " << goldens.size() << " test cases failed.\n";
     }
     sc_stop();
 }
@@ -321,6 +321,13 @@ private:
 """
 
 _EXAMPLE_REQUIREMENT_2 = "Given the C++ program below, convert it into a functionally equivalent SystemC code. The expected input consists of two integer array."
+_EXAMPLE_REQUIREMENT_WITH_DUT_2 = """
+Given the SystemC DUT code below, generate the corresponding testbench code.
+Expected input consists of:
+    two 4-element array
+Expected output consists of:
+    a 4-element array
+"""
 _EXAMPLE_FUNC_2 = """
 void add_arrays(const int A[N], const int B[N], int C[N]) {
     for (int i = 0; i < N; ++i) C[i] = A[i] + B[i];
@@ -535,32 +542,14 @@ void Testbench::do_fetch() {
         }
 
         bool passed = (result == goldens[idx].C);
-
-        if (passed) {
-            ++passed_count;
-            std::cout << "Test case " << idx + 1 << " passed.\n";
-        } else {
-            std::cerr << "Test case " << idx + 1 << " failed.\n";
-            std::cerr << "Input: A = [";
-            for (int i = 0; i < N; ++i) {
-                std::cerr << tests[idx].A[i] << (i < N - 1 ? ", " : "");
-            }
-            std::cerr << "], B = [";
-            for (int i = 0; i < N; ++i) {
-                std::cerr << tests[idx].B[i] << (i < N - 1 ? ", " : "");
-            }
-            std::cerr << "]\n";
-            std::cerr << "Output: ";
-            for (int x : result) std::cerr << x << " ";
-            std::cerr << "\nExpected: ";
-            for (int x : goldens[idx].C) std::cerr << x << " ";
-            std::cerr << "\n";
-        }
+        if (passed) ++passed_count;
     }
     /* === Variable Section End === */
 
-    if (passed_count != goldens.size()) {
-        SC_REPORT_FATAL("Testbench", "Some test cases failed.");
+    if (passed_count == goldens.size()) {
+        std::cout << "All test cases passed!\n";
+    } else {
+        std::cerr << goldens.size() - passed_count << " out of " << goldens.size() << " test cases failed.\n";
     }
     sc_stop();
 }
@@ -634,11 +623,22 @@ def _build_prompt(
             },
         ]
     elif dut_cpp and dut_h:
+        if requirement:
+            requirement = re.sub(
+                r'^\s*Given\b.*?equivalent\.\s*', 
+                '', 
+                requirement, 
+                # flags=re.DOTALL
+            )
+            requirement = _DESCRIPTION_WITH_DUT + f"\n{requirement.strip()}"
+        else:
+            requirement = _DESCRIPTION_WITH_DUT
+
         messages = [
-            {"role": "system", "content": _SYSTEM_PROMPT_V2},
+            {"role": "system", "content": system_prompt},
             {
                 "role": "user",
-                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_1}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_1}\n```",
+                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT_WITH_DUT_1}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_1}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_1}\n```",
             },
             {
                 "role": "assistant",
@@ -649,7 +649,7 @@ def _build_prompt(
             },
             {
                 "role": "user",
-                "content": f"[Requirement]\n{_REQUIREMENT_WITH_DUT}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_2}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_2}\n```",
+                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT_WITH_DUT_2}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_2}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_2}\n```",
             },
             {
                 "role": "assistant",
@@ -661,7 +661,7 @@ def _build_prompt(
             {
                 "role": "user",
                 "content": (
-                    (f"[Requirement]\n{_REQUIREMENT_WITH_DUT}")
+                    (f"[Requirement]\n{requirement}")
                     + "\n[Dut.cpp]\n```cpp\n"
                     + dut_cpp.strip()
                     + "\n```"
