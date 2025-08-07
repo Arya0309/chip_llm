@@ -358,6 +358,22 @@ def _execute_single(
         )
         record = [result]
 
+        # ---------- optional GPT verifier ----------
+        if args.oa_model:
+            result = _extract(_CODE_RE, result) or result  # fallback to full report
+            oa_verdict = verify_with_openai(result, model_name=args.oa_model)
+            record.append("\n[OpenAI-Verifier] result:")
+            record.append(oa_verdict)
+
+            gpt_pass = _extract(_STATE_RE, oa_verdict) == "PASS"
+            summary["gpt_pass"] = gpt_pass
+
+            if not gpt_pass:
+                record.append(
+                    "[Warning] OpenAI verifier reports FAIL. "
+                    "Marking as NOT-synthesizable."
+                )
+
     # ---------- write artefacts ----------
     _write_outputs(out_dir, result, record, label, args.mode)
     print(f"[Saved] Outputs for '{label}' → {out_dir}")
