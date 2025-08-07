@@ -7,11 +7,62 @@ import random
 from typing import Any, Dict
 import torch
 from vllm import LLM, SamplingParams
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
-DEFAULT_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-Coder-32B-Instruct")
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
 INPUT_DATA_DIR = PROJECT_ROOT / "data_inputs"  # /home/.../chip_llm/data_inputs
+
+
+class HFGenerator:
+    """HuggingFace Transformers-based generator for LLM tasks."""
+
+    def __init__(self, model_name: str = DEFAULT_MODEL):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModelForCausalLM.from_pretrained(model_name).to("cuda")
+
+    def apply_chat_template(
+        self,
+        messages,
+        *,
+        tokenize: bool = False,
+        add_generation_prompt: bool = True,
+    ):
+        if tokenize:  # 用在 generate() 時
+            return self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=add_generation_prompt,
+                return_dict=True,
+                return_tensors="pt",
+            ).to(self.model.device)
+        else:  # 用在 _chat_to_prompt() 時
+            return self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=add_generation_prompt,
+            )
+
+    def generate(self, prompt: str, **generate_kwargs) -> str:
+        # 1) 先把 chat 轉成 token 張量
+        inputs = self.apply_chat_template(
+            [{"role": "user", "content": prompt}], tokenize=True
+        )
+
+        # 2) 過濾 vLLM only 參數
+        for bad in ("use_tqdm", "stream", "stop", "stop_token_ids", "echo"):
+            generate_kwargs.pop(bad, None)
+
+        # 3) 交給 HF generate()
+        outputs = self.model.generate(
+            **inputs,
+            **generate_kwargs,  # temperature / top_p / top_k…
+        )
+
+        # 4) 去掉 prompt token，回傳文字
+        return self.tokenizer.decode(
+            outputs[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=True
+        )
 
 
 class VLLMGenerator:
