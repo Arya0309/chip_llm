@@ -103,7 +103,6 @@ void Dut::do_compute() {
     }
 }
 """
-
 _EXAMPLE_DUT_H_1 = """
 #ifndef DUT_H_
 #define DUT_H_
@@ -138,7 +137,6 @@ _EXAMPLE_FUNC_2 = (
     "void add_arrays(const int A[N], const int B[N], int C[N]) { "
     "for (int i = 0; i < N; ++i) C[i] = A[i] + B[i]; }"
 )
-
 _EXAMPLE_DUT_CPP_2 = """
 #include "Dut.h"
 
@@ -189,7 +187,6 @@ void Dut::do_compute() {
     }
 }
 """
-
 _EXAMPLE_DUT_H_2 = """
 #ifndef DUT_H_
 #define DUT_H_
