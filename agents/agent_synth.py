@@ -216,6 +216,15 @@ def _extract(regex: re.Pattern, text: str) -> str | None:
     return m.group(1).strip() if m else None
 
 
+def _extract_last_nonempty(regex: re.Pattern, text: str) -> str | None:
+    last = None
+    for m in regex.finditer(text):
+        s = m.group(1).strip()
+        if s:
+            last = s
+    return last
+
+
 def run_reflexion(
     original_code: str,
     *,
@@ -242,7 +251,7 @@ def run_reflexion(
         )
         record.append(report)
 
-        code_block = _extract(_CODE_RE, report)
+        code_block = _extract_last_nonempty(_CODE_RE, report)
         if not code_block:
             record.append(
                 "[Reflexion] No ```cpp``` block found in actor output. Abort."
