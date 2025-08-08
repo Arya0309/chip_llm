@@ -6,21 +6,72 @@ import random
 
 from typing import Any, Dict
 import torch
-from vllm import LLM, SamplingParams
-from transformers import AutoTokenizer, AutoModelForCausalLM
+
+try:
+    from vllm import LLM, SamplingParams
+except ImportError:
+    LLM = None
+    SamplingParams = None
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from transformers.distributed import DistributedConfig
 
 DEFAULT_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
 INPUT_DATA_DIR = PROJECT_ROOT / "data_inputs"  # /home/.../chip_llm/data_inputs
 
+import torch
+
 
 class HFGenerator:
-    """HuggingFace Transformers-based generator for LLM tasks."""
+    def __init__(
+        self,
+        model_name: str,
+        *,
+        multi_gpu: bool | int = True,
+        tp_plan: str | dict | None = "auto",
+        enable_expert_parallel: int = 1,
+        dtype: str | torch.dtype = "auto",
+    ):
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
 
-    def __init__(self, model_name: str = DEFAULT_MODEL):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name).to("cuda")
+        # ------------------ build device_map ------------------
+        if multi_gpu:
+            # Which GPUs?
+            n_gpu_total = torch.cuda.device_count()
+            if isinstance(multi_gpu, bool):
+                n_gpu_use = n_gpu_total
+            else:  # int
+                n_gpu_use = min(int(multi_gpu), n_gpu_total)
+            visible = list(range(n_gpu_use))
 
+            # Tell HF how to shard the weights
+            device_map: dict = {
+                # tensor parallel
+                "tp_plan": tp_plan,
+                # expert parallel
+                "distributed_config": DistributedConfig(
+                    enable_expert_parallel=enable_expert_parallel
+                ),
+            }
+            # You may pin layers manually here if desired, but "tp_plan":"auto"
+            # already handles common architectures.
+        else:
+            device_map = {"device_map": "auto"}  # falls back to a single GPU
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype=dtype,
+            attn_implementation="kernels-community/vllm-flash-attn3",  # identical to docs
+            **device_map,
+        )
+
+        # A convenience handle to pick one device for prompt tensors later.
+        self.main_device = next(self.model.parameters()).device
+
+    # ------------------------------------------------------------------
+    # Same public surface as before
+    # ------------------------------------------------------------------
     def apply_chat_template(
         self,
         messages,
@@ -28,15 +79,15 @@ class HFGenerator:
         tokenize: bool = False,
         add_generation_prompt: bool = True,
     ):
-        if tokenize:  # 用在 generate() 時
+        if tokenize:  # used by .generate()
             return self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=True,
                 add_generation_prompt=add_generation_prompt,
                 return_dict=True,
                 return_tensors="pt",
-            ).to(self.model.device)
-        else:  # 用在 _chat_to_prompt() 時
+            ).to(self.main_device)
+        else:  # used by _chat_to_prompt()
             return self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
@@ -44,24 +95,25 @@ class HFGenerator:
             )
 
     def generate(self, prompt: str, **generate_kwargs) -> str:
-        # 1) 先把 chat 轉成 token 張量
+        # 1) chat → tokens
         inputs = self.apply_chat_template(
             [{"role": "user", "content": prompt}], tokenize=True
         )
 
-        # 2) 過濾 vLLM only 參數
+        # 2) strip vLLM-only kwargs
         for bad in ("use_tqdm", "stream", "stop", "stop_token_ids", "echo"):
             generate_kwargs.pop(bad, None)
 
-        # 3) 交給 HF generate()
+        # 3) HF generate()
         outputs = self.model.generate(
             **inputs,
-            **generate_kwargs,  # temperature / top_p / top_k…
+            **generate_kwargs,  # temperature / top_p / max_new_tokens…
         )
 
-        # 4) 去掉 prompt token，回傳文字
+        # 4) remove the prompt tokens
         return self.tokenizer.decode(
-            outputs[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=True
+            outputs[0][inputs["input_ids"].shape[-1] :],
+            skip_special_tokens=True,
         )
 
 
