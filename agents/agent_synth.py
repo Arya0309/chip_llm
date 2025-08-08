@@ -250,6 +250,11 @@ def run_reflexion(
             feedback=current_feedback,
         )
         record.append(report)
+        try:
+            report = report.split("<|start|>assistant")[1]  # remove reasoning part
+        except IndexError:
+            record.append("[Reflexion] No assistant response found; aborting.")
+            return current_code, record
 
         code_block = _extract_last_nonempty(_CODE_RE, report)
         if not code_block:
@@ -263,6 +268,11 @@ def run_reflexion(
             code_block, temperature=temp_env, max_new_tokens=max_tokens_env
         )
         record.append(verdict)
+        try:
+            verdict = verdict.split("<|start|>assistant")[1]
+        except IndexError:
+            record.append("[Reflexion] No assistant response found; aborting.")
+            return current_code, record
 
         state = _extract(_STATE_RE, verdict)
         feedback = _extract(_FEEDBACK_RE, verdict)
@@ -423,7 +433,7 @@ def main(argv: List[str] | None = None) -> None:
         help="Override model (env LLM_MODEL → DEFAULT_MODEL).",
     )
     parser.add_argument("--temperature", type=float, default=0.3)
-    parser.add_argument("--max-new-tokens", type=int, default=4096)
+    parser.add_argument("--max-new-tokens", type=int, default=8192)
     parser.add_argument(
         "--max-iter", type=int, default=10, help="Max reflexion iterations."
     )
