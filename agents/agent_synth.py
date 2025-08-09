@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 from typing import List, Dict, Tuple, Any
 
-from utils import DEFAULT_MODEL, VLLMGenerator
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from utils import DEFAULT_MODEL, VLLMGenerator, HFGenerator
 import prompts as prompt  # parity with agent_dut (even if unused)
 
 from openai import OpenAI
@@ -24,11 +25,16 @@ _llm: VLLMGenerator | None = None
 
 
 def _init_llm(model_name: str) -> None:
-    """Initialise the local vLLM generator (actor / env)."""
+    """Initialise the generator: vLLM if可用，否則自動轉用 HF."""
     global MODEL_NAME, _llm
-    MODEL_NAME = model_name
+    MODEL_NAME = model_name or DEFAULT_MODEL
     os.environ["LLM_MODEL"] = MODEL_NAME
-    _llm = VLLMGenerator(MODEL_NAME)
+
+    try:
+        _llm = VLLMGenerator(MODEL_NAME)  # 先嘗試 vLLM
+    except Exception as e:
+        print(f"[Fallback] vLLM unavailable ({e}); switching to HuggingFace backend.")
+        _llm = HFGenerator(MODEL_NAME)
 
 
 # ------------------------------------------------------------------------
@@ -210,6 +216,15 @@ def _extract(regex: re.Pattern, text: str) -> str | None:
     return m.group(1).strip() if m else None
 
 
+def _extract_last_nonempty(regex: re.Pattern, text: str) -> str | None:
+    last = None
+    for m in regex.finditer(text):
+        s = m.group(1).strip()
+        if s:
+            last = s
+    return last
+
+
 def run_reflexion(
     original_code: str,
     *,
@@ -235,19 +250,29 @@ def run_reflexion(
             feedback=current_feedback,
         )
         record.append(report)
+        # try:
+        #     report = report.split("<|start|>assistant")[1]  # remove reasoning part
+        # except IndexError:
+        #     record.append("[Reflexion] No assistant response found; aborting.")
+        #     return current_code, record
 
-        code_block = _extract(_CODE_RE, report)
+        code_block = _extract_last_nonempty(_CODE_RE, report)
         if not code_block:
             record.append(
                 "[Reflexion] No ```cpp``` block found in actor output. Abort."
             )
-            return report, record
+            return current_code, record
 
         record.append("[Environment] Verifying synthesizability…")
         verdict = generate_synth_verifier(
             code_block, temperature=temp_env, max_new_tokens=max_tokens_env
         )
         record.append(verdict)
+        # try:
+        #     verdict = verdict.split("<|start|>assistant")[1]
+        # except IndexError:
+        #     record.append("[Reflexion] No assistant response found; aborting.")
+        #     return current_code, record
 
         state = _extract(_STATE_RE, verdict)
         feedback = _extract(_FEEDBACK_RE, verdict)
@@ -261,10 +286,10 @@ def run_reflexion(
             record.append("[Reflexion] FAIL. Feeding feedback back to Actor.")
         else:
             record.append("[Reflexion] FAIL but no feedback; aborting.")
-            return report, record
+            return code_block, record
 
     record.append("[Reflexion] Max iterations reached. Returning last report.")
-    return report, record
+    return current_code, record
 
 
 # ------------------------------------------------------------------------
@@ -408,7 +433,7 @@ def main(argv: List[str] | None = None) -> None:
         help="Override model (env LLM_MODEL → DEFAULT_MODEL).",
     )
     parser.add_argument("--temperature", type=float, default=0.3)
-    parser.add_argument("--max-new-tokens", type=int, default=4096)
+    parser.add_argument("--max-new-tokens", type=int, default=8192)
     parser.add_argument(
         "--max-iter", type=int, default=10, help="Max reflexion iterations."
     )
