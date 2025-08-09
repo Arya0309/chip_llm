@@ -33,6 +33,8 @@ def parse_args():
     # ap.add_argument("--max_iter", type=int, default=10)
     ap.add_argument("--temperature", type=float, default=0.3)
     ap.add_argument("--max_new_tokens", type=int, default=4096)
+    ap.add_argument("--round_id", type=int, default=1)
+    ap.add_argument("--refine_round_number", type=int, default=5)
     return ap.parse_args()
 
 
@@ -260,6 +262,72 @@ def run_pipe_stage(
     abandon = {i for i, r in enumerate(results) if r is None}
     return results, abandon
 
+# ---------------------------------------------------------------------------
+# Prompt dumping helpers, TODO: dump的東西要再修正，目前這樣吃不到few shot範例，所以refine產生的東西不會follow我們想要的格式
+# ---------------------------------------------------------------------------
+
+
+def dump_prompt_dut(
+    out_dir: Path,
+    system_prompt: str,
+    func_src: str,
+    requirement: str,
+):
+    msg = [
+        {"role": "system", "content": system_prompt},
+        {
+            "role": "user",
+            "content": f"### C++ Functions\n```cpp\n{func_src}\n```\n\n### Requirement\n{requirement}",
+        },
+    ]
+    (out_dir / "prompt_dut.json").write_text(
+        json.dumps(msg, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def dump_prompt_tb(
+    out_dir: Path,
+    system_prompt: str,
+    dut_cpp: str,
+    dut_h: str,
+    requirement: str,
+):
+    msg = [
+        {"role": "system", "content": system_prompt},
+        {
+            "role": "user",
+            "content": (
+                f"### Dut.cpp\n```cpp\n{dut_cpp}\n```\n\n"
+                f"### Dut.h\n```cpp\n{dut_h}\n```\n\n"
+                f"### Requirement\n{requirement}"
+            ),
+        },
+    ]
+    (out_dir / "prompt_testbench.json").write_text(
+        json.dumps(msg, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def dump_prompt_pipe(
+    out_dir: Path,
+    system_prompt: str,
+    dut_h: str,
+    tb_h: str,
+):
+    msg = [
+        {"role": "system", "content": system_prompt},
+        {
+            "role": "user",
+            "content": (
+                f"### Dut.h\n```cpp\n{dut_h}\n```\n\n"
+                f"### Testbench.h\n```cpp\n{tb_h}\n```"
+            ),
+        },
+    ]
+    (out_dir / "prompt_pipeline.json").write_text(
+        json.dumps(msg, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -316,8 +384,37 @@ def main():
             continue
         write_outputs(dut_res[i], tb_res[i], pipe_res[i], out_dir, name)
 
-    print(f"Done. Files in {out_root}")
+        # --- Dump prompts for verifier -------------------------------------
+        dump_prompt_dut(
+            out_dir,
+            agent_dut._SYSTEM_PROMPT_V2,
+            func_src[i],
+            reqs[i],
+        )
+        dump_prompt_tb(
+            out_dir,
+            agent_tb._SYSTEM_PROMPT_V2,
+            dut_res[i]["Dut.cpp"],
+            dut_res[i]["Dut.h"],
+            reqs[i],
+        )
+        dump_prompt_pipe(
+            out_dir,
+            agent_pipe._SYSTEM_PROMPT_V2,
+            dut_res[i]["Dut.h"],
+            tb_res[i]["Testbench.h"],
+        )
 
+    # meta.json (optional) — 包含 round 與 refine 次數設定
+    meta = {
+        "round_id": args.round_id,
+        "refine_round_number": args.refine_round_number,
+    }
+    (out_root / "meta.json").write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    print(f"Done. Files in {out_root}")
 
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":

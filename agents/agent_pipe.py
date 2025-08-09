@@ -284,6 +284,61 @@ def generate_pipeline_batch(
             results.append({})
     return results
 
+# ────────────────────────────────────────────────────────────────
+# 💡 新增：統一的 refine() 介面，供 agent_verifier.py 呼叫
+# ----------------------------------------------------------------
+def refine(
+    messages: list[dict],
+    extra_user_msg: str = "",
+    *,
+    max_new_tokens: int = 4096,
+    temperature: float = 0.3,
+    top_p: float = 0.8,
+) -> dict[str, str]:
+    """
+    續接對話，重新產生檔案（單題單次，但仍走 batch 介面）。
+
+    Parameters
+    ----------
+    messages : list[dict]
+        完整 chat history（已包含剛 append 的 [ISSUE] 訊息）
+    extra_user_msg : str
+        目前已包含在 messages，可忽略
+    max_new_tokens, temperature, top_p : float
+        取樣超參；與 generate_*_batch 保持一致
+
+    Returns
+    -------
+    dict[str, str]
+        key = filename, value = source code
+    """
+    # 1) 將 chat messages 轉成 vLLM 接受的 prompt 字串
+    prompt = _llm.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+
+    # 2) 透過 batch API（雖然只有 1 條），帶自訂溫度等參數
+    raw = _llm.generate_batch(
+        [prompt],
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        top_p=top_p,
+    )[0].strip()
+
+    # 3) 解析輸出 → {filename: code}
+    parse_fn_candidates = [
+        globals().get("_parse_output"),
+        globals().get("_parse_dut_output"),
+        globals().get("_parse_tb_output"),
+        globals().get("_parse_pipe_output"),
+        globals().get("parse_output"),
+    ]
+    parse_fn = next((f for f in parse_fn_candidates if callable(f)), None)
+    if parse_fn is None:
+        raise RuntimeError("No parse_*_output() function found in this agent.")
+
+    return parse_fn(raw)
+
 
 # ---------------------------------------------------------------------------
 # CLI entry point
