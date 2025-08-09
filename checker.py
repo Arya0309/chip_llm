@@ -175,16 +175,26 @@ def main() -> None:
     # Write JSON
     Path(args.json).write_text(json.dumps(results, indent=2), encoding="utf-8")
 
-    # Write CSV summary
+    # Write CSV summary (header changed; add pass rates block)
     total = sum(counter.values())
-    pass_rate = counter["unit_test_pass"] / total if total else 0.0
+    fmt_pass = (total - counter["format_error"]) / total if total else 0.0
+    cmp_pass = (total - counter["format_error"] - counter["compile_error"]) / total if total else 0.0
+    run_pass = (total - counter["format_error"] - counter["compile_error"] - counter["runtime_error"]) / total if total else 0.0
+    ut_pass = counter["unit_test_pass"] / total if total else 0.0
+
     with open(args.csv, "w", newline="", encoding="utf-8") as fp:
         w = csv.writer(fp)
-        w.writerow(["state", "count"])
-        for s, c in counter.items():  # 依插入順序輸出，format_error 會在最前
-            w.writerow([s, c])
+        # 統一欄位名稱
+        w.writerow(["state", "value"])
+        # 狀態計數
+        for s in ["format_error", "compile_error", "runtime_error", "unit_test_fail", "unit_test_pass"]:
+            w.writerow([s, counter[s]])
+        # 空一行，再列出通過率
         w.writerow([])
-        w.writerow(["unit_test_pass_rate", f"{pass_rate:.2%}"])
+        w.writerow(["format_pass_rate", f"{fmt_pass:.2%}"])
+        w.writerow(["compile_pass_rate", f"{cmp_pass:.2%}"])
+        w.writerow(["runtime_pass_rate", f"{run_pass:.2%}"])
+        w.writerow(["unit_test_pass_rate", f"{ut_pass:.2%}"])
 
 
 if __name__ == "__main__":
