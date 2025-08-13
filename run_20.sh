@@ -6,7 +6,8 @@ REF_ROUNDS="${REF_ROUNDS:-5}"
 
 JSON_PATH="data_input_new.json"
 # MODEL="meta-llama/CodeLlama-34b-Instruct-hf"
-# MODEL="openai/gpt-oss-20b"
+MODEL="openai/gpt-oss-20b"
+# MODEL="deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
 BATCH=16
 TEMP=0.3
 # TOPP=0.8
@@ -22,6 +23,7 @@ for i in $(seq 1 "${RUNS}"); do
 
   # round_1
   python3 agents/main_batch.py "${JSON_PATH}" \
+    --model "${MODEL}" \
     --batch_size "${BATCH}" \
     --temperature "${TEMP}" \
     --max_new_tokens "${MAXTOK}" \
@@ -30,33 +32,13 @@ for i in $(seq 1 "${RUNS}"); do
     -o "${out1}"
 
   # round_2 .. round_N
+  if [ "${REF_ROUNDS}" -gt 1 ]; then
   echo ">>> Verifier for run_${i}  (max ${REF_ROUNDS} rounds)"
   python3 agents/agent_verify.py "${base}" \
     --max_rounds "${REF_ROUNDS}" \
     --temperature "${TEMP}" \
     --max_new_tokens "${MAXTOK}"
+  fi
 done
 
 echo "All ${RUNS} runs finished."
-
-# #!/usr/bin/env bash
-# set -euo pipefail
-
-# MODEL="openai/gpt-oss-20b" #  #meta-llama/CodeLlama-34b-Instruct-hf
-
-# for i in {1..20}; do
-#   out_dir="./.log/run_${i}"
-#   echo ">>> Run ${i} -> ${out_dir}"
-#   mkdir -p "${out_dir}" 
-#   python3 agents/main_batch.py data_input_new.json \
-#     --model "${MODEL}" \
-#     --batch_size 16 \
-#     --temperature 0.3 \
-#     --max_new_tokens 4096 \
-#     -o "${out_dir}"
-# done
-
-# echo "All 20 runs finished."
-
-#!/usr/bin/env bash
-# run_20.sh  —  先產生 round_1，再跑 verifier 做多輪 refine
