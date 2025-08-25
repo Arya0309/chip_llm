@@ -6,7 +6,7 @@ REF_ROUNDS="${REF_ROUNDS:-5}"
 
 JSON_PATH="data_input_new.json"
 # MODEL="meta-llama/CodeLlama-34b-Instruct-hf"
-# MODEL="openai/gpt-oss-20b"
+MODEL="openai/gpt-oss-20b"
 BATCH=16
 TEMP=0.3
 # TOPP=0.8
@@ -22,6 +22,7 @@ for i in $(seq 1 "${RUNS}"); do
 
   # round_1
   python3 agents/main_batch.py "${JSON_PATH}" \
+    --model "${MODEL}" \
     --batch_size "${BATCH}" \
     --temperature "${TEMP}" \
     --max_new_tokens "${MAXTOK}" \
