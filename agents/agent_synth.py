@@ -12,7 +12,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from utils import DEFAULT_MODEL, VLLMGenerator, HFGenerator
 import prompts as prompt  # parity with agent_dut (even if unused)
 
-from openai import OpenAI
+from openai import OpenAI, BadRequestError
+
 
 _oa_client = OpenAI(  # 如果沒設就會自動讀 OPENAI_API_KEY 環境變數
     api_key=os.getenv("OPENAI_API_KEY", None)
@@ -52,6 +53,38 @@ Then, *immediately after* the analysis block:
 Do not output anything outside the [ANALYSIS]...[/ANALYSIS] block and the single fenced code block that follows it.
 """
 
+# System prompt version 1
+# _SYSTEM_PROMPT_VERIFY = r"""
+# Act as a **conservative Cadence Stratus HLS synthesizability checker**.
+
+# Carefully inspect the following C/C++ translation unit. Follow the rules below:
+
+# 1. Read the code **twice**. Do not assume the existence of any undefined symbols.
+# 2. **Only** consider the following categories as synthesizability violations.
+#    • any I/O (printf/scanf, cin/cout, fprintf, file access)
+#    • recursion (direct or indirect)
+#    • dynamic memory (new, delete, malloc, free, VLAs)
+#    • Unbounded or data-dependent loops without a statically provable finite upper bound. Provide a compile-time constant bound (via constants/templates/fixed-size arrays) or refactor the loop.
+#    • calls to library/math/STL functions Stratus cannot inline (pow, exp, log, std::swap, sort, etc.)
+#    • STL containers or algorithms (vector, list, map, string, std::function, …)
+#    • general-purpose pointers used as memory, or pointer arithmetic beyond fixed arrays
+#    • undefined-behaviour patterns (e.g. negative shift, out-of-bounds access)
+# 3. **If any item in step 2 is present, or if you are NOT 100 % certain the design will synthesize, conclude FAIL.**
+# 4. Only when **no violations** are found and you are completely confident, conclude PASS.
+
+# Output exactly:
+
+# [FEEDBACK]
+# <bullet list of findings; if none, write “No violations found.”>
+# [/FEEDBACK]
+# Then, on a separate final line, output **one and only one** of:
+# [STATE] PASS [/STATE]      # only when absolutely sure
+# [STATE] FAIL [/STATE]
+
+# Do **not** output anything else outside the required tags.
+# """
+
+# System prompt version 2
 _SYSTEM_PROMPT_VERIFY = r"""
 Act as a **conservative Cadence Stratus HLS synthesizability checker**.
 
@@ -59,11 +92,10 @@ Carefully inspect the following C/C++ translation unit. Follow the rules below:
 
 1. Read the code **twice**. Do not assume the existence of any undefined symbols.
 2. **Only** consider the following categories as synthesizability violations. 
-   • any I/O (printf/scanf, cin/cout, fprintf, file access)  
+   • any I/O (printf/scanf, cin/cout, fprintf, file access, iostream, bits/stdc++.h)  
    • recursion (direct or indirect)  
    • dynamic memory (new, delete, malloc, free, VLAs)  
-   • Unbounded or data-dependent loops without a statically provable finite upper bound. Provide a compile-time constant bound (via constants/templates/fixed-size arrays) or refactor the loop.
-   • calls to library/math/STL functions Stratus cannot inline (pow, exp, log, std::swap, sort, etc.)
+   • Unbounded or data-dependent loops without a statically provable finite upper bound.
    • STL containers or algorithms (vector, list, map, string, std::function, …)  
    • general-purpose pointers used as memory, or pointer arithmetic beyond fixed arrays  
    • undefined-behaviour patterns (e.g. negative shift, out-of-bounds access)  
@@ -148,47 +180,6 @@ def _llm_generate(prompt_text: str, *, temperature: float, max_new_tokens: int) 
     ).strip()
 
 
-def _llm_generate_batch_from_messages(
-    batch_messages: List[List[Dict[str, str]]],
-    *,
-    temperature: float,
-    max_new_tokens: int,
-    batch_size: int | None = None,
-) -> List[str]:
-
-    def _once(msgs: List[List[Dict[str, str]]]) -> List[str]:
-        if isinstance(_llm, HFGenerator):
-            outs = _llm.generate_batch(  # HF: 直接吃 messages
-                msgs,
-                temperature=temperature,
-                max_new_tokens=max_new_tokens,
-            )
-            return [s.strip() for s in outs]
-        # vLLM: 先轉 prompts 再 batch
-        prompts = [
-            _llm.apply_chat_template(  # type: ignore
-                m, tokenize=False, add_generation_prompt=True
-            )
-            for m in msgs
-        ]
-        outs = _llm.generate_batch(  # type: ignore
-            prompts,
-            temperature=temperature,
-            max_new_tokens=max_new_tokens,
-            use_tqdm=False,
-        )
-        return [s.strip() for s in outs]
-
-    if not batch_size or batch_size >= len(batch_messages):
-        return _once(batch_messages)
-
-    outs_all: List[str] = []
-    for i in range(0, len(batch_messages), batch_size):
-        chunk = batch_messages[i : i + batch_size]
-        outs_all.extend(_once(chunk))
-    return outs_all
-
-
 # ------------------------------------------------------------------------
 # Writer / Verifier (single & batch)
 # ------------------------------------------------------------------------
@@ -212,42 +203,6 @@ def generate_verifier(
         _build_messages(source_code, mode="verify", model=MODEL_NAME)
     )
     return _llm_generate(prompt, temperature=temperature, max_new_tokens=max_new_tokens)
-
-
-def generate_writer_batch(
-    sources: List[str],
-    *,
-    temperature: float = 0.3,
-    max_new_tokens: int = 2048,
-    batch_size: int | None = None,
-) -> List[str]:
-    batch_messages = [
-        _build_messages(src, mode="report", model=MODEL_NAME) for src in sources
-    ]
-    return _llm_generate_batch_from_messages(
-        batch_messages,
-        temperature=temperature,
-        max_new_tokens=max_new_tokens,
-        batch_size=batch_size,
-    )
-
-
-def generate_verifier_batch(
-    sources: List[str],
-    *,
-    temperature: float = 0.0,
-    max_new_tokens: int = 2048,
-    batch_size: int | None = None,
-) -> List[str]:
-    batch_messages = [
-        _build_messages(src, mode="verify", model=MODEL_NAME) for src in sources
-    ]
-    return _llm_generate_batch_from_messages(
-        batch_messages,
-        temperature=temperature,
-        max_new_tokens=max_new_tokens,
-        batch_size=batch_size,
-    )
 
 
 # --------------------------------------------------------------------
@@ -305,8 +260,10 @@ def run_reflexion(
     record: List[str] = []
     current_feedback: str | None = None
 
-    # Step 0..max_iter：每回合先 Env 後 Actor
-    for step in range(0, max_iter + 1):
+    record.append(f"[Original Code]\n{current_code}\n")
+
+    step = 0
+    while step <= max_iter:
         record.append(f"===== Reflexion Step {step} =====")
 
         # ---- Environment：驗證現有程式碼 ----
@@ -327,13 +284,13 @@ def run_reflexion(
         state = _extract(_STATE_RE, verdict)
         feedback = _extract(_FEEDBACK_RE, verdict)
 
-        if state == "PASS":
+        if state == "PASS" and step != 0:  # step=0 PASS 有可能是幻覺
             record.append("[Reflexion] PASS! Returning final code.")
             return current_code, record
 
         if not feedback:
-            record.append("[Reflexion] FAIL but no feedback; aborting.")
-            return current_code, record
+            record.append("[Reflexion] FAIL but no feedback; retrying this step.")
+            continue  # 不前進 step，重跑同一輪
 
         # ---- Actor：根據回饋產生新程式碼 ----
         current_feedback = f"[FEEDBACK]\n{feedback}\n[/FEEDBACK]"
@@ -346,139 +303,67 @@ def run_reflexion(
             max_new_tokens=max_tokens_actor,
             feedback=current_feedback,
         )
+        try:
+            report = report.split(
+                "<|end|><|start|>assistant<|channel|>final<|message|>"
+            )[1]
+            report = report.split("<|return|>")[0]
+        except IndexError:
+            pass
         record.append(report)
 
         code_block = _extract_last_nonempty(_CODE_RE, report)
         if not code_block:
             record.append(
-                "[Reflexion] No ```cpp``` block found in actor output. Abort."
+                "[Reflexion] No ```cpp``` block found. Notifying Actor to retry."
             )
-            return current_code, record
+
+            # --- build base messages the SAME way writer did ---
+            msgs = _build_messages(
+                current_code,
+                mode="report",
+                feedback=current_feedback,
+                model=MODEL_NAME,
+            )
+
+            # Keep only the tail of the previous reply to avoid blowing the context window
+            def _tail(s: str, max_chars: int = 4000) -> str:
+                return s[-max_chars:] if len(s) > max_chars else s
+
+            # Add previous assistant output (shortened) as an assistant turn
+            msgs.append({"role": "assistant", "content": _tail(report)})
+
+            # English retry note: code-only, single fence, no analysis/comments
+            retry_note = (
+                "The previous reply either exceeded the token budget or failed to follow the instructions.\n"
+                "Now output ONLY the final solution as a SINGLE code block in C++.\n"
+                "Do not include any analysis, explanations, or comments.\n"
+                "Format strictly:\n"
+                "```cpp\n<code>\n```"
+            )
+            msgs.append({"role": "user", "content": retry_note})
+
+            retry_prompt = _chat_to_prompt(msgs)
+            report_retry = _llm_generate(
+                retry_prompt,
+                temperature=temp_actor,
+                max_new_tokens=int(max_tokens_actor * 1.2),
+            )
+            record.append(report_retry)
+
+            code_block = _extract_last_nonempty(_CODE_RE, report_retry)
+            if not code_block:
+                record.append(
+                    "[Reflexion] Retry still produced no ```cpp``` block. Abort."
+                )
+                return current_code, record
 
         # 下一回合將會驗證這份 Actor 產生的程式碼
         current_code = code_block
+        step += 1  # 只有成功產生 feedback + code 時才推進
 
     record.append("[Reflexion] Max iterations reached. Returning last code.")
     return current_code, record
-
-
-# ------------------------------------------------------------------------
-# Reflexion loop (batch)
-# ------------------------------------------------------------------------
-def run_reflexion_batch(
-    original_codes: List[str],
-    *,
-    max_iter: int = 10,
-    temp_actor: float = 0.3,
-    temp_env: float = 0.0,
-    max_tokens_actor: int = 2048,
-    max_tokens_env: int = 1024,
-    batch_size: int = 8,
-) -> Tuple[List[str], List[List[str]]]:
-
-    n = len(original_codes)
-    current_code = [c.split("int main()")[0].strip() for c in original_codes]
-    current_feedback: List[str | None] = [None] * n
-    done = [False] * n
-    final_code = ["" for _ in range(n)]
-    records: List[List[str]] = [[] for _ in range(n)]
-
-    for step in range(1, max_iter + 1):
-        active_idxs = [i for i in range(n) if not done[i]]
-        if not active_idxs:
-            break
-
-        for i in active_idxs:
-            records[i].append(f"===== Reflexion Step {step} =====")
-            records[i].append("[Actor] Generating report…")
-
-        # ---------- Actor 批次 ----------
-        actor_msgs = [
-            _build_messages(
-                current_code[i],
-                mode="report",
-                feedback=current_feedback[i],
-                model=MODEL_NAME,
-            )
-            for i in active_idxs
-        ]
-        actor_outs = _llm_generate_batch_from_messages(
-            actor_msgs,
-            temperature=temp_actor,
-            max_new_tokens=max_tokens_actor,
-            batch_size=batch_size,
-        )
-
-        candidate_code: Dict[int, str] = {}
-        for i, out in zip(active_idxs, actor_outs):
-            records[i].append(out)
-            code_block = _extract_last_nonempty(_CODE_RE, out)
-            if not code_block:
-                records[i].append(
-                    "[Reflexion] No ```cpp``` block found in actor output. Abort."
-                )
-                done[i] = True
-                final_code[i] = current_code[i]  # 回退/保留當前版本
-            else:
-                candidate_code[i] = code_block
-
-        verify_idxs = [
-            i for i in active_idxs if (not done[i]) and (i in candidate_code)
-        ]
-        if not verify_idxs:
-            continue
-
-        for i in verify_idxs:
-            records[i].append("[Environment] Verifying synthesizability…")
-
-        # ---------- Env 批次 ----------
-        env_msgs = [
-            _build_messages(candidate_code[i], mode="verify", model=MODEL_NAME)
-            for i in verify_idxs
-        ]
-        env_outs = _llm_generate_batch_from_messages(
-            env_msgs,
-            temperature=temp_env,
-            max_new_tokens=max_tokens_env,
-            batch_size=batch_size,
-        )
-
-        for i, verdict in zip(verify_idxs, env_outs):
-            records[i].append(verdict)
-            state = _extract(_STATE_RE, verdict)
-            feedback = _extract(_FEEDBACK_RE, verdict)
-
-            if state == "PASS":
-                records[i].append("[Reflexion] PASS! Returning final code.")
-                done[i] = True
-                final_code[i] = candidate_code[i]
-            else:
-                if feedback:
-                    current_code[i] = candidate_code[i]
-                    current_feedback[i] = f"[FEEDBACK]\n{feedback}\n[/FEEDBACK]"
-                    records[i].append(
-                        "[Reflexion] FAIL. Feeding feedback back to Actor."
-                    )
-                else:
-                    records[i].append("[Reflexion] FAIL but no feedback; aborting.")
-                    done[i] = True
-                    final_code[i] = candidate_code[i]
-
-        # --- progress log: show how many items remain after this round ---
-        remaining_idxs = [i for i, flag in enumerate(done) if not flag]
-        print(
-            f"[Reflexion-Batch] end of step {step}: {len(remaining_idxs)}/{n} remaining"
-        )
-
-    # 仍未完成者：達上限
-    for i in range(n):
-        if not done[i]:
-            records[i].append(
-                "[Reflexion] Max iterations reached. Returning last report."
-            )
-            final_code[i] = current_code[i]
-
-    return final_code, records
 
 
 # ------------------------------------------------------------------------
@@ -615,7 +500,7 @@ def main(argv: List[str] | None = None) -> None:
     )
     parser.add_argument(
         "--mode",
-        choices=("report", "verify", "reflexion", "reflexion-batch"),
+        choices=("report", "verify", "reflexion"),
         default="reflexion",
     )
     parser.add_argument(
@@ -637,12 +522,7 @@ def main(argv: List[str] | None = None) -> None:
         default="",  # empty string → GPT verifier disabled
         help="OpenAI model for final verification (e.g. o1, gpt-4o). Leave blank to disable.",
     )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=4,
-        help="Per-call batch size for generation (used in reflexion-batch and batch generators).",
-    )
+
     args = parser.parse_args(argv)
 
     _init_llm(args.model or os.getenv("LLM_MODEL", DEFAULT_MODEL))
@@ -668,69 +548,33 @@ def main(argv: List[str] | None = None) -> None:
         print(f"[Mode] Batch-JSON: {src_path}")
         entries: List[Dict[str, str]] = json.loads(src_path.read_text(encoding="utf-8"))
 
+        for e in entries:
+            io = (e.get("IO_requirement") or "").strip()
+            if io:
+                # Escape any accidental "*/" to avoid breaking the comment
+                safe_io = io.replace("*/", "*\\/")
+                hint_block = "/* === IO REQUIREMENT (HINT) ===\n" + safe_io + "\n*/\n"
+                code_text = e.get("code", "")
+                if not code_text.lstrip().startswith(
+                    "/* === IO REQUIREMENT (HINT) ==="
+                ):
+                    e["code"] = hint_block + code_text
+
         summaries: List[Dict[str, Any]] = []
 
-        if args.mode == "reflexion-batch":
-            names = [e["name"] for e in entries]
-            codes = [e["code"] for e in entries]
+        # 保留原本逐一處理（report / verify / reflexion）
+        for entry in entries:
+            name = entry["name"]
+            code = entry["code"]
 
-            results, all_records = run_reflexion_batch(
-                codes,
-                max_iter=args.max_iter,
-                temp_actor=args.temperature,
-                temp_env=args.temperature,
-                max_tokens_actor=args.max_new_tokens,
-                max_tokens_env=min(args.max_new_tokens, 2048),
-                batch_size=args.batch_size,
-            )
-
-            # 逐樣本寫出 artefacts 與摘要
-            for name, result, record in zip(names, results, all_records):
-                out_dir = _prepare_out_dir(out_root, name)
-                _write_outputs(out_dir, result, record, name, mode="reflexion")
-
-                summary: Dict[str, Any] = {
-                    "name": name,
-                    "steps": sum(
-                        1 for line in record if line.startswith("===== Reflexion Step")
-                    ),
-                    "local_pass": any(
-                        "PASS! Returning final code." in line for line in record
-                    ),
-                    "gpt_pass": None,
-                    "code": result,
-                }
-
-                # 可選：OpenAI verifier
-                if args.oa_model:
-                    oa_verdict = verify_with_openai(result, model_name=args.oa_model)
-                    record.append("\n[OpenAI-Verifier] result:")
-                    record.append(oa_verdict)
-                    gpt_pass = _extract(_STATE_RE, oa_verdict) == "PASS"
-                    summary["gpt_pass"] = gpt_pass
-                    if not gpt_pass:
-                        record.append(
-                            "[Warning] OpenAI verifier reports FAIL. Marking as NOT-synthesizable."
-                        )
-                    # 覆寫檔案（加入OA紀錄）
-                    _write_outputs(out_dir, result, record, name, mode="reflexion")
-
-                summaries.append(summary)
-
-        else:
-            # 保留原本逐一處理（report / verify / reflexion）
-            for entry in entries:
-                name = entry["name"]
-                code = entry["code"]
-
-                summaries.append(
-                    _execute_single(
-                        source_code=code,
-                        label=name,
-                        args=args,
-                        out_root=out_root,
-                    )
+            summaries.append(
+                _execute_single(
+                    source_code=code,
+                    label=name,
+                    args=args,
+                    out_root=out_root,
                 )
+            )
 
         # Consolidated summary
         summary_path = out_root / "summary.json"
