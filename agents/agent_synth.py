@@ -297,6 +297,9 @@ def run_reflexion(
         record.append("[Reflexion] FAIL. Feeding feedback to Actor.")
         record.append("[Actor] Generating report…")
 
+        if step == 0:
+            current_feedback = ""  # 實驗用：第一輪不給 feedback
+
         report = generate_writer(
             current_code,
             temperature=temp_actor,
