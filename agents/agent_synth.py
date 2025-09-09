@@ -12,7 +12,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from utils import DEFAULT_MODEL, VLLMGenerator, HFGenerator
 import prompts as prompt  # parity with agent_dut (even if unused)
 
-from openai import OpenAI
+from openai import OpenAI, BadRequestError
+
 
 _oa_client = OpenAI(  # 如果沒設就會自動讀 OPENAI_API_KEY 環境變數
     api_key=os.getenv("OPENAI_API_KEY", None)
@@ -21,7 +22,7 @@ _oa_client = OpenAI(  # 如果沒設就會自動讀 OPENAI_API_KEY 環境變數
 # Configuration
 # ------------------------------------------------------------------------
 MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
-_llm: VLLMGenerator | None = None
+_llm: VLLMGenerator | HFGenerator | None = None
 
 
 def _init_llm(model_name: str) -> None:
@@ -52,21 +53,51 @@ Then, *immediately after* the analysis block:
 Do not output anything outside the [ANALYSIS]...[/ANALYSIS] block and the single fenced code block that follows it.
 """
 
+# System prompt version 1
+# _SYSTEM_PROMPT_VERIFY = r"""
+# Act as a **conservative Cadence Stratus HLS synthesizability checker**.
+
+# Carefully inspect the following C/C++ translation unit. Follow the rules below:
+
+# 1. Read the code **twice**. Do not assume the existence of any undefined symbols.
+# 2. **Only** consider the following categories as synthesizability violations.
+#    • any I/O (printf/scanf, cin/cout, fprintf, file access)
+#    • recursion (direct or indirect)
+#    • dynamic memory (new, delete, malloc, free, VLAs)
+#    • Unbounded or data-dependent loops without a statically provable finite upper bound. Provide a compile-time constant bound (via constants/templates/fixed-size arrays) or refactor the loop.
+#    • calls to library/math/STL functions Stratus cannot inline (pow, exp, log, std::swap, sort, etc.)
+#    • STL containers or algorithms (vector, list, map, string, std::function, …)
+#    • general-purpose pointers used as memory, or pointer arithmetic beyond fixed arrays
+#    • undefined-behaviour patterns (e.g. negative shift, out-of-bounds access)
+# 3. **If any item in step 2 is present, or if you are NOT 100 % certain the design will synthesize, conclude FAIL.**
+# 4. Only when **no violations** are found and you are completely confident, conclude PASS.
+
+# Output exactly:
+
+# [FEEDBACK]
+# <bullet list of findings; if none, write “No violations found.”>
+# [/FEEDBACK]
+# Then, on a separate final line, output **one and only one** of:
+# [STATE] PASS [/STATE]      # only when absolutely sure
+# [STATE] FAIL [/STATE]
+
+# Do **not** output anything else outside the required tags.
+# """
+
+# System prompt version 2
 _SYSTEM_PROMPT_VERIFY = r"""
 Act as a **conservative Cadence Stratus HLS synthesizability checker**.
 
 Carefully inspect the following C/C++ translation unit. Follow the rules below:
 
 1. Read the code **twice**. Do not assume the existence of any undefined symbols.
-2. List every construct that Cadence Stratus **cannot synthesize**, including (but not limited to):
-   • any I/O (printf/scanf, cin/cout, fprintf, file access)  
+2. **Only** consider the following categories as synthesizability violations. 
+   • any I/O (printf/scanf, cin/cout, fprintf, file access, iostream, bits/stdc++.h)  
    • recursion (direct or indirect)  
    • dynamic memory (new, delete, malloc, free, VLAs)  
-   • unbounded or data-dependent loops without a fixed max trip-count pragma  
-   • calls to library/math/STL functions Stratus cannot inline (pow, exp, log, std::swap, sort, etc.)  
+   • Unbounded or data-dependent loops without a statically provable finite upper bound.
    • STL containers or algorithms (vector, list, map, string, std::function, …)  
    • general-purpose pointers used as memory, or pointer arithmetic beyond fixed arrays  
-   • floating-point operations when FP synthesis support is not explicitly enabled  
    • undefined-behaviour patterns (e.g. negative shift, out-of-bounds access)  
 3. **If any item in step 2 is present, or if you are NOT 100 % certain the design will synthesize, conclude FAIL.**
 4. Only when **no violations** are found and you are completely confident, conclude PASS.
@@ -132,16 +163,16 @@ def _build_messages(
 
 def _chat_to_prompt(messages: List[Dict[str, str]]) -> str:
     """Convert chat messages to vLLM prompt string."""
-    return _llm.apply_chat_template(
+    return _llm.apply_chat_template(  # type: ignore
         messages, tokenize=False, add_generation_prompt=True
     )
 
 
 # ------------------------------------------------------------------------
-# Local vLLM generation helpers
+# Local generation helpers
 # ------------------------------------------------------------------------
 def _llm_generate(prompt_text: str, *, temperature: float, max_new_tokens: int) -> str:
-    return _llm.generate(
+    return _llm.generate(  # type: ignore
         prompt_text,
         temperature=temperature,
         max_new_tokens=max_new_tokens,
@@ -149,7 +180,10 @@ def _llm_generate(prompt_text: str, *, temperature: float, max_new_tokens: int) 
     ).strip()
 
 
-def generate_synth(
+# ------------------------------------------------------------------------
+# Writer / Verifier (single & batch)
+# ------------------------------------------------------------------------
+def generate_writer(
     source_code: str,
     *,
     temperature: float = 0.3,
@@ -162,26 +196,13 @@ def generate_synth(
     return _llm_generate(prompt, temperature=temperature, max_new_tokens=max_new_tokens)
 
 
-def generate_synth_verifier(
+def generate_verifier(
     source_code: str, *, temperature: float = 0.3, max_new_tokens: int = 2048
 ) -> str:
     prompt = _chat_to_prompt(
         _build_messages(source_code, mode="verify", model=MODEL_NAME)
     )
     return _llm_generate(prompt, temperature=temperature, max_new_tokens=max_new_tokens)
-
-
-def generate_synth_batch(
-    sources: List[str], *, temperature: float = 0.3, max_new_tokens: int = 2048
-) -> List[str]:
-    prompts = [
-        _chat_to_prompt(_build_messages(src, mode="report", model=MODEL_NAME))
-        for src in sources
-    ]
-    outs = _llm.generate_batch(
-        prompts, temperature=temperature, max_new_tokens=max_new_tokens
-    )
-    return [s.strip() for s in outs]
 
 
 # --------------------------------------------------------------------
@@ -209,7 +230,7 @@ def verify_with_openai(
 
 
 # ------------------------------------------------------------------------
-# Reflexion loop
+# Reflexion loop (single)
 # ------------------------------------------------------------------------
 def _extract(regex: re.Pattern, text: str) -> str | None:
     m = regex.search(text)
@@ -230,65 +251,121 @@ def run_reflexion(
     *,
     max_iter: int = 10,
     temp_actor: float = 0.3,
-    temp_env: float = 0.0,
-    max_tokens_actor: int = 2048,
-    max_tokens_env: int = 1024,
+    temp_env: float = 0.3,
+    max_tokens_actor: int = 4096,
+    max_tokens_env: int = 4096,
 ) -> Tuple[str, List[str]]:
-    """Actor–Environment loop until local PASS or max_iter reached."""
-    current_code = original_code.split("int main()")[0].strip()
-    current_feedback: str | None = None
-    record: List[str] = []
 
-    for step in range(1, max_iter + 1):
+    current_code = original_code.split("int main()")[0].strip()
+    record: List[str] = []
+    current_feedback: str | None = None
+
+    record.append(f"[Original Code]\n{current_code}\n")
+
+    step = 0
+    while step <= max_iter:
         record.append(f"===== Reflexion Step {step} =====")
 
+        # ---- Environment：驗證現有程式碼 ----
+        record.append("[Environment] Verifying synthesizability…")
+        verdict = generate_verifier(
+            current_code, temperature=temp_env, max_new_tokens=max_tokens_env
+        )
+        try:
+            verdict = verdict.split(
+                "<|end|><|start|>assistant<|channel|>final<|message|>"
+            )[1]
+            verdict = verdict.split("<|return|>")[0]
+        except IndexError:
+            pass
+
+        record.append(verdict)
+
+        state = _extract(_STATE_RE, verdict)
+        feedback = _extract(_FEEDBACK_RE, verdict)
+
+        if state == "PASS" and step != 0:  # step=0 PASS 有可能是幻覺
+            record.append("[Reflexion] PASS! Returning final code.")
+            return current_code, record
+
+        if not feedback:
+            record.append("[Reflexion] FAIL but no feedback; retrying this step.")
+            continue  # 不前進 step，重跑同一輪
+
+        # ---- Actor：根據回饋產生新程式碼 ----
+        current_feedback = f"[FEEDBACK]\n{feedback}\n[/FEEDBACK]"
+        record.append("[Reflexion] FAIL. Feeding feedback to Actor.")
         record.append("[Actor] Generating report…")
-        report = generate_synth(
+
+        if step == 0:
+            current_feedback = ""  # 實驗用：第一輪不給 feedback
+
+        report = generate_writer(
             current_code,
             temperature=temp_actor,
             max_new_tokens=max_tokens_actor,
             feedback=current_feedback,
         )
+        try:
+            report = report.split(
+                "<|end|><|start|>assistant<|channel|>final<|message|>"
+            )[1]
+            report = report.split("<|return|>")[0]
+        except IndexError:
+            pass
         record.append(report)
-        # try:
-        #     report = report.split("<|start|>assistant")[1]  # remove reasoning part
-        # except IndexError:
-        #     record.append("[Reflexion] No assistant response found; aborting.")
-        #     return current_code, record
 
         code_block = _extract_last_nonempty(_CODE_RE, report)
         if not code_block:
             record.append(
-                "[Reflexion] No ```cpp``` block found in actor output. Abort."
+                "[Reflexion] No ```cpp``` block found. Notifying Actor to retry."
             )
-            return current_code, record
 
-        record.append("[Environment] Verifying synthesizability…")
-        verdict = generate_synth_verifier(
-            code_block, temperature=temp_env, max_new_tokens=max_tokens_env
-        )
-        record.append(verdict)
-        # try:
-        #     verdict = verdict.split("<|start|>assistant")[1]
-        # except IndexError:
-        #     record.append("[Reflexion] No assistant response found; aborting.")
-        #     return current_code, record
+            # --- build base messages the SAME way writer did ---
+            msgs = _build_messages(
+                current_code,
+                mode="report",
+                feedback=current_feedback,
+                model=MODEL_NAME,
+            )
 
-        state = _extract(_STATE_RE, verdict)
-        feedback = _extract(_FEEDBACK_RE, verdict)
-        if state == "PASS":
-            record.append("[Reflexion] PASS! Returning final code.")
-            return code_block, record
+            # Keep only the tail of the previous reply to avoid blowing the context window
+            def _tail(s: str, max_chars: int = 4000) -> str:
+                return s[-max_chars:] if len(s) > max_chars else s
 
-        if feedback:
-            current_code = code_block
-            current_feedback = f"[FEEDBACK]\n{feedback}\n[/FEEDBACK]"
-            record.append("[Reflexion] FAIL. Feeding feedback back to Actor.")
-        else:
-            record.append("[Reflexion] FAIL but no feedback; aborting.")
-            return code_block, record
+            # Add previous assistant output (shortened) as an assistant turn
+            msgs.append({"role": "assistant", "content": _tail(report)})
 
-    record.append("[Reflexion] Max iterations reached. Returning last report.")
+            # English retry note: code-only, single fence, no analysis/comments
+            retry_note = (
+                "The previous reply either exceeded the token budget or failed to follow the instructions.\n"
+                "Now output ONLY the final solution as a SINGLE code block in C++.\n"
+                "Do not include any analysis, explanations, or comments.\n"
+                "Format strictly:\n"
+                "```cpp\n<code>\n```"
+            )
+            msgs.append({"role": "user", "content": retry_note})
+
+            retry_prompt = _chat_to_prompt(msgs)
+            report_retry = _llm_generate(
+                retry_prompt,
+                temperature=temp_actor,
+                max_new_tokens=int(max_tokens_actor * 1.2),
+            )
+            record.append(report_retry)
+
+            code_block = _extract_last_nonempty(_CODE_RE, report_retry)
+            if not code_block:
+                record.append(
+                    "[Reflexion] Retry still produced no ```cpp``` block. Abort."
+                )
+                return current_code, record
+
+        # 下一回合將會驗證這份 Actor 產生的程式碼
+        current_code = code_block
+        step += 1  # 只有成功產生 feedback + code 時才推進
+
+    record.append("[Reflexion] Max iterations reached. Returning last code.")
     return current_code, record
 
 
@@ -333,7 +410,7 @@ def _execute_single(
 
     # ---------------- mode: verify ----------------
     if args.mode == "verify":
-        result = generate_synth_verifier(
+        result = generate_verifier(
             source_code,
             temperature=0.0,
             max_new_tokens=min(args.max_new_tokens, 2048),
@@ -372,11 +449,10 @@ def _execute_single(
                 record.append(
                     "[Warning] OpenAI verifier reports FAIL. Marking as NOT-synthesizable."
                 )
-                # result = oa_verdict
 
     # ---------------- mode: report ----------------
     else:  # report
-        result = generate_synth(
+        result = generate_writer(
             source_code,
             temperature=args.temperature,
             max_new_tokens=args.max_new_tokens,
@@ -385,8 +461,10 @@ def _execute_single(
 
         # ---------- optional GPT verifier ----------
         if args.oa_model:
-            result = _extract(_CODE_RE, result) or result  # fallback to full report
-            oa_verdict = verify_with_openai(result, model_name=args.oa_model)
+            result_for_verify = (
+                _extract(_CODE_RE, result) or result
+            )  # fallback to full report
+            oa_verdict = verify_with_openai(result_for_verify, model_name=args.oa_model)
             record.append("\n[OpenAI-Verifier] result:")
             record.append(oa_verdict)
 
@@ -418,18 +496,20 @@ def _read_source(path: Path) -> str:
 
 def main(argv: List[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        description="Stratus synthesizability agent (report / verify / reflexion)."
+        description="Stratus synthesizability agent (report / verify / reflexion / reflexion-batch)."
     )
     parser.add_argument(
         "source", help="Path to a C/C++ file, a JSON batch file, or '-' for stdin."
     )
     parser.add_argument(
-        "--mode", choices=("report", "verify", "reflexion"), default="reflexion"
+        "--mode",
+        choices=("report", "verify", "reflexion"),
+        default="reflexion",
     )
     parser.add_argument(
         "-m",
         "--model",
-        default="",
+        default="openai/gpt-oss-20b",
         help="Override model (env LLM_MODEL → DEFAULT_MODEL).",
     )
     parser.add_argument("--temperature", type=float, default=0.3)
@@ -445,6 +525,7 @@ def main(argv: List[str] | None = None) -> None:
         default="",  # empty string → GPT verifier disabled
         help="OpenAI model for final verification (e.g. o1, gpt-4o). Leave blank to disable.",
     )
+
     args = parser.parse_args(argv)
 
     _init_llm(args.model or os.getenv("LLM_MODEL", DEFAULT_MODEL))
@@ -470,7 +551,21 @@ def main(argv: List[str] | None = None) -> None:
         print(f"[Mode] Batch-JSON: {src_path}")
         entries: List[Dict[str, str]] = json.loads(src_path.read_text(encoding="utf-8"))
 
+        for e in entries:
+            io = (e.get("IO_requirement") or "").strip()
+            if io:
+                # Escape any accidental "*/" to avoid breaking the comment
+                safe_io = io.replace("*/", "*\\/")
+                hint_block = "/* === IO REQUIREMENT (HINT) ===\n" + safe_io + "\n*/\n"
+                code_text = e.get("code", "")
+                if not code_text.lstrip().startswith(
+                    "/* === IO REQUIREMENT (HINT) ==="
+                ):
+                    e["code"] = hint_block + code_text
+
         summaries: List[Dict[str, Any]] = []
+
+        # 保留原本逐一處理（report / verify / reflexion）
         for entry in entries:
             name = entry["name"]
             code = entry["code"]

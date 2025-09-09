@@ -19,7 +19,22 @@ class HFGenerator:
 
     def __init__(self, model_name: str = DEFAULT_MODEL):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name).to("cuda")
+        self.tokenizer.padding_side = "left"
+        if (
+            self.tokenizer.pad_token_id is None
+            and self.tokenizer.eos_token_id is not None
+        ):
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map="auto",  # ★ 多GPU自動切分
+            torch_dtype="auto",  # 或 torch.float16 / torch.bfloat16
+            low_cpu_mem_usage=True,  # 較省RAM
+            # attn_implementation="flash_attention_2",  # 若支援FA2可打開
+            # trust_remote_code=True,    # 部分社群模型需要
+        )
+        self.model.eval()
 
     def apply_chat_template(
         self,
@@ -28,15 +43,15 @@ class HFGenerator:
         tokenize: bool = False,
         add_generation_prompt: bool = True,
     ):
-        if tokenize:  # 用在 generate() 時
+        if tokenize:
             return self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=True,
                 add_generation_prompt=add_generation_prompt,
                 return_dict=True,
                 return_tensors="pt",
-            ).to(self.model.device)
-        else:  # 用在 _chat_to_prompt() 時
+            )
+        else:
             return self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
@@ -44,25 +59,110 @@ class HFGenerator:
             )
 
     def generate(self, prompt: str, **generate_kwargs) -> str:
-        # 1) 先把 chat 轉成 token 張量
-        inputs = self.apply_chat_template(
-            [{"role": "user", "content": prompt}], tokenize=True
-        )
+        # 不要 .to(self.model.device)；多卡時沒有單一 device
+        inputs = self.tokenizer(prompt, return_tensors="pt")
 
-        # 2) 過濾 vLLM only 參數
+        # 把 inputs 放到模型首層所在裝置（通常是 cuda:0）
+        first_device = next(self.model.parameters()).device
+        inputs = {k: v.to(first_device) for k, v in inputs.items()}
+
+        # 過濾 vLLM only 參數
         for bad in ("use_tqdm", "stream", "stop", "stop_token_ids", "echo"):
             generate_kwargs.pop(bad, None)
 
-        # 3) 交給 HF generate()
+        # 生成
         outputs = self.model.generate(
             **inputs,
-            **generate_kwargs,  # temperature / top_p / top_k…
+            **generate_kwargs,  # temperature / top_p / top_k / max_new_tokens…
         )
 
-        # 4) 去掉 prompt token，回傳文字
+        # 去掉 prompt token
         return self.tokenizer.decode(
-            outputs[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=False
+            outputs[0][inputs["input_ids"].shape[-1] :],
+            skip_special_tokens=False,
         )
+
+    def generate_batch(
+        self,
+        batch_messages: list[list[dict]],
+        *,
+        add_generation_prompt: bool = True,
+        max_new_tokens: int = 4096,
+        temperature: float = 0.3,
+        top_p: float = 0.8,
+        top_k: int = 20,
+        repetition_penalty: float = 1.05,
+        do_sample: bool | None = None,
+        **generate_kwargs,
+    ) -> list[str]:
+        # 移除 vLLM 專屬參數，避免 transformers 報錯
+        for bad in ("use_tqdm", "stream", "stop", "stop_token_ids", "echo"):
+            generate_kwargs.pop(bad, None)
+
+        # 決定是否取樣
+        if do_sample is None:
+            do_sample = temperature is not None and temperature > 0.0
+
+        # pad_token_id 掛上 eos 以便 batch padding
+        if (
+            self.tokenizer.pad_token_id is None
+            and self.tokenizer.eos_token_id is not None
+        ):
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+
+        # 1) messages -> prompts（套 chat template）
+        prompts = [
+            self.apply_chat_template(
+                msgs, tokenize=False, add_generation_prompt=add_generation_prompt
+            )
+            for msgs in batch_messages
+        ]
+
+        # 2) 批次編碼 + padding
+        enc = self.tokenizer(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=False,  # 如需保險可改 True（會截斷超長輸入）
+        )
+
+        # 3) 把輸入送到模型首層所在裝置（device_map="auto" 時可行）
+        first_device = next(self.model.parameters()).device
+        enc = {k: v.to(first_device) for k, v in enc.items()}
+
+        # 4) 一次性批次生成
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **enc,
+                max_new_tokens=max_new_tokens,
+                do_sample=do_sample,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                repetition_penalty=repetition_penalty,
+                **generate_kwargs,
+            )
+
+        # 5) 依每條輸入實際長度切掉 prompt tokens，再 decode
+        attn = enc.get("attention_mask", None)
+        if attn is not None:
+            input_lens = attn.sum(dim=1)  # [B]
+        else:
+            input_lens = torch.full(
+                (outputs.size(0),),
+                enc["input_ids"].size(1),
+                device=outputs.device,
+                dtype=torch.long,
+            )
+
+        texts: list[str] = []
+        for i in range(outputs.size(0)):
+            start = int(input_lens[i].item())
+            # 與你先前風格一致：不移除 special tokens（方便保留 chat 標記）
+            texts.append(
+                self.tokenizer.decode(outputs[i][start:], skip_special_tokens=False)
+            )
+        return texts
 
 
 class VLLMGenerator:

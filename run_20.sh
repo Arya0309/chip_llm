@@ -7,7 +7,6 @@ REF_ROUNDS="${REF_ROUNDS:-5}"
 JSON_PATH="data_input_new.json"
 # MODEL="meta-llama/CodeLlama-34b-Instruct-hf"
 MODEL="openai/gpt-oss-20b"
-# MODEL="deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
 BATCH=16
 TEMP=0.3
 # TOPP=0.8

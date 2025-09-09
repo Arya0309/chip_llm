@@ -1,0 +1,456 @@
+[Original Code]
+/* === IO REQUIREMENT (HINT) ===
+Expected input consists of:
+    plaintext: a 16-element 32-bit hexadecimal integer array
+    key: a 16-element 32-bit hexadecimal integer array
+Expected output consists of:
+    ciphertext: a 16-element 32-bit hexadecimal integer array
+*/
+#include <iostream>
+using namespace std;
+
+static const unsigned char sbox[256] = {
+    0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
+    0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
+    0xb7,0xfd,0x93,0x26,0x36,0x3f,0xf7,0xcc,0x34,0xa5,0xe5,0xf1,0x71,0xd8,0x31,0x15,
+    0x04,0xc7,0x23,0xc3,0x18,0x96,0x05,0x9a,0x07,0x12,0x80,0xe2,0xeb,0x27,0xb2,0x75,
+    0x09,0x83,0x2c,0x1a,0x1b,0x6e,0x5a,0xa0,0x52,0x3b,0xd6,0xb3,0x29,0xe3,0x2f,0x84,
+    0x53,0xd1,0x00,0xed,0x20,0xfc,0xb1,0x5b,0x6a,0xcb,0xbe,0x39,0x4a,0x4c,0x58,0xcf,
+    0xd0,0xef,0xaa,0xfb,0x43,0x4d,0x33,0x85,0x45,0xf9,0x02,0x7f,0x50,0x3c,0x9f,0xa8,
+    0x51,0xa3,0x40,0x8f,0x92,0x9d,0x38,0xf5,0xbc,0xb6,0xda,0x21,0x10,0xff,0xf3,0xd2,
+    0xcd,0x0c,0x13,0xec,0x5f,0x97,0x44,0x17,0xc4,0xa7,0x7e,0x3d,0x64,0x5d,0x19,0x73,
+    0x60,0x81,0x4f,0xdc,0x22,0x2a,0x90,0x88,0x46,0xee,0xb8,0x14,0xde,0x5e,0x0b,0xdb,
+    0xe0,0x32,0x3a,0x0a,0x49,0x06,0x24,0x5c,0xc2,0xd3,0xac,0x62,0x91,0x95,0xe4,0x79,
+    0xe7,0xc8,0x37,0x6d,0x8d,0xd5,0x4e,0xa9,0x6c,0x56,0xf4,0xea,0x65,0x7a,0xae,0x08,
+    0xba,0x78,0x25,0x2e,0x1c,0xa6,0xb4,0xc6,0xe8,0xdd,0x74,0x1f,0x4b,0xbd,0x8b,0x8a,
+    0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e,0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e,
+    0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
+    0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16
+};
+
+static const unsigned char Rcon[11] = {
+    0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
+};
+
+unsigned char xtime(unsigned char x) {
+    return (unsigned char)((x << 1) ^ ((x & 0x80) ? 0x1B : 0x00));
+}
+
+void SubBytes(unsigned char state[4][4]) {
+    for(int r=0;r<4;r++)
+        for(int c=0;c<4;c++)
+            state[r][c] = sbox[state[r][c]];
+}
+
+void ShiftRows(unsigned char state[4][4]) {
+    unsigned char tmp;
+
+    tmp = state[1][0];
+    for(int c=0;c<3;c++) state[1][c] = state[1][c+1];
+    state[1][3] = tmp;
+
+    swap(state[2][0], state[2][2]);
+    swap(state[2][1], state[2][3]);
+
+    tmp = state[3][3];
+    for(int c=3;c>0;c--) state[3][c] = state[3][c-1];
+    state[3][0] = tmp;
+}
+
+void MixColumns(unsigned char state[4][4]) {
+    for(int c=0;c<4;c++) {
+        unsigned char a0 = state[0][c], a1 = state[1][c], a2 = state[2][c], a3 = state[3][c];
+        unsigned char m0 = xtime(a0) ^ (xtime(a1) ^ a1) ^ a2 ^ a3;
+        unsigned char m1 = a0 ^ xtime(a1) ^ (xtime(a2) ^ a2) ^ a3;
+        unsigned char m2 = a0 ^ a1 ^ xtime(a2) ^ (xtime(a3) ^ a3);
+        unsigned char m3 = (xtime(a0) ^ a0) ^ a1 ^ a2 ^ xtime(a3);
+        state[0][c] = m0;
+        state[1][c] = m1;
+        state[2][c] = m2;
+        state[3][c] = m3;
+    }
+}
+
+void AddRoundKey(unsigned char state[4][4], const unsigned char roundKey[16]) {
+    for(int r=0;r<4;r++)
+        for(int c=0;c<4;c++)
+            state[r][c] ^= roundKey[c*4 + r];
+}
+
+void KeyExpansion(const unsigned char key[16], unsigned char roundKeys[176]) {
+    for(int i=0;i<16;i++) roundKeys[i] = key[i];
+    int bytesGenerated = 16;
+    int rconIter = 1;
+    unsigned char temp[4];
+    while(bytesGenerated < 176) {
+        for(int i=0;i<4;i++) temp[i] = roundKeys[bytesGenerated - 4 + i];
+        if(bytesGenerated % 16 == 0) {
+
+            unsigned char t = temp[0];
+            temp[0]=temp[1]; temp[1]=temp[2]; temp[2]=temp[3]; temp[3]=t;
+
+            for(int i=0;i<4;i++) temp[i] = sbox[temp[i]];
+
+            temp[0] ^= Rcon[rconIter];
+            rconIter++;
+        }
+        for(int i=0;i<4;i++) {
+            roundKeys[bytesGenerated] = roundKeys[bytesGenerated - 16] ^ temp[i];
+            bytesGenerated++;
+        }
+    }
+}
+
+void AES128Encrypt(const unsigned char in[16], const unsigned char key[16], unsigned char out[16]) {
+    unsigned char state[4][4];
+    unsigned char roundKeys[176];
+    KeyExpansion(key, roundKeys);
+
+    for(int r=0;r<4;r++)
+        for(int c=0;c<4;c++)
+            state[r][c] = in[c*4 + r];
+
+    AddRoundKey(state, roundKeys);
+
+    for(int round=1; round<=9; round++) {
+        SubBytes(state);
+        ShiftRows(state);
+        MixColumns(state);
+        AddRoundKey(state, roundKeys + round*16);
+    }
+
+    SubBytes(state);
+    ShiftRows(state);
+    AddRoundKey(state, roundKeys + 160);
+
+    for(int r=0;r<4;r++)
+        for(int c=0;c<4;c++)
+            out[c*4 + r] = state[r][c];
+}
+
+
+===== Reflexion Step 0 =====
+
+[Environment] Verifying synthesizability…
+
+[FEEDBACK]
+- The code includes `<iostream>`, which is disallowed as it introduces iostream I/O facilities.  
+- No other disallowed constructs (recursion, dynamic memory, unbounded loops, STL containers, general‑purpose pointers, or undefined behavior) are present.  
+- Because the inclusion of `<iostream>` is a synthesizability violation, the design cannot be guaranteed to synthesize.
+
+[/FEEDBACK]
+[STATE] FAIL [/STATE]
+
+[Reflexion] FAIL. Feeding feedback to Actor.
+
+[Actor] Generating report…
+
+<|channel|>analysis<|message|>We need to analyze synthesizability. The code includes <iostream> which is disallowed. Also uses std::swap from <algorithm> implicitly? Actually swap is in <utility> or <algorithm>. But not included; but maybe compiler provides std::swap via <utility>. That might be disallowed. But we can replace swap with manual swap. Also uses dynamic memory? No. Recursion? No. Unbounded loops? Loops are bounded by constants. No STL containers. No general-purpose pointers? Uses arrays, pointer arithmetic roundKeys + offset. That's fine. But uses std::swap; we can replace with manual swap to avoid library. Also uses namespace std; we can remove. Also uses <iostream> which is disallowed. So we need to remove includes and using namespace. Also remove std::swap usage. Also remove any other std usage. The code uses unsigned char arrays. That's fine.
+
+Also uses while loop with bytesGenerated < 176; that's bounded. Good.
+
+Also uses if(bytesGenerated % 16 == 0). That's fine.
+
+Also uses Rcon array of size 11; fine.
+
+Also uses static const arrays; fine.
+
+Also uses function xtime; fine.
+
+Also uses for loops; fine.
+
+Also uses AddRoundKey with pointer arithmetic roundKeys + offset; that's fine.
+
+Also uses out array; fine.
+
+Also uses no recursion. So only issue is <iostream> and std::swap. Also using namespace std; remove.
+
+We should also ensure no other disallowed constructs: no dynamic memory, no recursion, no unbounded loops, no STL containers, no general-purpose pointers? roundKeys is array of unsigned char; pointer arithmetic is fine. No undefined behavior. So after removing <iostream> and std::swap, code is synthesizable.
+
+Also we should remove 'using namespace std;' and replace swap with manual swap.
+
+Also we might remove 'static const unsigned char sbox[256]' etc. They are fine.
+
+Also we might need to ensure no references to std::swap. We'll replace with manual swap.
+
+Also remove #include <iostream>.
+
+Also we might need to include <cstddef> for size_t? Not needed.
+
+Also we might need to define functions as static? Not required.
+
+Also we might need to avoid use of 'swap' function from std. We'll replace with manual swap.
+
+Also we need to ensure no other uses of std. The code uses 'swap' only. So we replace.
+
+Also we need to remove 'using namespace std;' line.
+
+Also we need to remove any 'std::' usage. None else.
+
+Also we need to ensure no 'cout' or 'cin' usage. None.
+
+Thus final code is synthesizable.
+
+We need to output the corrected code inside a fenced block.
+
+We also need to include analysis block. The instructions: "First analyse whether the following C/C++ code can be synthesized and write your reasoning inside: [ANALYSIS] ... [/ANALYSIS] Then, immediately after the analysis block: • If the code is synthesizable, output the original C++ code wrapped in a ```cpp``` fenced block. • If the code is NOT synthesizable, list the blocking issues inside the analysis, then provide a corrected synthesizable version C++ code, also wrapped in ```cpp```. Do not output anything outside the [ANALYSIS]...[/ANALYSIS] block and the single fenced code block that follows it."
+
+Thus we need to produce:
+
+[ANALYSIS]
+... reasoning ...
+[/ANALYSIS]
+```cpp
+... corrected code ...
+```
+
+We must not output anything else.
+
+Let's craft analysis: mention that <iostream> disallowed, std::swap disallowed, remove them.
+
+Also mention that code otherwise fine.
+
+Now produce corrected code.
+
+Let's rewrite code:
+
+Remove #include <iostream>
+Remove using namespace std;
+Replace swap with manual swap.
+
+Also ensure we don't use std::swap.
+
+Also we might need to include <cstdint> for uint8_t? Not necessary.
+
+We can keep unsigned char.
+
+Let's produce final code.
+
+Also we might want to add static to functions? Not necessary.
+
+Let's produce final code.
+
+Also we might want to ensure no 'swap' function defined; we replace with manual.
+
+Let's produce final code:
+
+```
+static const unsigned char sbox[256] = { ... };
+
+static const unsigned char Rcon[11] = { ... };
+
+unsigned char xtime(unsigned char x) { ... }
+
+void SubBytes(unsigned char state[4][4]) { ... }
+
+void ShiftRows(unsigned char state[4][4]) {
+    unsigned char tmp;
+    tmp = state[1][0];
+    for(int c=0;c<3;c++) state[1][c] = state[1][c+1];
+    state[1][3] = tmp;
+
+    // swap state[2][0] and state[2][2]
+    unsigned char temp = state[2][0];
+    state[2][0] = state[2][2];
+    state[2][2] = temp;
+    // swap state[2][1] and state[2][3]
+    temp = state[2][1];
+    state[2][1] = state[2][3];
+    state[2][3] = temp;
+
+    tmp = state[3][3];
+    for(int c=3;c>0;c--) state[3][c] = state[3][c-1];
+    state[3][0] = tmp;
+}
+
+void MixColumns(unsigned char state[4][4]) { ... }
+
+void AddRoundKey(unsigned char state[4][4], const unsigned char roundKey[16]) { ... }
+
+void KeyExpansion(const unsigned char key[16], unsigned char roundKeys[176]) { ... }
+
+void AES128Encrypt(const unsigned char in[16], const unsigned char key[16], unsigned char out[16]) { ... }
+```
+
+We need to keep the same code but with modifications.
+
+Let's write the corrected code fully.
+
+Also we need to keep the sbox and Rcon arrays exactly as before.
+
+Let's produce final code.
+
+<|end|><|start|>assistant<|channel|>final<|message|>[ANALYSIS]
+The original code contains two synthesizability violations:
+
+1. Inclusion of `<iostream>` – this header brings in the iostream library, which is disallowed in a synthesizable design.
+2. Use of `std::swap` – the `swap` function is part of the C++ Standard Library and is not synthesizable.  
+   The code can replace this with a simple manual swap of two `unsigned char` values.
+
+All other constructs (fixed‑size arrays, bounded loops, no recursion, no dynamic memory, no STL containers, no general‑purpose pointers) are synthesizable.  
+After removing the disallowed header, the `using namespace std;` directive, and replacing `swap` with a manual swap, the code is fully synthesizable.
+
+The corrected version below removes the `<iostream>` include, eliminates the `using namespace std;` line, and replaces each `swap` call with explicit byte exchanges.
+
+[/ANALYSIS]
+```cpp
+/* === IO REQUIREMENT (HINT) ===
+Expected input consists of:
+    plaintext: a 16-element 32-bit hexadecimal integer array
+    key: a 16-element 32-bit hexadecimal integer array
+Expected output consists of:
+    ciphertext: a 16-element 32-bit hexadecimal integer array
+*/
+
+static const unsigned char sbox[256] = {
+    0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
+    0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
+    0xb7,0xfd,0x93,0x26,0x36,0x3f,0xf7,0xcc,0x34,0xa5,0xe5,0xf1,0x71,0xd8,0x31,0x15,
+    0x04,0xc7,0x23,0xc3,0x18,0x96,0x05,0x9a,0x07,0x12,0x80,0xe2,0xeb,0x27,0xb2,0x75,
+    0x09,0x83,0x2c,0x1a,0x1b,0x6e,0x5a,0xa0,0x52,0x3b,0xd6,0xb3,0x29,0xe3,0x2f,0x84,
+    0x53,0xd1,0x00,0xed,0x20,0xfc,0xb1,0x5b,0x6a,0xcb,0xbe,0x39,0x4a,0x4c,0x58,0xcf,
+    0xd0,0xef,0xaa,0xfb,0x43,0x4d,0x33,0x85,0x45,0xf9,0x02,0x7f,0x50,0x3c,0x9f,0xa8,
+    0x51,0xa3,0x40,0x8f,0x92,0x9d,0x38,0xf5,0xbc,0xb6,0xda,0x21,0x10,0xff,0xf3,0xd2,
+    0xcd,0x0c,0x13,0xec,0x5f,0x97,0x44,0x17,0xc4,0xa7,0x7e,0x3d,0x64,0x5d,0x19,0x73,
+    0x60,0x81,0x4f,0xdc,0x22,0x2a,0x90,0x88,0x46,0xee,0xb8,0x14,0xde,0x5e,0x0b,0xdb,
+    0xe0,0x32,0x3a,0x0a,0x49,0x06,0x24,0x5c,0xc2,0xd3,0xac,0x62,0x91,0x95,0xe4,0x79,
+    0xe7,0xc8,0x37,0x6d,0x8d,0xd5,0x4e,0xa9,0x6c,0x56,0xf4,0xea,0x65,0x7a,0xae,0x08,
+    0xba,0x78,0x25,0x2e,0x1c,0xa6,0xb4,0xc6,0xe8,0xdd,0x74,0x1f,0x4b,0xbd,0x8b,0x8a,
+    0x70,0x3e,0xb5,0x66,0x48,0x03,0xf6,0x0e,0x61,0x35,0x57,0xb9,0x86,0xc1,0x1d,0x9e,
+    0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf,
+    0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16
+};
+
+static const unsigned char Rcon[11] = {
+    0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
+};
+
+unsigned char xtime(unsigned char x) {
+    return (unsigned char)((x << 1) ^ ((x & 0x80) ? 0x1B : 0x00));
+}
+
+void SubBytes(unsigned char state[4][4]) {
+    for(int r=0;r<4;r++)
+        for(int c=0;c<4;c++)
+            state[r][c] = sbox[state[r][c]];
+}
+
+void ShiftRows(unsigned char state[4][4]) {
+    unsigned char tmp;
+
+    tmp = state[1][0];
+    for(int c=0;c<3;c++) state[1][c] = state[1][c+1];
+    state[1][3] = tmp;
+
+    // swap state[2][0] and state[2][2]
+    unsigned char t = state[2][0];
+    state[2][0] = state[2][2];
+    state[2][2] = t;
+    // swap state[2][1] and state[2][3]
+    t = state[2][1];
+    state[2][1] = state[2][3];
+    state[2][3] = t;
+
+    tmp = state[3][3];
+    for(int c=3;c>0;c--) state[3][c] = state[3][c-1];
+    state[3][0] = tmp;
+}
+
+void MixColumns(unsigned char state[4][4]) {
+    for(int c=0;c<4;c++) {
+        unsigned char a0 = state[0][c], a1 = state[1][c], a2 = state[2][c], a3 = state[3][c];
+        unsigned char m0 = xtime(a0) ^ (xtime(a1) ^ a1) ^ a2 ^ a3;
+        unsigned char m1 = a0 ^ xtime(a1) ^ (xtime(a2) ^ a2) ^ a3;
+        unsigned char m2 = a0 ^ a1 ^ xtime(a2) ^ (xtime(a3) ^ a3);
+        unsigned char m3 = (xtime(a0) ^ a0) ^ a1 ^ a2 ^ xtime(a3);
+        state[0][c] = m0;
+        state[1][c] = m1;
+        state[2][c] = m2;
+        state[3][c] = m3;
+    }
+}
+
+void AddRoundKey(unsigned char state[4][4], const unsigned char roundKey[16]) {
+    for(int r=0;r<4;r++)
+        for(int c=0;c<4;c++)
+            state[r][c] ^= roundKey[c*4 + r];
+}
+
+void KeyExpansion(const unsigned char key[16], unsigned char roundKeys[176]) {
+    for(int i=0;i<16;i++) roundKeys[i] = key[i];
+    int bytesGenerated = 16;
+    int rconIter = 1;
+    unsigned char temp[4];
+    while(bytesGenerated < 176) {
+        for(int i=0;i<4;i++) temp[i] = roundKeys[bytesGenerated - 4 + i];
+        if(bytesGenerated % 16 == 0) {
+
+            unsigned char t = temp[0];
+            temp[0]=temp[1]; temp[1]=temp[2]; temp[2]=temp[3]; temp[3]=t;
+
+            for(int i=0;i<4;i++) temp[i] = sbox[temp[i]];
+
+            temp[0] ^= Rcon[rconIter];
+            rconIter++;
+        }
+        for(int i=0;i<4;i++) {
+            roundKeys[bytesGenerated] = roundKeys[bytesGenerated - 16] ^ temp[i];
+            bytesGenerated++;
+        }
+    }
+}
+
+void AES128Encrypt(const unsigned char in[16], const unsigned char key[16], unsigned char out[16]) {
+    unsigned char state[4][4];
+    unsigned char roundKeys[176];
+    KeyExpansion(key, roundKeys);
+
+    for(int r=0;r<4;r++)
+        for(int c=0;c<4;c++)
+            state[r][c] = in[c*4 + r];
+
+    AddRoundKey(state, roundKeys);
+
+    for(int round=1; round<=9; round++) {
+        SubBytes(state);
+        ShiftRows(state);
+        MixColumns(state);
+        AddRoundKey(state, roundKeys + round*16);
+    }
+
+    SubBytes(state);
+    ShiftRows(state);
+    AddRoundKey(state, roundKeys + 160);
+
+    for(int r=0;r<4;r++)
+        for(int c=0;c<4;c++)
+            out[c*4 + r] = state[r][c];
+}
+```<|return|>
+
+===== Reflexion Step 1 =====
+
+[Environment] Verifying synthesizability…
+
+[FEEDBACK]
+No violations found.
+[/FEEDBACK]
+[STATE] PASS [/STATE]
+
+[Reflexion] PASS! Returning final code.
+
+
+[OpenAI-Verifier] result:
+
+[FEEDBACK]
+- No I/O operations are present in the code.
+- No recursion is used.
+- No dynamic memory allocation is present.
+- All loops have statically provable finite bounds.
+- No STL containers or algorithms are used.
+- No general-purpose pointers or pointer arithmetic beyond fixed arrays are used.
+- No undefined-behaviour patterns are detected.
+- The code uses fixed-size arrays and operations are within bounds.
+No violations found.
+[/FEEDBACK]
+[STATE] PASS [/STATE]
