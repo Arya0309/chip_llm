@@ -44,33 +44,35 @@ Your entire response must consist ONLY of the following blocks, in this order:
 [ANALYSIS]
 <your chain‑of‑thought reasoning lives here>
 [/ANALYSIS]
+"""
 
-** FILE: Testbench.cpp **
+_QUERY_FORMAT = """
+[Requirement]
+{REQUIREMENT_WITH_DUT}
+[Dut.h]
 ```cpp
-<full definition of Testbench.cpp>
+{DUT_H}
 ```
-
-** FILE: Testbench.h **
+[Dut.cpp]
 ```cpp
-<full definition of Testbench.h>
+{DUT_CPP}
+```
+{GENERATE}
+"""
+_CODE_FORMAT = """
+```cpp
+{CODE}
 ```
 """
 
-_OUTPUT_FORMAT = """
-** FILE: Testbench.cpp **
-```cpp
-{Testbench_cpp}
-```
-
-** FILE: Testbench.h **
-```cpp
-{Testbench_h}
-```
-"""
+_GENERATE_H = "Please generate ** ONLY ** Testbench.h."
+_GENERATE_CPP = "Please generate ** ONLY ** Testbench.cpp."
 
 _FORMAT_PROMPT_WITH_FUNC = 'The DUT has already been implemented. Please generate the testbench as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
-_DESCRIPTION_WITH_DUT = "Given the SystemC DUT code below, generate the corresponding testbench code."
+_DESCRIPTION_WITH_DUT = (
+    "Given the SystemC DUT code below, generate the corresponding testbench code."
+)
 _FORMAT_PROMPT_WITH_DUT = 'Please output the result as a JSON array containing exactly two objects. The first object must have "name": "Testbench.cpp" and the second "name": "Testbench.h". Each object must also contain a "code" field with the corresponding SystemC source code.\n'
 
 # Example input function and its Testbench.cpp, Testbench.h outputs
@@ -594,40 +596,42 @@ def _build_prompt(
     dut_h: str = "",
     requirement: str = "",
     system_prompt: str = _SYSTEM_PROMPT,
+    response_h: str = None,
 ) -> str:
     if "qwen" in MODEL_NAME.lower():
         system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + system_prompt
 
     if func_code:
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT_1}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
-            },
-            {
-                "role": "assistant",
-                "content": _OUTPUT_FORMAT.format(
-                    Testbench_cpp=_EXAMPLE_TESTBENCH_CPP_1,
-                    Testbench_h=_EXAMPLE_TESTBENCH_H_1,
-                ),
-            },
-            {
-                "role": "user",
-                "content": (
-                    (f"[Requirement]\n{requirement}" if requirement else "")
-                    + "\n```cpp\n"
-                    + func_code.strip()
-                    + "\n```"
-                ),
-            },
-        ]
+        ...  # 下面註解的地方好像用不到，我沒改
+        # messages = [
+        #     {"role": "system", "content": system_prompt},
+        #     {
+        #         "role": "user",
+        #         "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT_1}\n```cpp\n{_EXAMPLE_FUNC_1}\n```",
+        #     },
+        #     {
+        #         "role": "assistant",
+        #         "content": _OUTPUT_FORMAT.format(
+        #             Testbench_cpp=_EXAMPLE_TESTBENCH_CPP_1,
+        #             Testbench_h=_EXAMPLE_TESTBENCH_H_1,
+        #         ),
+        #     },
+        #     {
+        #         "role": "user",
+        #         "content": (
+        #             (f"[Requirement]\n{requirement}" if requirement else "")
+        #             + "\n```cpp\n"
+        #             + func_code.strip()
+        #             + "\n```"
+        #         ),
+        #     },
+        # ]
     elif dut_cpp and dut_h:
         if requirement:
             requirement = re.sub(
-                r'^\s*Given\b.*?equivalent\.\s*', 
-                '', 
-                requirement, 
+                r"^\s*Given\b.*?equivalent\.\s*",
+                "",
+                requirement,
                 # flags=re.DOTALL
             )
             requirement = _DESCRIPTION_WITH_DUT + f"\n{requirement.strip()}"
@@ -636,49 +640,103 @@ def _build_prompt(
 
         messages = [
             {"role": "system", "content": system_prompt},
+            # Few Shot - 1
             {
                 "role": "user",
-                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT_WITH_DUT_1}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_1}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_1}\n```",
-            },
-            {
-                "role": "assistant",
-                "content": _OUTPUT_FORMAT.format(
-                    Testbench_cpp=_EXAMPLE_TESTBENCH_CPP_1,
-                    Testbench_h=_EXAMPLE_TESTBENCH_H_1,
+                "content": _QUERY_FORMAT.format(
+                    REQUIREMENT_WITH_DUT=_EXAMPLE_REQUIREMENT_WITH_DUT_1,
+                    DUT_H=_EXAMPLE_DUT_H_1,
+                    DUT_CPP=_EXAMPLE_DUT_CPP_1,
+                    GENERATE=_GENERATE_H,
                 ),
             },
             {
+                "role": "assistant",
+                "content": _CODE_FORMAT.format(CODE=_EXAMPLE_TESTBENCH_H_1),
+            },
+            {
                 "role": "user",
-                "content": f"[Requirement]\n{_EXAMPLE_REQUIREMENT_WITH_DUT_2}\n[Dut.cpp]\n```cpp\n{_EXAMPLE_DUT_CPP_2}\n```\n[Dut.h]\n```cpp\n{_EXAMPLE_DUT_H_2}\n```",
+                "content": _GENERATE_CPP,
             },
             {
                 "role": "assistant",
-                "content": _OUTPUT_FORMAT.format(
-                    Testbench_cpp=_EXAMPLE_TESTBENCH_CPP_2,
-                    Testbench_h=_EXAMPLE_TESTBENCH_H_2,
+                "content": _CODE_FORMAT.format(CODE=_EXAMPLE_TESTBENCH_CPP_1),
+            },
+            # Few Shot - 2
+            {
+                "role": "user",
+                "content": _QUERY_FORMAT.format(
+                    REQUIREMENT_WITH_DUT=_EXAMPLE_REQUIREMENT_WITH_DUT_2,
+                    DUT_H=_EXAMPLE_DUT_H_2,
+                    DUT_CPP=_EXAMPLE_DUT_CPP_2,
+                    GENERATE=_GENERATE_H,
                 ),
             },
             {
+                "role": "assistant",
+                "content": _CODE_FORMAT.format(CODE=_EXAMPLE_TESTBENCH_H_2),
+            },
+            {
                 "role": "user",
-                "content": (
-                    (f"[Requirement]\n{requirement}")
-                    + "\n[Dut.cpp]\n```cpp\n"
-                    + dut_cpp.strip()
-                    + "\n```"
-                    + "\n[Dut.h]\n```cpp\n"
-                    + dut_h.strip()
-                    + "\n```"
+                "content": _GENERATE_CPP,
+            },
+            {
+                "role": "assistant",
+                "content": _CODE_FORMAT.format(CODE=_EXAMPLE_TESTBENCH_CPP_2),
+            },
+            # REAL QUERY
+            {
+                "role": "user",
+                "content": _QUERY_FORMAT.format(
+                    REQUIREMENT_WITH_DUT=requirement,
+                    DUT_H=dut_h.strip(),
+                    DUT_CPP=dut_cpp.strip(),
+                    GENERATE=_GENERATE_H,
                 ),
             },
         ]
     else:
         raise ValueError("Either func_code or both dut_cpp and dut_h must be provided.")
-    return _llm.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
-    )
+
+    if response_h is not None:
+        messages.append({"role": "assistant", "content": response_h})
+        messages.append({"role": "user", "content": _GENERATE_CPP})
+
+    return {
+        "prompt": _llm.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        ),
+        "messages": messages,
+    }
 
 
 _BLOCK_PAT = re.compile(
+    r"```cpp\s*(.*?)\s*```",
+    re.S | re.VERBOSE,
+)
+
+
+def _parse_output(raw_h: str, raw_cpp: str) -> Dict[str, str]:
+
+    def extract(raw):
+        matches = _BLOCK_PAT.findall(raw)
+        if not matches:
+            print(
+                "LLM output did not contain any FILE blocks.\n"
+                "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
+            )
+            return ""
+        return matches[0].strip()
+
+    code_h = extract(raw_h)
+    code_cpp = extract(raw_cpp)
+    file_map = {"Testbench.h": code_h, "Testbench.cpp": code_cpp}
+    return file_map
+
+
+_＿BLOCK_PAT = re.compile(
     r"""
     \*\*\s*FILE:\s*              # "** FILE:" header
     ([^*]+?)                     # ① filename   (lazy until next '*')
@@ -691,24 +749,6 @@ _BLOCK_PAT = re.compile(
 )
 
 
-def _parse_tb_output(raw: str) -> Dict[str, str]:
-    matches = _BLOCK_PAT.findall(raw)
-    if not matches:
-        raise ValueError(
-            "LLM output did not contain any FILE blocks.\n"
-            "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
-        )
-    file_map = {fname.strip(): code.strip() for fname, code in matches}
-    for req in ("Testbench.cpp", "Testbench.h"):
-        if req not in file_map:
-            raise RuntimeError(
-                f"Missing '{req}' in model output\n--- OUTPUT START ---\n"
-                + raw
-                + "\n--- OUTPUT END ---"
-            )
-    return file_map
-
-
 # ---------------------------------------------------------------------------
 # Generate Testbench.cpp, Testbench.h via one-shot in-context learning
 # ---------------------------------------------------------------------------
@@ -719,13 +759,13 @@ def generate_tb(
     requirement: str = "",
     system_prompt: str = _SYSTEM_PROMPT,
 ) -> dict[str, str]:
+    ...  # 這部分好像不會用到，我沒改
+    # messages = _build_prompt(
+    #     func_code, dut_cpp, dut_h, requirement, system_prompt=system_prompt
+    # )
+    # raw = _llm.generate(messages).strip()
 
-    messages = _build_prompt(
-        func_code, dut_cpp, dut_h, requirement, system_prompt=system_prompt
-    )
-    raw = _llm.generate(messages).strip()
-
-    return _parse_tb_output(raw)
+    # return _parse_tb_output(raw)
 
 
 def generate_tb_batch(
@@ -765,29 +805,48 @@ def generate_tb_batch(
     elif len(requirement) != n:
         raise ValueError("requirement length must match batch size")
 
-    # 1) build prompts
-    prompts = [
+    print("[TB] Generating Testbench.h")
+    ret = [
         _build_prompt(code, dut_cpp, dut_h, req, system_prompt=system_prompt)
         for code, dut_cpp, dut_h, req in zip(func_codes, dut_cpp, dut_h, requirement)
     ]
-
-    # 2) 透過 utils.VLLMGenerator 的批次 API 產生
-    raw_outputs = _llm.generate_batch(
+    prompts = [r["prompt"] for r in ret]
+    responses_h = _llm.generate_batch(
         prompts,
         temperature=temperature,
         top_p=top_p,
         max_new_tokens=max_new_tokens,
     )
 
+    print("[TB] Generating Testbench.cpp")
+    ret = [
+        _build_prompt(code, dut_cpp, dut_h, req, system_prompt, resp_h)
+        for code, dut_cpp, dut_h, req, resp_h in zip(
+            func_codes, dut_cpp, dut_h, requirement, responses_h
+        )
+    ]
+    prompts = [r["prompt"] for r in ret]
+    messages = [r["messages"] for r in ret]
+    responses_cpp = _llm.generate_batch(
+        prompts,
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+    )
+
+    for msg, resp in zip(messages, responses_cpp):
+        msg.append({"role": "assistant", "content": resp})
+
     # 3) 解析，每條輸出都跑原本 regex
     results: List[Dict[str, str]] = []
-    for raw in raw_outputs:
+    for h, cpp in zip(responses_h, responses_cpp):
         try:
-            results.append(_parse_tb_output(raw.strip()))
+            results.append(_parse_output(h.strip(), cpp.strip()))
         except Exception as e:
             print(f"[generate_tb_batch] parse error: {e}")
-            results.append({})
-    return results
+            results.append({"Testbench.h": "", "Testbench.cpp": ""})
+    return results, messages
+
 
 # ────────────────────────────────────────────────────────────────
 # 💡 新增：統一的 refine() 介面，供 agent_verifier.py 呼叫
@@ -817,24 +876,42 @@ def refine(
     dict[str, str]
         key = filename, value = source code
     """
+    messages[-1]["content"] += "\n\n" + _GENERATE_H + "\n"
+
     # 1) 將 chat messages 轉成 vLLM 接受的 prompt 字串
-    prompt = _llm.apply_chat_template(
+    prompts = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
 
     # 2) 透過 batch API（雖然只有 1 條），帶自訂溫度等參數
-    raw = _llm.generate_batch(
-        [prompt],
+    response_h = _llm.generate_batch(
+        [prompts],
         max_new_tokens=max_new_tokens,
         temperature=temperature,
         top_p=top_p,
     )[0].strip()
+    messages.append({"role": "assistant", "content": response_h})
+    messages.append({"role": "user", "content": _GENERATE_CPP})
+
+    # 1)
+    prompts = _llm.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+
+    # 2)
+    response_cpp = _llm.generate_batch(
+        [prompts],
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        top_p=top_p,
+    )[0].strip()
+    messages.append({"role": "assistant", "content": response_cpp})
 
     # 3) 解析輸出 → {filename: code}
     parse_fn_candidates = [
         globals().get("_parse_output"),
         globals().get("_parse_dut_output"),
-        globals().get("_parse_tb_output"),
+        globals().get("_parse_output"),
         globals().get("_parse_pipe_output"),
         globals().get("parse_output"),
     ]
@@ -842,7 +919,7 @@ def refine(
     if parse_fn is None:
         raise RuntimeError("No parse_*_output() function found in this agent.")
 
-    return parse_fn(raw)
+    return parse_fn(response_h, response_cpp), messages
 
 
 # ---------------------------------------------------------------------------

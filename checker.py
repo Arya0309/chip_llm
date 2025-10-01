@@ -68,7 +68,7 @@ def classify_state(build_fail: bool, run_rc: int) -> str:
         return "compile_error"
     if run_rc != 0:
         return "runtime_error"
-    return "unit_test_pass"
+    return "unit_test_fail"
 
 
 def safe_concat(a: str, b: str | bytes) -> str:
@@ -86,7 +86,7 @@ def main() -> None:
     parser.add_argument(
         "--timeout",
         type=float,
-        default=5.0,
+        default=10.0,
         help="Seconds allowed for each test-dut (default 3)",
     )
     parser.add_argument(
@@ -113,6 +113,7 @@ def main() -> None:
     }
 
     FAIL_PATTERN = "Fatal: Testbench: Some test cases failed."
+    PASS_PATTERN = "All test cases passed!"
 
     for project in tqdm(projects, desc="Checking projects"):
         name = project.name
@@ -152,8 +153,8 @@ def main() -> None:
                     build_fail = True  # treat as compile error
 
             # --- 判斷 unit_test_fail ---
-            if not build_fail and FAIL_PATTERN in combined_out:
-                state = "unit_test_fail"
+            if not build_fail and PASS_PATTERN in combined_out:
+                state = "unit_test_pass"
             else:
                 state = classify_state(build_fail, run_rc)
 
@@ -178,8 +179,22 @@ def main() -> None:
     # Write CSV summary (header changed; add pass rates block)
     total = sum(counter.values())
     fmt_pass = (total - counter["format_error"]) / total if total else 0.0
-    cmp_pass = (total - counter["format_error"] - counter["compile_error"]) / total if total else 0.0
-    run_pass = (total - counter["format_error"] - counter["compile_error"] - counter["runtime_error"]) / total if total else 0.0
+    cmp_pass = (
+        (total - counter["format_error"] - counter["compile_error"]) / total
+        if total
+        else 0.0
+    )
+    run_pass = (
+        (
+            total
+            - counter["format_error"]
+            - counter["compile_error"]
+            - counter["runtime_error"]
+        )
+        / total
+        if total
+        else 0.0
+    )
     ut_pass = counter["unit_test_pass"] / total if total else 0.0
 
     with open(args.csv, "w", newline="", encoding="utf-8") as fp:
@@ -187,7 +202,13 @@ def main() -> None:
         # 統一欄位名稱
         w.writerow(["state", "value"])
         # 狀態計數
-        for s in ["format_error", "compile_error", "runtime_error", "unit_test_fail", "unit_test_pass"]:
+        for s in [
+            "format_error",
+            "compile_error",
+            "runtime_error",
+            "unit_test_fail",
+            "unit_test_pass",
+        ]:
             w.writerow([s, counter[s]])
         # 空一行，再列出通過率
         w.writerow([])

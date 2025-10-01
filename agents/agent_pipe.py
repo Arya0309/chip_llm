@@ -46,32 +46,30 @@ Your entire response must consist ONLY of the following blocks, in this order:
 [ANALYSIS]
 <your chain‑of‑thought reasoning lives here>
 [/ANALYSIS]
+"""
 
-** FILE: SystemPipeline.cpp **
+_QUERY_FORMAT = """
+{USER_PROMPT}
+--- Dut.h ---
 ```cpp
-<full definition of Dut.cpp>
+{DUT_H}
 ```
-
-** FILE: SystemPipeline.h **
+--- Testbench.h ---
 ```cpp
-<full definition of Dut.h>
+{TB_H}
+```
+{GENERATE}
+"""
+_CODE_FORMAT = """
+```cpp
+{CODE}
 ```
 """
 
-_OUTPUT_FORMAT = """
-** FILE: SystemPipeline.cpp **
-```cpp
-{SYSTEM_PIPELINE_CPP}
-```
-
-** FILE: SystemPipeline.h **
-```cpp
-{SYSTEM_PIPELINE_H}
-```
-"""
+_GENERATE_H = "Please generate ** ONLY ** SystemPipeline.h."
+_GENERATE_CPP = "Please generate ** ONLY ** SystemPipeline.cpp."
 
 _USER_PROMPT = "Given the following Dut.h and Testbench.h, generate SystemPipeline.cpp and SystemPipeline.h.\n"
-
 
 _EXAMPLE_DUT_H = """#ifndef DUT_H_
 #define DUT_H_
@@ -97,7 +95,6 @@ private:
 };
 #endif
 """
-
 _EXAMPLE_TB_H = """#ifndef TESTBENCH_H_
 #define TESTBENCH_H_
 
@@ -149,7 +146,6 @@ SystemPipeline::SystemPipeline( sc_module_name n ): sc_module( n ),
     /* === Variable Section End === */
 }
 """
-
 _EXAMPLE_PIPE_H = """#ifndef SYSTEM_PIPELINE_H_
 #define SYSTEM_PIPELINE_H_
 
@@ -180,34 +176,92 @@ private:
 
 
 def _build_prompt(
-    dut_h_code: str, testbench_h_code: str, system_prompt: str = _SYSTEM_PROMPT
+    dut_h_code: str,
+    testbench_h_code: str,
+    system_prompt: str = _SYSTEM_PROMPT,
+    response_h: str = None,
 ) -> str:
     if "qwen" in MODEL_NAME.lower():
         system_prompt = prompt._QWEN_SYSTEM_PROMPT_HEAD + system_prompt
 
     messages = [
-        {"role": "system", "content": system_prompt},
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        # Few Shot
         {
             "role": "user",
-            "content": f"{_USER_PROMPT}--- Dut.h ---\n```cpp\n{_EXAMPLE_DUT_H}\n```\n--- Testbench.h ---\n```cpp\n{_EXAMPLE_TB_H}\n```",
-        },
-        {
-            "role": "assistant",
-            "content": _OUTPUT_FORMAT.format(
-                SYSTEM_PIPELINE_CPP=_EXAMPLE_PIPE_CPP, SYSTEM_PIPELINE_H=_EXAMPLE_PIPE_H
+            "content": _QUERY_FORMAT.format(
+                USER_PROMPT=_USER_PROMPT,
+                DUT_H=_EXAMPLE_DUT_H,
+                TB_H=_EXAMPLE_TB_H,
+                GENERATE=_GENERATE_H,
             ),
         },
         {
+            "role": "assistant",
+            "content": _CODE_FORMAT.format(CODE=_EXAMPLE_PIPE_H),
+        },
+        {
             "role": "user",
-            "content": f"{_USER_PROMPT}--- Dut.h ---\n```cpp\n{dut_h_code}\n```\n--- Testbench.h ---\n```cpp\n{testbench_h_code}\n```",
+            "content": _GENERATE_CPP,
+        },
+        {
+            "role": "assistant",
+            "content": _CODE_FORMAT.format(CODE=_EXAMPLE_PIPE_CPP),
+        },
+        # REAL QUERY
+        {
+            "role": "user",
+            "content": _QUERY_FORMAT.format(
+                USER_PROMPT=_USER_PROMPT,
+                DUT_H=dut_h_code,
+                TB_H=testbench_h_code,
+                GENERATE=_GENERATE_H,
+            ),
         },
     ]
-    return _llm.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
-    )
+
+    if response_h is not None:
+        messages.append({"role": "assistant", "content": response_h})
+        messages.append({"role": "user", "content": _GENERATE_CPP})
+
+    return {
+        "prompt": _llm.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        ),
+        "messages": messages,
+    }
 
 
 _BLOCK_PAT = re.compile(
+    r"```cpp\s*(.*?)\s*```",
+    re.S | re.VERBOSE,
+)
+
+
+def _parse_output(raw_h: str, raw_cpp: str) -> Dict[str, str]:
+
+    def extract(raw):
+        matches = _BLOCK_PAT.findall(raw)
+        if not matches:
+            print(
+                "LLM output did not contain any FILE blocks.\n"
+                "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
+            )
+            return ""
+        return matches[0].strip()
+
+    code_h = extract(raw_h)
+    code_cpp = extract(raw_cpp)
+    file_map = {"SystemPipeline.h": code_h, "SystemPipeline.cpp": code_cpp}
+    return file_map
+
+
+_＿BLOCK_PAT = re.compile(
     r"""
     \*\*\s*FILE:\s*              # "** FILE:" header
     ([^*]+?)                     # ① filename   (lazy until next '*')
@@ -220,34 +274,19 @@ _BLOCK_PAT = re.compile(
 )
 
 
-def _parse_pipe_output(raw: str) -> Dict[str, str]:
-    matches = _BLOCK_PAT.findall(raw)
-    if not matches:
-        raise ValueError(
-            "LLM output did not contain any FILE blocks.\n"
-            "--- OUTPUT START ---\n" + raw + "\n--- OUTPUT END ---"
-        )
-    file_map = {fname.strip(): code.strip() for fname, code in matches}
-    for req in ("SystemPipeline.cpp", "SystemPipeline.h"):
-        if req not in file_map:
-            raise RuntimeError(
-                f"Missing '{req}' in model output\n--- OUTPUT START ---\n"
-                + raw
-                + "\n--- OUTPUT END ---"
-            )
-    return file_map
-
-
 # ---------------------------------------------------------------------------
 # Pipeline generation helper
 # --------------------------------------------------------------------------
 def generate_pipeline(
-    dut_h_code: str, testbench_h_code: str, system_prompt: str = _SYSTEM_PROMPT
+    dut_h_code: str,
+    testbench_h_code: str,
+    system_prompt: str = _SYSTEM_PROMPT,
 ) -> dict[str, str]:
-    messages = _build_prompt(dut_h_code, testbench_h_code, system_prompt=system_prompt)
-    raw = _llm.generate(messages).strip()
+    ...  # 這部分好像不會用到，我沒改
+    # messages = _build_prompt(dut_h_code, testbench_h_code, system_prompt=system_prompt)
+    # raw = _llm.generate(messages).strip()
 
-    return _parse_pipe_output(raw)
+    # return _parse_pipe_output(raw)
 
 
 def generate_pipeline_batch(
@@ -260,29 +299,46 @@ def generate_pipeline_batch(
     max_new_tokens: int = 4096,
 ) -> List[Dict[str, str]]:
 
-    # 1) build prompts
-    prompts = [
-        _build_prompt(dh, th, system_prompt=system_prompt)
+    print("[PIPE] Generating SystemPipeline.h")
+    ret = [
+        _build_prompt(dh, th, system_prompt)
         for dh, th in zip(dut_h_code, testbench_h_code)
     ]
-
-    # 2) 透過 utils.VLLMGenerator 的批次 API 產生
-    raw_outputs = _llm.generate_batch(
+    prompts = [r["prompt"] for r in ret]
+    responses_h = _llm.generate_batch(
         prompts,
         temperature=temperature,
         top_p=top_p,
         max_new_tokens=max_new_tokens,
     )
 
+    print("[PIPE] Generating SystemPipeline.cpp")
+    ret = [
+        _build_prompt(dh, th, system_prompt, resp_h)
+        for dh, th, resp_h in zip(dut_h_code, testbench_h_code, responses_h)
+    ]
+    prompts = [r["prompt"] for r in ret]
+    messages = [r["messages"] for r in ret]
+    responses_cpp = _llm.generate_batch(
+        prompts,
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+    )
+
+    for msg, resp in zip(messages, responses_cpp):
+        msg.append({"role": "assistant", "content": resp})
+
     # 3) 解析，每條輸出都跑原本 regex
     results: List[Dict[str, str]] = []
-    for raw in raw_outputs:
+    for h, cpp in zip(responses_h, responses_cpp):
         try:
-            results.append(_parse_pipe_output(raw.strip()))
+            results.append(_parse_output(h.strip(), cpp.strip()))
         except Exception as e:
             print(f"[generate_pipeline_batch] parse error: {e}")
-            results.append({})
-    return results
+            results.append({"SystemPipeline.h": "", "SystemPipeline.cpp": ""})
+    return results, messages
+
 
 # ────────────────────────────────────────────────────────────────
 # 💡 新增：統一的 refine() 介面，供 agent_verifier.py 呼叫
@@ -312,32 +368,50 @@ def refine(
     dict[str, str]
         key = filename, value = source code
     """
+    messages[-1]["content"] += "\n\n" + _GENERATE_H + "\n"
+
     # 1) 將 chat messages 轉成 vLLM 接受的 prompt 字串
-    prompt = _llm.apply_chat_template(
+    prompts = _llm.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
 
     # 2) 透過 batch API（雖然只有 1 條），帶自訂溫度等參數
-    raw = _llm.generate_batch(
-        [prompt],
+    response_h = _llm.generate_batch(
+        [prompts],
         max_new_tokens=max_new_tokens,
         temperature=temperature,
         top_p=top_p,
     )[0].strip()
+    messages.append({"role": "assistant", "content": response_h})
+    messages.append({"role": "user", "content": _GENERATE_CPP})
+
+    # 1)
+    prompts = _llm.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True
+    )
+
+    # 2)
+    response_cpp = _llm.generate_batch(
+        [prompts],
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        top_p=top_p,
+    )[0].strip()
+    messages.append({"role": "assistant", "content": response_cpp})
 
     # 3) 解析輸出 → {filename: code}
     parse_fn_candidates = [
         globals().get("_parse_output"),
         globals().get("_parse_dut_output"),
         globals().get("_parse_tb_output"),
-        globals().get("_parse_pipe_output"),
+        globals().get("_parse_output"),
         globals().get("parse_output"),
     ]
     parse_fn = next((f for f in parse_fn_candidates if callable(f)), None)
     if parse_fn is None:
         raise RuntimeError("No parse_*_output() function found in this agent.")
 
-    return parse_fn(raw)
+    return parse_fn(response_h, response_cpp), messages
 
 
 # ---------------------------------------------------------------------------
