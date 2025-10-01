@@ -27,12 +27,12 @@ MAX_TRY_PER_ITEM = 3  # max attempts per item per stage
 def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("json_path")
-    ap.add_argument("-o", "--out_dir", default=str(DEFAULT_OUT))
+    ap.add_argument("-o", "--out_dir", default=str(PROJ_ROOT / ".log/run_1/round_1"))
     ap.add_argument("--model", help="override env LLM_MODEL")
-    ap.add_argument("--batch_size", type=int, default=8)
+    ap.add_argument("--batch_size", type=int, default=64)
     # ap.add_argument("--max_iter", type=int, default=10)
     ap.add_argument("--temperature", type=float, default=0.3)
-    ap.add_argument("--max_new_tokens", type=int, default=4096)
+    ap.add_argument("--max_new_tokens", type=int, default=8192)
     ap.add_argument("--round_id", type=int, default=1)
     ap.add_argument("--refine_round_number", type=int, default=5)
     return ap.parse_args()
@@ -84,7 +84,9 @@ def run_func_stage(codes: List[str], batch_size: int):
         for idx_chunk in chunks(active, batch_size):
             code_chunk = [codes[i] for i in idx_chunk]
             try:
-                outs = agent_func.extract_functions_batch(code_chunk, system_prompt=agent_func._SYSTEM_PROMPT_V2)
+                outs = agent_func.extract_functions_batch(
+                    code_chunk, system_prompt=agent_func._SYSTEM_PROMPT_V2
+                )
                 verify_len("FUNC", len(idx_chunk), len(outs))
             except Exception as e:
                 for i in idx_chunk:
@@ -108,9 +110,9 @@ def run_func_stage(codes: List[str], batch_size: int):
 
 
 def run_dut_stage(
-    func_src: List[Optional[str]], 
-    reqs: List[str], 
-    batch_size: int, 
+    func_src: List[Optional[str]],
+    reqs: List[str],
+    batch_size: int,
     skip: Set[int],
     *,
     max_new_tokens: int,
@@ -122,6 +124,7 @@ def run_dut_stage(
     results: List[Optional[Dict[str, str]]] = [None] * N
     attempts = [0] * N
     pending: Set[int] = {i for i in range(N) if i not in skip}
+    messages: List[Dict[str, str]] = []
 
     while pending:
         active = [i for i in pending if attempts[i] < MAX_TRY_PER_ITEM]
@@ -132,13 +135,14 @@ def run_dut_stage(
             src_chunk = [func_src[i] for i in idx_chunk]
             req_chunk = [reqs[i] for i in idx_chunk]
             try:
-                outs = agent_dut.generate_dut_batch(
-                    src_chunk, 
-                    req_chunk, 
+                outs, msg = agent_dut.generate_dut_batch(
+                    src_chunk,
+                    req_chunk,
                     system_prompt=agent_dut._SYSTEM_PROMPT_V2,
                     max_new_tokens=max_new_tokens,
                     temperature=temperature,
                 )
+                messages += msg
                 verify_len("DUT", len(idx_chunk), len(outs))
             except Exception as e:
                 for i in idx_chunk:
@@ -154,7 +158,7 @@ def run_dut_stage(
                     attempts[idx] += 1
 
     abandon = {i for i, r in enumerate(results) if r is None}
-    return results, abandon
+    return results, abandon, messages
 
 
 def run_tb_stage(
@@ -174,6 +178,7 @@ def run_tb_stage(
     pending: Set[int] = {
         i for i in range(N) if i not in skip and dut_res[i] is not None
     }
+    messages: List[Dict[str, str]] = []
 
     while pending:
         active = [i for i in pending if attempts[i] < MAX_TRY_PER_ITEM]
@@ -185,7 +190,7 @@ def run_tb_stage(
             dut_h_chunk = [dut_res[i]["Dut.h"] for i in idx_chunk]
             req_chunk = [reqs[i] for i in idx_chunk]
             try:
-                outs = agent_tb.generate_tb_batch(
+                outs, msg = agent_tb.generate_tb_batch(
                     dut_cpp=dut_cpp_chunk,
                     dut_h=dut_h_chunk,
                     requirement=req_chunk,
@@ -193,6 +198,7 @@ def run_tb_stage(
                     max_new_tokens=max_new_tokens,
                     temperature=temperature,
                 )
+                messages += msg
                 verify_len("TB", len(idx_chunk), len(outs))
             except Exception as e:
                 for i in idx_chunk:
@@ -208,7 +214,7 @@ def run_tb_stage(
                     attempts[idx] += 1
 
     abandon = {i for i, r in enumerate(results) if r is None}
-    return results, abandon
+    return results, abandon, messages
 
 
 def run_pipe_stage(
@@ -228,6 +234,7 @@ def run_pipe_stage(
     pending: Set[int] = {
         i for i in range(N) if i not in skip and dut_res[i] and tb_res[i]
     }
+    messages: List[Dict[str, str]] = []
 
     while pending:
         active = [i for i in pending if attempts[i] < MAX_TRY_PER_ITEM]
@@ -238,13 +245,14 @@ def run_pipe_stage(
             dut_h_chunk = [dut_res[i]["Dut.h"] for i in idx_chunk]
             tb_h_chunk = [tb_res[i]["Testbench.h"] for i in idx_chunk]
             try:
-                outs = agent_pipe.generate_pipeline_batch(
-                    dut_h_chunk, 
-                    tb_h_chunk, 
+                outs, msg = agent_pipe.generate_pipeline_batch(
+                    dut_h_chunk,
+                    tb_h_chunk,
                     system_prompt=agent_pipe._SYSTEM_PROMPT_V2,
                     max_new_tokens=max_new_tokens,
-                    temperature=temperature
+                    temperature=temperature,
                 )
+                messages += msg
                 verify_len("PIPE", len(idx_chunk), len(outs))
             except Exception as e:
                 for i in idx_chunk:
@@ -260,7 +268,8 @@ def run_pipe_stage(
                     attempts[idx] += 1
 
     abandon = {i for i, r in enumerate(results) if r is None}
-    return results, abandon
+    return results, abandon, messages
+
 
 # ---------------------------------------------------------------------------
 # Prompt dumping helpers, TODO: dump的東西要再修正，目前這樣吃不到few shot範例，所以refine產生的東西不會follow我們想要的格式
@@ -269,17 +278,11 @@ def run_pipe_stage(
 
 def dump_prompt_dut(
     out_dir: Path,
-    system_prompt: str,
-    func_src: str,
-    requirement: str,
+    # system_prompt: str,
+    # func_src: str,
+    # requirement: str,
+    msg: List[Dict[str, str]],
 ):
-    msg = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": f"### C++ Functions\n```cpp\n{func_src}\n```\n\n### Requirement\n{requirement}",
-        },
-    ]
     (out_dir / "prompt_dut.json").write_text(
         json.dumps(msg, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -287,22 +290,12 @@ def dump_prompt_dut(
 
 def dump_prompt_tb(
     out_dir: Path,
-    system_prompt: str,
-    dut_cpp: str,
-    dut_h: str,
-    requirement: str,
+    # system_prompt: str,
+    # dut_cpp: str,
+    # dut_h: str,
+    # requirement: str,
+    msg: List[Dict[str, str]],
 ):
-    msg = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": (
-                f"### Dut.cpp\n```cpp\n{dut_cpp}\n```\n\n"
-                f"### Dut.h\n```cpp\n{dut_h}\n```\n\n"
-                f"### Requirement\n{requirement}"
-            ),
-        },
-    ]
     (out_dir / "prompt_testbench.json").write_text(
         json.dumps(msg, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -310,20 +303,11 @@ def dump_prompt_tb(
 
 def dump_prompt_pipe(
     out_dir: Path,
-    system_prompt: str,
-    dut_h: str,
-    tb_h: str,
+    # system_prompt: str,
+    # dut_h: str,
+    # tb_h: str,
+    msg: List[Dict[str, str]],
 ):
-    msg = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": (
-                f"### Dut.h\n```cpp\n{dut_h}\n```\n\n"
-                f"### Testbench.h\n```cpp\n{tb_h}\n```"
-            ),
-        },
-    ]
     (out_dir / "prompt_pipeline.json").write_text(
         json.dumps(msg, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -354,24 +338,40 @@ def main():
     out_root.mkdir(parents=True, exist_ok=True)
 
     # Stage 1 — FUNC
+    print("[FUNC] Extracting functions...")
     func_src, func_abdn = run_func_stage(codes, args.batch_size)
 
     # Stage 2 — DUT
-    dut_res, dut_abdn = run_dut_stage(
-        func_src, reqs, args.batch_size, func_abdn,
-        max_new_tokens=args.max_new_tokens, temperature=args.temperature,
-        )
+    print("[DUT] Generating DUT...")
+    dut_res, dut_abdn, dut_messages = run_dut_stage(
+        func_src,
+        reqs,
+        args.batch_size,
+        func_abdn,
+        max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
+    )
 
     # Stage 3 — TB
-    tb_res, tb_abdn = run_tb_stage(
-        dut_res, reqs, args.batch_size, func_abdn | dut_abdn,
-        max_new_tokens=args.max_new_tokens, temperature=args.temperature,
-        )
+    print("[TB] Generating Testbench...")
+    tb_res, tb_abdn, tb_messages = run_tb_stage(
+        dut_res,
+        reqs,
+        args.batch_size,
+        func_abdn | dut_abdn,
+        max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
+    )
 
     # Stage 4 — PIPE
-    pipe_res, pipe_abdn = run_pipe_stage(
-        dut_res, tb_res, args.batch_size, func_abdn | dut_abdn | tb_abdn,
-        max_new_tokens=args.max_new_tokens, temperature=args.temperature,
+    print("[PIPE] Generating System Pipeline...")
+    pipe_res, pipe_abdn, pipe_messages = run_pipe_stage(
+        dut_res,
+        tb_res,
+        args.batch_size,
+        func_abdn | dut_abdn | tb_abdn,
+        max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
     )
 
     # Write outputs
@@ -385,25 +385,9 @@ def main():
         write_outputs(dut_res[i], tb_res[i], pipe_res[i], out_dir, name)
 
         # --- Dump prompts for verifier -------------------------------------
-        dump_prompt_dut(
-            out_dir,
-            agent_dut._SYSTEM_PROMPT_V2,
-            func_src[i],
-            reqs[i],
-        )
-        dump_prompt_tb(
-            out_dir,
-            agent_tb._SYSTEM_PROMPT_V2,
-            dut_res[i]["Dut.cpp"],
-            dut_res[i]["Dut.h"],
-            reqs[i],
-        )
-        dump_prompt_pipe(
-            out_dir,
-            agent_pipe._SYSTEM_PROMPT_V2,
-            dut_res[i]["Dut.h"],
-            tb_res[i]["Testbench.h"],
-        )
+        dump_prompt_dut(out_dir, dut_messages[i])
+        dump_prompt_tb(out_dir, tb_messages[i])
+        dump_prompt_pipe(out_dir, pipe_messages[i])
 
     # meta.json (optional) — 包含 round 與 refine 次數設定
     meta = {
@@ -415,6 +399,7 @@ def main():
     )
 
     print(f"Done. Files in {out_root}")
+
 
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":

@@ -22,24 +22,45 @@ from utils import DEFAULT_MODEL, VLLMGenerator
 MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
 _llm = VLLMGenerator(MODEL_NAME)
 
+
+# ------------------ 要再加入 compile 結果 ------------------
 _SYSTEM_PROMPT = """
 You are a senior SystemC verification engineer.
 
 Task
 ----
-Read the six source files (Dut / Testbench / SystemPipeline, .h/.cpp).
+Read the six source files (Dut / Testbench / SystemPipeline, .h/.cpp) and the terminal outputs.
 Return EXACTLY one line:
-[REFINE] <none|dut|testbench|pipeline|comma_separated> [/REFINE]
+[REFINE] <dut|testbench|pipeline|comma_separated> [/REFINE]
 """
 
 _FILE_FMT = "** FILE: {name} **\n```cpp\n{code}\n```"
 _REFINE_PAT = re.compile(r"\[REFINE\]\s*([a-z,]+)\s*\[/REFINE\]", re.I)
+_OUTPUT_FMT = """** OUTPUTS: **
+stdout: {stdout}
+stderr: {stderr}
+returncode: {returncode}
+127 means timeout.
+"""
+# ------------------ 要再加入 compile 結果 ------------------
 
 
 # ────────────────────────────────────────────────────────────────
 # Prompt & 解析
 # ────────────────────────────────────────────────────────────────
-def _build_prompt(srcs: Dict[str, str]) -> str:
+def _len_check(compile_results, max_len=4000):
+    half = max_len // 2
+    for k in ["stdout", "stderr"]:
+        if len(compile_results[k]) > max_len:
+            compile_results[k] = (
+                compile_results[k][:half]
+                + "\n...\n[TRUNCATED]\n...\n"
+                + compile_results[k][-half:]
+            )
+
+
+def _build_prompt(srcs: Dict[str, str], compile_results) -> str:
+    _len_check(compile_results, max_len=4000)
     blocks = "\n\n".join(
         _FILE_FMT.format(name=n, code=srcs[n].strip())
         for n in (
@@ -54,7 +75,10 @@ def _build_prompt(srcs: Dict[str, str]) -> str:
     )
     msgs = [
         {"role": "system", "content": _SYSTEM_PROMPT.strip()},
-        {"role": "user", "content": blocks},
+        {
+            "role": "user",
+            "content": blocks + "\n\n" + _OUTPUT_FMT.format(**compile_results),
+        },
     ]
     return _llm.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
 
@@ -103,7 +127,7 @@ def _append_issue_and_refine(
     else:
         return
 
-    new_files = ag.refine(
+    new_files, messages = ag.refine(
         messages,
         issue_msg,
         temperature=temperature,
@@ -112,6 +136,129 @@ def _append_issue_and_refine(
     )
     for fname, code in new_files.items():
         (qdir_next / fname).write_text(code, "utf-8")
+
+    (qdir_next / f"prompt_{agent_name}.json").write_text(
+        json.dumps(messages, ensure_ascii=False, indent=2), "utf-8"
+    )
+
+
+def _multiagent_refine(
+    map: Dict[str, List],
+    qdir_prev: Path,
+    qdir_next: Path,
+    temperature: float,
+    top_p: float,
+    max_new_tokens: int,
+):
+    # map = {"prompt": [], "qname": [], "raw": [], "agents": []}
+    qnames = map["qname"]
+    agents = map["agents"]
+    refine_map = {"qname": [], "agent": [], "parse_fn": [], "prompt": []}
+
+    _ISSUE_MSG = """[ISSUE] Verifier detected problems in {agent}.\nPlease regenerate accordingly.
+Please generate ** ONLY ** Dut.h.
+"""
+    _GENERATE_CPP = "Please generate ** ONLY ** Dut.cpp."
+
+    for qname, ags in zip(qnames, agents):
+        for ag in ags:
+            refine_map["qname"].append(qname)
+            refine_map["agent"].append(ag)
+            if ag == "dut":
+                import agent_dut as _ag
+            elif ag == "testbench":
+                import agent_tb as _ag
+            elif ag == "pipeline":
+                import agent_pipe as _ag
+            else:
+                raise ValueError(f"None/unknown agent: {ag}")
+
+            parse_fn = _ag._parse_output
+            refine_map["parse_fn"].append(parse_fn)
+
+            prompt_path = qdir_prev / qname / f"prompt_{ag}.json"
+            if not prompt_path.exists():
+                raise FileNotFoundError(f"prompt missing: {prompt_path}")
+            prompt = json.loads(prompt_path.read_text("utf-8"))
+            prompt.append({"role": "user", "content": _ISSUE_MSG.format(agent=ag)})
+            refine_map["prompt"].append(prompt)
+
+    batch_size = 16
+    remainder = len(refine_map["prompt"]) % batch_size
+    if remainder != 0:
+        rounds = len(refine_map["prompt"]) // batch_size + 1
+    else:
+        rounds = len(refine_map["prompt"]) // batch_size
+
+    for i in range(rounds):
+        batch_prompts = refine_map["prompt"][i * batch_size : (i + 1) * batch_size]
+        parse_fns = refine_map["parse_fn"][i * batch_size : (i + 1) * batch_size]
+        qnames = refine_map["qname"][i * batch_size : (i + 1) * batch_size]
+        agents = refine_map["agent"][i * batch_size : (i + 1) * batch_size]
+        # (1)
+        input = []
+        for prompt in batch_prompts:
+            input.append(
+                _llm.apply_chat_template(
+                    prompt,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            )
+
+        # (2)
+        responses_h = _llm.generate_batch(
+            input,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+        )
+        for resp_h, prompt in zip(responses_h, batch_prompts):
+            prompt.append({"role": "assistant", "content": resp_h})
+            prompt.append({"role": "user", "content": _GENERATE_CPP})
+
+        # (1)
+        input = []
+        for prompt in batch_prompts:
+            input.append(
+                _llm.apply_chat_template(
+                    prompt,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            )
+
+        # (2)
+        responses_cpp = _llm.generate_batch(
+            input,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+        )
+        for resp_cpp, prompt in zip(responses_cpp, batch_prompts):
+            prompt.append({"role": "assistant", "content": resp_cpp})
+
+        # (3) parse & write
+        for qname, ag, parse_fn, resp_h, resp_cpp, prompt in zip(
+            qnames,
+            agents,
+            parse_fns,
+            responses_h,
+            responses_cpp,
+            batch_prompts,
+        ):
+            try:
+                results = parse_fn(resp_h, resp_cpp)
+            except Exception as e:
+                print(f"[multiagent_refine] parse error: {e}")
+                results = {}
+
+            for fname, code in results.items():
+                (qdir_next / qname / fname).write_text(code, "utf-8")
+
+            (qdir_next / qname / f"prompt_{ag}.json").write_text(
+                json.dumps(prompt, ensure_ascii=False, indent=2), "utf-8"
+            )
 
 
 # ────────────────────────────────────────────────────────────────
@@ -122,9 +269,17 @@ def _read(p: Path) -> str:
 
 
 def _collect(qdir: Path) -> Dict[str, str]:
-    return {n: _read(qdir / n) for n in (
-        "Dut.cpp","Dut.h","Testbench.cpp","Testbench.h","SystemPipeline.cpp","SystemPipeline.h"
-    )}
+    return {
+        n: _read(qdir / n)
+        for n in (
+            "Dut.cpp",
+            "Dut.h",
+            "Testbench.cpp",
+            "Testbench.h",
+            "SystemPipeline.cpp",
+            "SystemPipeline.h",
+        )
+    }
 
 
 def _process_one_round(
@@ -142,44 +297,57 @@ def _process_one_round(
         shutil.rmtree(next_r)
     next_r.mkdir(parents=True, exist_ok=True)
 
-    need_more = False
+    # v------------------------------------------------------------------------------------------------------------------------------v
+    # 這邊build完prompt應該要先看code之後做summary，也許決定要修改哪些檔案也可以在這邊做。甚至可以用majority來決定要改哪些檔案（temperature稍微高一點）。
+    build_resuls = _build_process(prev_r)
+    need_more = True
+    # 先蒐集所有執行有問題的題目，之後讓llm用一個batch生成
+    map = {"prompt": [], "qname": [], "raw": [], "agents": []}
     for qdir_prev in prev_r.iterdir():
         if not qdir_prev.is_dir():
             continue
         if qdir_prev.name == "build":
             shutil.copytree(qdir_prev, next_r / qdir_prev.name, dirs_exist_ok=True)
             continue
+        if "All test cases passed!" in build_resuls[qdir_prev.name]["stdout"]:
+            continue
 
         qdir_next = next_r / qdir_prev.name
         shutil.copytree(qdir_prev, qdir_next, dirs_exist_ok=True)
 
-        prompt = _build_prompt(_collect(qdir_prev))
-        raw = _llm.generate(prompt).strip()
-        agents = _parse_refine(raw)
+        compile_results = build_resuls[qdir_prev.name]
+        prompt = _build_prompt(_collect(qdir_prev), compile_results)
+        map["prompt"].append(prompt)
+        map["qname"].append(qdir_prev.name)
 
-        (qdir_next / "verifier.txt").write_text(raw, "utf-8")
+    batch_size = 16
+    remainder = len(map["prompt"]) % batch_size
+    if remainder != 0:
+        rounds = len(map["prompt"]) // batch_size + 1
+    else:
+        rounds = len(map["prompt"]) // batch_size
 
-        if agents == ["none"]:
-            continue
-
-        need_more = True
-        issue_msg = (
-            "[ISSUE] Verifier detected problems in "
-            + ", ".join(agents)
-            + ". Please regenerate accordingly."
+    for i in range(rounds):
+        batch_prompts = map["prompt"][i * batch_size : (i + 1) * batch_size]
+        qnames = map["qname"][i * batch_size : (i + 1) * batch_size]
+        raws = _llm.generate_batch(
+            batch_prompts,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
         )
-        for ag in agents:
-            _append_issue_and_refine(
-                ag,
-                qdir_prev,
-                qdir_next,
-                issue_msg,
-                temperature=temperature,
-                top_p=top_p,
-                max_new_tokens=max_new_tokens,
-            )
+        map["raw"].extend(raws)
+        for qname, raw in zip(qnames, raws):
+            agent = _parse_refine(raw)
+            map["agents"].append(agent)
+            (next_r / f"{qname}/verifier.txt").write_text(raw, "utf-8")
 
-    if (r + 1) >= max_rounds and need_more:
+    _multiagent_refine(map, prev_r, next_r, temperature, top_p, max_new_tokens)
+
+    with (next_r / "verifier_record.json").open("w", encoding="utf-8") as f:
+        json.dump(map, f, ensure_ascii=False, indent=2)
+
+    if r + 1 >= max_rounds:
         print("[INFO] Max rounds reached but issues remain.", file=sys.stderr)
     return need_more
 
@@ -219,5 +387,80 @@ def main():
             break
 
 
+# ────────────────────────────────────────────────────────────────
+# Compiler Refinement
+# ────────────────────────────────────────────────────────────────
+
+import shlex, subprocess
+
+
+def _build(code_dir: Path) -> Dict:
+    build_dir = code_dir / "build"
+
+    if build_dir.exists():
+        shutil.rmtree(build_dir, ignore_errors=True)
+    build_dir.mkdir(parents=True, exist_ok=True)
+
+    cmds = [
+        "cmake ..",
+        "cmake --build .",
+        "cp ../testcases.txt .",
+        "cp ../golden.txt .",
+        "./test-dut",
+    ]
+
+    print(f"[INFO] Compiling in {build_dir}")
+    for cmd in cmds:
+        try:
+            result = subprocess.run(
+                shlex.split(cmd),
+                cwd=build_dir,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+        except FileNotFoundError as e:
+            # 可執行檔/路徑不存在
+            print(f"[ERROR] Failed")
+            return {
+                "stdout": result.stdout.strip(),
+                "stderr": result.stderr.strip(),
+                "returncode": 127,
+            }
+
+        except subprocess.TimeoutExpired as e:
+            print(f"[ERROR] Timeout (10 seconds)")
+            return {
+                "stdout": "",
+                "stderr": f"timed out. (10 seconds)",
+                "returncode": -1,
+            }
+
+    shutil.rmtree(build_dir, ignore_errors=True)
+
+    return {
+        "stdout": result.stdout.strip(),
+        "stderr": result.stderr.strip(),
+        "returncode": result.returncode,
+    }
+
+
+def _build_process(round_dir: Path) -> Dict[str, str]:
+    results = {}
+    for code_dir in round_dir.iterdir():
+        if not code_dir.is_dir():
+            continue
+
+        results[code_dir.name] = _build(code_dir)
+
+    # 將結果寫入到 round_dir/build_results.json
+    build_results_path = round_dir / "build_results.json"
+    with build_results_path.open("w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    return results
+
+
 if __name__ == "__main__":
     main()
+    # _compile_process(Path(".log/run_1/round_1"))
