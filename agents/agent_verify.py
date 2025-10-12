@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List
 
-from utils import DEFAULT_MODEL, VLLMGenerator
+from utils import DEFAULT_MODEL, VLLMGenerator, count_rounds
 from summary import SummaryAgent
 
 # ────────────────────────────────────────────────────────────────
@@ -45,7 +45,15 @@ returncode: {returncode}
 """
 
 # v--------------需要完成的地方------------------v
-_SUMMARY_SYSTEM_PROMPT = """{qname} {summary}"""
+_SUMMARY_PROMPT = """[ISSUE] Verifier detected problems in {agent}.
+Please generate a repair patch based on the following summary.
+
+[Summary]
+{summary}
+
+Please generate ** ONLY ** Dut.h.
+"""
+_GENERATE_CPP = "Please generate ** ONLY ** Dut.cpp."
 
 
 # ────────────────────────────────────────────────────────────────
@@ -86,19 +94,15 @@ def _build_prompt(srcs: Dict[str, str], compile_results: Dict) -> str:
     return _llm.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
 
 
-def _build_summary_prompt(path: Path, qname: str, summary: Dict) -> str:
+def _build_summary_prompt(path: Path, agent: str, summary: Dict) -> str:
     history = json.loads(path.read_text("utf-8"))
     summary_msg = [
         {
             "role": "user",
-            "content": _SUMMARY_SYSTEM_PROMPT.format(qname=qname, summary=summary),
+            "content": _SUMMARY_PROMPT.format(agent=agent, summary=summary),
         },
     ]
-    return _llm.apply_chat_template(
-        history + summary_msg,
-        tokenize=False,
-        add_generation_prompt=True,
-    )
+    return history + summary_msg
 
 
 def _parse_refine(raw: str) -> List[str]:
@@ -154,21 +158,16 @@ Please generate ** ONLY ** Dut.h.
             refine_map["prompt"].append(prompt)
 
     batch_size = 16
-    remainder = len(refine_map["prompt"]) % batch_size
-    if remainder != 0:
-        rounds = len(refine_map["prompt"]) // batch_size + 1
-    else:
-        rounds = len(refine_map["prompt"]) // batch_size
-
+    rounds = count_rounds(len(refine_map["prompt"]), batch_size=16)
     for i in range(rounds):
         batch_prompts = refine_map["prompt"][i * batch_size : (i + 1) * batch_size]
-        parse_fns = refine_map["parse_fn"][i * batch_size : (i + 1) * batch_size]
-        qnames = refine_map["qname"][i * batch_size : (i + 1) * batch_size]
-        agents = refine_map["agent"][i * batch_size : (i + 1) * batch_size]
+        batch_parse_fns = refine_map["parse_fn"][i * batch_size : (i + 1) * batch_size]
+        batch_qnames = refine_map["qname"][i * batch_size : (i + 1) * batch_size]
+        batch_agents = refine_map["agent"][i * batch_size : (i + 1) * batch_size]
         # (1)
-        input = []
+        inputs = []
         for prompt in batch_prompts:
-            input.append(
+            inputs.append(
                 _llm.apply_chat_template(
                     prompt,
                     tokenize=False,
@@ -178,7 +177,7 @@ Please generate ** ONLY ** Dut.h.
 
         # (2)
         responses_h = _llm.generate_batch(
-            input,
+            inputs,
             temperature=temperature,
             top_p=top_p,
             max_new_tokens=max_new_tokens,
@@ -188,9 +187,9 @@ Please generate ** ONLY ** Dut.h.
             prompt.append({"role": "user", "content": _GENERATE_CPP})
 
         # (1)
-        input = []
+        inputs = []
         for prompt in batch_prompts:
-            input.append(
+            inputs.append(
                 _llm.apply_chat_template(
                     prompt,
                     tokenize=False,
@@ -200,7 +199,7 @@ Please generate ** ONLY ** Dut.h.
 
         # (2)
         responses_cpp = _llm.generate_batch(
-            input,
+            inputs,
             temperature=temperature,
             top_p=top_p,
             max_new_tokens=max_new_tokens,
@@ -210,9 +209,9 @@ Please generate ** ONLY ** Dut.h.
 
         # (3) parse & write
         for qname, ag, parse_fn, resp_h, resp_cpp, prompt in zip(
-            qnames,
-            agents,
-            parse_fns,
+            batch_qnames,
+            batch_agents,
+            batch_parse_fns,
             responses_h,
             responses_cpp,
             batch_prompts,
@@ -238,7 +237,80 @@ def _multiagent_summary_refine(
     temperature: float,
     top_p: float,
     max_new_tokens: int,
-): ...
+):
+    # map = {"prompt": [], "qname": [], "agent": [], "parse_fn": []}
+    batch_size = 16
+    rounds = count_rounds(len(map["prompt"]), batch_size=16)
+    for i in range(rounds):
+        batch_prompts = map["prompt"][i * batch_size : (i + 1) * batch_size]
+        batch_qnames = map["qname"][i * batch_size : (i + 1) * batch_size]
+        batch_agents = map["agent"][i * batch_size : (i + 1) * batch_size]
+        batch_parse_fns = map["parse_fn"][i * batch_size : (i + 1) * batch_size]
+
+        # (1)
+        inputs = []
+        for prompt in batch_prompts:
+            inputs.append(
+                _llm.apply_chat_template(
+                    prompt,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            )
+
+        # (2)
+        responses_h = _llm.generate_batch(
+            inputs,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+        )
+        for resp_h, prompt in zip(responses_h, batch_prompts):
+            prompt.append({"role": "assistant", "content": resp_h})
+            prompt.append({"role": "user", "content": _GENERATE_CPP})
+
+        # (1)
+        inputs = []
+        for prompt in batch_prompts:
+            inputs.append(
+                _llm.apply_chat_template(
+                    prompt,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            )
+
+        # (2)
+        responses_cpp = _llm.generate_batch(
+            inputs,
+            temperature=temperature,
+            top_p=top_p,
+            max_new_tokens=max_new_tokens,
+        )
+        for resp_cpp, prompt in zip(responses_cpp, batch_prompts):
+            prompt.append({"role": "assistant", "content": resp_cpp})
+
+        # (3) parse & write
+        for qname, ag, parse_fn, resp_h, resp_cpp, prompt in zip(
+            batch_qnames,
+            batch_agents,
+            batch_parse_fns,
+            responses_h,
+            responses_cpp,
+            batch_prompts,
+        ):
+            try:
+                results = parse_fn(resp_h, resp_cpp)
+            except Exception as e:
+                print(f"[multiagent_summary_refine] parse error: {e}")
+                results = {}
+
+            for fname, code in results.items():
+                (qdir_next / qname / fname).write_text(code, "utf-8")
+
+            (qdir_next / qname / f"prompt_{ag}.json").write_text(
+                json.dumps(prompt, ensure_ascii=False, indent=2), "utf-8"
+            )
 
 
 # ────────────────────────────────────────────────────────────────
@@ -377,7 +449,7 @@ def _process_summary(
     #     }
     # }
     summary_results = summaryAgent.summarize(prev_r, batch_size=16)
-    map = {"prompt": [], "qname": [], "agent": [], "refine_fn": []}
+    map = {"prompt": [], "qname": [], "agent": [], "parse_fn": []}
     for k, v in summary_results.items():
         for agent in v["agents"]:
             if agent == "dut":
@@ -390,10 +462,10 @@ def _process_summary(
                 raise ValueError(f"None/unknown agent: {agent}")
 
             parse_fn = ag._parse_output
-            map["refine_fn"].append(parse_fn)
+            map["parse_fn"].append(parse_fn)
 
             prompt = _build_summary_prompt(
-                (prev_r / k / f"prompt_{agent}.json"), k, v["summary"]
+                (prev_r / k / f"prompt_{agent}.json"), agent, v["summary"]
             )
 
             map["prompt"].append(prompt)
@@ -407,7 +479,7 @@ def _process_summary(
 
     # if r + 1 >= max_rounds:
     #     print("[INFO] Max rounds reached but issues remain.", file=sys.stderr)
-    return False
+    return True
 
 
 # ────────────────────────────────────────────────────────────────

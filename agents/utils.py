@@ -281,6 +281,13 @@ def get_testcases_and_golden(task: str) -> None:
     return "\n".join(txt)
 
 
+def count_rounds(total: int, batch_size: int) -> int:
+    remainder = total % batch_size
+    if remainder == 0:
+        return total // batch_size
+    return total // batch_size + 1
+
+
 if __name__ == "__main__":
     # model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
     # generator = VLLMGenerator(model_name)

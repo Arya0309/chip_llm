@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNS=20
+RUNS=1
 REF_ROUNDS="${REF_ROUNDS:-5}"
 
 JSON_PATH="data_input_new_copy.json"

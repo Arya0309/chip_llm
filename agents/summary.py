@@ -1,6 +1,7 @@
 from typing import Dict, List, Union
 from utils import VLLMGenerator
 from pathlib import Path
+from utils import count_rounds
 import re
 import json
 
@@ -37,13 +38,6 @@ def _build_summary_prompt_with_code(
         {"role": "system", "content": _SUMMARY_SYSTEM_PROMPT},
         {"role": "user", "content": blocks + "\n\n" + _OUTPUT_FMT.format(**data)},
     ]
-
-
-def _count_rounds(total: int, batch_size: int) -> int:
-    remainder = total % batch_size
-    if remainder == 0:
-        return total // batch_size
-    return total // batch_size + 1
 
 
 def _parse_refine(raw: str) -> List[str]:
@@ -155,7 +149,7 @@ class SummaryAgent:
         if not pending_data:
             return True
 
-        rounds = _count_rounds(len(pending_data), batch_size)
+        rounds = count_rounds(len(pending_data), batch_size)
         prompts = [data["prompt"] for data in pending_data]
         responses = []
 
