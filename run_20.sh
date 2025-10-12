@@ -4,13 +4,15 @@ set -euo pipefail
 RUNS=20
 REF_ROUNDS="${REF_ROUNDS:-5}"
 
-JSON_PATH="data_input_new.json"
+JSON_PATH="data_input_new_copy.json"
+# JSON_PATH="data_summary.json"
 # MODEL="meta-llama/CodeLlama-34b-Instruct-hf"
 # MODEL="openai/gpt-oss-20b"
 BATCH=16
 TEMP=0.3
 # TOPP=0.8
 MAXTOK=8192
+SUMMARY=True
 
 mkdir -p ".log"
 
@@ -34,7 +36,8 @@ for i in $(seq 1 "${RUNS}"); do
   python3 agents/agent_verify.py "${base}" \
     --max_rounds "${REF_ROUNDS}" \
     --temperature "${TEMP}" \
-    --max_new_tokens "${MAXTOK}"
+    --max_new_tokens "${MAXTOK}" \
+    --summarize "${SUMMARY}"
 done
 
 echo "All ${RUNS} runs finished."

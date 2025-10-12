@@ -46,7 +46,6 @@ def _parse_suggest(raw: str) -> str:
 
 
 class SummaryAgent:
-
     def __init__(
         self,
         model: VLLMGenerator,
@@ -103,25 +102,25 @@ class SummaryAgent:
                     prompt, tokenize=False, add_generation_prompt=True
                 )
                 prompts.append(prompt)
-        else:
-            rounds = _count_rounds(len(self.database), batch_size)
-            agents = []
-            summaries = []
-            for i in range(rounds):
-                batch_prompts = prompts[i * batch_size : (i + 1) * batch_size]
-                responses = self.model.generate_batch(
-                    batch_prompts,
-                    temperature=self.temperature,
-                    top_p=self.top_p,
-                    max_new_tokens=self.max_new_tokens,
-                )
-                for resp in responses:
-                    agents.append(_parse_refine(resp))
-                    summaries.append(_parse_suggest(resp))
-            return {
-                self.database[i]["qname"]: {
-                    "agents": agents[i],
-                    "summary": summaries[i],
-                }
-                for i in range(len(self.database))
+
+        rounds = _count_rounds(len(self.database), batch_size)
+        agents = []
+        summaries = []
+        for i in range(rounds):
+            batch_prompts = prompts[i * batch_size : (i + 1) * batch_size]
+            responses = self.model.generate_batch(
+                batch_prompts,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                max_new_tokens=self.max_new_tokens,
+            )
+            for resp in responses:
+                agents.append(_parse_refine(resp))
+                summaries.append(_parse_suggest(resp))
+        return {
+            self.database[i]["qname"]: {
+                "agents": agents[i],
+                "summary": summaries[i],
             }
+            for i in range(len(self.database))
+        }

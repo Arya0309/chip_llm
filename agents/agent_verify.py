@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from utils import DEFAULT_MODEL, VLLMGenerator
+from summary import SummaryAgent
 
 # ────────────────────────────────────────────────────────────────
 # 設定
@@ -42,13 +43,15 @@ stderr: {stderr}
 returncode: {returncode}
 127 means timeout.
 """
-# ------------------ 要再加入 compile 結果 ------------------
+
+# v--------------需要完成的地方------------------v
+_SUMMARY_SYSTEM_PROMPT = """{qname} {summary}"""
 
 
 # ────────────────────────────────────────────────────────────────
 # Prompt & 解析
 # ────────────────────────────────────────────────────────────────
-def _len_check(compile_results, max_len=4000):
+def _len_check(compile_results, max_len=2000):
     half = max_len // 2
     for k in ["stdout", "stderr"]:
         if len(compile_results[k]) > max_len:
@@ -59,8 +62,8 @@ def _len_check(compile_results, max_len=4000):
             )
 
 
-def _build_prompt(srcs: Dict[str, str], compile_results) -> str:
-    _len_check(compile_results, max_len=4000)
+def _build_prompt(srcs: Dict[str, str], compile_results: Dict) -> str:
+    _len_check(compile_results, max_len=2000)
     blocks = "\n\n".join(
         _FILE_FMT.format(name=n, code=srcs[n].strip())
         for n in (
@@ -83,6 +86,21 @@ def _build_prompt(srcs: Dict[str, str], compile_results) -> str:
     return _llm.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
 
 
+def _build_summary_prompt(path: Path, qname: str, summary: Dict) -> str:
+    history = json.loads(path.read_text("utf-8"))
+    summary_msg = [
+        {
+            "role": "user",
+            "content": _SUMMARY_SYSTEM_PROMPT.format(qname=qname, summary=summary),
+        },
+    ]
+    return _llm.apply_chat_template(
+        history + summary_msg,
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+
+
 def _parse_refine(raw: str) -> List[str]:
     m = _REFINE_PAT.search(raw)
     if not m:
@@ -94,54 +112,6 @@ def _parse_refine(raw: str) -> List[str]:
 # ────────────────────────────────────────────────────────────────
 # 呼叫下游 agent
 # ────────────────────────────────────────────────────────────────
-def _append_issue_and_refine(
-    agent_name: str,
-    qdir_prev: Path,
-    qdir_next: Path,
-    issue_msg: str,
-    *,
-    temperature: float,
-    top_p: float,
-    max_new_tokens: int,
-):
-    prompt_path = qdir_prev / f"prompt_{agent_name}.json"
-    if not prompt_path.exists():
-        print(f"[WARN] prompt missing: {prompt_path}", file=sys.stderr)
-        return
-
-    messages = json.loads(prompt_path.read_text("utf-8"))
-    messages.append({"role": "user", "content": issue_msg})
-
-    # 存新 prompt（方便下次 round trace）
-    prompt_out = qdir_next / prompt_path.name
-    prompt_out.parent.mkdir(parents=True, exist_ok=True)
-    prompt_out.write_text(json.dumps(messages, ensure_ascii=False, indent=2), "utf-8")
-
-    # 呼叫對應 agent
-    if agent_name == "dut":
-        import agent_dut as ag
-    elif agent_name == "testbench":
-        import agent_tb as ag
-    elif agent_name == "pipeline":
-        import agent_pipe as ag
-    else:
-        return
-
-    new_files, messages = ag.refine(
-        messages,
-        issue_msg,
-        temperature=temperature,
-        top_p=top_p,
-        max_new_tokens=max_new_tokens,
-    )
-    for fname, code in new_files.items():
-        (qdir_next / fname).write_text(code, "utf-8")
-
-    (qdir_next / f"prompt_{agent_name}.json").write_text(
-        json.dumps(messages, ensure_ascii=False, indent=2), "utf-8"
-    )
-
-
 def _multiagent_refine(
     map: Dict[str, List],
     qdir_prev: Path,
@@ -261,6 +231,16 @@ Please generate ** ONLY ** Dut.h.
             )
 
 
+def _multiagent_summary_refine(
+    map: Dict[str, List],
+    qdir_prev: Path,
+    qdir_next: Path,
+    temperature: float,
+    top_p: float,
+    max_new_tokens: int,
+): ...
+
+
 # ────────────────────────────────────────────────────────────────
 # round_i → round_{i+1}
 # ────────────────────────────────────────────────────────────────
@@ -299,7 +279,7 @@ def _process_one_round(
 
     # v------------------------------------------------------------------------------------------------------------------------------v
     # 這邊build完prompt應該要先看code之後做summary，也許決定要修改哪些檔案也可以在這邊做。甚至可以用majority來決定要改哪些檔案（temperature稍微高一點）。
-    build_resuls = _build_process(prev_r)
+    build_results = _build_process(prev_r)
     need_more = True
     # 先蒐集所有執行有問題的題目，之後讓llm用一個batch生成
     map = {"prompt": [], "qname": [], "raw": [], "agents": []}
@@ -309,13 +289,13 @@ def _process_one_round(
         if qdir_prev.name == "build":
             shutil.copytree(qdir_prev, next_r / qdir_prev.name, dirs_exist_ok=True)
             continue
-        if "All test cases passed!" in build_resuls[qdir_prev.name]["stdout"]:
+        if "All test cases passed!" in build_results[qdir_prev.name]["stdout"]:
             continue
 
         qdir_next = next_r / qdir_prev.name
         shutil.copytree(qdir_prev, qdir_next, dirs_exist_ok=True)
 
-        compile_results = build_resuls[qdir_prev.name]
+        compile_results = build_results[qdir_prev.name]
         prompt = _build_prompt(_collect(qdir_prev), compile_results)
         map["prompt"].append(prompt)
         map["qname"].append(qdir_prev.name)
@@ -352,6 +332,87 @@ def _process_one_round(
     return need_more
 
 
+def _process_summary(
+    run_dir: Path,
+    r: int,
+    *,
+    max_rounds: int,
+    temperature: float,
+    top_p: float,
+    max_new_tokens: int,
+) -> bool:
+    prev_r = run_dir / f"round_{r}"
+    next_r = run_dir / f"round_{r+1}"
+    if next_r.exists():
+        shutil.rmtree(next_r)
+    next_r.mkdir(parents=True, exist_ok=True)
+    summaryAgent = SummaryAgent(
+        model=_llm,
+        temperature=temperature,
+        top_p=top_p,
+        max_new_tokens=max_new_tokens,
+    )
+
+    build_results = _build_process(prev_r)
+    for qname in build_results.keys():
+        qdir_prev = prev_r / qname
+        if not qdir_prev.is_dir():
+            continue
+        if qdir_prev.name == "build":
+            shutil.copytree(qdir_prev, next_r / qdir_prev.name, dirs_exist_ok=True)
+            continue
+        if "All test cases passed!" in build_results[qname]["stdout"]:
+            continue
+
+        qdir_next = next_r / qdir_prev.name
+        shutil.copytree(qdir_prev, qdir_next, dirs_exist_ok=True)
+
+        _len_check(build_results[qname], max_len=2000)
+        summaryAgent.add_data({qname: build_results[qname]})
+
+    # map = {
+    #     "qname": {
+    #         "agents": [],
+    #         "summary": "",
+    #     }
+    # }
+    summary_results = summaryAgent.summarize(prev_r, batch_size=16)
+    (prev_r / "summary.json").write_text(
+        json.dumps(summary_results, ensure_ascii=False, indent=2), "utf-8"
+    )
+    map = {"prompt": [], "qname": [], "agent": [], "refine_fn": []}
+    for k, v in summary_results.items():
+        for agent in v["agents"]:
+            if agent == "dut":
+                import agent_dut as ag
+            elif agent == "testbench":
+                import agent_tb as ag
+            elif agent == "pipeline":
+                import agent_pipe as ag
+            else:
+                raise ValueError(f"None/unknown agent: {agent}")
+
+            parse_fn = ag._parse_output
+            map["refine_fn"].append(parse_fn)
+
+            prompt = _build_summary_prompt(
+                (prev_r / k / f"prompt_{agent}.json"), k, v["summary"]
+            )
+
+            map["prompt"].append(prompt)
+            map["qname"].append(k)
+            map["agent"].append(agent)
+
+    _multiagent_summary_refine(map, prev_r, next_r, temperature, top_p, max_new_tokens)
+
+    # with (next_r / "verifier_record.json").open("w", encoding="utf-8") as f:
+    #     json.dump(map, f, ensure_ascii=False, indent=2)
+
+    # if r + 1 >= max_rounds:
+    #     print("[INFO] Max rounds reached but issues remain.", file=sys.stderr)
+    return False
+
+
 # ────────────────────────────────────────────────────────────────
 # CLI
 # ────────────────────────────────────────────────────────────────
@@ -362,6 +423,7 @@ def _parse_args():
     ap.add_argument("--temperature", type=float, default=0.3)
     ap.add_argument("--top_p", type=float, default=0.8)
     ap.add_argument("--max_new_tokens", type=int, default=4096)
+    ap.add_argument("--summarize", type=bool, default=False)
     return ap.parse_args()
 
 
@@ -374,14 +436,24 @@ def main():
 
     for r in range(1, args.max_rounds):
         print(f"[verifier] round_{r} → round_{r+1}")
-        more = _process_one_round(
-            run_dir,
-            r,
-            max_rounds=args.max_rounds,
-            temperature=args.temperature,
-            top_p=args.top_p,
-            max_new_tokens=args.max_new_tokens,
-        )
+        if args.summarize:
+            more = _process_summary(
+                run_dir,
+                r,
+                max_rounds=args.max_rounds,
+                temperature=args.temperature,
+                top_p=args.top_p,
+                max_new_tokens=args.max_new_tokens,
+            )
+        else:
+            more = _process_one_round(
+                run_dir,
+                r,
+                max_rounds=args.max_rounds,
+                temperature=args.temperature,
+                top_p=args.top_p,
+                max_new_tokens=args.max_new_tokens,
+            )
         if not more:
             print("[verifier] All fixed, stop.")
             break
@@ -440,13 +512,14 @@ def _build(code_dir: Path) -> Dict:
     shutil.rmtree(build_dir, ignore_errors=True)
 
     return {
+        "qname": code_dir.name,
         "stdout": result.stdout.strip(),
         "stderr": result.stderr.strip(),
         "returncode": result.returncode,
     }
 
 
-def _build_process(round_dir: Path) -> Dict[str, str]:
+def _build_process(round_dir: Path) -> Dict[str, Dict]:
     results = {}
     for code_dir in round_dir.iterdir():
         if not code_dir.is_dir():
