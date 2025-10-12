@@ -370,16 +370,13 @@ def _process_summary(
         _len_check(build_results[qname], max_len=2000)
         summaryAgent.add_data({qname: build_results[qname]})
 
-    # map = {
+    # summary_results = {
     #     "qname": {
     #         "agents": [],
     #         "summary": "",
     #     }
     # }
     summary_results = summaryAgent.summarize(prev_r, batch_size=16)
-    (prev_r / "summary.json").write_text(
-        json.dumps(summary_results, ensure_ascii=False, indent=2), "utf-8"
-    )
     map = {"prompt": [], "qname": [], "agent": [], "refine_fn": []}
     for k, v in summary_results.items():
         for agent in v["agents"]:

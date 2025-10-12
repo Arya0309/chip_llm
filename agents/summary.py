@@ -2,6 +2,7 @@ from typing import Dict, List, Union
 from utils import VLLMGenerator
 from pathlib import Path
 import re
+import json
 
 _SUMMARY_SYSTEM_PROMPT = """You are a senior SystemC/C++ verification engineer with 10+ years of experience debugging simulation issues.
 You are skilled at analyzing compilation/runtime error logs and tracing issues to specific modules (DUT, Testbench, Pipeline).
@@ -23,8 +24,19 @@ stderr: {stderr}
 returncode: {returncode}
 127 means timeout.
 """
+
+_ALLOWED_AGENTS = {"dut", "testbench", "pipeline"}
 _REFINE_PAT = re.compile("\\[REFINE\\]\\s*([a-z,]+)\\s*\\[/REFINE\\]", re.I)
 _SUGGEST_PAT = re.compile("\\[SUGGEST\\]\\s*(.+?)\\s*\\[/SUGGEST\\]", re.I | re.S)
+
+
+def _build_summary_prompt_with_code(
+    blocks: str, data: Dict[str, Union[str, int]]
+) -> List[Dict]:
+    return [
+        {"role": "system", "content": _SUMMARY_SYSTEM_PROMPT},
+        {"role": "user", "content": blocks + "\n\n" + _OUTPUT_FMT.format(**data)},
+    ]
 
 
 def _count_rounds(total: int, batch_size: int) -> int:
@@ -36,12 +48,19 @@ def _count_rounds(total: int, batch_size: int) -> int:
 
 def _parse_refine(raw: str) -> List[str]:
     m = _REFINE_PAT.search(raw)
+    if not m:
+        raise ValueError("[REFINE] tag not found.")
     agents = [s.strip().lower() for s in m.group(1).split(",")]
+    agents = [a for a in agents if a in _ALLOWED_AGENTS]
+    if not agents:
+        raise ValueError("No valid agents")
     return agents
 
 
 def _parse_suggest(raw: str) -> str:
     m = _SUGGEST_PAT.search(raw)
+    if not m:
+        raise ValueError("[SUGGEST] tag not found.")
     return m.group(1).strip()
 
 
@@ -66,6 +85,11 @@ class SummaryAgent:
                 "stdout": data.get("stdout", ""),
                 "stderr": data.get("stderr", ""),
                 "returncode": data.get("returncode", -1),
+                "prompt": None,
+                "raw_response": None,
+                "agents": None,
+                "summary": None,
+                "done": False,
             }
             self.database.append(entry)
 
@@ -73,7 +97,6 @@ class SummaryAgent:
         self.database = []
 
     def summarize(self, path: Path, batch_size: int = 16) -> Dict:
-        prompts = []
         code_files = [
             "Dut.h",
             "Dut.cpp",
@@ -90,37 +113,73 @@ class SummaryAgent:
                     raise FileNotFoundError(f"File not found: {qname_path / f}")
                 code = (qname_path / f).read_text("utf-8")
                 blocks += _FILE_FMT.format(name=f, code=code) + "\n\n"
-            else:
-                prompt = [
-                    {"role": "system", "content": _SUMMARY_SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": blocks + "\n\n" + _OUTPUT_FMT.format(**data),
-                    },
-                ]
+
+                prompt = _build_summary_prompt_with_code(blocks, data)
                 prompt = self.model.apply_chat_template(
                     prompt, tokenize=False, add_generation_prompt=True
                 )
-                prompts.append(prompt)
+                data["prompt"] = prompt
 
-        rounds = _count_rounds(len(self.database), batch_size)
-        agents = []
-        summaries = []
+        for i in range(5):
+            print(f"Generating summaries... (Attempt {i + 1})")
+            all_done = self._generate_summary(batch_size)
+            if all_done:
+                break
+
+        if not all_done:
+            raise RuntimeError("Failed to generate summaries after 5 attempts.")
+
+        write_dataset = {
+            data["qname"]: {
+                "agents": data["agents"],
+                "summary": data["summary"],
+                "raw_response": data["raw_response"],
+            }
+            for data in self.database
+        }
+        write_path = path / "summary.json"
+        write_path.write_text(json.dumps(write_dataset, indent=2), "utf-8")
+
+        return {
+            data["qname"]: {
+                "agents": data["agents"],
+                "summary": data["summary"],
+            }
+            for data in self.database
+        }
+
+    def _generate_summary(self, batch_size: int = 16) -> bool:
+        # 不要取已經完成 summary 的 data
+        # 這邊 pending_data 會修改 self.database 裡的內容，因為是 reference
+        pending_data = [data for data in self.database if not data["done"]]
+        if not pending_data:
+            return True
+
+        rounds = _count_rounds(len(pending_data), batch_size)
+        prompts = [data["prompt"] for data in pending_data]
+        responses = []
+
         for i in range(rounds):
             batch_prompts = prompts[i * batch_size : (i + 1) * batch_size]
-            responses = self.model.generate_batch(
+            batch_responses = self.model.generate_batch(
                 batch_prompts,
                 temperature=self.temperature,
                 top_p=self.top_p,
                 max_new_tokens=self.max_new_tokens,
             )
-            for resp in responses:
-                agents.append(_parse_refine(resp))
-                summaries.append(_parse_suggest(resp))
-        return {
-            self.database[i]["qname"]: {
-                "agents": agents[i],
-                "summary": summaries[i],
-            }
-            for i in range(len(self.database))
-        }
+            responses.extend(batch_responses)
+
+        for data, resp in zip(pending_data, responses):
+            data["raw_response"] = resp
+            data["agents"] = None
+            data["summary"] = None
+
+            try:
+                data["agents"] = _parse_refine(resp)
+                data["summary"] = _parse_suggest(resp)
+            except Exception:
+                pass
+
+            data["done"] = data["agents"] is not None and data["summary"] is not None
+
+        return all(data["done"] for data in self.database)
