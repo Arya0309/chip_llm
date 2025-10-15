@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNS=1
-REF_ROUNDS="${REF_ROUNDS:-5}"
+RUNS=10
+REF_ROUNDS="${REF_ROUNDS:-10}"
 
-JSON_PATH="data_summary_copy.json"
-# JSON_PATH="data_summary.json"
+# JSON_PATH="data_summary_copy.json"
+JSON_PATH="data_summary.json"
 # MODEL="meta-llama/CodeLlama-34b-Instruct-hf"
 # MODEL="openai/gpt-oss-20b"
 BATCH=16
 TEMP=0.3
 # TOPP=0.8
 MAXTOK=8192
-SUMMARY=False
-# SUMMARY=True
+# SUMMARY=False
+SUMMARY=True
 
 mkdir -p ".log"
 

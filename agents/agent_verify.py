@@ -51,9 +51,20 @@ Please generate a repair patch based on the following summary.
 [Summary]
 {summary}
 
-Please generate ** ONLY ** Dut.h.
+Please generate ** ONLY ** {_agent}.h.
 """
-_GENERATE_CPP = "Please generate ** ONLY ** Dut.cpp."
+_GENERATE_CPP = "Please generate ** ONLY ** {_agent}.cpp."
+
+
+def _agent_map(agent: str):
+    if agent == "dut":
+        return "Dut"
+    elif agent == "testbench":
+        return "Testbench"
+    elif agent == "pipeline":
+        return "SystemPipeline"
+    else:
+        raise ValueError(f"None/unknown agent: {agent}")
 
 
 # ────────────────────────────────────────────────────────────────
@@ -99,7 +110,9 @@ def _build_summary_prompt(path: Path, agent: str, summary: Dict) -> str:
     summary_msg = [
         {
             "role": "user",
-            "content": _SUMMARY_PROMPT.format(agent=agent, summary=summary),
+            "content": _SUMMARY_PROMPT.format(
+                agent=agent, summary=summary, _agent=_agent_map(agent)
+            ),
         },
     ]
     return history + summary_msg
@@ -130,9 +143,9 @@ def _multiagent_refine(
     refine_map = {"qname": [], "agent": [], "parse_fn": [], "prompt": []}
 
     _ISSUE_MSG = """[ISSUE] Verifier detected problems in {agent}.\nPlease regenerate accordingly.
-Please generate ** ONLY ** Dut.h.
+Please generate ** ONLY ** {_agent}.h.
 """
-    _GENERATE_CPP = "Please generate ** ONLY ** Dut.cpp."
+    _GENERATE_CPP = "Please generate ** ONLY ** {_agent}.cpp."
 
     for qname, ags in zip(qnames, agents):
         for ag in ags:
@@ -182,9 +195,11 @@ Please generate ** ONLY ** Dut.h.
             top_p=top_p,
             max_new_tokens=max_new_tokens,
         )
-        for resp_h, prompt in zip(responses_h, batch_prompts):
+        for resp_h, prompt, ag in zip(responses_h, batch_prompts, batch_agents):
             prompt.append({"role": "assistant", "content": resp_h})
-            prompt.append({"role": "user", "content": _GENERATE_CPP})
+            prompt.append(
+                {"role": "user", "content": _GENERATE_CPP.format(_agent=_agent_map(ag))}
+            )
 
         # (1)
         inputs = []
@@ -265,9 +280,11 @@ def _multiagent_summary_refine(
             top_p=top_p,
             max_new_tokens=max_new_tokens,
         )
-        for resp_h, prompt in zip(responses_h, batch_prompts):
+        for resp_h, prompt, ag in zip(responses_h, batch_prompts, batch_agents):
             prompt.append({"role": "assistant", "content": resp_h})
-            prompt.append({"role": "user", "content": _GENERATE_CPP})
+            prompt.append(
+                {"role": "user", "content": _GENERATE_CPP.format(_agent=_agent_map(ag))}
+            )
 
         # (1)
         inputs = []
@@ -350,7 +367,7 @@ def _process_one_round(
     next_r.mkdir(parents=True, exist_ok=True)
 
     build_results = _build_process(prev_r)
-    need_more = True
+    need_more = False
     map = {"prompt": [], "qname": [], "raw": [], "agents": []}
     for qdir_prev in prev_r.iterdir():
         if not qdir_prev.is_dir():
@@ -361,6 +378,7 @@ def _process_one_round(
         if "All test cases passed!" in build_results[qdir_prev.name]["stdout"]:
             continue
 
+        need_more = True
         qdir_next = next_r / qdir_prev.name
         shutil.copytree(qdir_prev, qdir_next, dirs_exist_ok=True)
 
@@ -368,6 +386,10 @@ def _process_one_round(
         prompt = _build_prompt(_collect(qdir_prev), compile_results)
         map["prompt"].append(prompt)
         map["qname"].append(qdir_prev.name)
+
+    if not need_more:
+        shutil.rmtree(next_r)
+        return False
 
     batch_size = 16
     remainder = len(map["prompt"]) % batch_size
@@ -422,6 +444,7 @@ def _process_summary(
         max_new_tokens=max_new_tokens,
     )
 
+    need_more = False
     build_results = _build_process(prev_r)
     for qname in build_results.keys():
         qdir_prev = prev_r / qname
@@ -433,18 +456,17 @@ def _process_summary(
         if "All test cases passed!" in build_results[qname]["stdout"]:
             continue
 
+        need_more = True
         qdir_next = next_r / qdir_prev.name
         shutil.copytree(qdir_prev, qdir_next, dirs_exist_ok=True)
 
         _len_check(build_results[qname], max_len=2000)
         summaryAgent.add_data({qname: build_results[qname]})
 
-    # summary_results = {
-    #     "qname": {
-    #         "agents": [],
-    #         "summary": "",
-    #     }
-    # }
+    if not need_more:
+        shutil.rmtree(next_r)
+        return False
+
     summary_results = summaryAgent.summarize(prev_r, batch_size=16)
     map = {"prompt": [], "qname": [], "agent": [], "parse_fn": []}
     for k, v in summary_results.items():
@@ -566,8 +588,17 @@ def _build(code_dir: Path) -> Dict:
                 cwd=build_dir,
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=60,
             )
+
+            if result.returncode != 0:
+                print(f"[ERROR] Command failed: {cmd}")
+                return {
+                    "failed_cmd": cmd,
+                    "stdout": result.stdout.strip(),
+                    "stderr": result.stderr.strip(),
+                    "returncode": result.returncode,
+                }
 
         except FileNotFoundError as e:
             # 可執行檔/路徑不存在
@@ -589,7 +620,6 @@ def _build(code_dir: Path) -> Dict:
     shutil.rmtree(build_dir, ignore_errors=True)
 
     return {
-        "qname": code_dir.name,
         "stdout": result.stdout.strip(),
         "stderr": result.stderr.strip(),
         "returncode": result.returncode,
@@ -606,6 +636,7 @@ def _build_process(round_dir: Path) -> Dict[str, Dict]:
 
     # 將結果寫入到 round_dir/build_results.json
     build_results_path = round_dir / "build_results.json"
+    print(f"[INFO] Writing build results to {build_results_path}")
     with build_results_path.open("w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
     return results
@@ -613,4 +644,4 @@ def _build_process(round_dir: Path) -> Dict[str, Dict]:
 
 if __name__ == "__main__":
     main()
-    # _compile_process(Path(".log/run_1/round_1"))
+    # _build_process(Path(".log/run_1/round_2"))
