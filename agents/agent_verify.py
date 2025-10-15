@@ -349,11 +349,8 @@ def _process_one_round(
         shutil.rmtree(next_r)
     next_r.mkdir(parents=True, exist_ok=True)
 
-    # v------------------------------------------------------------------------------------------------------------------------------v
-    # 這邊build完prompt應該要先看code之後做summary，也許決定要修改哪些檔案也可以在這邊做。甚至可以用majority來決定要改哪些檔案（temperature稍微高一點）。
     build_results = _build_process(prev_r)
     need_more = True
-    # 先蒐集所有執行有問題的題目，之後讓llm用一個batch生成
     map = {"prompt": [], "qname": [], "raw": [], "agents": []}
     for qdir_prev in prev_r.iterdir():
         if not qdir_prev.is_dir():
@@ -515,6 +512,7 @@ def main():
                 max_new_tokens=args.max_new_tokens,
             )
         else:
+            print("Not using summary agent.")
             more = _process_one_round(
                 run_dir,
                 r,

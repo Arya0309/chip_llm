@@ -58,6 +58,10 @@ def _parse_suggest(raw: str) -> str:
     return m.group(1).strip()
 
 
+def write_json(path: Path, data: Dict):
+    path.write_text(json.dumps(data, indent=2), "utf-8")
+
+
 class SummaryAgent:
     def __init__(
         self,
@@ -91,6 +95,7 @@ class SummaryAgent:
         self.database = []
 
     def summarize(self, path: Path, batch_size: int = 16) -> Dict:
+        write_path = path / "summary.json"
         code_files = [
             "Dut.h",
             "Dut.cpp",
@@ -114,14 +119,17 @@ class SummaryAgent:
                 )
                 data["prompt"] = prompt
 
+        all_done = False
+        temperature_temp = self.temperature
         for i in range(5):
             print(f"Generating summaries... (Attempt {i + 1})")
+            if i > 2:
+                # 為了成功生成 summary，嘗試提高 temperature
+                self.temperature = max(self.temperature + (i - 2) * 0.2, 1.0)
             all_done = self._generate_summary(batch_size)
             if all_done:
                 break
-
-        if not all_done:
-            raise RuntimeError("Failed to generate summaries after 5 attempts.")
+        self.temperature = temperature_temp
 
         write_dataset = {
             data["qname"]: {
@@ -131,8 +139,10 @@ class SummaryAgent:
             }
             for data in self.database
         }
-        write_path = path / "summary.json"
-        write_path.write_text(json.dumps(write_dataset, indent=2), "utf-8")
+        write_json(write_path, write_dataset)
+
+        if not all_done:
+            raise RuntimeError("Failed to generate summaries after 5 attempts.")
 
         return {
             data["qname"]: {

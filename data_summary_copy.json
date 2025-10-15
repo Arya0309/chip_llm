@@ -1,0 +1,130 @@
+[
+  {
+    "name": "MultiplyTwoMatrices",
+    "steps": 2,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 2×2 matrix \n    a 2×3 matrix\nExpected output consists of:\n    a 2×3 matrix",
+    "code": "// Matrix multiplication for fixed‑size 2x2 and 2x3 matrices\n// Synthesizable C++ code (no I/O, no STL)\n\n#define R1 2\n#define C1 2\n#define R2 2\n#define C2 3\n\n// Multiply mat1 (R1 x C1) by mat2 (R2 x C2) and store result in rslt (R1 x C2)\nvoid mulMat(const int mat1[R1][C1], const int mat2[R2][C2], int rslt[R1][C2])\n{\n    for (int i = 0; i < R1; ++i) {\n        for (int j = 0; j < C2; ++j) {\n            rslt[i][j] = 0;\n            for (int k = 0; k < R2; ++k) {\n                rslt[i][j] += mat1[i][k] * mat2[k][j];\n            }\n        }\n    }\n}"
+  },
+  {
+    "name": "AddTwoMatrices",
+    "steps": 2,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    two 4×4 matrices\nExpected output consists of:\n    a 4×4 matrix",
+    "code": "/* === IO REQUIREMENT (HINT) ===\nExpected input consists of:\n    two 4×4 matrices\nExpected output consists of:\n    a 4×4 matrix\n*/\nusing namespace std;\n#define N 4\n\nvoid add(int A[][N], int B[][N], int C[][N])\n{\n    int i, j;\n    for (i = 0; i < N; i++)\n        for (j = 0; j < N; j++)\n            C[i][j] = A[i][j] + B[i][j];\n}"
+  },
+  {
+    "name": "RotateMatrixElementsofaMatrix",
+    "steps": 2,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 4×4 matrix \nExpected output consists of:\n    a 4×4 matrix",
+    "code": "/* === SYNTHESIZABLE ROTATE MATRIX (4×4) ===\n   This function rotates a 4×4 matrix by 90 degrees clockwise in place.\n   No I/O operations are performed; the function is fully synthesizable.\n*/\n#define R 4\n#define C 4\n\nvoid rotatematrix(int mat[R][C])\n{\n    // Number of layers is floor(min(R, C)/2)\n    const int layers = (R < C ? R : C) / 2;\n\n    for (int layer = 0; layer < layers; ++layer)\n    {\n        int first = layer;\n        int last  = (R - 1) - layer; // Since R == C == 4, last = 3 - layer\n\n        for (int i = first; i < last; ++i)\n        {\n            int offset = i - first;\n\n            // Save top\n            int top = mat[first][i];\n\n            // left -> top\n            mat[first][i] = mat[last - offset][first];\n\n            // bottom -> left\n            mat[last - offset][first] = mat[last][last - offset];\n\n            // right -> bottom\n            mat[last][last - offset] = mat[i][last];\n\n            // top -> right\n            mat[i][last] = top;\n        }\n    }\n}"
+  },
+  {
+    "name": "InterchangeElementsofFirstAndLastRowsinMatrix",
+    "steps": 2,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 4×4 matrix \nExpected output consists of:\n    a 4×4 matrix",
+    "code": "/* === IO REQUIREMENT (HINT) ===\nExpected input consists of:\n    a 4×4 matrix \nExpected output consists of:\n    a 4×4 matrix\n*/\n#define n 4 \n\nvoid interchangeFirstLast(int m[][n]) \n{ \n    for (int i = 0; i < n; i++) \n    { \n        int t = m[i][0]; \n        m[i][0] = m[i][n - 1]; \n        m[i][n - 1] = t; \n    } \n}"
+  },
+  {
+    "name": "FindtheDeterminantofaMatrix",
+    "steps": 3,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 4×4 matrix \nExpected output consists of:\n    a number",
+    "code": "#include <cmath>\n\ntemplate<int N>\nvoid swapRows(sc_fixed<64, 11, SC_RND, SC_SAT, 0> (&a)[N][N], int i, int j) {\n    for (int k = 0; k < N; ++k) {\n        sc_fixed<64, 11, SC_RND, SC_SAT, 0> tmp = a[i][k];\n        a[i][k] = a[j][k];\n        a[j][k] = tmp;\n    }\n}\n\ntemplate<int N>\nsc_fixed<64, 11, SC_RND, SC_SAT, 0> determinant(sc_fixed<64, 11, SC_RND, SC_SAT, 0> (&a)[N][N]) {\n    sc_fixed<64, 11, SC_RND, SC_SAT, 0> det = 1.0;\n    for (int i = 0; i < N; ++i) {\n        int pivot = i;\n        for (int j = i + 1; j < N; ++j) {\n            if (std::abs(a[j][i]) > std::abs(a[pivot][i])) {\n                pivot = j;\n            }\n        }\n        if (pivot != i) {\n            swapRows(a, i, pivot);\n            det *= -1.0;\n        }\n        if (a[i][i] == 0.0) {\n            return 0.0;\n        }\n        det *= a[i][i];\n        for (int j = i + 1; j < N; ++j) {\n            sc_fixed<64, 11, SC_RND, SC_SAT, 0> factor = a[j][i] / a[i][i];\n            for (int k = i + 1; k < N; ++k) {\n                a[j][k] -= factor * a[i][k];\n            }\n        }\n    }\n    return det;\n}"
+  },
+  {
+    "name": "NumberofUniqueTripletsWhoseXORisZero",
+    "steps": 3,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 6-element array\nExpected output consists of:\n    a number",
+    "code": "#include <cstddef>\n\nconstexpr int MAX_N = 256; // maximum supported array size\n\nint countTriplets(int a[], int n) \n{\n    int count = 0;\n    for (int i = 0; i < MAX_N; ++i) {\n        if (i >= n) break;\n        for (int j = i + 1; j < MAX_N; ++j) {\n            if (j >= n) break;\n            int xr = a[i] ^ a[j];\n            for (int k = 0; k < MAX_N; ++k) {\n                if (k >= n) break;\n                if (k != i && k != j && a[k] == xr) {\n                    count++;\n                    break; // found a matching element, no need to continue\n                }\n            }\n        }\n    }\n    return count / 3;\n}"
+  },
+  {
+    "name": "MergeSort",
+    "steps": 4,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 6-element array\nExpected output consists of:\n    a 6-element array",
+    "code": "// Synthesizable bubble sort for a fixed-size array using templates.\n// No I/O operations are present, making this code suitable for\n// Cadence Stratus HLS synthesis.\n\n#include <cstddef> // for std::size_t\n\n// Bubble sort implementation with compile‑time size\ntemplate<std::size_t N>\nvoid bubbleSort(int (&arr)[N]) {\n    for (std::size_t i = 0; i < N - 1; ++i) {\n        for (std::size_t j = 0; j < N - i - 1; ++j) {\n            if (arr[j] > arr[j + 1]) {\n                int tmp = arr[j];\n                arr[j] = arr[j + 1];\n                arr[j + 1] = tmp;\n            }\n        }\n    }\n}\n\n// Top‑level function that can be synthesized.\n// It sorts an array of exactly 6 integers.\nvoid sortArray(int arr[6]) {\n    bubbleSort(arr);\n}"
+  },
+  {
+    "name": "SortanArray_BubbleSort",
+    "steps": 2,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 6-element array\nExpected output consists of:\n    a 6-element array",
+    "code": "/* === IO REQUIREMENT (HINT) ===\nExpected input consists of:\n    a 6-element array\nExpected output consists of:\n    a 6-element array\n*/\n#include <stdio.h>\n\nvoid swap(int* arr, int i, int j) {\n    int temp = arr[i];\n    arr[i] = arr[j];\n    arr[j] = temp;\n}\n\nvoid bubbleSort(int arr[6]) {\n    const int N = 6;\n    for (int i = 0; i < N - 1; i++) {\n        for (int j = 0; j < N - i - 1; j++) {\n            if (arr[j] > arr[j + 1])\n                swap(arr, j, j + 1);\n        }\n    }\n}"
+  },
+  {
+    "name": "SearchanElementinanArray_BinarySearch",
+    "steps": 3,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    array A: a 6-element array\n    query: a number\nExpected output consists of:\n    result: 0/1",
+    "code": "// Synthesizable binary search implementation\n// No I/O streams are used; the function can be mapped to hardware.\n\n#include <cstddef>  // For size_t\n\n// Binary search on a statically sized array\nbool binarySearch(const int* arr, int size, int target) {\n    int low = 0;\n    int high = size - 1;\n\n    while (low <= high) {\n        int mid = (high - low) / 2 + low;\n\n        if (arr[mid] == target) {\n            return true;\n        }\n\n        if (arr[mid] > target) {\n            high = mid - 1;\n        } else {\n            low = mid + 1;\n        }\n    }\n    return false;\n}\n\n// Simple testbench (simulation only; no I/O)\nint main() {\n    const int N = 6;\n    int A[N] = {1, 3, 5, 7, 9, 11};\n    int query = 7;\n\n    bool found = binarySearch(A, N, query);\n\n    // The result can be checked in a simulation environment.\n    // Returning 0 if found, 1 otherwise (just for illustration).\n    return found ? 0 : 1;\n}"
+  },
+  {
+    "name": "ArrayRotation",
+    "steps": 3,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 6-element array\nExpected output consists of:\n    a 6-element array",
+    "code": "#include <cstddef>  // for size_t\n\n// Rotate a 6‑element array left by d positions\nvoid Rotate(int arr[6], int d)\n{\n    // Normalize d to be within [0,5]\n    d = d % 6;\n    if (d < 0) d += 6;   // handle negative d\n    if (d == 0) return;\n\n    int temp[6];\n    int k = 0;\n\n    // Copy elements from index d to end\n    for (int i = d; i < 6; ++i) {\n        temp[k++] = arr[i];\n    }\n\n    // Copy the first d elements\n    for (int i = 0; i < d; ++i) {\n        temp[k++] = arr[i];\n    }\n\n    // Copy back to original array\n    for (int i = 0; i < 6; ++i) {\n        arr[i] = temp[i];\n    }\n}\n\n// Example usage (no I/O, just a placeholder function)\n// The function could be called from a testbench or higher‑level module.\nvoid Example()\n{\n    int data[6] = {1, 2, 3, 4, 5, 6};\n    Rotate(data, 2);  // data becomes {3,4,5,6,1,2}\n}"
+  },
+  {
+    "name": "CopyAlltheElementsofOneArraytoAnotherintheReverseOrder",
+    "steps": 2,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a 6-element array\nExpected output consists of:\n    a 6-element array",
+    "code": "/* === IO REQUIREMENT (HINT) ===\nExpected input consists of:\n    a 6-element array\nExpected output consists of:\n    a 6-element array\n*/\n#include <stdint.h>\n\n#define LENGTH 6\n\n// Reverse a fixed‑size array of LENGTH elements\nvoid reverseArray(const int original[LENGTH], int reversed[LENGTH]) {\n#pragma HLS INLINE\n    for (int i = 0; i < LENGTH; i++) {\n#pragma HLS PIPELINE II=1\n        reversed[i] = original[LENGTH - i - 1];\n    }\n}"
+  },
+  {
+    "name": "AddTwoBinaryStrings",
+    "steps": 3,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    two 8-bit binary strings\nExpected output consists of:\n    a n-bit bianry string with n <= 9",
+    "code": "#include <cstdint>\n\n// Synthesizable addition of two 8‑bit binary numbers.\n// Returns a 9‑bit result (maximum sum of two 8‑bit numbers).\nuint16_t add8bit(uint8_t a, uint8_t b) {\n    // Perform addition; result fits in 9 bits.\n    return static_cast<uint16_t>(a) + static_cast<uint16_t>(b);\n}"
+  },
+  {
+    "name": "BinarytoDecimalConversion",
+    "steps": 3,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a n-bit binary number with n <= 10\nExpected output consists of:\n    a decimal number",
+    "code": "int binaryToDecimal(int n)\n{\n    if (n < 0) return 0;          // Guard against negative input\n\n    int dec_value = 0;\n    // Process up to 10 binary digits (bits)\n    for (int i = 0; i < 10; ++i)\n    {\n        int last_digit = n % 10;   // Extract the least‑significant decimal digit (0 or 1)\n        n /= 10;                   // Remove that digit\n        dec_value += last_digit << i; // Add the bit value shifted to its position\n    }\n    return dec_value;\n}"
+  },
+  {
+    "name": "FindGCD",
+    "steps": 3,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    two numbers\nExpected output consists of:\n    a number",
+    "code": "#include <cstdint>\n\n// Synthesizable GCD using Euclidean algorithm with a fixed iteration bound.\nint gcd(uint32_t a, uint32_t b) {\n    // The Euclidean algorithm will finish in at most 32 iterations\n    // for 32‑bit inputs. The loop is bounded by a constant.\n    for (int i = 0; i < 32; ++i) {\n        if (b == 0) break;\n        uint32_t t = a % b;\n        a = b;\n        b = t;\n    }\n    return static_cast<int>(a);\n}\n\n// Example top‑level function (no I/O). The host can call `gcd` directly.\nint main() {\n    // Placeholder: synthesis tools will treat `gcd` as the top module.\n    return 0;\n}"
+  },
+  {
+    "name": "FindLCM",
+    "steps": 3,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    two numbers\nExpected output consists of:\n    a number",
+    "code": "// Synthesizable LCM calculation without I/O or unbounded loops\nint gcd(int a, int b) {\n    // Euclidean algorithm – bounded by log(min(a,b))\n    while (b != 0) {\n        int temp = a % b;\n        a = b;\n        b = temp;\n    }\n    return a;\n}\n\nint lcm(int a, int b) {\n    // Handle zero inputs to avoid division by zero\n    if (a == 0 || b == 0) {\n        return 0;\n    }\n    int divisor = gcd(a, b);\n    return (a / divisor) * b;\n}"
+  },
+  {
+    "name": "FindFactorialofaNumber",
+    "steps": 2,
+    "local_pass": true,
+    "gpt_pass": true,
+    "requirement": "Given the C++ program below, generate SystemC code that is functionally equivalent.\nExpected input consists of:\n    a number\nExpected output consists of:\n    a number",
+    "code": "// Synthesis‑ready factorial function for n < 20\nconstexpr unsigned int factorial_table[20] = {\n    1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880,\n    3628800, 39916800, 479001600, 6227020800, 87178291200,\n    1307674368000, 20922789888000, 355687428096000,\n    6402373705728000, 121645100408832000\n};\n\nunsigned int factorial(unsigned int n)\n{\n    // Assume n < 20; synthesis tools can verify this constraint\n    return factorial_table[n];\n}"
+  }
+]

@@ -339,7 +339,9 @@ def main():
 
     # Stage 1 — FUNC
     print("[FUNC] Extracting functions...")
-    func_src, func_abdn = run_func_stage(codes, args.batch_size)
+    # func_src, func_abdn = run_func_stage(codes, args.batch_size)
+    func_src = codes
+    func_abdn = set()
 
     # Stage 2 — DUT
     print("[DUT] Generating DUT...")
