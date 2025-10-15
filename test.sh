@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNS=${RUNS:-10}
-REF_ROUNDS=${REF_ROUNDS:-5}
+RUNS=${RUNS:-1}
+REF_ROUNDS=${REF_ROUNDS:-10}
 JOBS=${JOBS:-"$(nproc)"}
 
 RESULT_ROOT="data_eval/result"

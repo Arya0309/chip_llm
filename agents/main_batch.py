@@ -337,11 +337,11 @@ def main():
     out_root = Path(args.out_dir)
     out_root.mkdir(parents=True, exist_ok=True)
 
-    # # Stage 1 — FUNC
-    # print("[FUNC] Extracting functions...")
-    # func_src, func_abdn = run_func_stage(codes, args.batch_size)
-    func_src = codes
-    func_abdn = set()
+    # Stage 1 — FUNC
+    print("[FUNC] Extracting functions...")
+    func_src, func_abdn = run_func_stage(codes, args.batch_size)
+    # func_src = codes
+    # func_abdn = set()
 
     # Stage 2 — DUT
     print("[DUT] Generating DUT...")

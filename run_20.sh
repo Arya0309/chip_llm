@@ -2,10 +2,11 @@
 set -euo pipefail
 
 RUNS=10
-REF_ROUNDS="${REF_ROUNDS:-10}"
+REF_ROUNDS="${REF_ROUNDS:-5}"
 
 # JSON_PATH="data_summary_copy.json"
-JSON_PATH="data_summary.json"
+# JSON_PATH="data_summary.json"
+JSON_PATH="data_input_new.json"
 # MODEL="meta-llama/CodeLlama-34b-Instruct-hf"
 # MODEL="openai/gpt-oss-20b"
 BATCH=16
