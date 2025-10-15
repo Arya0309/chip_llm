@@ -483,13 +483,24 @@ def _process_summary(
 # CLI
 # ────────────────────────────────────────────────────────────────
 def _parse_args():
+    def parse_tool(v):
+        if isinstance(v, bool):
+            return v
+        v = v.lower()
+        if v in ("true", "t", "1", "yes", "y"):
+            return True
+        elif v in ("false", "f", "0", "no", "n"):
+            return False
+        else:
+            raise argparse.ArgumentTypeError("Boolean value expected.")
+
     ap = argparse.ArgumentParser()
     ap.add_argument("run_dir", help=".log/run_i path")
     ap.add_argument("--max_rounds", type=int, default=5)
     ap.add_argument("--temperature", type=float, default=0.3)
     ap.add_argument("--top_p", type=float, default=0.8)
     ap.add_argument("--max_new_tokens", type=int, default=4096)
-    ap.add_argument("--summarize", type=bool, default=False)
+    ap.add_argument("--summarize", type=parse_tool, default=False)
     return ap.parse_args()
 
 
@@ -512,7 +523,6 @@ def main():
                 max_new_tokens=args.max_new_tokens,
             )
         else:
-            print("Not using summary agent.")
             more = _process_one_round(
                 run_dir,
                 r,
