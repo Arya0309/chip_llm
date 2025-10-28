@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNS=${RUNS:-1}
-REF_ROUNDS=${REF_ROUNDS:-10}
+RUNS=${RUNS:-10}
+REF_ROUNDS=${REF_ROUNDS:-5}
 JOBS=${JOBS:-"$(nproc)"}
 
 RESULT_ROOT="data_eval/result"
@@ -36,7 +36,8 @@ if [ -d "$round_dir" ]; then
   python3 checker.py \
     --root "$round_dir" \
     --json "$res_dir/result_${r}.json" \
-    --csv "$sum_dir/summary_${r}.csv"
+    --csv "$sum_dir/summary_${r}.csv" \
+    --timeout 90
 else
   echo "    - round_${r} missing, skip"
 fi

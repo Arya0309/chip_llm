@@ -22,6 +22,7 @@ from summary import SummaryAgent
 # ────────────────────────────────────────────────────────────────
 MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
 _llm = VLLMGenerator(MODEL_NAME)
+_prompt_mode = "prompt v0.0"
 
 
 # ------------------ 要再加入 compile 結果 ------------------
@@ -41,7 +42,6 @@ _OUTPUT_FMT = """** OUTPUTS: **
 stdout: {stdout}
 stderr: {stderr}
 returncode: {returncode}
-127 means timeout.
 """
 
 # v--------------需要完成的地方------------------v
@@ -149,8 +149,6 @@ Please generate ** ONLY ** {_agent}.h.
 
     for qname, ags in zip(qnames, agents):
         for ag in ags:
-            refine_map["qname"].append(qname)
-            refine_map["agent"].append(ag)
             if ag == "dut":
                 import agent_dut as _ag
             elif ag == "testbench":
@@ -158,8 +156,11 @@ Please generate ** ONLY ** {_agent}.h.
             elif ag == "pipeline":
                 import agent_pipe as _ag
             else:
-                raise ValueError(f"None/unknown agent: {ag}")
+                print(f"None/unknown agent: {ag}")
+                continue
 
+            refine_map["qname"].append(qname)
+            refine_map["agent"].append(ag)
             parse_fn = _ag._parse_output
             refine_map["parse_fn"].append(parse_fn)
 
@@ -167,11 +168,16 @@ Please generate ** ONLY ** {_agent}.h.
             if not prompt_path.exists():
                 raise FileNotFoundError(f"prompt missing: {prompt_path}")
             prompt = json.loads(prompt_path.read_text("utf-8"))
-            prompt.append({"role": "user", "content": _ISSUE_MSG.format(agent=ag)})
+            prompt.append(
+                {
+                    "role": "user",
+                    "content": _ISSUE_MSG.format(agent=ag, _agent=_agent_map(ag)),
+                }
+            )
             refine_map["prompt"].append(prompt)
 
     batch_size = 16
-    rounds = count_rounds(len(refine_map["prompt"]), batch_size=16)
+    rounds = count_rounds(len(refine_map["prompt"]), batch_size)
     for i in range(rounds):
         batch_prompts = refine_map["prompt"][i * batch_size : (i + 1) * batch_size]
         batch_parse_fns = refine_map["parse_fn"][i * batch_size : (i + 1) * batch_size]
@@ -255,7 +261,7 @@ def _multiagent_summary_refine(
 ):
     # map = {"prompt": [], "qname": [], "agent": [], "parse_fn": []}
     batch_size = 16
-    rounds = count_rounds(len(map["prompt"]), batch_size=16)
+    rounds = count_rounds(len(map["prompt"]), batch_size)
     for i in range(rounds):
         batch_prompts = map["prompt"][i * batch_size : (i + 1) * batch_size]
         batch_qnames = map["qname"][i * batch_size : (i + 1) * batch_size]
@@ -392,12 +398,7 @@ def _process_one_round(
         return False
 
     batch_size = 16
-    remainder = len(map["prompt"]) % batch_size
-    if remainder != 0:
-        rounds = len(map["prompt"]) // batch_size + 1
-    else:
-        rounds = len(map["prompt"]) // batch_size
-
+    rounds = count_rounds(len(map["prompt"]), batch_size)
     for i in range(rounds):
         batch_prompts = map["prompt"][i * batch_size : (i + 1) * batch_size]
         qnames = map["qname"][i * batch_size : (i + 1) * batch_size]
@@ -442,10 +443,11 @@ def _process_summary(
         temperature=temperature,
         top_p=top_p,
         max_new_tokens=max_new_tokens,
+        mode=_prompt_mode,
     )
 
-    need_more = False
     build_results = _build_process(prev_r)
+    need_more = False
     for qname in build_results.keys():
         qdir_prev = prev_r / qname
         if not qdir_prev.is_dir():
@@ -467,7 +469,7 @@ def _process_summary(
         shutil.rmtree(next_r)
         return False
 
-    summary_results = summaryAgent.summarize(prev_r, batch_size=16)
+    summary_results = summaryAgent.summarize(prev_r, batch_size=32)
     map = {"prompt": [], "qname": [], "agent": [], "parse_fn": []}
     for k, v in summary_results.items():
         for agent in v["agents"]:
@@ -483,8 +485,13 @@ def _process_summary(
             parse_fn = ag._parse_output
             map["parse_fn"].append(parse_fn)
 
+            if _prompt_mode in ("prompt v0.0", "prompt v1.0"):
+                suggest_text = v["summary"]
+            elif _prompt_mode in ("prompt v1.1"):
+                suggest_text = v["summary"][agent]
+
             prompt = _build_summary_prompt(
-                (prev_r / k / f"prompt_{agent}.json"), agent, v["summary"]
+                (prev_r / k / f"prompt_{agent}.json"), agent, suggest_text
             )
 
             map["prompt"].append(prompt)
@@ -610,10 +617,10 @@ def _build(code_dir: Path) -> Dict:
             }
 
         except subprocess.TimeoutExpired as e:
-            print(f"[ERROR] Timeout (10 seconds)")
+            print(f"[ERROR] Timeout (60 seconds)")
             return {
                 "stdout": "",
-                "stderr": f"timed out. (10 seconds)",
+                "stderr": f"timed out. (60 seconds)",
                 "returncode": -1,
             }
 

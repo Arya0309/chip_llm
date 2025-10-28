@@ -5,7 +5,8 @@ from utils import count_rounds
 import re
 import json
 
-_SUMMARY_SYSTEM_PROMPT = """You are a senior SystemC/C++ verification engineer with experience debugging simulation issues.
+# Prompt v0.0
+_SUMMARY_SYSTEM_PROMPT_V0_0 = """You are a senior SystemC/C++ verification engineer with experience debugging simulation issues.
 You are skilled at analyzing compilation/runtime error logs and tracing issues to specific modules (DUT, Testbench, Pipeline).
 
 Task
@@ -15,6 +16,37 @@ Return EXACTLY two lines, no extra explanations.
 [REFINE] <dut|testbench|pipeline|comma_separated> [/REFINE]
 [SUGGEST] <detailed and clear suggestion how to fix> [/SUGGEST]
 """
+# Prompt v1.0
+_SUMMARY_SYSTEM_PROMPT_V1_0 = """You are a senior SystemC/C++ verification engineer with experience debugging simulation issues.
+You are skilled at analyzing compilation/runtime error logs and tracing issues to specific modules (DUT, Testbench, Pipeline).
+
+Task
+----
+Read the six source files (Dut / Testbench / SystemPipeline, .h/.cpp) and the terminal outputs.
+Return EXACTLY two sections, no extra explanations.
+[REFINE] <dut|testbench|pipeline|comma_separated> [/REFINE]
+[SUGGEST] <Provide a step-by-step modification plan.> [/SUGGEST]
+"""
+# Prompt v1.1
+_SUMMARY_SYSTEM_PROMPT_V1_1 = """You are a senior SystemC/C++ verification engineer with experience debugging simulation issues.
+You are skilled at analyzing compilation/runtime error logs and tracing issues to specific modules (DUT, Testbench, Pipeline).
+
+Hard Rules
+----------
+1. Assume compile and run each have a hard 60-second limit. You must not suggest changing this limit. If logs indicate a timeout, say so explicitly and propose code/testbench/scheduling optimizations—not longer time limits.
+2. No extra commentary, markdown, or explanations outside the two required sections.
+
+Task
+----
+Read the six source files and the terminal outputs.
+Return EXACTLY two sections, no extra explanations.
+[REFINE] <dut|testbench|pipeline|comma_separated> [/REFINE]
+
+Provide a step-by-step modification plan for each module listed in the [REFINE] section. Use this exact format:
+[AGENT] <module_name> [/AGENT]
+[SUGGEST] <a step-by-step modification plan> [/SUGGEST]"
+"""
+
 _FILE_FMT = """** FILE: {name} **
 ```cpp
 {code}
@@ -23,7 +55,6 @@ _OUTPUT_FMT = """** OUTPUTS: **
 stdout: {stdout}
 stderr: {stderr}
 returncode: {returncode}
-127 means timeout.
 
 Please summarize the possible causes of the error based on the above code and outputs, and suggest which modules (dut, testbench, pipeline) may need refinement.
 Wrap module names between [REFINE] and [/REFINE], and wrap your suggestion between [SUGGEST] and [/SUGGEST].
@@ -31,15 +62,23 @@ And testcases.txt and golden.txt are always correct.
 """
 
 _ALLOWED_AGENTS = {"dut", "testbench", "pipeline"}
-_REFINE_PAT = re.compile("\\[REFINE\\]\\s*([a-z,]+)\\s*\\[/REFINE\\]", re.I)
-_SUGGEST_PAT = re.compile("\\[SUGGEST\\]\\s*(.+?)\\s*\\[/SUGGEST\\]", re.I | re.S)
+_ALLOWED_PROMPT_MODES = {"prompt v0.0", "prompt v1.0", "prompt v1.1"}
+_REFINE_PAT = re.compile(r"\[REFINE\]\s*([a-z,\s]+)\s*\[/REFINE\]", re.I | re.S)
+_AGENT_PAT = re.compile(r"\[AGENT\]\s*(.+?)\s*\[/AGENT\]", re.I | re.S)
+_SUGGEST_PAT = re.compile(r"\[SUGGEST\]\s*(.+?)\s*\[/SUGGEST\]", re.I | re.S)
 
 
 def _build_summary_prompt_with_code(
-    blocks: str, data: Dict[str, Union[str, int]]
+    blocks: str, data: Dict[str, Union[str, int]], mode: str
 ) -> List[Dict]:
+    if mode == "prompt v0.0":
+        system_prompt = _SUMMARY_SYSTEM_PROMPT_V0_0
+    elif mode == "prompt v1.0":
+        system_prompt = _SUMMARY_SYSTEM_PROMPT_V1_0
+    elif mode == "prompt v1.1":
+        system_prompt = _SUMMARY_SYSTEM_PROMPT_V1_1
     return [
-        {"role": "system", "content": _SUMMARY_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": blocks + "\n\n" + _OUTPUT_FMT.format(**data)},
     ]
 
@@ -55,11 +94,35 @@ def _parse_refine(raw: str) -> List[str]:
     return agents
 
 
-def _parse_suggest(raw: str) -> str:
+# Prompt v0.0 and v1.0
+def _parse_suggest(raw: str) -> List[str]:
     m = _SUGGEST_PAT.search(raw)
     if not m:
         raise ValueError("[SUGGEST] tag not found.")
     return m.group(1).strip()
+
+
+# Prompt v1.1
+def _parse_suggest_pair(raw: str) -> Dict[str, str]:
+
+    def _mapping(agent_name: str) -> str:
+        if agent_name == "systempipeline":
+            return "pipeline"
+        return agent_name
+
+    pairs = {}
+    matches_agent = list(_AGENT_PAT.finditer(raw))
+    matches_suggest = list(_SUGGEST_PAT.finditer(raw))
+    if len(matches_agent) != len(matches_suggest):
+        raise ValueError("Mismatched number of [AGENT] and [SUGGEST] tags.")
+    for agent, suggest in zip(matches_agent, matches_suggest):
+        agent_name = agent.group(1).strip().lower()
+        agent_name = _mapping(agent_name)
+        suggest_text = suggest.group(1).strip()
+        if agent_name not in _ALLOWED_AGENTS:
+            raise ValueError(f"Invalid agent name: {agent_name}")
+        pairs[agent_name] = suggest_text
+    return pairs
 
 
 def write_json(path: Path, data: Dict):
@@ -69,16 +132,21 @@ def write_json(path: Path, data: Dict):
 class SummaryAgent:
     def __init__(
         self,
+        *,
         model: VLLMGenerator,
         temperature: float,
         top_p: float,
         max_new_tokens: int,
+        mode: str,
     ):
         self.model = model
         self.temperature = temperature
         self.top_p = top_p
         self.max_new_tokens = max_new_tokens
         self.database = []
+        if mode not in _ALLOWED_PROMPT_MODES:
+            raise ValueError(f"Invalid prompt mode: {mode}")
+        self.mode = mode
 
     def add_data(self, error_msg: Dict[str, Dict]):
         for qname, data in error_msg.items():
@@ -117,7 +185,7 @@ class SummaryAgent:
                 code = (qname_path / f).read_text("utf-8")
                 blocks += _FILE_FMT.format(name=f, code=code) + "\n\n"
 
-                prompt = _build_summary_prompt_with_code(blocks, data)
+                prompt = _build_summary_prompt_with_code(blocks, data, self.mode)
                 prompt = self.model.apply_chat_template(
                     prompt, tokenize=False, add_generation_prompt=True
                 )
@@ -184,11 +252,18 @@ class SummaryAgent:
             data["agents"] = None
             data["summary"] = None
 
-            try:
-                data["agents"] = _parse_refine(resp)
-                data["summary"] = _parse_suggest(resp)
-            except Exception:
-                pass
+            if self.mode in ("prompt v0.0", "prompt v1.0"):
+                try:
+                    data["agents"] = _parse_refine(resp)
+                    data["summary"] = _parse_suggest(resp)
+                except Exception:
+                    pass
+            elif self.mode in ("prompt v1.1"):
+                try:
+                    data["agents"] = _parse_refine(resp)
+                    data["summary"] = _parse_suggest_pair(resp)
+                except Exception:
+                    pass
 
             data["done"] = data["agents"] is not None and data["summary"] is not None
 

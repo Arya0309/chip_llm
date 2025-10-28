@@ -29,8 +29,8 @@ Role
 Hard Rules
 ----------
 1. Place functions at the very top of Dut.cpp, before the Dut class definition.
-1. **Exactly one FIFO port per logical tensor** – arrays/matrices are serialised element-by-element; never declare `sc_fifo_in<T> foo[N]` or multi-dim FIFO.
-2. Keep the fixed scaffold:
+2. **Exactly one FIFO port per logical tensor** – arrays/matrices are serialised element-by-element; never declare `sc_fifo_in<T> foo[N]` or multi-dim FIFO.
+3. Keep the fixed scaffold:
    ```cpp
    SC_THREAD(do_compute);
    sensitive << i_clk.pos();
