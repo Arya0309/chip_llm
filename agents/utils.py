@@ -9,7 +9,8 @@ import torch
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-DEFAULT_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-Coder-32B-Instruct")
+#DEFAULT_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-Coder-32B-Instruct")
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
 INPUT_DATA_DIR = PROJECT_ROOT / "data_inputs"  # /home/.../chip_llm/data_inputs
 
@@ -60,9 +61,13 @@ class HFGenerator:
         )
 
         # 4) 去掉 prompt token，回傳文字
-        return self.tokenizer.decode(
+        #return self.tokenizer.decode(
+        #    outputs[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=False
+        #)
+        response = self.tokenizer.decode(
             outputs[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=False
         )
+        return response.split("</think>")[-1] if "</think>" in response else response
 
 
 class VLLMGenerator:
@@ -133,7 +138,9 @@ class VLLMGenerator:
             repetition_penalty=repetition_penalty,
         )
         outputs = self.llm.generate([prompt], sampling_params, use_tqdm=use_tqdm)
-        return outputs[0].outputs[0].text
+        #return outputs[0].outputs[0].text
+        response = outputs[0].outputs[0].text
+        return response.split("</think>")[-1] if "</think>" in response else response
 
     __call__ = generate  # 允許像函式一樣直接呼叫
 
@@ -160,7 +167,9 @@ class VLLMGenerator:
         outs = self.llm.generate(
             prompts, params, use_tqdm=use_tqdm
         )  # vLLM 支援多 prompt 併發 :contentReference[oaicite:0]{index=0}
-        return [o.outputs[0].text for o in outs]
+        #return [o.outputs[0].text for o in outs]
+        responses = [o.outputs[0].text for o in outs]
+        return [r.split("</think>")[-1] if "</think>" in r else r for r in responses]
 
 
 def get_cmake_list() -> str:

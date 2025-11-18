@@ -18,8 +18,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Iterable, Set
 from math import comb
 
-#import matplotlib.pyplot as plt
-#from matplotlib.ticker import PercentFormatter
+# import matplotlib.pyplot as plt
+# from matplotlib.ticker import PercentFormatter
 
 
 # ---------------------------- Constants ----------------------------
@@ -205,13 +205,13 @@ def pass_at_k_across_runs(
 ) -> float:
     """
     組合式估計器：
-    - 對每題，將 1..runs 視為 n 次嘗試，其中有 c 次 unit_test_pass
-    - pass@k = 平均_{題目} [ 1 - C(n - c, k) / C(n, k) ] （k>n 時取 k=n）
+    - 對每題，將 1..runs 視為 n 次嘗試，其中針對各別任務有 c 次 unit_test_pass(任務 e.g. "FFT")。
+    - pass@k = 平均_{任務題目} [ 1 - C(n - c, k) / C(n, k) ] （k>n 時取 k=n）
     - 這樣可保證 pass@1 = 平均 unit_test_pass_rate（與修正後 summary 一致）
     """
     all_names, total = _load_all_problem_names(data_input)
     n = runs
-    kk = min(k, n)
+    kk = min(k, n)  # [TODO] 會有問題，之後改防呆
 
     # 每題在 n 次嘗試中的通過次數 c
     pass_count: Dict[str, int] = {name: 0 for name in all_names}
@@ -232,46 +232,48 @@ def pass_at_k_across_runs(
     if denom == 0:
         return 0.0
 
+    per_problem_passk = {}
     acc = 0.0
     for name in all_names:
         c = pass_count[name]
         # 全 fail 的組合數 / 全組合數
         fail_all = comb(n - c, kk) if kk <= (n - c) else 0
+        problem_passk = 1.0 - (fail_all / denom)
         acc += 1.0 - (fail_all / denom)
+        per_problem_passk[name] = f"{problem_passk*100}%"
 
-    return acc / len(all_names) if all_names else 0.0
+    return acc / len(all_names) if all_names else 0.0, per_problem_passk
 
 
 # ---------------------------- Plotting ----------------------------
-"""
-def plot_over_rounds(
-    series: Dict[int, float],
-    *,
-    title: str,
-    ylabel: str = "Rate",
-):
-    
-    顯示折線圖（不存檔）。x=round, y=series[round] (0~1)。
-    並以 round 1 的值畫一條水平基準線。
-    
-    if not series:
-        print(f"[plot] empty series for {title}")
-        return
 
-    rounds = sorted(series.keys())
-    ys = [series[r] for r in rounds]
-    y0 = series.get(1, ys[0])
+# def plot_over_rounds(
+#     series: Dict[int, float],
+#     *,
+#     title: str,
+#     ylabel: str = "Rate",
+# ):
+#     """
+#     顯示折線圖（不存檔）。x=round, y=series[round] (0~1)。
+#     並以 round 1 的值畫一條水平基準線。
+#     """
+#     if not series:
+#         print(f"[plot] empty series for {title}")
+#         return
 
-    plt.figure()
-    plt.plot(rounds, ys, marker="o")
-    plt.axhline(y=y0, linestyle="--")
-    plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
-    plt.title(title)
-    plt.xlabel("Round")
-    plt.ylabel(ylabel)
-    plt.grid(True, linestyle=":")
-    plt.show()
-"""
+#     rounds = sorted(series.keys())
+#     ys = [series[r] for r in rounds]
+#     y0 = series.get(1, ys[0])
+
+#     plt.figure()
+#     plt.plot(rounds, ys, marker="o")
+#     plt.axhline(y=y0, linestyle="--")
+#     plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=1))
+#     plt.title(title)
+#     plt.xlabel("Round")
+#     plt.ylabel(ylabel)
+#     plt.grid(True, linestyle=":")
+#     plt.show()
 
 
 # ---------------------------- Main workflow ----------------------------
@@ -310,22 +312,20 @@ def build_round_summary_csv(
     }
 
     # 3) pass@k（使用全集分母 + result backfill）
-    # 3) pass@k（使用全集分母 + result backfill）
-    passk = {}
-    for k_val in [1, 5, 10]:
-        if args.runs >= k_val:
-            passk[f"pass@{k_val}"] = pass_at_k_across_runs(
-                round_id, k_val, runs=runs, result_base=result_base, data_input=data_input
-            )
-        else:
-            print(f"[skip] pass@{k_val} since runs={runs} < {k_val}")
+    # passk = {
+    #     "pass@1": pass_at_k_across_runs(round_id, 1, runs=runs, result_base=result_base, data_input=data_input),
+    #     "pass@5": pass_at_k_across_runs(round_id, 5, runs=runs, result_base=result_base, data_input=data_input),
+    #     "pass@10": pass_at_k_across_runs(round_id, 10, runs=runs, result_base=result_base, data_input=data_input),
+    # }
 
+    passk, per_problem_passk = {}, {}
+    for k in [1, 5, 10]:
+        avg, detail = pass_at_k_across_runs(
+            round_id, k, runs=runs, result_base=result_base, data_input=data_input
+        )
+        passk[f"pass@{k}"] = avg
+        per_problem_passk[f"pass@{k}"] = detail
 
-    passk = {
-        "pass@1": pass_at_k_across_runs(round_id, 1, runs=runs, result_base=result_base, data_input=data_input),
-        "pass@5": pass_at_k_across_runs(round_id, 5, runs=runs, result_base=result_base, data_input=data_input),
-        "pass@10": pass_at_k_across_runs(round_id, 10, runs=runs, result_base=result_base, data_input=data_input),
-    }
 
     # 寫檔
     with out_csv.open("w", newline="", encoding="utf-8") as fp:
@@ -339,6 +339,17 @@ def build_round_summary_csv(
         w.writerow([])
         for k, v in passk.items():
             w.writerow([k, f"{v:.2%}"])
+        # 寫入各題 pass@k
+        # w.writerow([])
+        # w.writerow(["problem-pass@k", "value"])
+        # for k in [1, 5, 10]:
+        #     for name, val in per_problem_passk[f"pass@{k}"].items():
+        #         w.writerow([f"{name}-pass@{k}", f"{val:.2%}"])
+
+    out_json = out_dir / f"round_{round_id}_passk_detail.json"
+    with out_json.open("w", encoding="utf-8") as jf:
+        json.dump(per_problem_passk, jf, ensure_ascii=False, indent=2)
+
 
     return out_csv
 
@@ -373,7 +384,7 @@ def main():
             print(f"[round {args.round}] avg({args.state}) = {avg:.0f}")
 
     if args.round and args.passk:
-        pav = pass_at_k_across_runs(
+        pav, _ = pass_at_k_across_runs(
             args.round, args.passk, runs=args.runs, result_base=result_base, data_input=data_input
         )
         print(f"[round {args.round}] pass@{args.passk} = {pav:.2%}")
