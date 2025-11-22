@@ -41,3 +41,7 @@ git commit -m "在子分支上的初始提交：完成了某某功能"
 "MLP_FF": "0.0%",
 
 "Median_Filter": "0.0%"
+
+BATCH=4
+
+MAXTOK=16384
