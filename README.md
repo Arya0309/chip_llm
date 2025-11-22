@@ -19,7 +19,7 @@ make        # 或 cmake --build .
 tmux
 Ctrl + b + d
 tmux ls
-tmux attach -t 1
+tmux attach -t 0
 
 # git 分支
 git stash push -m "將現有修改存為子分支的起始點"

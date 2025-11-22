@@ -8,10 +8,10 @@ set -euo pipefail
 # ----------------------
 # 參數設定 (可透過環境變數覆寫)
 # ----------------------
-RUNS=${OVERRIDE_RUNS:-4}
+RUNS=${OVERRIDE_RUNS:-10}
 REF_ROUNDS=${OVERRIDE_ROUNDS:-5}
 JOBS=${JOBS:-"$(nproc)"}
-LOG_DIR=${OVERRIDE_LOG_DIR:-.log_gpt_summary_10_5}       # LOG 目錄
+LOG_DIR=${OVERRIDE_LOG_DIR:-.log_qewn_summary_10_5_new_data_float_check_io_dut_v3}       # LOG 目錄
 EVAL_ROOT_DEFAULT="data_eval"                             # 預設評估根目錄
 
 # ----------------------

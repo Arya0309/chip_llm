@@ -20,8 +20,10 @@ from summary import SummaryAgent
 # ────────────────────────────────────────────────────────────────
 # 設定
 # ────────────────────────────────────────────────────────────────
+from utils import LLMGeneratorFactory, DEFAULT_MODEL
+
 MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
-_llm = VLLMGenerator(MODEL_NAME)
+_llm = LLMGeneratorFactory(MODEL_NAME) # 讓工廠決定用哪一個
 _prompt_mode = "prompt v0.0"
 
 
@@ -445,6 +447,7 @@ def _process_summary(
         max_new_tokens=max_new_tokens,
         mode=_prompt_mode,
     )
+    
 
     build_results = _build_process(prev_r)
     need_more = False

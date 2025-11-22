@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Any
 from utils import VLLMGenerator
 from pathlib import Path
 from utils import count_rounds
@@ -133,7 +133,7 @@ class SummaryAgent:
     def __init__(
         self,
         *,
-        model: VLLMGenerator,
+        model: Any,
         temperature: float,
         top_p: float,
         max_new_tokens: int,

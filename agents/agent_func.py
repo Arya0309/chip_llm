@@ -12,8 +12,10 @@ import prompts as prompt
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+from utils import LLMGeneratorFactory, DEFAULT_MODEL
+
 MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
-_llm = VLLMGenerator(MODEL_NAME)
+_llm = LLMGeneratorFactory(MODEL_NAME) # 讓工廠決定用哪一個
 
 # ---------------------------------------------------------------------------
 # Prompts & Examples

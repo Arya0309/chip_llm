@@ -8,11 +8,14 @@ from typing import Any, Dict
 import torch
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer, AutoModelForCausalLM
+import concurrent.futures # 新增：用於 OpenAI 並行請求
+from openai import OpenAI
 
-#DEFAULT_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-Coder-32B-Instruct")
-DEFAULT_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen2.5-Coder-32B-Instruct")
+#DEFAULT_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+#DEFAULT_MODEL = os.getenv("LLM_MODEL", "gpt-4o")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]  # /home/.../chip_llm
-INPUT_DATA_DIR = PROJECT_ROOT / "data_inputs"  # /home/.../chip_llm/data_inputs
+INPUT_DATA_DIR = PROJECT_ROOT / "data_inputs_new"  # /home/.../chip_llm/data_inputs
 
 
 class HFGenerator:
@@ -172,6 +175,121 @@ class VLLMGenerator:
         return [r.split("</think>")[-1] if "</think>" in r else r for r in responses]
 
 
+# ===========================================================================
+# 新增：OpenAI Generator (介面模仿 VLLMGenerator)
+# ===========================================================================
+class OpenAIGenerator:
+    def __init__(self, model_name: str = DEFAULT_MODEL, **kwargs):
+        if OpenAI is None:
+            raise ImportError("Please install openai: pip install openai")
+        
+        # 從環境變數讀取 OPENAI_API_KEY
+        api_key = os.getenv("OPENAI_API_KEY")
+        base_url = os.getenv("OPENAI_BASE_URL") # 支援自訂 Endpoint (如 vLLM server, Azure)
+        
+        if not api_key:
+            print("Warning: OPENAI_API_KEY not found in env.")
+            
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.model_name = model_name
+        print(f"[OpenAIGenerator] Initialized for model: {model_name}")
+
+    def apply_chat_template(
+        self,
+        messages,
+        *,
+        tokenize: bool = False,
+        add_generation_prompt: bool = True,
+    ):
+        """
+        Override: 不進行 tokenization 或 string format。
+        直接回傳 messages list，讓 generate_batch 直接傳給 OpenAI API。
+        """
+        return messages
+
+    def generate(
+        self,
+        prompt: Union[str, List[Dict]],
+        *,
+        max_new_tokens: int = 4096,
+        temperature: float = 0.3,
+        top_p: float = 0.8,
+        **kwargs,
+    ) -> str:
+        # 如果傳入的是 list (messages)，直接用；如果是 str，包裝成 user message
+        messages = prompt if isinstance(prompt, list) else [{"role": "user", "content": prompt}]
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_new_tokens,
+                top_p=top_p,
+            )
+            content = response.choices[0].message.content
+            return self._clean_response(content)
+        except Exception as e:
+            print(f"[OpenAI Error] {e}")
+            return ""
+
+    # 允許像函式一樣直接呼叫
+    __call__ = generate
+
+    def generate_batch(
+        self,
+        prompts: list[Union[str, List[Dict]]],
+        *,
+        max_new_tokens: int = 4096,
+        temperature: float = 0.3,
+        top_p: float = 0.8,
+        **kwargs,
+    ) -> list[str]:
+        """
+        使用 ThreadPoolExecutor 並行呼叫 OpenAI API 來模擬 Batch 處理。
+        """
+        def _call_api(single_prompt):
+            return self.generate(
+                single_prompt,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p,
+            )
+
+        # 建議根據 API Rate Limit 調整 max_workers
+        max_workers = int(os.getenv("OPENAI_MAX_WORKERS", "8"))
+        
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # 使用 map 確保回傳順序與輸入順序一致
+            results = list(executor.map(_call_api, prompts))
+            
+        return results
+
+    def _clean_response(self, response: str) -> str:
+        """處理 deepseek/qwen 等可能出現的思考標籤"""
+        if response and "</think>" in response:
+            return response.split("</think>")[-1]
+        return response
+
+# ===========================================================================
+# 新增：Factory Function (統一入口)
+# ===========================================================================
+def LLMGeneratorFactory(model_name: str = DEFAULT_MODEL) -> Union[VLLMGenerator, OpenAIGenerator]:
+    """
+    根據 model_name 決定回傳 VLLMGenerator 或 OpenAIGenerator。
+    """
+    lower_name = model_name.lower()
+    
+    # 判斷邏輯：如果是 GPT 系列或 o1 系列，使用 OpenAI Generator
+    openai_keywords = ["gpt-", "o1-", "o3-", "text-embedding"]
+    
+    if any(k in lower_name for k in openai_keywords):
+        return OpenAIGenerator(model_name)
+    else:
+        # 預設還是走 vLLM (本地模型)
+        return VLLMGenerator(model_name)
+        
 def get_cmake_list() -> str:
     cmake_list = """cmake_minimum_required(VERSION 3.8)
 

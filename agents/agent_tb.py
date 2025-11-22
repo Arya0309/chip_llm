@@ -11,8 +11,10 @@ import prompts as prompt
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+from utils import LLMGeneratorFactory, DEFAULT_MODEL
+
 MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
-_llm = VLLMGenerator(MODEL_NAME)
+_llm = LLMGeneratorFactory(MODEL_NAME) # 讓工廠決定用哪一個
 
 # ---------------------------------------------------------------------------
 # One-shot in-context example without instruction header block
@@ -637,6 +639,49 @@ def _build_prompt(
             requirement = _DESCRIPTION_WITH_DUT + f"\n{requirement.strip()}"
         else:
             requirement = _DESCRIPTION_WITH_DUT
+        
+        
+        # [新增] 動態偵測浮點數並注入 Prompt
+        # ============================================================
+        # 檢查 Header 檔中是否定義了 float 或 double 類型的 Ports
+        if "float" in dut_h or "double" in dut_h:
+            requirement += (
+                "\n\n[VERIFICATION CONSTRAINT]\n"
+                "The DUT involves floating-point types. When writing the verification logic in do_fetch:\n"
+                "1. Do NOT use exact equality (==).\n"
+                "2. Use a tolerance check: if (std::abs(result - expected) > 1e-2) ...\n"
+                "3. Ensure <cmath> is included."
+            )
+        # ============================================================  
+        requirement += (
+            "\n\n[FILE I/O CONSTRAINT - STRICT]\n"
+            "1. The external files 'testcases.txt' and 'golden.txt' are PLAIN TEXT files containing numbers separated by spaces/newlines.\n"
+            "2. FORBIDDEN: Do NOT use `std::ios::binary`.\n"
+            "3. FORBIDDEN: Do NOT use `fin.read(...)` or `gin.read(...)` for block reading.\n"
+            "4. REQUIRED: Use `std::ifstream` in default text mode and use the `>>` operator to read values one by one.\n"
+            "5. If input/output is `unsigned char`, read it into an `int` variable first using `>>`, then static_cast.\n"
+            "6. **MATRIX/ARRAY READING PATTERN (CRITICAL)**:\n"
+            "   When reading a fixed-size structure (e.g., matrix[N][N]) inside the while loop:\n"
+            "   - **Do NOT** simply verify `fin >> val` inside the loop condition without handling the data.\n"
+            "   - **Pattern**: Use the first element to check stream validity, then read the rest.\n"
+            "   ```cpp\n"
+            "   int first_val;\n"
+            "   while (fin >> first_val) { // 1. Read first element to check EOF\n"
+            "       Testcase tc;\n"
+            "       tc.matrix[0][0] = first_val; // 2. Assign first element\n"
+            "       // 3. Read the REMAINING elements\n"
+            "       for (int i = 0; i < SIZE; ++i) {\n"
+            "           for (int j = 0; j < SIZE; ++j) {\n"
+            "               if (i == 0 && j == 0) continue; // Skip the one already read\n"
+            "               if (!(fin >> tc.matrix[i][j])) {\n"
+            "                   std::cerr << \"Error: Premature EOF\\n\"; sc_stop(); return;\n"
+            "               }\n"
+            "           }\n"
+            "       }\n"
+            "       tests.push_back(tc);\n"
+            "   }\n"
+            "   ```"
+        )
 
         messages = [
             {"role": "system", "content": system_prompt},

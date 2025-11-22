@@ -12,8 +12,10 @@ import prompts as prompt
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+from utils import LLMGeneratorFactory, DEFAULT_MODEL
+
 MODEL_NAME = os.getenv("LLM_MODEL", DEFAULT_MODEL)
-_llm = VLLMGenerator(MODEL_NAME)
+_llm = LLMGeneratorFactory(MODEL_NAME) # 讓工廠決定用哪一個 LLMGenerator
 
 # ---------------------------------------------------------------------------
 # One-shot in-context example without instruction header block
@@ -37,6 +39,9 @@ Hard Rules
    dont_initialize();
    reset_signal_is(i_rst, false);```
    These lines must remain unmodified.
+4. **Blocking I/O ONLY**: Always use blocking `port.read()` (or `val = port.read()`) and `port.write(val)`. 
+   - **NEVER use `nb_read()` or `nb_write()`**. 
+   - In HLS `SC_THREAD`, we must WAIT for data to arrive. `nb_read` causes immediate failure if the FIFO is empty.
 
 Output format (STRICT)
 ----------------------
@@ -161,7 +166,8 @@ void Dut::do_compute() {
         /* === Variable Section === */
         int A[N];
         int B[N];
-        // read two arrays element-by-element
+        // CRITICAL: Use blocking read() to wait for data. 
+        // NEVER use nb_read() as it breaks HLS handshaking.
         for (int i = 0; i < N; ++i) {
             A[i] = i_a.read();
         }
