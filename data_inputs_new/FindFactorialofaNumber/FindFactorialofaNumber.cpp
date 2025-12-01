@@ -2,7 +2,7 @@
 #include <fstream>
 using namespace std;
 
-long long int factorial(unsigned int n)
+long long int factorial(long long int n)
 {
 	long long int res = 1, i;
 	for (i = 2; i <= n; i++)

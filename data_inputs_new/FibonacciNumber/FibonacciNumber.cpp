@@ -2,12 +2,12 @@
 #include <fstream>
 using namespace std;
 
-int fib(int n) {
+long long int fib(long long n) {
     if (n <= 1)
         return n;
     
-    int prev1 = 1, prev2 = 0;
-    int curr;
+    long long prev1 = 1, prev2 = 0;
+    long long curr;
 
     for (int i = 2; i <= n; i++) {
         curr = prev1 + prev2;
@@ -21,7 +21,7 @@ int main() {
     ifstream infile("testcases.txt");
     ofstream outfile("ans.txt");
 
-    int n;
+    long long n;
     int count = 0;
 
     while (count < 100 && infile >> n) {
